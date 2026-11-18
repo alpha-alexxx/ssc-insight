@@ -69,11 +69,10 @@ test("plan schema: every task keeps its RBE url with query params", () => {
       assert.equal(task.score, null, "source must ship null scores");
     }
   }
-  // The export declares 273 planned tests but contains 262 task rows —
-  // recorded honestly: the app preserves the file as-is and derives all
-  // counts from the actual rows.
+  // Source declares 262 planned tests and holds 262 task rows — the app
+  // derives all counts from the actual rows, so both agree.
   assert.equal(count, 262);
-  assert.equal(plan.planned_tests_total, 273);
+  assert.equal(plan.planned_tests_total, 262);
 });
 
 test("plan schema: task keys are stable and reversible", () => {

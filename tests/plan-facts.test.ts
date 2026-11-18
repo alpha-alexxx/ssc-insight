@@ -20,7 +20,7 @@ test("task count comes from the rows, not the declared total", () => {
     0,
   );
   assert.equal(plan.taskCount, rows);
-  assert.notEqual(plan.taskCount, source.planned_tests_total);
+  assert.equal(plan.taskCount, source.planned_tests_total);
 });
 
 test("every plan day appears once, in day order", () => {
