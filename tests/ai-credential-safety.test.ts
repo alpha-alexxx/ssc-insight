@@ -77,8 +77,9 @@ test("AI routes resolve per-user config instead of reading env directly", () => 
 test("the provider pins redirects and never echoes the key in errors", () => {
   const provider = read("src/lib/ai/provider.ts");
   assert.match(provider, /redirect:\s*"error"/, "redirects must be refused");
-  // The Authorization header is set once, from config, and never logged.
-  assert.match(provider, /Authorization: `Bearer \$\{config\.apiKey\}`/);
+  // Authentication headers are selected from the typed auth mode and are never logged.
+  assert.match(provider, /headers\.Authorization = `Bearer \$\{config\.apiKey\}`/);
+  assert.match(provider, /headers\["x-api-key"\] = config\.apiKey/);
   assert.equal(
     /console\.(log|error|warn)/.test(provider),
     false,

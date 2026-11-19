@@ -1,10 +1,28 @@
+import {
+  authModeFor,
+  generationPathFor,
+  isAiAuthMode,
+  isAiProtocol,
+  modelsPathFor,
+  normaliseProviderPath,
+  type AiAuthMode,
+  type AiProtocol,
+} from "./protocols";
+
 export const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
 
 export type AiConfig = {
+  provider: string;
+  protocol: AiProtocol;
+  authMode: AiAuthMode;
   baseUrl: string;
+  generationPath: string;
+  modelsPath: string | null;
   apiKey: string;
   model: string;
   jsonMode: boolean;
+  allowHttp: boolean;
+  allowPrivate: boolean;
   dailyRequestLimit: number;
   dailyTokenLimit: number;
   maxOutputTokens: number;
@@ -53,18 +71,54 @@ function normaliseBaseUrl(value: string) {
  * working in that state.
  */
 export function readAiConfig(env: Env): AiConfig | null {
+  const rawProtocol = env.AI_PROTOCOL?.trim() || "openai-chat";
+  if (!isAiProtocol(rawProtocol)) return null;
+  const protocol = rawProtocol;
+  const rawAuthMode = env.AI_AUTH_MODE?.trim();
+  if (rawAuthMode && !isAiAuthMode(rawAuthMode)) return null;
+  const provider = env.AI_PROVIDER?.trim() || "env";
+  const authMode = rawAuthMode ?? authModeFor(protocol, provider);
   const apiKey = env.AI_API_KEY?.trim() ?? "";
   const model = env.AI_MODEL?.trim() ?? "";
-  if (!apiKey || !model || model.length > 120) return null;
+  if ((authMode !== "none" && !apiKey) || !model || model.length > 120)
+    return null;
   const baseUrl = normaliseBaseUrl(
     env.AI_BASE_URL?.trim() || DEFAULT_AI_BASE_URL,
   );
   if (!baseUrl) return null;
+  let generationPath: string;
+  let modelsPath: string | null;
+  try {
+    generationPath = normaliseProviderPath(
+      env.AI_GENERATION_PATH?.trim() || generationPathFor(protocol),
+    );
+    const rawModelsPath = env.AI_MODELS_PATH;
+    modelsPath =
+      rawModelsPath != null && !rawModelsPath.trim()
+        ? null
+        : normaliseProviderPath(
+            rawModelsPath?.trim() || modelsPathFor(protocol),
+          );
+  } catch {
+    return null;
+  }
+  const local =
+    new URL(baseUrl).hostname === "localhost" ||
+    new URL(baseUrl).hostname === "127.0.0.1" ||
+    new URL(baseUrl).hostname === "[::1]" ||
+    new URL(baseUrl).hostname === "::1";
   return {
+    provider,
+    protocol,
+    authMode,
     baseUrl,
+    generationPath,
+    modelsPath,
     apiKey,
     model,
     jsonMode: env.AI_JSON_MODE?.trim().toLowerCase() !== "false",
+    allowHttp: local && new URL(baseUrl).protocol === "http:",
+    allowPrivate: local,
     dailyRequestLimit: integerEnv(env, "AI_DAILY_REQUEST_LIMIT", 30, 1, 10_000),
     dailyTokenLimit: integerEnv(
       env,

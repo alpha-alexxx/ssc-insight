@@ -43,10 +43,17 @@ import { aiExtractionFixtures } from "./fixtures/ai-extraction";
 import { T2 } from "./fixtures/exam";
 
 const config: AiConfig = {
+  provider: "custom",
+  protocol: "openai-chat",
+  authMode: "bearer",
   baseUrl: "https://ai.example.com/v1",
+  generationPath: "chat/completions",
+  modelsPath: "models",
   apiKey: "test-key",
   model: "test-model",
   jsonMode: true,
+  allowHttp: false,
+  allowPrivate: false,
   dailyRequestLimit: 30,
   dailyTokenLimit: 300_000,
   maxOutputTokens: 100,
@@ -802,7 +809,7 @@ test("provider maps timeouts and upstream failures to safe AI errors", async () 
       }),
     (error: unknown) =>
       error instanceof AiError &&
-      error.code === "AI_PROVIDER_ERROR" &&
+      error.code === "AI_PROVIDER_AUTH" &&
       !error.message.includes("secret"),
   );
 });
