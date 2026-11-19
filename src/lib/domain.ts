@@ -1,34 +1,32 @@
 import { z } from "zod";
+/* Chart series colors are fixed per subject and live in globals.css
+   (--chart-quant, --chart-reasoning, …) so every palette renders the
+   same identity; no per-subject hex belongs here. */
 export const SUBJECTS = {
   quant: {
     name: "Quantitative Aptitude",
     short: "Quant",
     questions: 30,
-    color: "#2563eb",
   },
   reasoning: {
     name: "General Intelligence and Reasoning",
     short: "Reasoning",
     questions: 30,
-    color: "#8b5cf6",
   },
   english: {
     name: "English Comprehension",
     short: "English",
     questions: 45,
-    color: "#0891b2",
   },
   ga: {
     name: "General Awareness",
     short: "General Awareness",
     questions: 25,
-    color: "#e59a24",
   },
   computer: {
     name: "Computer Knowledge",
     short: "Computer",
     questions: 20,
-    color: "#64748b",
   },
 } as const;
 export type SubjectId = keyof typeof SUBJECTS;

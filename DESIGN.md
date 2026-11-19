@@ -113,19 +113,16 @@ an absent or invalid stored value is always safe:
 - **`data-palette`** — color identity: `orange` (the original terracotta,
   default), `blue`, `lime`, `violet`, `rose`, `graphite`. Each palette re-declares
   the same semantic tokens (canvas/paper/ink/muted/rule/soft + accent trio)
-  with its own tinted paper family, and only its own chart hues: accent-derived
-  series alias `--accent`, and the second/third/fourth categorical hues move
-  per palette (the second hue shifts only when the accent owns that slot).
-  Olive average, teal time, and warm-gray computer stay shared. Semantic
-  positive/warning/danger colors are deliberately NOT re-tinted per palette.
+  with its own tinted paper family. Chart series colors are deliberately NOT
+  part of a palette: every palette renders the same fixed per-subject hues
+  (see Colors), so no `[data-palette]` block declares chart hues.
   `graphite` is the monochrome silver-and-black palette ("black diamond"): a
   neutral paper family with a near-black accent (dark mode inverts to true
   graphite charcoal with silver ink), and the one palette that carries
   gradients — it overrides the `--accent-sheen`/`--canvas-sheen` tokens with
   ink/paper-derived `color-mix` gradients (a metallic streak on solid accent
   fills and a faint canvas wash). Those tokens default to `none`, so every
-  other palette ships flat. Graphite declares no chart-hue overrides: no
-  default categorical hue collides with a black accent.
+  other palette ships flat.
 - **`data-style`** — visual style: `vega` (the original editorial ledger —
   square, hairline rules, no shadows; default), `sera` (brutal: square,
   2px ink panel rules, hard offset `--elev-pop`, weight-600 display type,
@@ -140,7 +137,8 @@ an absent or invalid stored value is always safe:
 
 Rules across all 18 combinations: accent-on-paper button text ≥ 4.5:1 (all
 palettes verified, light and dark — graphite: 16.2:1 light, 14.8:1 dark);
-muted text ≥ 4.5:1 on canvas; focus
+muted text ≥ 4.5:1 on canvas; chart series colors are identical across
+palettes; focus
 outlines and semantic status colors unchanged; chart animation stays
 disabled; the outcome-card exception keeps `--radius-card` so sera squares
 it and mira tightens it. `src/components/theme-style-provider.tsx` owns the
@@ -154,9 +152,9 @@ graphite overrides them.
 
 ## Colors
 
-Terracotta identifies primary actions and the score series. Charcoal ink carries text and selected navigation. Paper and cream create subtle surface separation without textures. Muted ink remains legible for units, labels, and descriptions.
+Terracotta identifies primary actions; the score series keeps the same fixed terracotta identity in every palette. Charcoal ink carries text and selected navigation. Paper and cream create subtle surface separation without textures. Muted ink remains legible for units, labels, and descriptions.
 
-Subject charts use terracotta for Quant, blue for Reasoning, aqua for English, ochre for General Awareness, and warm gray for the separately scored Computer context. Section I reuses terracotta and Section II reuses blue. Correct answers use olive, incorrect answers terracotta, and skipped answers the soft rule color. Timing uses teal and the target reference uses muted ink in a dashed rule. `src/lib/chart-theme.ts` maps entity identities to the CSS chart variables; preserve those semantic mappings. Subject hues are a fixed categorical order validated for adjacent-pair CVD and normal-vision separation against the paper surface. Do not color nominal series by value or cycle extra hues for additional results.
+Chart series colors are fixed per subject and identical in every palette and every style — switching themes never re-colors the data, so a reader's learned color→subject mapping always holds. The accent lives in buttons, links, and selected UI, never in a chart series. Subject charts use terracotta for Quant, blue for Reasoning, aqua for English, ochre for General Awareness, and warm gray for the separately scored Computer context. Section I reuses terracotta and Section II reuses blue. Correct answers use olive, incorrect answers terracotta, and skipped answers the soft rule color. Timing uses teal and the target reference uses muted ink in a dashed rule. `src/lib/chart-theme.ts` maps entity identities to the CSS chart variables; preserve those semantic mappings. The hues are a fixed categorical order validated for adjacent-pair CVD and normal-vision separation against the paper surface; dark mode uses lightness-tuned variants of the same hues, declared once in `.dark`. Do not color nominal series by value or cycle extra hues for additional results.
 
 **The Meaning Rule.** Keep legends, units, and text labels alongside color; color alone must not carry a result's meaning. Every chart also exposes a square-bordered hover/focus tooltip and a "View data" table twin.
 

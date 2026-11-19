@@ -8,7 +8,8 @@
    SSC Insight — design tokens (warm editorial paper)
    Multi-theme system: TWO independent attributes on <html>
    (set before paint by the ThemeStyleProvider script):
-   - data-palette="orange|blue|lime|violet|rose|graphite"  (color identity)
+   - data-palette="orange|blue|lime|violet|rose|graphite"  (color identity;
+     chart series colors are fixed per subject and never vary per palette)
    - data-style="vega|sera|mira"                  (visual style)
    Defaults (no attribute = orange + vega) reproduce the original
    warm editorial paper exactly; every other combination swaps the
@@ -39,22 +40,26 @@
   --danger-hover: #75231e;
   --danger-soft: #f1dfd8;
 
-  /* Chart hues. Accent-derived series alias the accent token so each
-     palette only declares its own hue set; olive/teal/gray are earthy
-     neutrals shared by every palette (validated categorical order). */
-  --chart-score: var(--accent);
+  /* Chart hues — fixed per-subject identity, shared by every palette.
+     Switching palettes never re-colors the data: terracotta is Quant,
+     the score series, Section I and incorrect; blue is Reasoning and
+     Section II; olive correct; teal timing; warm gray Computer. The
+     accent stays in buttons, links and selected UI — never in a chart
+     series. Target (muted ink) and skipped (soft rule) are surface
+     semantics, so they still track the theme's neutrals. */
+  --chart-score: #b65335;
   --chart-average: #656d4a;
   --chart-time: #567276;
-  --chart-quant: var(--accent);
+  --chart-quant: #b65335;
   --chart-reasoning: #2a78d6;
   --chart-english: #1baf7a;
   --chart-ga: #eda100;
   --chart-computer: #767168;
-  --chart-section-1: var(--accent);
+  --chart-section-1: var(--chart-quant);
   --chart-section-2: var(--chart-reasoning);
   --chart-target: var(--muted);
   --chart-correct: var(--chart-average);
-  --chart-incorrect: var(--accent);
+  --chart-incorrect: var(--chart-quant);
   --chart-skipped: var(--rule-soft);
   --outcome-unattempted: #c9bda7;
 
@@ -191,7 +196,8 @@
 /* Dark mode: warm charcoal variant of the paper aesthetic. next-themes
    (layout.tsx) resolves light / dark / system and sets the `.dark` class on
    <html> before paint. Per-palette dark overrides below only need to restate
-   accent + categorical chart hues; the charcoal neutrals are shared. */
+   accent; the charcoal neutrals are shared, and the chart hues are fixed
+   per subject — dark restates the shared dark-tuned literals only. */
 .dark {
   color-scheme: dark;
   --canvas: #1a1815;
@@ -211,6 +217,9 @@
   --danger: #d8655a;
   --danger-hover: #c64f43;
   --danger-soft: #2a1714;
+  /* Fixed series identity, dark-tuned lightness of the same hues. */
+  --chart-score: #d97048;
+  --chart-quant: #d97048;
   --chart-average: #93a25c;
   --chart-time: #7fa3a7;
   --chart-reasoning: #5a9be8;
@@ -232,8 +241,8 @@
 }
 
 /* ---------- palette: blue — professional and precise ----------
-   Cool slate-tinted paper family; the chart's second hue moves to
-   violet because the accent now owns the blue slot. */
+   Cool slate-tinted paper family. Chart hues are fixed per subject for
+   every palette, so this block declares colors only. */
 [data-palette="blue"] {
   --canvas: #eef0f3;
   --paper: #f9fafb;
@@ -245,9 +254,6 @@
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-soft: #dbe5f8;
-  --chart-reasoning: #7c3aed;
-  --chart-english: #0d9488;
-  --chart-ga: #ca8a04;
 }
 .dark[data-palette="blue"] {
   --canvas: #16181d;
@@ -260,9 +266,6 @@
   --accent: #82a7f5;
   --accent-hover: #6d94ea;
   --accent-soft: #1d2438;
-  --chart-reasoning: #a78bfa;
-  --chart-english: #3fc9b0;
-  --chart-ga: #e5a50a;
 }
 
 /* ---------- palette: lime — fresh and analytical ----------
@@ -349,9 +352,10 @@
    The "black diamond": neutral silver paper family, near-black accent.
    The one palette that carries gradients — a quiet metallic sheen on
    accent fills and a faint silver wash on the canvas. Both derive from
-   ink/paper, so dark mode inverts them with no extra rules. Charts keep
-   their shared categorical hues: no default hue collides with a black
-   accent, so nothing needs to move. */
+   ink/paper, so dark mode inverts them with no extra rules. Chart hues
+   are fixed per subject for every palette, so this block declares
+   colors only — the monochrome chrome frames, but never re-colors,
+   the data. */
 [data-palette="graphite"] {
   --canvas: #ececee;
   --paper: #f7f7f8;

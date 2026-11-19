@@ -7,7 +7,7 @@
 
 .card {
   --outcome-correct: var(--chart-average, #656d4a);
-  --outcome-incorrect: var(--accent, #b65335);
+  --outcome-incorrect: var(--chart-incorrect, #b65335);
   --outcome-unattempted: var(--outcome-unattempted, #c9bda7);
   min-width: 0;
   width: 100%;
@@ -131,7 +131,7 @@
 }
 
 .ringValue {
-  stroke: var(--chart-score, var(--accent));
+  stroke: var(--chart-score, #b65335);
   stroke-linecap: butt;
 }
 
