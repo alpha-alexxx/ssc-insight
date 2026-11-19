@@ -54,6 +54,10 @@ const productionHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Keep security-advisory upgrade reminders enabled for this app.
+    agentUpgrade: "security",
+  },
   // Development only: allow the sandbox preview host to load dev assets.
   // Has no effect on production builds.
   allowedDevOrigins: [
