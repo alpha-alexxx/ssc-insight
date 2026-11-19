@@ -28,7 +28,12 @@ const logs = [];
 function send(method, params = {}) {
   const id = ++nextId;
   ws.send(JSON.stringify({ id, method, params }));
-  return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+  return new Promise((resolve, reject) =>
+    pending.set(id, {
+      resolve,
+      reject: (error) => reject(new Error(`${method}: ${error.message}`)),
+    }),
+  );
 }
 
 ws.on("message", (raw) => {
@@ -37,7 +42,7 @@ ws.on("message", (raw) => {
     const item = pending.get(message.id);
     if (!item) return;
     pending.delete(message.id);
-    if (message.error) item.reject(new Error(JSON.stringify(message.error)));
+    if (message.error) item.reject(new Error(message.error.message ?? JSON.stringify(message.error)));
     else item.resolve(message.result);
     return;
   }
@@ -69,6 +74,9 @@ await send("Runtime.enable");
 await send("Log.enable");
 await send("Network.enable");
 await send("Page.enable");
+// The app origin owns localStorage, so land on the app before pinning prefs.
+await send("Page.navigate", { url: base + "/" });
+await new Promise((resolve) => setTimeout(resolve, 1500));
 // Always pin the color scheme so light runs are deterministic in headless.
 await send("Emulation.setEmulatedMedia", {
   features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }],
@@ -77,6 +85,15 @@ if (dark) {
   await send("Runtime.evaluate", { expression: "localStorage.setItem('theme','dark')" });
 } else {
   await send("Runtime.evaluate", { expression: "localStorage.setItem('theme','light')" });
+}
+// Optional palette/style pin for multi-theme QA (read back before paint by
+// the ThemeStyleProvider script; "clear" resets to the defaults).
+for (const [key, value] of [["ssc.palette", arg("palette", "")], ["ssc.style", arg("style", "")]]) {
+  if (!value) continue;
+  const expr = value === "clear"
+    ? `localStorage.removeItem('${key}')`
+    : `localStorage.setItem('${key}','${value}')`;
+  await send("Runtime.evaluate", { expression: expr });
 }
 
 mkdirSync(outDir, { recursive: true });

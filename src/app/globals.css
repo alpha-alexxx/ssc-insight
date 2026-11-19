@@ -8,7 +8,7 @@
    SSC Insight — design tokens (warm editorial paper)
    Multi-theme system: TWO independent attributes on <html>
    (set before paint by the ThemeStyleProvider script):
-   - data-palette="orange|blue|lime|violet|rose"  (color identity)
+   - data-palette="orange|blue|lime|violet|rose|graphite"  (color identity)
    - data-style="vega|sera|mira"                  (visual style)
    Defaults (no attribute = orange + vega) reproduce the original
    warm editorial paper exactly; every other combination swaps the
@@ -100,6 +100,10 @@
   --type-metric: clamp(1.75rem, 2.6vw, 2.125rem);
   --type-stat: 2.625rem;
   --type-section-label: 0.625rem;
+  /* Body copy rides the same system: one token, so mira can drop a step
+     without re-declaring the body rule. */
+  --type-body: 0.875rem;
+  --type-segment: 0.7813rem;
 
   /* ---- component geometry (tokenised so phones can re-standardise it) ---- */
   --metric-cell-pad-y: 16px;
@@ -125,6 +129,14 @@
   --dur-quick: 140ms;
   --dur-enter: 220ms;
   --dur-view: 240ms;
+  /* ---- sheen (optional gradient accents) ----
+     Solid accent fills and the page canvas can carry a quiet gradient.
+     The defaults are `none` — every palette ships flat; a palette that
+     wants a sheen (graphite) overrides these with ink/paper-derived
+     color-mix gradients, so they adapt to dark mode with no per-mode
+     rules and never hardcode palette hexes outside the palette block. */
+  --accent-sheen: none;
+  --canvas-sheen: none;
   /* ---- ink plate (landing) ----
      The landing alternates paper sections with inverted "plates". A plate
      never remaps the semantic tokens: only these five are read, and only by
@@ -333,6 +345,53 @@
   --accent-soft: #3a1620;
 }
 
+/* ---------- palette: graphite — monochrome silver and black ----------
+   The "black diamond": neutral silver paper family, near-black accent.
+   The one palette that carries gradients — a quiet metallic sheen on
+   accent fills and a faint silver wash on the canvas. Both derive from
+   ink/paper, so dark mode inverts them with no extra rules. Charts keep
+   their shared categorical hues: no default hue collides with a black
+   accent, so nothing needs to move. */
+[data-palette="graphite"] {
+  --canvas: #ececee;
+  --paper: #f7f7f8;
+  --ink: #1a1a1e;
+  --muted: #606268;
+  --rule: #82848c;
+  --rule-soft: #d9dadd;
+  --soft: #e7e8ea;
+  --accent: #1a1a1e;
+  --accent-hover: #0e0e10;
+  --accent-soft: #e2e3e6;
+  /* Metallic silver→graphite streak for solid accent fills. The var()
+     chain resolves against the winning --ink/--paper on <html>, so the
+     same declaration serves light (dark button, silver sheen) and dark
+     (silver button, graphite sheen). */
+  --accent-sheen: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--paper) 18%, transparent),
+    transparent 45%,
+    color-mix(in oklab, var(--ink) 16%, transparent)
+  );
+  --canvas-sheen: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--ink) 4%, transparent),
+    transparent 320px
+  );
+}
+.dark[data-palette="graphite"] {
+  --canvas: #0b0b0d;
+  --paper: #141416;
+  --ink: #e6e6e9;
+  --muted: #9d9fa6;
+  --rule: #55575e;
+  --rule-soft: #2c2e33;
+  --soft: #1f2024;
+  --accent: #e6e6e9;
+  --accent-hover: #f4f4f6;
+  --accent-soft: #26272c;
+}
+
 /* ---------- style: sera — brutal ----------
    Square everything, ink-weight rules, hard offset elevation, decisive
    motion, heavier display type. Deliberate, not decorative. */
@@ -391,49 +450,60 @@
 
 /* ---------- style: mira — compact ----------
    Information-dense: softened radii, tighter controls, shorter rows,
-   quick quiet feedback. Legibility floor: 12px text, 28px controls. */
+   quick quiet feedback. Everything sits one "sm" step below vega, in
+   rem so the whole density scale tracks the root font size. Desktop
+   legibility floor: 12px text; phones re-standardise their own floors
+   (44px controls, 16px fields) at the end of this file. */
 [data-style="mira"] {
-  --radius-panel: 6px;
-  --radius-control: 6px;
-  --radius-card: 8px;
+  --radius-panel: 0.375rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
   /* Mira softens every radius; the pill track follows the control radius. */
-  --radius-pill: 6px;
-  --control-pad-y: 7px;
-  --control-pad-x: 10px;
-  --control-height: 34px;
-  --control-height-sm: 28px;
-  --table-cell-pad-y: 10px;
-  --table-cell-pad-x: 12px;
-  --label-gap: 5px;
-  --nav-pad-y: 9px;
-  --nav-pad-x: 12px;
-  --segment-pad-y: 4px;
-  --segment-pad-x: 10px;
-  --stat-cell-pad-y: 16px;
-  --stat-cell-pad-x: 18px;
+  --radius-pill: 0.375rem;
+  --control-pad-y: 0.375rem;
+  --control-pad-x: 0.5625rem;
+  --control-height: 2rem;
+  --control-height-sm: 1.625rem;
+  --table-cell-pad-y: 0.5rem;
+  --table-cell-pad-x: 0.625rem;
+  --label-gap: 0.25rem;
+  --nav-pad-y: 0.4375rem;
+  --nav-pad-x: 0.625rem;
+  --segment-pad-y: 0.1875rem;
+  --segment-pad-x: 0.5rem;
+  --stat-cell-pad-y: 0.75rem;
+  --stat-cell-pad-x: 0.875rem;
+  --metric-cell-pad-y: 0.5rem;
+  --metric-cell-pad-x: 0.75rem;
+  --band-cell-pad-y: 0.875rem;
+  --band-cell-pad-x: 1rem;
+  --day-nav-size: 1.75rem;
   --dur-quick: 90ms;
   --dur-enter: 130ms;
   --dur-view: 140ms;
   --elev-pop:
     0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 20px -14px rgba(0, 0, 0, 0.28);
-  --sidebar-row-h: 28px;
-  --sidebar-row-h-lg: 42px;
-  --sidebar-header-pad-y: 8px;
+  --sidebar-row-h: 1.625rem;
+  --sidebar-row-h-lg: 2.375rem;
+  --sidebar-header-pad-y: 0.375rem;
   /* Mira's compact type and cell rhythm are token overrides, not class
      re-declarations: the phone block later in this file must be able to
      supersede them without a specificity fight. */
-  --type-page-title: clamp(1.75rem, 2.8vw, 2.375rem);
-  --type-panel-title: 1.25rem;
-  --type-stat: 2.125rem;
-  --type-metric: 1.5rem;
-  --metric-cell-pad-y: 10px;
-  --metric-cell-pad-x: 14px;
+  --type-page-title: clamp(1.5rem, 2.4vw, 2rem);
+  --type-workspace-title: clamp(1.5rem, 2.2vw, 1.75rem);
+  --type-section-title: 1.125rem;
+  --type-panel-title: 1rem;
+  --type-panel-title-dense: 0.9375rem;
+  --type-stat: 1.75rem;
+  --type-metric: 1.25rem;
+  --type-body: 0.8125rem;
+  --type-segment: 0.75rem;
   /* Compact elevation to match mira's tighter scale. */
   --landing-lift: 0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent),
     0 10px 24px -16px color-mix(in oklab, var(--ink) 45%, transparent);
 }
 [data-style="mira"] .chart-empty {
-  min-height: 170px;
+  min-height: 9.375rem;
 }
 
 /* ---------- sidebar: style-adaptive chrome ----------
@@ -531,9 +601,14 @@
   body {
     margin: 0;
     background: var(--canvas);
+    /* Palette sheen (graphite): a faint canvas wash; `none` elsewhere.
+       no-repeat keeps the fade from tiling down a tall page. The image
+       declaration follows the background shorthand, so it wins. */
+    background-image: var(--canvas-sheen);
+    background-repeat: no-repeat;
     color: var(--ink);
     font-family: var(--font-body);
-    font-size: 0.875rem;
+    font-size: var(--type-body);
     -webkit-font-smoothing: antialiased;
     text-size-adjust: 100%;
     overflow-wrap: break-word;
@@ -815,7 +890,7 @@
     gap: 6px;
     padding: var(--segment-pad-y) var(--segment-pad-x);
     border-radius: var(--radius-pill);
-    font-size: 0.7813rem;
+    font-size: var(--type-segment);
     font-weight: 500;
     color: var(--muted);
     transition:
@@ -2425,11 +2500,17 @@ html {
     --type-metric: 1.5rem;
   }
   /* Explicit so a future re-ordering of the mira block cannot resurrect its
-     compact 20px title on phones. */
+     compact 20px title on phones. The sidebar/segment/nav lines restore
+     mira's shipped touch geometry: its tighter desktop values must not
+     reach coarse pointers below what was verified. */
   [data-style="mira"] {
     --type-panel-title: 1rem;
     --type-panel-title-dense: 1rem;
     --type-metric: 1.5rem;
+    --sidebar-row-h: 1.75rem;
+    --sidebar-row-h-lg: 2.625rem;
+    --segment-pad-x: 10px;
+    --nav-pad-y: 0.5625rem;
   }
 }
 

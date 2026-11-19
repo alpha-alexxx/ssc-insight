@@ -6,23 +6,34 @@ import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 /**
- * Multi-select toggle group on the Radix umbrella, styled as the project's
- * existing `.segment-group` / `.segment` pattern so it inherits every palette,
- * style and breakpoint rule — including the 44px phone hit area and the phone
- * `--segment-pad-x` tightening.
+ * Radix toggle group in two variants:
  *
- * Used for the calendar's layer toggles. It is deliberately **inline** rather
- * than a popover or dropdown: overlays all portal at z-50, and the layer
- * control must stay reachable while a drawer is open.
+ * - `segment` (default) — styled as the project's `.segment-group` /
+ *   `.segment` pattern so it inherits every palette, style and breakpoint
+ *   rule — including the 44px phone hit area and the phone
+ *   `--segment-pad-x` tightening.
+ * - `card` — rich selection cards (the Appearance panel's palette and
+ *   style pickers): the group takes the caller's grid classes, and each
+ *   item is a bordered card whose pressed state reads `data-state="on"`.
+ *   Item content is caller-owned (swatches, glyphs), so the variant only
+ *   owns the card chrome and the selected border/wash.
+ *
+ * It is deliberately **inline** rather than a popover or dropdown: overlays
+ * all portal at z-50, and these controls must stay reachable while a drawer
+ * is open.
  */
+
+type ToggleGroupVariant = "segment" | "card";
 
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & {
+    variant?: ToggleGroupVariant;
+  }
+>(({ className, variant = "segment", ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
-    className={cn("segment-group", className)}
+    className={cn(variant === "card" && "w-full", className)}
     {...props}
   />
 ));
@@ -30,15 +41,24 @@ ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 
 /**
  * One option. `aria-pressed` is what `.segment` styles, and Radix sets
- * `data-state="on"` on the pressed item, so both selectors agree.
+ * `data-state="on"` on the pressed item, so both selectors agree. The card
+ * variant drives its selected border/wash from `data-[state=on]` instead —
+ * no conditional className, the group's `value` owns the state.
  */
 const ToggleGroupItem = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> & {
+    variant?: ToggleGroupVariant;
+  }
+>(({ className, variant = "segment", ...props }, ref) => (
   <ToggleGroupPrimitive.Item
     ref={ref}
-    className={cn("segment", className)}
+    className={cn(
+      variant === "card"
+        ? "flex flex-col items-stretch rounded-control border border-rule-soft text-left transition-colors hover:border-rule data-[state=on]:border-accent data-[state=on]:bg-accent-soft"
+        : "segment",
+      className,
+    )}
     {...props}
   />
 ));

@@ -34,6 +34,7 @@ videos/*
 
 # local visual-QA screenshots (tools/shot.mjs output)
 .impeccable/refine/
+.impeccable/graphite/
 
 # ignoring videos and claude skills
 /videos

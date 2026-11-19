@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Panel } from "./dashboard-panels";
 import { ThemeToggle } from "./theme-toggle";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import {
   PALETTES,
   STYLES,
@@ -13,32 +14,18 @@ import {
 /**
  * Appearance — the palette × style selection experience (Settings).
  * Choices apply instantly (the tokens re-skin the whole app, which IS the
- * live preview) and persist via the ThemeStyleProvider. Selected states
- * render only after mount: the before-paint script owns the <html>
- * attributes, so reading them during SSR would cause a hydration mismatch.
+ * live preview) and persist via the ThemeStyleProvider. Both pickers are
+ * shadcn ToggleGroups (single selection) in the card variant: Radix owns
+ * the roving focus, `aria-pressed` and `data-state`, and the group's
+ * `value` owns the selection. Selected states render only after mount:
+ * the before-paint script owns the <html> attributes, so reading them
+ * during SSR would cause a hydration mismatch.
  */
 
-function PaletteChip({
-  palette,
-  selected,
-  onSelect,
-}: {
-  palette: (typeof PALETTES)[number];
-  selected: boolean;
-  onSelect: (id: PaletteId) => void;
-}) {
+/** Swatch preview: canvas field, paper half with an accent bar, accent half. */
+function PaletteChip({ palette }: { palette: (typeof PALETTES)[number] }) {
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      aria-label={`${palette.label} palette`}
-      onClick={() => onSelect(palette.id)}
-      className={`flex w-full min-w-20 flex-col gap-2 rounded-control border p-2 text-left transition-colors ${
-        selected
-          ? "border-accent bg-accent-soft"
-          : "border-rule-soft hover:border-rule"
-      }`}
-    >
+    <>
       <span
         aria-hidden="true"
         className="flex h-9 w-full overflow-hidden rounded-[4px] border border-rule-soft"
@@ -56,7 +43,7 @@ function PaletteChip({
         />
       </span>
       <span className="text-xs font-medium text-ink">{palette.label}</span>
-    </button>
+    </>
   );
 }
 
@@ -125,43 +112,52 @@ export function AppearancePanel() {
       <div className="p-6 pt-2">
         <fieldset className="border-0 p-0">
           <legend className="section-label mb-2.5">Color palette</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <ToggleGroup
+            type="single"
+            variant="card"
+            aria-label="Color palette"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
+            value={mounted ? palette : ""}
+            onValueChange={(value) => value && setPalette(value as PaletteId)}
+          >
             {PALETTES.map((p) => (
-              <PaletteChip
+              <ToggleGroupItem
                 key={p.id}
-                palette={p}
-                selected={mounted && palette === p.id}
-                onSelect={setPalette}
-              />
+                variant="card"
+                value={p.id}
+                aria-label={`${p.label} palette`}
+                className="gap-2 p-2"
+              >
+                <PaletteChip palette={p} />
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </fieldset>
         <fieldset className="mt-5 border-0 p-0">
           <legend className="section-label mb-2.5">Visual style</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {STYLES.map((s) => {
-              const selected = mounted && style === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setStyle(s.id)}
-                  className={`flex flex-col gap-2 rounded-control border p-3 text-left transition-colors ${
-                    selected
-                      ? "border-accent bg-accent-soft"
-                      : "border-rule-soft hover:border-rule"
-                  }`}
-                >
-                  <StyleGlyph style={s.id} />
-                  <span className="text-sm font-medium text-ink">{s.label}</span>
-                  <span className="text-[11px] leading-snug muted">
-                    {s.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <ToggleGroup
+            type="single"
+            variant="card"
+            aria-label="Visual style"
+            className="grid gap-2 sm:grid-cols-3"
+            value={mounted ? style : ""}
+            onValueChange={(value) => value && setStyle(value as StyleId)}
+          >
+            {STYLES.map((s) => (
+              <ToggleGroupItem
+                key={s.id}
+                variant="card"
+                value={s.id}
+                className="gap-2 p-3"
+              >
+                <StyleGlyph style={s.id} />
+                <span className="text-sm font-medium text-ink">{s.label}</span>
+                <span className="text-[11px] leading-snug muted">
+                  {s.description}
+                </span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </fieldset>
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-rule-soft pt-4">
           <div>

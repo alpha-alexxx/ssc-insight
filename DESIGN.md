@@ -111,32 +111,46 @@ paint by the ThemeStyleProvider script and persisted in localStorage
 an absent or invalid stored value is always safe:
 
 - **`data-palette`** — color identity: `orange` (the original terracotta,
-  default), `blue`, `lime`, `violet`, `rose`. Each palette re-declares the
-  same semantic tokens (canvas/paper/ink/muted/rule/soft + accent trio) with
-  its own tinted paper family, and only its own chart hues: accent-derived
+  default), `blue`, `lime`, `violet`, `rose`, `graphite`. Each palette re-declares
+  the same semantic tokens (canvas/paper/ink/muted/rule/soft + accent trio)
+  with its own tinted paper family, and only its own chart hues: accent-derived
   series alias `--accent`, and the second/third/fourth categorical hues move
   per palette (the second hue shifts only when the accent owns that slot).
   Olive average, teal time, and warm-gray computer stay shared. Semantic
   positive/warning/danger colors are deliberately NOT re-tinted per palette.
+  `graphite` is the monochrome silver-and-black palette ("black diamond"): a
+  neutral paper family with a near-black accent (dark mode inverts to true
+  graphite charcoal with silver ink), and the one palette that carries
+  gradients — it overrides the `--accent-sheen`/`--canvas-sheen` tokens with
+  ink/paper-derived `color-mix` gradients (a metallic streak on solid accent
+  fills and a faint canvas wash). Those tokens default to `none`, so every
+  other palette ships flat. Graphite declares no chart-hue overrides: no
+  default categorical hue collides with a black accent.
 - **`data-style`** — visual style: `vega` (the original editorial ledger —
   square, hairline rules, no shadows; default), `sera` (brutal: square,
   2px ink panel rules, hard offset `--elev-pop`, weight-600 display type,
-  decisive 170ms motion), `mira` (compact: 6px radii, 34px controls, 10px
-  table rows, tighter paddings, 140ms motion). Styles change geometry,
+  decisive 170ms motion), `mira` (compact: 6px radii, 2rem controls, 0.5rem
+  table rows, one "sm" type step below vega, tighter paddings, 140ms motion;
+  its density tokens are rem-based so the whole scale tracks the root font).
+  Styles change geometry,
   density, elevation, and motion — never layout, content, or behavior.
   Density lives in CSS custom properties (`--control-height`, `--table-cell-*`,
   `--control-pad-*`, consumed by the base layer and component classes), so
   Tailwind utilities still win where a view deliberately opts out.
 
-Rules across all 15 combinations: accent-on-paper button text ≥ 4.5:1 (all
-palettes verified, light and dark); muted text ≥ 4.5:1 on canvas; focus
+Rules across all 18 combinations: accent-on-paper button text ≥ 4.5:1 (all
+palettes verified, light and dark — graphite: 16.2:1 light, 14.8:1 dark);
+muted text ≥ 4.5:1 on canvas; focus
 outlines and semantic status colors unchanged; chart animation stays
 disabled; the outcome-card exception keeps `--radius-card` so sera squares
 it and mira tightens it. `src/components/theme-style-provider.tsx` owns the
 preference model; `src/components/appearance-panel.tsx` (Settings) is the
-selection UI — palettes and styles are chosen independently and apply
-instantly. Do not hardcode palette hexes in components; add new semantic
-tokens to `globals.css` instead.
+selection UI — shadcn ToggleGroups in the card variant, chosen
+independently and applying instantly. Do not hardcode palette hexes in
+components; add new semantic tokens to `globals.css` instead. The sheen
+tokens (`--accent-sheen`, `--canvas-sheen`) default to `none` and are
+consumed by the primary Button variant and the body background; only
+graphite overrides them.
 
 ## Colors
 
@@ -162,7 +176,7 @@ Source Serif 4 Variable supplies page headings, panel titles, metrics, and the t
 
 Supporting text is generally 10–13px; section labels use 10px uppercase lettering, weight 600, and 0.12em tracking. Use tabular figures for comparison values and timings. Keep units in muted ink rather than reducing their contrast.
 
-Type sizes are tokens (`--type-page-title`, `--type-workspace-title`, `--type-section-title`, `--type-panel-title`, `--type-panel-title-dense`, `--type-metric`, `--type-stat`) read by the `.page-title`, `.workspace-title`, `.section-title`, `.panel-title`, `.panel-title-dense`, `.metric-value` and `.stat-value` classes. A style or breakpoint resizes type by overriding a token, never by re-declaring the class. Below 640px (and on coarse pointers below 1280px) the phone block steps them: workspace title 28px, section title 20px, panel title 16px, metric values 24px. Panel titles are never larger on a phone than on desktop — the old 21px mobile override was an inversion and is gone. Nothing renders below 10px; the one exception is a single initial glyph inside a fixed-size host tile.
+Type sizes are tokens (`--type-page-title`, `--type-workspace-title`, `--type-section-title`, `--type-panel-title`, `--type-panel-title-dense`, `--type-metric`, `--type-stat`) plus the body and segment text tokens (`--type-body`, `--type-segment`) read by the `.page-title`, `.workspace-title`, `.section-title`, `.panel-title`, `.panel-title-dense`, `.metric-value`, `.stat-value`, `body` and `.segment`. A style or breakpoint resizes type by overriding a token, never by re-declaring the class. Below 640px (and on coarse pointers below 1280px) the phone block steps them: workspace title 28px, section title 20px, panel title 16px, metric values 24px. Panel titles are never larger on a phone than on desktop — the old 21px mobile override was an inversion and is gone. Nothing renders below 10px; the one exception is a single initial glyph inside a fixed-size host tile.
 
 ## Layout
 
@@ -174,7 +188,8 @@ The summary is one divided metric strip, not individual floating cards: soft rul
 
 The strip folds to 2×2 based on **its own width, not the viewport**: `.workspace-content` and any `.strip-frame` are query containers, and below 680px of content the strip (and `.score-band`) reflow to two columns with the border pairs re-declared. This is what keeps a 768px tablet — where the 15rem sidebar leaves only ~488px — from squeezing four cells into ~120px each. From 680px up the strip is four-across, so 1024 and every desktop width keep their shipped geometry. The My Tasks swipe row (`.metric-strip-scroll`) opts out and stays a horizontal snap row on phones.
 
-**Touch density.** Controls are 40px (compact 32px) at desktop density, and 44px on phones and coarse pointers for every style, including mira — 44px is an accessibility floor, not a style choice, so the phone token block sits last in `globals.css` and supersedes the `[data-style]` density. Icon-only controls that must stay visually small use `.tap-target`, whose pseudo-element grows the hit area without moving layout. Primary page actions use `.action-row`: full-width and stacked on phones, intrinsic and inline from `sm`.
+**Touch density.** Controls are 40px (compact 32px) at vega density — mira
+runs one step tighter (32px, compact 26px) — and 44px on phones and coarse pointers for every style, including mira — 44px is an accessibility floor, not a style choice, so the phone token block sits last in `globals.css` and supersedes the `[data-style]` density. Icon-only controls that must stay visually small use `.tap-target`, whose pseudo-element grows the hit area without moving layout. Primary page actions use `.action-row`: full-width and stacked on phones, intrinsic and inline from `sm`.
 
 **Form fields.** Every text, select and textarea control is 16px on phones and coarse pointers, unlayered and app-wide, including portaled sheets and dialogs — anything under 16px makes iOS zoom the viewport on focus.
 

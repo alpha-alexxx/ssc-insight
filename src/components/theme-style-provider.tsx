@@ -65,6 +65,14 @@ export const PALETTES = [
     paper: "#fcf8f9",
     accent: "#be123c",
   },
+  {
+    id: "graphite",
+    label: "Graphite",
+    description: "Monochrome silver and black, with a quiet metallic sheen.",
+    canvas: "#ececee",
+    paper: "#f7f7f8",
+    accent: "#1a1a1e",
+  },
 ] as const;
 
 export const STYLES = [
@@ -100,7 +108,7 @@ function persist(key: string, value: string) {
 }
 
 /** Runs before paint to set the <html> data attributes — no wrong-theme flash. */
-export const THEME_PREFS_SCRIPT = `(function(){var d=document.documentElement;try{var p=localStorage.getItem("${PALETTE_STORAGE_KEY}");if(p==="blue"||p==="lime"||p==="violet"||p==="rose"||p==="orange")d.dataset.palette=p;var s=localStorage.getItem("${STYLE_STORAGE_KEY}");if(s==="sera"||s==="vega"||s==="mira")d.dataset.style=s}catch(e){}})();`;
+export const THEME_PREFS_SCRIPT = `(function(){var d=document.documentElement;try{var p=localStorage.getItem("${PALETTE_STORAGE_KEY}");if(p==="blue"||p==="lime"||p==="violet"||p==="rose"||p==="graphite"||p==="orange")d.dataset.palette=p;var s=localStorage.getItem("${STYLE_STORAGE_KEY}");if(s==="sera"||s==="vega"||s==="mira")d.dataset.style=s}catch(e){}})();`;
 
 type ThemePrefs = {
   palette: PaletteId;

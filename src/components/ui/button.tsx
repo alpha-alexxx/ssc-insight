@@ -7,7 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-accent text-paper hover:bg-accent-hover",
+        default: "bg-accent text-paper hover:bg-accent-hover [background-image:var(--accent-sheen)]",
         outline: "border border-rule bg-paper hover:bg-canvas text-ink",
         ghost: "hover:bg-soft text-muted hover:text-ink",
         destructive: "bg-danger text-paper hover:bg-danger-hover",
