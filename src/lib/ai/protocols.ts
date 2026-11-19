@@ -32,7 +32,11 @@ export function generationPathFor(protocol: AiProtocol): string {
   return GENERATION_PATHS[protocol];
 }
 
-export function modelsPathFor(_protocol: AiProtocol): string {
+// The protocol parameter exists so call sites stay explicit about which
+// wire format they are asking about, even though every protocol shares the
+// OpenAI-style catalog path today.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function modelsPathFor(_protocol?: AiProtocol): string {
   return "models";
 }
 

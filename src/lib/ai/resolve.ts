@@ -1,11 +1,7 @@
 import "server-only";
 import { readAiConfig, type AiConfig } from "./config-core";
 import { getAiCredential } from "./credentials";
-import {
-  quotaLimitsForSource,
-  resolveSourcePolicy,
-  type AiConfigSource,
-} from "./resolve-core";
+import { resolveSourcePolicy, type AiConfigSource } from "./resolve-core";
 import {
   generationPathFor,
   modelsPathFor,
@@ -133,4 +129,4 @@ export async function resolveAiConfig(
   return { config: envConfig, source: "env" };
 }
 
-export { quotaLimitsForSource, USER_KEY_SAFETY_LIMITS } from "./resolve-core";
+export { USER_KEY_SAFETY_LIMITS } from "./resolve-core";
