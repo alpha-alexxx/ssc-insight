@@ -39,6 +39,7 @@ enum AiFeature {
   coach
   chat
   extract
+  test
 
   @@schema("ssc_insight")
 }
@@ -159,6 +160,10 @@ model AiUsage {
   userId         String
   day            String        @db.VarChar(10)
   feature        AiFeature
+  // Provider identity and protocol are safe metadata: they never identify a
+  // private endpoint URL and help attribute quota and failures per protocol.
+  provider       String?       @db.VarChar(40)
+  protocol       String?       @db.VarChar(40)
   model          String        @db.VarChar(120)
   status         AiUsageStatus @default(pending)
   providerCalls  Int           @default(0)
@@ -180,17 +185,25 @@ model AiUsage {
 // database-only leak yields ciphertext. Rows are excluded from JSON backups
 // and are never returned to a client in plaintext.
 model AiCredential {
-  userId       String   @id
-  provider     String   @db.VarChar(40)
-  baseUrl      String   @db.VarChar(300)
-  model        String   @db.VarChar(120)
-  apiKeyEnc    String   @db.Text
-  keyHint      String   @default("") @db.VarChar(8)
-  jsonMode     Boolean  @default(true)
-  allowHttp    Boolean  @default(false)
-  allowPrivate Boolean  @default(false)
-  createdAt    DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  userId         String   @id
+  provider       String   @db.VarChar(40)
+  // Which wire protocol this credential speaks. Defaults reproduce the
+  // pre-protocol behavior (OpenAI-compatible Chat Completions via Bearer).
+  protocol       String   @default("openai-chat") @db.VarChar(40)
+  authMode       String   @default("bearer") @db.VarChar(20)
+  baseUrl        String   @db.VarChar(300)
+  // Optional same-origin relative path overrides; null uses the protocol
+  // default (e.g. "chat/completions", "responses", "messages").
+  generationPath String?  @db.VarChar(200)
+  modelsPath     String?  @db.VarChar(200)
+  model          String   @db.VarChar(120)
+  apiKeyEnc      String   @db.Text
+  keyHint        String   @default("") @db.VarChar(8)
+  jsonMode       Boolean  @default(true)
+  allowHttp      Boolean  @default(false)
+  allowPrivate   Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
 
   @@schema("ssc_insight")
 }

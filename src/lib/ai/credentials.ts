@@ -7,6 +7,7 @@ import {
   encryptCredential,
   keyHint,
 } from "./crypto";
+import type { AiAuthMode, AiProtocol } from "./protocols";
 import { assertSafeBaseUrlShape } from "./ssrf-core";
 
 /**
@@ -17,14 +18,18 @@ import { assertSafeBaseUrlShape } from "./ssrf-core";
  *    database and is NEVER returned to a client, logged, or put in a backup.
  *  - `getAiCredential` is the only decrypting read and is server-internal.
  *  - `describeAiCredential` is the client-facing read and exposes only a
- *    provider label, model, base URL, and a 4-character key hint.
+ *    provider label, protocol/model/base URL, and a 4-character key hint.
  *  - Base URLs are shape-validated on write; the DNS-resolving SSRF check runs
  *    again immediately before each provider call.
  */
 
 export type AiCredentialInput = {
   provider: string;
+  protocol: AiProtocol;
+  authMode: AiAuthMode;
   baseUrl: string;
+  generationPath: string | null;
+  modelsPath: string | null;
   model: string;
   apiKey?: string | null;
   jsonMode?: boolean;
@@ -36,7 +41,11 @@ export type AiCredentialInput = {
 export type AiCredentialSummary = {
   configured: boolean;
   provider: string;
+  protocol: AiProtocol;
+  authMode: AiAuthMode;
   baseUrl: string;
+  generationPath: string | null;
+  modelsPath: string | null;
   model: string;
   keyHint: string | null;
   jsonMode: boolean;
@@ -67,7 +76,11 @@ export async function describeAiCredential(
     where: { userId },
     select: {
       provider: true,
+      protocol: true,
+      authMode: true,
       baseUrl: true,
+      generationPath: true,
+      modelsPath: true,
       model: true,
       keyHint: true,
       jsonMode: true,
@@ -80,7 +93,11 @@ export async function describeAiCredential(
   return {
     configured: true,
     provider: row.provider,
+    protocol: row.protocol as AiProtocol,
+    authMode: row.authMode as AiAuthMode,
     baseUrl: row.baseUrl,
+    generationPath: row.generationPath,
+    modelsPath: row.modelsPath,
     model: row.model,
     keyHint: row.keyHint || null,
     jsonMode: row.jsonMode,
@@ -91,16 +108,20 @@ export async function describeAiCredential(
 }
 
 /**
- * Decrypting read for server use only. Returns null when no row exists or the
- * stored ciphertext cannot be opened (wrong/rotated secret), so AI degrades to
- * "not configured" instead of throwing on every request.
+ * Decrypting read for server use only. Returns "invalid" when the stored
+ * ciphertext cannot be opened (wrong/rotated secret) so callers can surface a
+ * personal-configuration failure instead of silently switching providers.
  */
 export async function getAiCredential(userId: string) {
   const row = await database().aiCredential.findUnique({
     where: { userId },
     select: {
       provider: true,
+      protocol: true,
+      authMode: true,
       baseUrl: true,
+      generationPath: true,
+      modelsPath: true,
       apiKeyEnc: true,
       model: true,
       jsonMode: true,
@@ -113,12 +134,16 @@ export async function getAiCredential(userId: string) {
   try {
     apiKey = decryptCredential(row.apiKeyEnc, encryptionKey());
   } catch (error) {
-    if (error instanceof CredentialCryptoError) return null;
+    if (error instanceof CredentialCryptoError) return "invalid" as const;
     throw error;
   }
   return {
     provider: row.provider,
+    protocol: row.protocol as AiProtocol,
+    authMode: row.authMode as AiAuthMode,
     baseUrl: row.baseUrl,
+    generationPath: row.generationPath,
+    modelsPath: row.modelsPath,
     apiKey,
     model: row.model,
     jsonMode: row.jsonMode,
@@ -132,7 +157,8 @@ export async function getAiCredential(userId: string) {
  *
  * `apiKey` omitted/empty keeps the stored key (so the UI can change model or
  * base URL without re-entering the secret). Passing an explicit empty string is
- * treated the same way; use `deleteAiCredential` to remove it.
+ * treated the same way; use `deleteAiCredential` to remove it. No-auth
+ * providers may set the key explicitly to null on first save.
  */
 export async function saveAiCredential(
   userId: string,
@@ -159,6 +185,11 @@ export async function saveAiCredential(
     // Keep the existing secret untouched.
     apiKeyEnc = existing.apiKeyEnc;
     keyHintValue = existing.keyHint;
+  } else if (input.authMode === "none") {
+    // Store an encrypted non-secret sentinel so an app rollback still reads a
+    // valid envelope; new code with authMode "none" ignores its content.
+    apiKeyEnc = encryptCredential("local-no-auth", encryptionKey());
+    keyHintValue = HINT_PLACEHOLDER;
   } else {
     throw new CredentialCryptoError("An API key is required the first time.");
   }
@@ -168,7 +199,11 @@ export async function saveAiCredential(
     create: {
       userId,
       provider: input.provider,
+      protocol: input.protocol,
+      authMode: input.authMode,
       baseUrl,
+      generationPath: input.generationPath,
+      modelsPath: input.modelsPath,
       model: input.model,
       apiKeyEnc,
       keyHint: keyHintValue,
@@ -178,7 +213,11 @@ export async function saveAiCredential(
     },
     update: {
       provider: input.provider,
+      protocol: input.protocol,
+      authMode: input.authMode,
       baseUrl,
+      generationPath: input.generationPath,
+      modelsPath: input.modelsPath,
       model: input.model,
       apiKeyEnc,
       keyHint: keyHintValue,
@@ -188,7 +227,11 @@ export async function saveAiCredential(
     },
     select: {
       provider: true,
+      protocol: true,
+      authMode: true,
       baseUrl: true,
+      generationPath: true,
+      modelsPath: true,
       model: true,
       keyHint: true,
       jsonMode: true,
@@ -201,7 +244,11 @@ export async function saveAiCredential(
   return {
     configured: true,
     provider: row.provider,
+    protocol: row.protocol as AiProtocol,
+    authMode: row.authMode as AiAuthMode,
     baseUrl: row.baseUrl,
+    generationPath: row.generationPath,
+    modelsPath: row.modelsPath,
     model: row.model,
     keyHint: row.keyHint || null,
     jsonMode: row.jsonMode,

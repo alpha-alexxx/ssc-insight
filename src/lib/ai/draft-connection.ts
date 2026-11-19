@@ -5,7 +5,11 @@ import { assertSafeBaseUrl, SsrfError } from "./ssrf";
 import type { AiConnectionInput } from "./connection-input";
 import { sameCredentialTarget } from "./connection-target";
 
-/** Resolve the draft without persisting it or falling back to the server key. */
+/**
+ * Resolve the draft without persisting it or falling back to the server key.
+ * The saved key is reused only when the whole target — provider, protocol,
+ * auth mode, and endpoint paths — is unchanged.
+ */
 export async function resolveDraftConnection(
   userId: string,
   input: AiConnectionInput,
@@ -21,9 +25,14 @@ export async function resolveDraftConnection(
     throw error;
   }
   let apiKey = input.apiKey?.trim() ?? "";
+  if (input.authMode === "none") return { baseUrl, apiKey: "" };
   if (!apiKey) {
     const stored = await getAiCredential(userId);
-    if (stored && sameCredentialTarget(stored, { ...input, baseUrl }))
+    if (
+      stored &&
+      stored !== "invalid" &&
+      sameCredentialTarget(stored, { ...input, baseUrl })
+    )
       apiKey = stored.apiKey;
   }
   if (!apiKey)

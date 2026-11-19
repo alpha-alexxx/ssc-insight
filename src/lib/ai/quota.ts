@@ -1,3 +1,4 @@
+import { AiError } from "./errors";
 import { estimateTokens } from "./tokens";
 
 /** Bounded context builder target, used for conservative pre-call reserves. */
@@ -37,4 +38,14 @@ export function reservationTokens(input: {
 /** A failed call may already have been billed; never charge less than reserved. */
 export function chargedOnFailure(knownTokens: number, reservedTokens: number) {
   return Math.max(Math.max(0, knownTokens), Math.max(0, reservedTokens));
+}
+
+export function chargedForAiFailure(
+  error: unknown,
+  reservedTokens: number,
+  knownTokens = 0,
+) {
+  if (error instanceof AiError && error.billability === "none")
+    return Math.max(0, Math.floor(knownTokens));
+  return chargedOnFailure(knownTokens, reservedTokens);
 }

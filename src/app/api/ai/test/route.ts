@@ -6,6 +6,8 @@ import { AiError } from "@/lib/ai/errors";
 import { SsrfError } from "@/lib/ai/ssrf-core";
 import { aiCredentialSchema } from "@/lib/ai/connection-input";
 import { resolveDraftConnection } from "@/lib/ai/draft-connection";
+import type { AiConfigSource } from "@/lib/ai/resolve-core";
+import type { AiConfig } from "@/lib/ai/config-core";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,7 +24,9 @@ export const maxDuration = 60;
 export const POST = defineRoute(
   { kind: "write" },
   async ({ request, user }) => {
-    let resolved;
+    let resolved:
+      | { source: "draft" | AiConfigSource; config: AiConfig }
+      | null = null;
     try {
       if (request.body) {
         const parsed = aiCredentialSchema.safeParse(await readBody(request));
@@ -35,9 +39,17 @@ export const POST = defineRoute(
         resolved = {
           source: "draft",
           config: {
-            ...connection,
+            provider: parsed.data.provider,
+            protocol: parsed.data.protocol,
+            authMode: parsed.data.authMode,
+            baseUrl: connection.baseUrl,
+            generationPath: parsed.data.generationPath,
+            modelsPath: parsed.data.modelsPath,
+            apiKey: connection.apiKey,
             model: parsed.data.model,
             jsonMode: parsed.data.jsonMode ?? true,
+            allowHttp: parsed.data.allowHttp,
+            allowPrivate: parsed.data.allowPrivate,
             maxOutputTokens: 16,
             timeoutMs: 20_000,
             dailyRequestLimit: 30,
@@ -46,7 +58,8 @@ export const POST = defineRoute(
         };
       } else {
         // Retain the existing saved-config test contract for other callers.
-        resolved = await resolveAiConfig(user.id);
+        const saved = await resolveAiConfig(user.id);
+        if (saved) resolved = { source: saved.source, config: saved.config };
       }
     } catch (error) {
       if (error instanceof SsrfError) {
@@ -81,6 +94,7 @@ export const POST = defineRoute(
         data: {
           ok: true,
           model: resolved.config.model,
+          protocol: resolved.config.protocol,
           source: resolved.source,
           // Confirms a real completion happened without exposing content.
           replyChars: result.text.trim().length,

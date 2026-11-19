@@ -73,11 +73,14 @@ function normaliseBaseUrl(value: string) {
 export function readAiConfig(env: Env): AiConfig | null {
   const rawProtocol = env.AI_PROTOCOL?.trim() || "openai-chat";
   if (!isAiProtocol(rawProtocol)) return null;
-  const protocol = rawProtocol;
+  const protocol: AiProtocol = rawProtocol;
   const rawAuthMode = env.AI_AUTH_MODE?.trim();
   if (rawAuthMode && !isAiAuthMode(rawAuthMode)) return null;
   const provider = env.AI_PROVIDER?.trim() || "env";
-  const authMode = rawAuthMode ?? authModeFor(protocol, provider);
+  const authMode: AiAuthMode =
+    rawAuthMode && isAiAuthMode(rawAuthMode)
+      ? rawAuthMode
+      : authModeFor(protocol, provider);
   const apiKey = env.AI_API_KEY?.trim() ?? "";
   const model = env.AI_MODEL?.trim() ?? "";
   if ((authMode !== "none" && !apiKey) || !model || model.length > 120)

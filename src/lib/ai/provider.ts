@@ -423,7 +423,7 @@ function parseSseFrame(raw: string): StreamFrame | null {
 
 type StreamResult = {
   delta?: string;
-  usage?: UsagePatch;
+  usage?: UsagePatch | null;
   done?: boolean;
 };
 
@@ -637,10 +637,10 @@ export function createAiProvider(
     const contentType = opened.response.headers.get("content-type") ?? "";
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
     let text = "";
-    let providerTokens: UsagePatch | null = null;
+    let providerTokens: UsagePatch | undefined;
     let done = false;
 
-    const mergeUsage = (patch?: UsagePatch) => {
+    const mergeUsage = (patch?: UsagePatch | null) => {
       if (!patch) return;
       providerTokens = { ...(providerTokens ?? {}), ...patch };
     };
@@ -700,16 +700,16 @@ export function createAiProvider(
         for (const frame of decoder.flush()) handleFrame(frame);
       }
       if (!text.trim()) throw aiInvalidOutput();
-      const inputTokens = providerTokens?.inputTokens ?? 0;
-      const outputTokens = providerTokens?.outputTokens ?? 0;
+      const tokens = providerTokens;
+      const inputTokens = tokens?.inputTokens ?? 0;
+      const outputTokens = tokens?.outputTokens ?? 0;
       return {
         text,
-        usage: providerTokens
+        usage: tokens
           ? {
               inputTokens,
               outputTokens,
-              totalTokens:
-                providerTokens.totalTokens ?? inputTokens + outputTokens,
+              totalTokens: tokens.totalTokens ?? inputTokens + outputTokens,
               estimated: false,
             }
           : estimatedUsage(args.messages, text),

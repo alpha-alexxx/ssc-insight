@@ -1,5 +1,9 @@
 import type { ExtractionDraft } from "./extraction";
 import type { CoachInsight } from "./schemas";
+import type { AiAuthMode, AiProtocol } from "./protocols";
+
+/** Where the active configuration came from. */
+export type AiConfigSource = "user" | "env";
 
 export type AiUsageSummary = {
   day: string;
@@ -10,12 +14,18 @@ export type AiUsageSummary = {
   retryAfterSeconds: number;
 };
 
+export type AiSourceState = "ready" | "personal-invalid" | "env-ready";
+
 export type AiStatus = {
+  /** False only when neither the user nor the deployment can resolve AI. */
   enabled: boolean;
+  state: AiSourceState | "unconfigured";
+  source: AiConfigSource | null;
+  provider: string | null;
+  protocol: AiProtocol | null;
+  authMode: AiAuthMode | null;
   model: string | null;
   usage: AiUsageSummary | null;
-  /** Where the active configuration came from. */
-  source?: "user" | "env" | null;
   /** False when the server has no AI_CREDENTIAL_SECRET, so keys cannot be saved. */
   storageAvailable?: boolean;
   credential?: AiCredentialSummary | null;
@@ -28,7 +38,11 @@ export type AiStatus = {
 export type AiCredentialSummary = {
   configured: boolean;
   provider: string;
+  protocol: AiProtocol;
+  authMode: AiAuthMode;
   baseUrl: string;
+  generationPath: string | null;
+  modelsPath: string | null;
   model: string;
   keyHint: string | null;
   jsonMode: boolean;

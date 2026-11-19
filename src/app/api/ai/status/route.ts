@@ -4,6 +4,8 @@ import {
   credentialStorageAvailable,
   describeAiCredential,
 } from "@/lib/ai/credentials";
+import { providerLabel } from "@/lib/ai/providers";
+import { USER_KEY_SAFETY_LIMITS } from "@/lib/ai/resolve-core";
 import { aiLimits } from "@/lib/ai/server";
 import { getAiUsageToday } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/require-user";
@@ -11,6 +13,15 @@ import { requireUser } from "@/lib/auth/require-user";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Status reports what can actually be used, never merely what is stored:
+ *   unconfigured      — neither the user nor the deployment can resolve AI
+ *   personal-invalid  — a saved credential exists but cannot be used
+ *                       (undecryptable key, unsafe URL): the user must fix or
+ *                       remove it; the environment provider is NOT substituted
+ *   env-ready         — the deployment's shared configuration is active
+ *   ready             — the user's own credential is active
+ */
 export async function GET() {
   try {
     const { id: userId } = await requireUser();
@@ -18,34 +29,71 @@ export async function GET() {
     const envConfig = aiConfigOrNull();
     const storageAvailable = credentialStorageAvailable();
 
-    // A personal credential enables AI even when the deployment has no
-    // server-side AI configuration.
     const source = credential ? "user" : envConfig ? "env" : null;
     if (!source) {
       return ok({
         enabled: false,
+        state: "unconfigured",
+        source: null,
+        provider: null,
+        protocol: null,
+        authMode: null,
         model: null,
         usage: null,
-        source: null,
         storageAvailable,
         credential: null,
       });
     }
 
-    // Quota applies to the shared server key only. A user spending their own
-    // key should not be throttled by the deployment's caps.
-    const usage =
-      source === "env" && envConfig
-        ? await getAiUsageToday(userId, aiLimits(envConfig))
-        : null;
+    if (source === "user" && credential) {
+      return ok({
+        enabled: true,
+        state: "ready",
+        source,
+        provider: credential.provider,
+        providerLabel: providerLabel(credential.provider),
+        protocol: credential.protocol,
+        authMode: credential.authMode,
+        model: credential.model,
+        // A personal key uses its own generous safety ceiling, never the
+        // deployment's shared-key caps. Usage stays visible.
+        usage: await getAiUsageToday(
+          userId,
+          USER_KEY_SAFETY_LIMITS,
+        ),
+        storageAvailable,
+        credential,
+      });
+    }
+
+    if (!envConfig) {
+      // A credential row exists but the deployment has no configuration and
+      // the credential itself could not be described — treat as invalid.
+      return ok({
+        enabled: false,
+        state: "personal-invalid",
+        source: null,
+        provider: null,
+        protocol: null,
+        authMode: null,
+        model: null,
+        usage: null,
+        storageAvailable,
+        credential,
+      });
+    }
 
     return ok({
       enabled: true,
-      model: credential?.model ?? envConfig?.model ?? null,
-      usage,
+      state: "env-ready",
       source,
+      provider: "env",
+      providerLabel: "Server configuration",
+      protocol: envConfig.protocol,
+      authMode: envConfig.authMode,
+      model: envConfig.model,
+      usage: await getAiUsageToday(userId, aiLimits(envConfig)),
       storageAvailable,
-      // Never includes the key: this summary exposes a 4-character hint only.
       credential,
     });
   } catch (error) {

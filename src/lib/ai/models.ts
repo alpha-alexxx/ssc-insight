@@ -1,4 +1,21 @@
+import {
+  ANTHROPIC_VERSION,
+  joinProviderUrl,
+  normaliseProviderPath,
+  type AiAuthMode,
+  type AiProtocol,
+} from "./protocols";
+
 export type AiModel = { id: string; name: string };
+
+export type ModelCatalogTarget = {
+  provider?: string;
+  baseUrl: string;
+  modelsPath?: string | null;
+  protocol?: AiProtocol;
+  authMode?: AiAuthMode;
+  apiKey?: string | null;
+};
 
 export class ModelDiscoveryError extends Error {
   constructor(
@@ -29,10 +46,15 @@ export function parseModelCatalog(payload: unknown): AiModel[] {
     const id = item.id.trim();
     if (!id || id.length > 120 || /[\u0000-\u001f\u007f]/.test(id)) continue;
     const name =
-      typeof item.name === "string" ? item.name.trim().slice(0, 160) : id;
+      typeof item.name === "string" && item.name.trim()
+        ? item.name.trim().slice(0, 160)
+        : typeof item.display_name === "string" && item.display_name.trim()
+          ? item.display_name.trim().slice(0, 160)
+          : id;
     // OpenRouter annotates modalities; omit known image/audio-only endpoints.
     const architecture = item.architecture as
-      { output_modalities?: unknown } | undefined;
+      | { output_modalities?: unknown }
+      | undefined;
     if (
       Array.isArray(architecture?.output_modalities) &&
       !architecture.output_modalities.includes("text")
@@ -44,22 +66,36 @@ export function parseModelCatalog(payload: unknown): AiModel[] {
 }
 
 export async function fetchModelCatalog(
-  connection: { baseUrl: string; apiKey: string },
+  connection: ModelCatalogTarget,
   signal: AbortSignal,
   fetcher: typeof fetch = fetch,
 ): Promise<AiModel[]> {
-  const response = await fetcher(
-    `${connection.baseUrl.replace(/\/+$/, "")}/models`,
-    {
-      headers: {
-        Authorization: `Bearer ${connection.apiKey}`,
-        Accept: "application/json",
-      },
-      redirect: "error",
-      cache: "no-store",
-      signal,
-    },
+  const protocol = connection.protocol ?? "openai-chat";
+  const authMode = connection.authMode ?? "bearer";
+  const modelsPath = normaliseProviderPath(
+    connection.modelsPath || "models",
   );
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (authMode === "bearer") {
+    headers.Authorization = `Bearer ${connection.apiKey ?? ""}`;
+  } else if (authMode === "anthropic-key") {
+    headers["x-api-key"] = connection.apiKey ?? "";
+    headers["anthropic-version"] = ANTHROPIC_VERSION;
+  }
+  // Anthropic's list endpoint defaults to 20 items per page.
+  const requestUrl =
+    protocol === "anthropic-messages"
+      ? `${joinProviderUrl(connection.baseUrl, modelsPath)}?limit=1000`
+      : joinProviderUrl(connection.baseUrl, modelsPath);
+
+  const response = await fetcher(requestUrl, {
+    headers,
+    redirect: "error",
+    cache: "no-store",
+    signal,
+  });
   if (!response.ok) {
     const message =
       response.status === 401 || response.status === 403

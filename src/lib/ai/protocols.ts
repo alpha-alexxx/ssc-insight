@@ -7,6 +7,9 @@ export const AI_PROTOCOLS = [
 
 export type AiProtocol = (typeof AI_PROTOCOLS)[number];
 
+/** Anthropic requires a dated API version header on every request. */
+export const ANTHROPIC_VERSION = "2026-10-21";
+
 export const AI_AUTH_MODES = ["bearer", "anthropic-key", "none"] as const;
 export type AiAuthMode = (typeof AI_AUTH_MODES)[number];
 
