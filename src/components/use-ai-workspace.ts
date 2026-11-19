@@ -107,6 +107,14 @@ export function useAiWorkspace() {
     setCoachMeta(null);
   }, []);
 
+  /**
+   * One shared abort controller covers coach and chat: Stop, tab changes,
+   * closing the Sheet, and unmount all cancel whichever request is active.
+   * `requestKind` records what produced the in-flight turn so Retry replays
+   * the correct endpoint.
+   */
+  const requestKindRef = useRef<"coach" | "chat" | null>(null);
+
   const generateCoach = useCallback(async () => {
     if (chatAbort.current) return; // a stream is already in flight
     setChatError("");
@@ -123,10 +131,14 @@ export function useAiWorkspace() {
     ]);
     setCoachBusy(true);
     setCoachError("");
+    const abort = new AbortController();
+    chatAbort.current = abort;
+    requestKindRef.current = "coach";
     try {
       const result = await api<CoachResponse>("/api/ai/coach", {
         method: "POST",
         body: "{}",
+        signal: abort.signal,
       });
       setCoachInsight(result.insight);
       setCoachMeta(result.meta);
@@ -138,16 +150,21 @@ export function useAiWorkspace() {
         ),
       );
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Could not generate an insight";
-      setCoachError(message);
+      const aborted = abort.signal.aborted;
+      const message = aborted
+        ? "Insight generation was cancelled."
+        : e instanceof Error
+          ? e.message
+          : "Could not generate an insight";
+      if (!aborted) setCoachError(message);
       setChatMessages((current) =>
         current.map((message) =>
           message.id === assistantId
             ? {
                 ...message,
-                content:
-                  "I could not read your saved mocks just now. The error shows on the dashboard coach card; try again from there.",
+                content: aborted
+                  ? "Insight generation was cancelled."
+                  : "I could not read your saved mocks just now. The error shows on the dashboard coach card; try again from there.",
               }
             : message,
         ),
@@ -155,6 +172,10 @@ export function useAiWorkspace() {
     } finally {
       setChatStreaming(false);
       setCoachBusy(false);
+      if (chatAbort.current === abort) {
+        chatAbort.current = null;
+        requestKindRef.current = null;
+      }
       void refreshAiStatus();
     }
   }, [refreshAiStatus]);
@@ -172,7 +193,6 @@ export function useAiWorkspace() {
   const stopChat = useCallback(() => {
     chatAbort.current?.abort();
   }, []);
-
   const clearChat = useCallback(() => {
     chatAbort.current?.abort();
     setChatMessages([]);
@@ -199,6 +219,7 @@ export function useAiWorkspace() {
       setChatError("");
       const abort = new AbortController();
       chatAbort.current = abort;
+      requestKindRef.current = "chat";
       try {
         const response = await fetch("/api/ai/chat", {
           method: "POST",
@@ -263,12 +284,31 @@ export function useAiWorkspace() {
           );
       } finally {
         setChatStreaming(false);
-        if (chatAbort.current === abort) chatAbort.current = null;
+        if (chatAbort.current === abort) {
+          chatAbort.current = null;
+          requestKindRef.current = null;
+        }
         void refreshAiStatus();
       }
     },
     [chatMessages, refreshAiStatus],
   );
+
+  /** Retry replays the request kind that produced the last turn: a coach
+   * insight re-runs the coach endpoint, a chat turn re-sends the question. */
+  const retryLast = useCallback(() => {
+    const kind = requestKindRef.current;
+    if (kind === "coach") {
+      void generateCoach();
+      return;
+    }
+    if (kind === "chat") {
+      const lastUser = chatMessages.findLast(
+        (message) => message.role === "user",
+      );
+      if (lastUser) void sendChat(lastUser.content, null, true);
+    }
+  }, [chatMessages, generateCoach, sendChat]);
 
   return {
     aiStatus,
@@ -291,6 +331,7 @@ export function useAiWorkspace() {
       send: sendChat,
       stop: stopChat,
       clear: clearChat,
+      retryLast,
     },
   };
 }

@@ -1196,13 +1196,7 @@ function WorkspaceShellInner({
           contextLabel={aiContextLabel}
           configured={!!ai.aiStatus?.enabled}
           onSend={(text) => void ai.chat.send(text, aiScreenContext)}
-          onRetry={() => {
-            const lastUser = ai.chat.messages.findLast(
-              (message) => message.role === "user",
-            );
-            if (lastUser)
-              void ai.chat.send(lastUser.content, aiScreenContext, true);
-          }}
+          onRetry={() => ai.chat.retryLast()}
           onStop={ai.chat.stop}
           onClear={ai.chat.clear}
           onAiConfigured={() => void ai.refreshAiStatus()}

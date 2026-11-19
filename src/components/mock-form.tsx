@@ -638,7 +638,9 @@ export function MockForm({
               )}
               {aiStatus && !aiStatus.enabled && (
                 <p className="mt-3 text-xs muted">
-                  AI is not configured on this server. Automatic review and manual entry still work.
+                  {aiStatus.state === "personal-invalid"
+                    ? "Your saved AI provider cannot be used. Review it in Settings → AI provider; the standard parser still works."
+                    : "AI is not configured. Automatic review and manual entry still work."}
                 </p>
               )}
               <p className="mt-3 text-[11px] text-muted">

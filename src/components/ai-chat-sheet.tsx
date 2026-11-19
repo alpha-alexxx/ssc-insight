@@ -39,6 +39,7 @@ import { parseReport } from "@/lib/report-parser";
 import {
   MAX_EXTRACT_CHARS,
   extractionToAttempt,
+  validateExtractionDraft,
   type ExtractionDraft,
   type ExtractedSubjectDraft,
 } from "@/lib/ai/extraction";
@@ -49,7 +50,7 @@ import {
   type TaskSuggestion,
 } from "@/lib/ai/task-suggestion";
 import { istTodayIso, linkHost } from "@/lib/plan/view-model";
-import type { AttemptInput } from "@/lib/domain";
+import type { AttemptInput, PatternShape } from "@/lib/domain";
 import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
 
 const QUICK_QUESTIONS = [
@@ -184,7 +185,7 @@ export function AiChatSheet({
                 {contextLabel}
               </span>
             )}
-            <span>Cleared when you close this panel.</span>
+            <span>Kept until refresh or sign-out.</span>
           </SheetDescription>
         </SheetHeader>
         <div
@@ -662,12 +663,15 @@ function CoachMemos({
     <div className="flex flex-col gap-6">
       {messages.map((message, index) =>
         message.role === "user" ? (
-          <p
+          <div
             key={message.id}
-            className="section-label border-t border-rule-soft pt-4 first:border-t-0 first:pt-0"
+            className="border-t border-rule-soft pt-4 first:border-t-0 first:pt-0"
           >
-            Asked
-          </p>
+            <p className="section-label">Asked</p>
+            <p className="mt-1.5 text-sm leading-snug text-ink">
+              {message.content}
+            </p>
+          </div>
         ) : (
           <CoachMemo
             key={message.id}
@@ -1041,6 +1045,7 @@ function TaskSuggestionCard({
  */
 function SubjectRoster({
   draft,
+  shape,
   onChange,
   onOpenDetails,
   onBack,
@@ -1048,6 +1053,7 @@ function SubjectRoster({
   error,
 }: {
   draft: ExtractionDraft;
+  shape: PatternShape;
   onChange: (next: ExtractionDraft) => void;
   onOpenDetails: () => void;
   onBack: () => void;
@@ -1062,12 +1068,16 @@ function SubjectRoster({
     index: number,
     patch: Partial<ExtractedSubjectDraft>,
   ) => {
-    onChange({
-      ...draft,
-      subjects: draft.subjects.map((subject, at) =>
-        at === index ? { ...subject, ...patch } : subject,
-      ),
-    });
+    // Re-run the same validation contract the full editor uses, so fixing a
+    // value in the roster clears its blocker instead of leaving stale issues.
+    onChange(
+      validateExtractionDraft(shape, {
+        ...draft,
+        subjects: draft.subjects.map((subject, at) =>
+          at === index ? { ...subject, ...patch } : subject,
+        ),
+      }),
+    );
   };
 
   return (
@@ -1345,26 +1355,8 @@ function LogMockTab({
     }
   };
 
-  if (reviewing && draft) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <SubjectRoster
-            draft={draft}
-            onChange={setDraft}
-            onOpenDetails={() => setReviewing("details")}
-            onBack={() => {
-              setReviewing(false);
-              setError("");
-            }}
-            onContinue={useReviewed}
-            error={error}
-          />
-        </div>
-      </div>
-    );
-  }
-
+  // The details branch must come first: "roster" is also truthy, so a broad
+  // `reviewing &&` branch above it would make "Edit details" unreachable.
   if (reviewing === "details" && draft) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
@@ -1380,6 +1372,27 @@ function LogMockTab({
             setError("");
           }}
         />
+      </div>
+    );
+  }
+
+  if (reviewing && draft) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <SubjectRoster
+            draft={draft}
+            shape={shape}
+            onChange={setDraft}
+            onOpenDetails={() => setReviewing("details")}
+            onBack={() => {
+              setReviewing(false);
+              setError("");
+            }}
+            onContinue={useReviewed}
+            error={error}
+          />
+        </div>
       </div>
     );
   }

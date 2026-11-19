@@ -13,6 +13,12 @@ import {
   providerPreset,
   type ProviderId,
 } from "@/lib/ai/providers";
+import {
+  generationPathFor,
+  type AiAuthMode,
+  type AiProtocol,
+} from "@/lib/ai/protocols";
+import { joinProviderUrl } from "@/lib/ai/protocols";
 import { sameCredentialTarget } from "@/lib/ai/connection-target";
 import type {
   AiCredentialSummary,
@@ -28,7 +34,10 @@ type Props = {
 
 const EMPTY_FORM = {
   provider: "openai" as ProviderId,
+  protocol: "openai-responses" as AiProtocol,
+  authMode: "bearer" as AiAuthMode,
   baseUrl: "https://api.openai.com/v1",
+  generationPath: "" as string,
   model: "",
   apiKey: "",
   jsonMode: true,
@@ -78,7 +87,10 @@ export function AiSettingsForm({
           const credential = data.credential;
           setForm({
             provider: credential.provider as ProviderId,
+            protocol: credential.protocol,
+            authMode: credential.authMode,
             baseUrl: credential.baseUrl,
+            generationPath: credential.generationPath ?? "",
             model: credential.model,
             apiKey: "",
             jsonMode: credential.jsonMode,
@@ -111,13 +123,17 @@ export function AiSettingsForm({
   const compact = variant === "panel";
   const preset = providerPreset(form.provider);
   const isLocal = Boolean(preset?.local);
-  const keepingKey = Boolean(stored && sameCredentialTarget(stored, form));
-  const hasKey = Boolean(form.apiKey.trim() || keepingKey);
+  const keepingKey = Boolean(
+    form.authMode !== "none" && stored && sameCredentialTarget(stored, form),
+  );
+  const hasCredential =
+    form.authMode === "none" ||
+    Boolean(form.apiKey.trim() || keepingKey);
   const connectionReady = Boolean(
-    hasKey && form.baseUrl.trim() && (!isLocal || form.allowPrivate),
+    hasCredential && form.baseUrl.trim() && (!isLocal || form.allowPrivate),
   );
   const dirty = !stored
-    ? Boolean(form.apiKey.trim() || form.model)
+    ? Boolean(form.apiKey.trim() || form.model) || form.authMode === "none"
     : !sameCredentialTarget(stored, form) ||
       stored.model !== form.model.trim() ||
       stored.jsonMode !== form.jsonMode ||
@@ -129,6 +145,11 @@ export function AiSettingsForm({
     Boolean(form.model.trim()) &&
     dirty &&
     storageAvailable;
+  const effectiveGenerationPath =
+    form.generationPath.trim() || generationPathFor(form.protocol);
+  const requestPreview = form.baseUrl.trim()
+    ? joinProviderUrl(form.baseUrl, effectiveGenerationPath)
+    : null;
   const suggestions = (preset?.models ?? []).map((model) => ({
     id: model,
     name: model,
@@ -156,10 +177,14 @@ export function AiSettingsForm({
   function chooseProvider(provider: ProviderId) {
     if (provider === form.provider) return;
     const next = providerPreset(provider);
+    const protocol = next?.protocol ?? "openai-chat";
     change(
       {
         provider,
+        protocol,
+        authMode: next?.authMode ?? "bearer",
         baseUrl: next?.baseUrl ?? "",
+        generationPath: "",
         model: "",
         apiKey: "",
         allowPrivate: Boolean(next?.local),
@@ -173,7 +198,10 @@ export function AiSettingsForm({
   function payload() {
     return {
       provider: form.provider,
+      protocol: form.protocol,
+      authMode: form.authMode,
       baseUrl: form.baseUrl.trim(),
+      generationPath: form.generationPath.trim() || undefined,
       model: form.model.trim(),
       ...(form.apiKey.trim() ? { apiKey: form.apiKey.trim() } : {}),
       jsonMode: form.jsonMode,
@@ -389,6 +417,47 @@ export function AiSettingsForm({
             )}
           </div>
 
+          {(preset?.protocols.length ?? 0) > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-protocol`}>API format</Label>
+              <select
+                id={`${id}-protocol`}
+                className={fieldClass}
+                value={form.protocol}
+                onChange={(event) =>
+                  change(
+                    {
+                      protocol: event.target.value as AiProtocol,
+                      generationPath: "",
+                    },
+                    true,
+                  )
+                }
+              >
+                {preset?.protocols.map((item) => (
+                  <option key={item} value={item}>
+                    {item === "openai-responses"
+                      ? "OpenAI Responses (/responses)"
+                      : item === "openai-chat"
+                        ? "Chat Completions (/chat/completions)"
+                        : item === "openai-completions"
+                          ? "Legacy Completions (/completions)"
+                          : "Anthropic Messages (/messages)"}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs leading-relaxed text-muted">
+                {form.protocol === "openai-responses"
+                  ? "Recommended for OpenAI. Newer models and native structured output."
+                  : form.protocol === "openai-chat"
+                    ? "The most widely compatible format."
+                    : form.protocol === "openai-completions"
+                      ? "Legacy prompt-only format; no structured output."
+                      : "Uses the Messages API with your Anthropic key."}
+              </p>
+            </div>
+          )}
+
           {form.provider === "custom" && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-base`}>API base URL</Label>
@@ -405,58 +474,77 @@ export function AiSettingsForm({
                 spellCheck={false}
                 maxLength={300}
               />
+              {requestPreview && (
+                <p className="text-xs leading-relaxed text-muted">
+                  Requests will be sent to{" "}
+                  <span className="break-all font-medium text-ink">
+                    {requestPreview}
+                  </span>
+                </p>
+              )}
               <p className="text-xs leading-relaxed text-muted">
-                Use the base URL for an OpenAI-compatible API, without
-                /chat/completions.
+                Use the base URL without the generation path. Pasting a full
+                endpoint also works — the matching suffix is moved into the
+                path automatically.
               </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor={`${id}-key`}>
-              {keepingKey ? "Replace API key" : "API key"}
-            </Label>
-            <div className="relative">
-              <input
-                id={`${id}-key`}
-                type={revealKey ? "text" : "password"}
-                className={cn(fieldClass, "pr-12")}
-                value={form.apiKey}
-                onChange={(event) =>
-                  change({ apiKey: event.target.value }, true)
-                }
-                placeholder={
-                  keepingKey
-                    ? "Leave blank to keep saved key"
-                    : isLocal
-                      ? "Your local server key"
-                      : "Paste your provider’s API key"
-                }
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={400}
-                aria-describedby={`${id}-key-help`}
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink disabled:opacity-50"
-                disabled={!form.apiKey}
-                aria-label={revealKey ? "Hide API key" : "Show API key"}
-                aria-pressed={revealKey}
-                onClick={() => setRevealKey((value) => !value)}
-              >
-                {revealKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          {form.authMode === "none" ? (
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-key`}>API key</Label>
+              <p className="text-xs leading-relaxed text-muted">
+                This provider is used without authentication. No key is
+                required or stored.
+              </p>
             </div>
-            <p
-              id={`${id}-key-help`}
-              className="text-xs leading-relaxed text-muted"
-            >
-              {keepingKey
-                ? `Saved key${stored?.keyHint ? ` ending ${stored.keyHint}` : ""}. Leave this blank to keep it.`
-                : "Your key is encrypted when saved and is never returned to the browser."}
-            </p>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-key`}>
+                {keepingKey ? "Replace API key" : "API key"}
+              </Label>
+              <div className="relative">
+                <input
+                  id={`${id}-key`}
+                  type={revealKey ? "text" : "password"}
+                  className={cn(fieldClass, "pr-12")}
+                  value={form.apiKey}
+                  onChange={(event) =>
+                    change({ apiKey: event.target.value }, true)
+                  }
+                  placeholder={
+                    keepingKey
+                      ? "Leave blank to keep saved key"
+                      : isLocal
+                        ? "Your local server key"
+                        : "Paste your provider’s API key"
+                  }
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={400}
+                  aria-describedby={`${id}-key-help`}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink disabled:opacity-50"
+                  disabled={!form.apiKey}
+                  aria-label={revealKey ? "Hide API key" : "Show API key"}
+                  aria-pressed={revealKey}
+                  onClick={() => setRevealKey((value) => !value)}
+                >
+                  {revealKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p
+                id={`${id}-key-help`}
+                className="text-xs leading-relaxed text-muted"
+              >
+                {keepingKey
+                  ? `Saved key${stored?.keyHint ? ` ending ${stored.keyHint}` : ""}. Leave this blank to keep it.`
+                  : "Your key is encrypted when saved and is never returned to the browser."}
+              </p>
+            </div>
+          )}
 
           <details className="border-t border-rule-soft pt-3">
             <summary className="text-xs font-medium text-ink">
