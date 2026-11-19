@@ -1,5 +1,7 @@
 "use client";
 
+import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Badge } from "../ui/badge";
 import { Panel } from "../dashboard-panels";
 import { useExamScope } from "../exam-context";
 import { CATALOG_VERSION } from "@/lib/exams";
@@ -43,21 +45,32 @@ export function AboutPanel({
     : null;
   const duration = (tier as { durationMinutes?: number } | undefined)
     ?.durationMinutes;
+  const initials =
+    (userName.trim() || "SSC")
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || "SSC";
 
   return (
     <div className="flex flex-col gap-4">
       <Panel dense icon="user" title="Account" description="Your private workspace.">
         <div className="px-4 pb-4">
-          <div className="rounded-control border border-rule-soft bg-canvas p-3">
-            <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
-              Signed in as
-            </p>
-            <p className="mt-1 text-sm font-medium text-ink">
-              {userName || "Private workspace"}
-            </p>
-            <p className="text-[0.6875rem] text-muted">
-              {userEmail || "Account email unavailable"}
-            </p>
+          <div className="flex items-center gap-3 rounded-control border border-rule-soft bg-canvas p-3">
+            <Avatar aria-hidden="true">
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                Signed in as
+              </p>
+              <p className="truncate text-sm font-medium text-ink">
+                {userName || "Private workspace"}
+              </p>
+              <p className="truncate text-[0.6875rem] text-muted">
+                {userEmail || "Account email unavailable"}
+              </p>
+            </div>
           </div>
           <p className="mt-3 text-[0.75rem] leading-relaxed text-muted">
             Mocks, comparisons, targets and planner work are private to your
@@ -147,19 +160,22 @@ export function AboutPanel({
           )}
 
           {exam && (
-            <p className="mt-3 border-t border-rule-soft pt-3 text-[0.6875rem] leading-relaxed">
-              Pattern read from the{" "}
-              <a
-                href={exam.source.url}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="underline decoration-rule-soft underline-offset-2 hover:text-accent"
-              >
-                official {exam.source.cycle} notice
-              </a>{" "}
-              on {exam.source.retrievedAt}, catalog version {CATALOG_VERSION}.
-              SSC changes its patterns between cycles, so a correction ships as
-              a new catalog version rather than rewriting saved history.
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-rule-soft pt-3 text-[0.6875rem] leading-relaxed">
+              <span>
+                Pattern read from the{" "}
+                <a
+                  href={exam.source.url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="underline decoration-rule-soft underline-offset-2 hover:text-accent"
+                >
+                  official {exam.source.cycle} notice
+                </a>{" "}
+                on {exam.source.retrievedAt}. SSC changes its patterns between
+                cycles, so a correction ships as a new catalog version rather
+                than rewriting saved history.
+              </span>
+              <Badge variant="secondary">Catalog v{CATALOG_VERSION}</Badge>
             </p>
           )}
 

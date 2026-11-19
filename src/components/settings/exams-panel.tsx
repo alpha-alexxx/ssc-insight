@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { Reveal, RevealItem } from "./_lib/motion-presets";
+import { examsScopeSchema, type ExamsScopeValues } from "./_lib/schema";
 import { Panel } from "../dashboard-panels";
 import { PlainIcon } from "../icon";
 import { Button } from "../ui/button";
@@ -48,7 +52,9 @@ import { usePanelDraft } from "./settings-guard";
  *
  * Everything here is descriptive rather than decipherable-into-marks: the
  * catalog is versioned source data (see lib/exams.ts), so the panel shows
- * what the notice says and links where the number came from.
+ * what the notice says and links where the number came from. Tier
+ * enablement is a staged react-hook-form draft; the sticky save bar owns
+ * the save/discard affordances.
  */
 export function ExamsPanel() {
   const scope = useExamScope();
@@ -61,27 +67,129 @@ export function ExamsPanel() {
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(
     null,
   );
-  // Tier enablement is staged until "Save scope", so a slip of the mouse does
-  // not silently change which tiers the workspace reads.
-  const [draftTiers, setDraftTiers] = useState<string[] | null>(null);
 
   const exams = scope.exams;
 
-  const enabled = useMemo(
-    () => new Set(draftTiers ?? exams?.enabledTiers ?? []),
-    [draftTiers, exams?.enabledTiers],
-  );
-  const savedEnabled = useMemo(
-    () => new Set(exams?.enabledTiers ?? []),
-    [exams?.enabledTiers],
-  );
-  const dirty =
-    draftTiers != null &&
-    (draftTiers.length !== savedEnabled.size ||
-      draftTiers.some((key) => !savedEnabled.has(key)));
+  // The staged draft. `values` re-syncs from the query cache whenever the
+  // saved scope changes (including right after this panel's own save), so
+  // the dirty flag always compares against the true server state.
+  const savedTiers = exams?.enabledTiers;
+  const values = useMemo(() => ({ enabledTiers: savedTiers ?? [] }), [savedTiers]);
+  const form = useForm<ExamsScopeValues>({
+    resolver: zodResolver(examsScopeSchema),
+    defaultValues: values,
+    values,
+    mode: "onChange",
+  });
+  const { watch, setValue, handleSubmit, formState } = form;
+  const watchedTiers = watch("enabledTiers");
+  const enabled = useMemo(() => new Set(watchedTiers), [watchedTiers]);
 
-  const resetDraft = useCallback(() => setDraftTiers(null), []);
-  usePanelDraft("exams", { isDirty: dirty, reset: resetDraft });
+  const saveScope = useCallback(
+    async ({ enabledTiers: remaining }: ExamsScopeValues) => {
+      if (!exams) return;
+      setBusy(true);
+      setError("");
+      try {
+        // If the active tier was just disabled, move the scope somewhere that
+        // still resolves — preferring the same exam, then the exam's anchor.
+        const activeKey = `${exams.activeExamId}:${exams.activeTierId}`;
+        let activeExamId = exams.activeExamId;
+        let activeTierId = exams.activeTierId;
+        if (
+          exams.activeTierId !== "all" &&
+          remaining.length > 0 &&
+          !remaining.includes(activeKey)
+        ) {
+          const sameExam = remaining.find((k) =>
+            k.startsWith(`${exams.activeExamId}:`),
+          );
+          const next = sameExam ?? remaining[0]!;
+          const sep = next.indexOf(":");
+          activeExamId = next.slice(0, sep);
+          activeTierId = next.slice(sep + 1);
+        }
+        const fresh = await putScopeRequest({
+          activeExamId,
+          activeTierId,
+          enabledTiers: remaining,
+        });
+        queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
+        // The scope drives attempt and analytics queries, so they re-read.
+        await queryClient.invalidateQueries({ queryKey: ["mock-attempts"] });
+        await queryClient.invalidateQueries({ queryKey: ["analytics"] });
+        toast.success("Exams updated");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not save your exams");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [exams, queryClient, toast],
+  );
+
+  const save = useCallback(
+    () => handleSubmit(saveScope)(),
+    [handleSubmit, saveScope],
+  );
+  const reset = useCallback(() => form.reset(), [form]);
+  usePanelDraft("exams", {
+    isDirty: formState.isDirty,
+    reset,
+    save,
+  });
+
+  const setTargeted = useCallback(
+    async (examId: string) => {
+      if (!exams) return;
+      const firstEnabled =
+        exams.enabledTiers
+          .filter((key) => key.startsWith(`${examId}:`))
+          .map((key) => key.slice(examId.length + 1))[0] ??
+        exams.builtIn.find((exam) => exam.id === examId)?.primaryTierId ??
+        exams.customExams.find((exam) => exam.id === examId)?.tiers[0]?.id;
+      if (!firstEnabled) return;
+      setBusy(true);
+      setError("");
+      try {
+        const fresh = await putScopeRequest({
+          activeExamId: examId,
+          activeTierId: firstEnabled,
+          enabledTiers: exams.enabledTiers,
+        });
+        queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
+        await queryClient.invalidateQueries({ queryKey: ["mock-attempts"] });
+        await queryClient.invalidateQueries({ queryKey: ["analytics"] });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not change the exam");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [exams, queryClient],
+  );
+
+  const removeCustom = useCallback(
+    async (id: string) => {
+      setBusy(true);
+      setError("");
+      try {
+        await deleteCustomExamRequest(id);
+        await queryClient.invalidateQueries({ queryKey: examsKeys.all });
+        // The exam is now a Trash row; a mounted /trash must show it.
+        await queryClient.invalidateQueries({ queryKey: trashKeys.all });
+        setDeleting(null);
+        toast.success("Moved to Trash", "Recoverable for 15 days");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not delete the exam");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [queryClient, toast],
+  );
+
+  const anyDialogOpen = creating || editing != null || deleting != null;
 
   if (!exams) {
     return (
@@ -122,100 +230,11 @@ export function ExamsPanel() {
   }
 
   const toggleTier = (key: string, on: boolean) => {
-    setDraftTiers((current) => {
-      const base = new Set(current ?? exams.enabledTiers);
-      if (on) base.add(key);
-      else base.delete(key);
-      return [...base];
-    });
+    const base = new Set(watch("enabledTiers"));
+    if (on) base.add(key);
+    else base.delete(key);
+    setValue("enabledTiers", [...base], { shouldDirty: true });
   };
-
-  const saveScope = async () => {
-    if (draftTiers == null) return;
-    setBusy(true);
-    setError("");
-    try {
-      // If the active tier was just disabled, move the scope somewhere that
-      // still resolves — preferring the same exam, then the exam's anchor.
-      const activeKey = `${exams.activeExamId}:${exams.activeTierId}`;
-      const remaining = draftTiers;
-      let activeExamId = exams.activeExamId;
-      let activeTierId = exams.activeTierId;
-      if (
-        exams.activeTierId !== "all" &&
-        remaining.length > 0 &&
-        !remaining.includes(activeKey)
-      ) {
-        const sameExam = remaining.find((k) =>
-          k.startsWith(`${exams.activeExamId}:`),
-        );
-        const next = sameExam ?? remaining[0]!;
-        const sep = next.indexOf(":");
-        activeExamId = next.slice(0, sep);
-        activeTierId = next.slice(sep + 1);
-      }
-      const fresh = await putScopeRequest({
-        activeExamId,
-        activeTierId,
-        enabledTiers: remaining,
-      });
-      queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
-      setDraftTiers(null);
-      // The scope drives attempt and analytics queries, so they re-read.
-      await queryClient.invalidateQueries({ queryKey: ["mock-attempts"] });
-      await queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      toast.success("Exams updated");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save your exams");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const setTargeted = async (examId: string) => {
-    const firstEnabled =
-      exams.enabledTiers
-        .filter((key) => key.startsWith(`${examId}:`))
-        .map((key) => key.slice(examId.length + 1))[0] ??
-      exams.builtIn.find((exam) => exam.id === examId)?.primaryTierId ??
-      exams.customExams.find((exam) => exam.id === examId)?.tiers[0]?.id;
-    if (!firstEnabled) return;
-    setBusy(true);
-    setError("");
-    try {
-      const fresh = await putScopeRequest({
-        activeExamId: examId,
-        activeTierId: firstEnabled,
-        enabledTiers: exams.enabledTiers,
-      });
-      queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
-      await queryClient.invalidateQueries({ queryKey: ["mock-attempts"] });
-      await queryClient.invalidateQueries({ queryKey: ["analytics"] });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not change the exam");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const removeCustom = async (id: string) => {
-    setBusy(true);
-    setError("");
-    try {
-      await deleteCustomExamRequest(id);
-      await queryClient.invalidateQueries({ queryKey: examsKeys.all });
-      // The exam is now a Trash row; a mounted /trash must show it.
-      await queryClient.invalidateQueries({ queryKey: trashKeys.all });
-      setDeleting(null);
-      toast.success("Moved to Trash", "Recoverable for 15 days");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not delete the exam");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const anyDialogOpen = creating || editing != null || deleting != null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -226,123 +245,118 @@ export function ExamsPanel() {
         description="Enable the tiers you are preparing for, then pick which one the workspace follows."
       >
         <div className="px-4 pb-4">
-          {exams.enabledTiers.length === 0 && draftTiers == null && (
-            <p className="mb-3 rounded-control bg-warning-soft p-3 text-xs leading-relaxed text-warning">
-              Nothing is enabled yet. Tick at least one tier below so mocks,
-              targets and performance views have a scope.
-            </p>
-          )}
-          <ul className="divide-y divide-rule-soft">
-            {exams.builtIn.map((exam) => (
-              <ExamRow
-                key={exam.id}
-                examId={exam.id}
-                name={exam.name}
-                cycle={exam.source.cycle}
-                tiers={exam.tiers.map((tier) => ({
-                  id: tier.id,
-                  label: tier.label,
-                  maxScore: maxOf(tier),
-                  durationMinutes: tier.durationMinutes ?? null,
-                  subjects: tier.subjects.map((s) => ({
-                    subjectId: s.subjectId,
-                    questions: s.questions,
-                    qualifying: s.qualifying,
-                  })),
-                  marking: tier.marking,
-                  role: tier.role ?? null,
-                }))}
-                sources={[exam.source]}
-                stages={(exam.stages ?? []).map((stage) => ({
-                  id: stage.id,
-                  label: stage.label,
-                  durationMinutes: stage.durationMinutes ?? null,
-                  note: stage.note ?? null,
-                }))}
-                enabled={enabled}
-                activeExamId={exams.activeExamId}
-                activeTierId={exams.activeTierId}
-                busy={busy}
-                onToggleTier={toggleTier}
-                onTargeted={() => void setTargeted(exam.id)}
-              />
-            ))}
-            {exams.customExams.map((exam) => (
-              <ExamRow
-                key={exam.id}
-                examId={exam.id}
-                name={exam.name}
-                custom
-                tiers={exam.tiers.map((tier) => ({
-                  id: tier.id,
-                  label: tier.label,
-                  maxScore: tier.maxScore,
-                  durationMinutes: null,
-                  subjects: tier.subjects,
-                  marking: tier.marking,
-                  role: null,
-                }))}
-                sources={[]}
-                stages={[]}
-                enabled={enabled}
-                activeExamId={exams.activeExamId}
-                activeTierId={exams.activeTierId}
-                busy={busy}
-                onToggleTier={toggleTier}
-                onTargeted={() => void setTargeted(exam.id)}
-                onEdit={() => {
-                  setEditing({
-                    id: exam.id,
-                    name: exam.name,
-                    tiers: exam.tiers.map((tier) => ({
+          <Reveal>
+            {exams.enabledTiers.length === 0 && !formState.isDirty && (
+              <RevealItem>
+                <p className="mb-3 rounded-control bg-warning-soft p-3 text-xs leading-relaxed text-warning">
+                  Nothing is enabled yet. Tick at least one tier below so mocks,
+                  targets and performance views have a scope.
+                </p>
+              </RevealItem>
+            )}
+            <RevealItem>
+              <ul className="divide-y divide-rule-soft">
+                {exams.builtIn.map((exam) => (
+                  <ExamRow
+                    key={exam.id}
+                    examId={exam.id}
+                    name={exam.name}
+                    cycle={exam.source.cycle}
+                    tiers={exam.tiers.map((tier) => ({
                       id: tier.id,
                       label: tier.label,
-                      subjects: tier.subjects.map((s) => ({ ...s })),
-                      marking: { ...tier.marking },
-                    })),
-                  });
-                }}
-                onDelete={() => setDeleting({ id: exam.id, name: exam.name })}
-              />
-            ))}
-          </ul>
-          {error && (
-            <p role="alert" className="mt-3 text-[11px] text-danger">
-              {error}
-            </p>
-          )}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              className="max-sm:w-full"
-              disabled={!dirty || busy}
-              onClick={() => void saveScope()}
-            >
-              {busy ? "Saving…" : "Save selection"}
-            </Button>
-            {dirty && (
-              <Button size="sm" variant="ghost" disabled={busy} onClick={resetDraft}>
-                Discard
-              </Button>
+                      maxScore: maxOf(tier),
+                      durationMinutes: tier.durationMinutes ?? null,
+                      subjects: tier.subjects.map((s) => ({
+                        subjectId: s.subjectId,
+                        questions: s.questions,
+                        qualifying: s.qualifying,
+                      })),
+                      marking: tier.marking,
+                      role: tier.role ?? null,
+                    }))}
+                    sources={[exam.source]}
+                    stages={(exam.stages ?? []).map((stage) => ({
+                      id: stage.id,
+                      label: stage.label,
+                      durationMinutes: stage.durationMinutes ?? null,
+                      note: stage.note ?? null,
+                    }))}
+                    enabled={enabled}
+                    activeExamId={exams.activeExamId}
+                    activeTierId={exams.activeTierId}
+                    busy={busy}
+                    onToggleTier={toggleTier}
+                    onTargeted={() => void setTargeted(exam.id)}
+                  />
+                ))}
+                {exams.customExams.map((exam) => (
+                  <ExamRow
+                    key={exam.id}
+                    examId={exam.id}
+                    name={exam.name}
+                    custom
+                    tiers={exam.tiers.map((tier) => ({
+                      id: tier.id,
+                      label: tier.label,
+                      maxScore: tier.maxScore,
+                      durationMinutes: null,
+                      subjects: tier.subjects,
+                      marking: tier.marking,
+                      role: null,
+                    }))}
+                    sources={[]}
+                    stages={[]}
+                    enabled={enabled}
+                    activeExamId={exams.activeExamId}
+                    activeTierId={exams.activeTierId}
+                    busy={busy}
+                    onToggleTier={toggleTier}
+                    onTargeted={() => void setTargeted(exam.id)}
+                    onEdit={() => {
+                      setEditing({
+                        id: exam.id,
+                        name: exam.name,
+                        tiers: exam.tiers.map((tier) => ({
+                          id: tier.id,
+                          label: tier.label,
+                          subjects: tier.subjects.map((s) => ({ ...s })),
+                          marking: { ...tier.marking },
+                        })),
+                      });
+                    }}
+                    onDelete={() => setDeleting({ id: exam.id, name: exam.name })}
+                  />
+                ))}
+              </ul>
+            </RevealItem>
+            {formState.errors.enabledTiers && (
+              <p role="alert" className="mt-3 text-[11px] text-danger">
+                {formState.errors.enabledTiers.message}
+              </p>
             )}
-            <span role="status" className="text-[0.6875rem] text-muted">
-              {dirty ? "Unsaved changes" : ""}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto max-sm:w-full"
-              disabled={anyDialogOpen || exams.customExams.length >= 20}
-              onClick={() => setCreating(true)}
-              title={
-                exams.customExams.length >= 20
-                  ? "You already have 20 custom exams"
-                  : undefined
-              }
-            >
-              <PlainIcon name="plus" size={14} /> Create custom exam
-            </Button>
-          </div>
+            {error && (
+              <p role="alert" className="mt-3 text-[11px] text-danger">
+                {error}
+              </p>
+            )}
+            <RevealItem className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="max-sm:w-full sm:ml-auto"
+                disabled={anyDialogOpen || exams.customExams.length >= 20}
+                onClick={() => setCreating(true)}
+                title={
+                  exams.customExams.length >= 20
+                    ? "You already have 20 custom exams"
+                    : undefined
+                }
+              >
+                <PlainIcon name="plus" size={14} /> Create custom exam
+              </Button>
+            </RevealItem>
+          </Reveal>
         </div>
       </Panel>
 

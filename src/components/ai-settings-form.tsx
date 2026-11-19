@@ -1,9 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { api } from "@/lib/api-client";
 import { useToast } from "./toast";
 import { PlainIcon } from "./icon";
@@ -25,6 +36,8 @@ import type {
   AiModelsResponse,
   AiSettingsResponse,
 } from "@/lib/ai/client-types";
+import { aiSchema, type AiValues } from "./settings/_lib/schema";
+import { usePanelDraft } from "./settings/settings-guard";
 
 type Props = {
   onChanged?: (credential: AiCredentialSummary | null) => void;
@@ -32,28 +45,50 @@ type Props = {
   showHeading?: boolean;
 };
 
-const EMPTY_FORM = {
-  provider: "openai" as ProviderId,
-  protocol: "openai-responses" as AiProtocol,
-  authMode: "bearer" as AiAuthMode,
+const EMPTY_FORM: AiValues = {
+  provider: "openai",
+  protocol: "openai-responses",
+  authMode: "bearer",
   baseUrl: "https://api.openai.com/v1",
-  generationPath: "" as string,
+  generationPath: "",
   model: "",
   apiKey: "",
   jsonMode: true,
   allowPrivate: false,
 };
-type Form = typeof EMPTY_FORM;
+
 type Catalog = {
   state: "idle" | "loading" | "ready" | "error";
   models: AiModelsResponse["models"];
   error?: string;
 };
 const EMPTY_CATALOG: Catalog = { state: "idle", models: [] };
-const fieldClass =
-  "min-h-10 w-full rounded-control border border-rule bg-paper px-3 py-2 text-sm text-ink shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60";
 
-/** Shared by Settings and the narrow chat sheet. Keys remain write-only. */
+function credentialToValues(credential: AiCredentialSummary): AiValues {
+  return {
+    provider: credential.provider,
+    protocol: credential.protocol,
+    authMode: credential.authMode,
+    baseUrl: credential.baseUrl,
+    generationPath: credential.generationPath ?? "",
+    model: credential.model,
+    apiKey: "",
+    jsonMode: credential.jsonMode,
+    allowPrivate: credential.allowPrivate,
+  };
+}
+
+const PROTOCOL_LABELS: Record<AiProtocol, string> = {
+  "openai-responses": "OpenAI Responses (/responses)",
+  "openai-chat": "Chat Completions (/chat/completions)",
+  "openai-completions": "Legacy Completions (/completions)",
+  "anthropic-messages": "Anthropic Messages (/messages)",
+};
+
+/** Shared by Settings and the narrow chat sheet. Keys remain write-only.
+ * Field state is one react-hook-form draft validated by `_lib/schema.ts`;
+ * the save/test/model flows are the real API calls. In Settings the sticky
+ * save bar drives save; the chat sheet keeps its own button. */
 export function AiSettingsForm({
   onChanged,
   variant = "settings",
@@ -66,9 +101,9 @@ export function AiSettingsForm({
   const [busy, setBusy] = useState<"save" | "test" | "remove" | null>(null);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [stored, setStored] = useState<AiCredentialSummary | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [tested, setTested] = useState(false);
+  const [testFailed, setTestFailed] = useState(false);
   const [revealKey, setRevealKey] = useState(false);
   const [manual, setManual] = useState(false);
   const [query, setQuery] = useState("");
@@ -76,6 +111,14 @@ export function AiSettingsForm({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const catalogRequest = useRef<AbortController | null>(null);
   const mounted = useRef(true);
+
+  const form = useForm<AiValues>({
+    resolver: zodResolver(aiSchema),
+    defaultValues: EMPTY_FORM,
+    mode: "onChange",
+  });
+  const { getValues, handleSubmit, reset, setValue, watch, formState } = form;
+  const values = watch();
 
   const load = useCallback(() => {
     return api<AiSettingsResponse>("/api/ai/settings")
@@ -85,17 +128,7 @@ export function AiSettingsForm({
         setStored(data.credential);
         if (data.credential) {
           const credential = data.credential;
-          setForm({
-            provider: credential.provider as ProviderId,
-            protocol: credential.protocol,
-            authMode: credential.authMode,
-            baseUrl: credential.baseUrl,
-            generationPath: credential.generationPath ?? "",
-            model: credential.model,
-            apiKey: "",
-            jsonMode: credential.jsonMode,
-            allowPrivate: credential.allowPrivate,
-          });
+          reset(credentialToValues(credential));
           setManual(
             !providerPreset(credential.provider)?.models.includes(
               credential.model,
@@ -109,7 +142,7 @@ export function AiSettingsForm({
       .finally(() => {
         if (mounted.current) setLoading(false);
       });
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
     mounted.current = true;
@@ -120,35 +153,48 @@ export function AiSettingsForm({
     };
   }, [load]);
 
+  // Any field change invalidates a previous verification and the
+  // remove-confirmation, exactly like the pre-RHF change() did.
+  useEffect(() => {
+    const subscription = watch(() => {
+      setTested(false);
+      setTestFailed(false);
+      setConfirmRemove(false);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
   const compact = variant === "panel";
-  const preset = providerPreset(form.provider);
+  const preset = providerPreset(values.provider);
   const isLocal = Boolean(preset?.local);
   const keepingKey = Boolean(
-    form.authMode !== "none" && stored && sameCredentialTarget(stored, form),
+    values.authMode !== "none" && stored && sameCredentialTarget(stored, values),
   );
   const hasCredential =
-    form.authMode === "none" ||
-    Boolean(form.apiKey.trim() || keepingKey);
+    values.authMode === "none" ||
+    Boolean(values.apiKey.trim() || keepingKey);
   const connectionReady = Boolean(
-    hasCredential && form.baseUrl.trim() && (!isLocal || form.allowPrivate),
+    hasCredential &&
+      values.baseUrl.trim() &&
+      (!isLocal || values.allowPrivate),
   );
   const dirty = !stored
-    ? Boolean(form.apiKey.trim() || form.model) || form.authMode === "none"
-    : !sameCredentialTarget(stored, form) ||
-      stored.model !== form.model.trim() ||
-      stored.jsonMode !== form.jsonMode ||
-      stored.allowPrivate !== form.allowPrivate ||
-      Boolean(form.apiKey.trim());
+    ? Boolean(values.apiKey.trim() || values.model) || values.authMode === "none"
+    : !sameCredentialTarget(stored, values) ||
+      stored.model !== values.model.trim() ||
+      stored.jsonMode !== values.jsonMode ||
+      stored.allowPrivate !== values.allowPrivate ||
+      Boolean(values.apiKey.trim());
   const canSave =
     !busy &&
     connectionReady &&
-    Boolean(form.model.trim()) &&
+    Boolean(values.model.trim()) &&
     dirty &&
     storageAvailable;
   const effectiveGenerationPath =
-    form.generationPath.trim() || generationPathFor(form.protocol);
-  const requestPreview = form.baseUrl.trim()
-    ? joinProviderUrl(form.baseUrl, effectiveGenerationPath)
+    values.generationPath.trim() || generationPathFor(values.protocol);
+  const requestPreview = values.baseUrl.trim()
+    ? joinProviderUrl(values.baseUrl, effectiveGenerationPath)
     : null;
   const suggestions = (preset?.models ?? []).map((model) => ({
     id: model,
@@ -161,10 +207,13 @@ export function AiSettingsForm({
       .includes(query.trim().toLowerCase()),
   );
 
-  function change(patch: Partial<Form>, resetCatalog = false) {
-    setForm((current) => ({ ...current, ...patch }));
+  function patchFields(patch: Partial<AiValues>, resetCatalog = false) {
+    for (const [key, value] of Object.entries(patch)) {
+      setValue(key as keyof AiValues, value as AiValues[keyof AiValues]);
+    }
     setError(null);
     setTested(false);
+    setTestFailed(false);
     setConfirmRemove(false);
     if (resetCatalog) {
       catalogRequest.current?.abort();
@@ -175,13 +224,12 @@ export function AiSettingsForm({
   }
 
   function chooseProvider(provider: ProviderId) {
-    if (provider === form.provider) return;
+    if (provider === values.provider) return;
     const next = providerPreset(provider);
-    const protocol = next?.protocol ?? "openai-chat";
-    change(
+    patchFields(
       {
         provider,
-        protocol,
+        protocol: next?.protocol ?? "openai-chat",
         authMode: next?.authMode ?? "bearer",
         baseUrl: next?.baseUrl ?? "",
         generationPath: "",
@@ -195,18 +243,18 @@ export function AiSettingsForm({
     setRevealKey(false);
   }
 
-  function payload() {
+  function payloadFrom(source: AiValues) {
     return {
-      provider: form.provider,
-      protocol: form.protocol,
-      authMode: form.authMode,
-      baseUrl: form.baseUrl.trim(),
-      generationPath: form.generationPath.trim() || undefined,
-      model: form.model.trim(),
-      ...(form.apiKey.trim() ? { apiKey: form.apiKey.trim() } : {}),
-      jsonMode: form.jsonMode,
+      provider: source.provider,
+      protocol: source.protocol,
+      authMode: source.authMode,
+      baseUrl: source.baseUrl.trim(),
+      generationPath: source.generationPath.trim() || undefined,
+      model: source.model.trim(),
+      ...(source.apiKey.trim() ? { apiKey: source.apiKey.trim() } : {}),
+      jsonMode: source.jsonMode,
       allowHttp: isLocal,
-      allowPrivate: form.allowPrivate,
+      allowPrivate: source.allowPrivate,
     };
   }
 
@@ -219,7 +267,7 @@ export function AiSettingsForm({
     try {
       const data = await api<AiModelsResponse>("/api/ai/models", {
         method: "POST",
-        body: JSON.stringify(payload()),
+        body: JSON.stringify(payloadFrom(getValues())),
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
@@ -238,50 +286,63 @@ export function AiSettingsForm({
     }
   }
 
-  async function save() {
-    if (!canSave) return;
-    setBusy("save");
-    setError(null);
-    try {
-      const data = await api<AiCredentialSummary>("/api/ai/settings", {
-        method: "PUT",
-        body: JSON.stringify(payload()),
-      });
-      if (!mounted.current) return;
-      setStored(data);
-      setForm((current) => ({ ...current, apiKey: "" }));
-      setRevealKey(false);
-      toast.success("AI settings saved", `${data.model} is selected.`);
-      onChanged?.(data);
-    } catch (cause) {
-      if (mounted.current)
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "Could not save AI settings. Try again.",
-        );
-    } finally {
-      if (mounted.current) setBusy(null);
-    }
-  }
+  const save = useCallback(
+    async (source: AiValues) => {
+      if (!storageAvailable) return;
+      setBusy("save");
+      setError(null);
+      try {
+        const data = await api<AiCredentialSummary>("/api/ai/settings", {
+          method: "PUT",
+          body: JSON.stringify(payloadFrom(source)),
+        });
+        if (!mounted.current) return;
+        setStored(data);
+        setValue("apiKey", "");
+        setRevealKey(false);
+        setTested(false);
+        setTestFailed(false);
+        toast.success("AI settings saved", `${data.model} is selected.`);
+        onChanged?.(data);
+      } catch (cause) {
+        if (mounted.current)
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "Could not save AI settings. Try again.",
+          );
+      } finally {
+        if (mounted.current) setBusy(null);
+      }
+    },
+    [isLocal, onChanged, setValue, storageAvailable, toast],
+  );
+
+  const submitSave = useCallback(() => handleSubmit((source) => save(source))(), [
+    handleSubmit,
+    save,
+  ]);
 
   async function test() {
     setBusy("test");
     setError(null);
     setTested(false);
+    setTestFailed(false);
     try {
       await api("/api/ai/test", {
         method: "POST",
-        body: JSON.stringify(payload()),
+        body: JSON.stringify(payloadFrom(getValues())),
       });
       if (mounted.current) setTested(true);
     } catch (cause) {
-      if (mounted.current)
+      if (mounted.current) {
+        setTestFailed(true);
         setError(
           cause instanceof Error
             ? cause.message
             : "The provider did not respond. Check the key and model.",
         );
+      }
     } finally {
       if (mounted.current) setBusy(null);
     }
@@ -295,11 +356,12 @@ export function AiSettingsForm({
       if (!mounted.current) return;
       catalogRequest.current?.abort();
       setStored(null);
-      setForm(EMPTY_FORM);
+      reset(EMPTY_FORM);
       setCatalog(EMPTY_CATALOG);
       setQuery("");
       setManual(false);
       setTested(false);
+      setTestFailed(false);
       setRevealKey(false);
       setConfirmRemove(false);
       toast.info(
@@ -314,6 +376,28 @@ export function AiSettingsForm({
       if (mounted.current) setBusy(null);
     }
   }
+
+  const resetDraft = useCallback(() => {
+    if (stored) {
+      reset(credentialToValues(stored));
+      setManual(
+        !providerPreset(stored.provider)?.models.includes(stored.model),
+      );
+    } else {
+      reset(EMPTY_FORM);
+      setManual(false);
+    }
+    setError(null);
+    setTested(false);
+    setTestFailed(false);
+    setRevealKey(false);
+    setConfirmRemove(false);
+    catalogRequest.current?.abort();
+    catalogRequest.current = null;
+    setCatalog(EMPTY_CATALOG);
+    setQuery("");
+  }, [reset, stored]);
+  usePanelDraft("ai", { isDirty: dirty, reset: resetDraft, save: submitSave });
 
   if (loading)
     return (
@@ -348,7 +432,7 @@ export function AiSettingsForm({
       className="space-y-6"
       onSubmit={(event) => {
         event.preventDefault();
-        void save();
+        submitSave();
       }}
     >
       <div className="space-y-2">
@@ -396,20 +480,21 @@ export function AiSettingsForm({
           </legend>
           <div className="space-y-2">
             <Label htmlFor={`${id}-provider`}>Provider</Label>
-            <select
-              id={`${id}-provider`}
-              className={fieldClass}
-              value={form.provider}
-              onChange={(event) =>
-                chooseProvider(event.target.value as ProviderId)
-              }
+            <Select
+              value={values.provider}
+              onValueChange={(next) => chooseProvider(next as ProviderId)}
             >
-              {PROVIDER_PRESETS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id={`${id}-provider`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROVIDER_PRESETS.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {preset?.note && (
               <p className="text-xs leading-relaxed text-muted">
                 {preset.note}
@@ -420,60 +505,59 @@ export function AiSettingsForm({
           {(preset?.protocols.length ?? 0) > 1 && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-protocol`}>API format</Label>
-              <select
-                id={`${id}-protocol`}
-                className={fieldClass}
-                value={form.protocol}
-                onChange={(event) =>
-                  change(
-                    {
-                      protocol: event.target.value as AiProtocol,
-                      generationPath: "",
-                    },
+              <Select
+                value={values.protocol}
+                onValueChange={(next) =>
+                  patchFields(
+                    { protocol: next as AiProtocol, generationPath: "" },
                     true,
                   )
                 }
               >
-                {preset?.protocols.map((item) => (
-                  <option key={item} value={item}>
-                    {item === "openai-responses"
-                      ? "OpenAI Responses (/responses)"
-                      : item === "openai-chat"
-                        ? "Chat Completions (/chat/completions)"
-                        : item === "openai-completions"
-                          ? "Legacy Completions (/completions)"
-                          : "Anthropic Messages (/messages)"}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id={`${id}-protocol`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(preset?.protocols ?? []).map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {PROTOCOL_LABELS[item]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs leading-relaxed text-muted">
-                {form.protocol === "openai-responses"
+                {values.protocol === "openai-responses"
                   ? "Recommended for OpenAI. Newer models and native structured output."
-                  : form.protocol === "openai-chat"
+                  : values.protocol === "openai-chat"
                     ? "The most widely compatible format."
-                    : form.protocol === "openai-completions"
+                    : values.protocol === "openai-completions"
                       ? "Legacy prompt-only format; no structured output."
                       : "Uses the Messages API with your Anthropic key."}
               </p>
             </div>
           )}
 
-          {form.provider === "custom" && (
+          {values.provider === "custom" && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-base`}>API base URL</Label>
-              <input
+              <Input
                 id={`${id}-base`}
                 type="url"
-                className={fieldClass}
-                value={form.baseUrl}
+                value={values.baseUrl}
                 onChange={(event) =>
-                  change({ baseUrl: event.target.value }, true)
+                  patchFields({ baseUrl: event.target.value }, true)
                 }
                 placeholder="https://your-provider.com/v1"
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={300}
+                aria-invalid={Boolean(formState.errors.baseUrl) || undefined}
               />
+              {formState.errors.baseUrl && (
+                <p role="alert" className="text-xs text-danger">
+                  {formState.errors.baseUrl.message}
+                </p>
+              )}
               {requestPreview && (
                 <p className="text-xs leading-relaxed text-muted">
                   Requests will be sent to{" "}
@@ -490,7 +574,7 @@ export function AiSettingsForm({
             </div>
           )}
 
-          {form.authMode === "none" ? (
+          {values.authMode === "none" ? (
             <div className="space-y-2">
               <Label htmlFor={`${id}-key`}>API key</Label>
               <p className="text-xs leading-relaxed text-muted">
@@ -504,13 +588,13 @@ export function AiSettingsForm({
                 {keepingKey ? "Replace API key" : "API key"}
               </Label>
               <div className="relative">
-                <input
+                <Input
                   id={`${id}-key`}
                   type={revealKey ? "text" : "password"}
-                  className={cn(fieldClass, "pr-12")}
-                  value={form.apiKey}
+                  className="pr-12"
+                  value={values.apiKey}
                   onChange={(event) =>
-                    change({ apiKey: event.target.value }, true)
+                    patchFields({ apiKey: event.target.value }, true)
                   }
                   placeholder={
                     keepingKey
@@ -524,16 +608,18 @@ export function AiSettingsForm({
                   maxLength={400}
                   aria-describedby={`${id}-key-help`}
                 />
-                <button
+                <Button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink disabled:opacity-50"
-                  disabled={!form.apiKey}
+                  variant="ghost"
+                  size="icon"
+                  className="absolute inset-y-0 right-0 w-11"
+                  disabled={!values.apiKey}
                   aria-label={revealKey ? "Hide API key" : "Show API key"}
                   aria-pressed={revealKey}
                   onClick={() => setRevealKey((value) => !value)}
                 >
                   {revealKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                </Button>
               </div>
               <p
                 id={`${id}-key-help`}
@@ -551,13 +637,13 @@ export function AiSettingsForm({
               Advanced connection settings
             </summary>
             <div className="space-y-4 pt-4">
-              {form.provider !== "custom" && (
+              {values.provider !== "custom" && (
                 <div className="space-y-2">
                   <Label htmlFor={`${id}-endpoint`}>API base URL</Label>
-                  <input
+                  <Input
                     id={`${id}-endpoint`}
-                    className={cn(fieldClass, "text-xs")}
-                    value={form.baseUrl}
+                    className="text-xs"
+                    value={values.baseUrl}
                     readOnly
                   />
                   <p className="text-xs text-muted">
@@ -568,9 +654,9 @@ export function AiSettingsForm({
               <label className="check-row text-xs">
                 <input
                   type="checkbox"
-                  checked={form.jsonMode}
+                  checked={values.jsonMode}
                   onChange={(event) =>
-                    change({ jsonMode: event.target.checked })
+                    patchFields({ jsonMode: event.target.checked })
                   }
                 />
                 <span>Request structured JSON responses</span>
@@ -582,9 +668,12 @@ export function AiSettingsForm({
                 <label className="check-row items-start text-xs">
                   <input
                     type="checkbox"
-                    checked={form.allowPrivate}
+                    checked={values.allowPrivate}
                     onChange={(event) =>
-                      change({ allowPrivate: event.target.checked }, true)
+                      patchFields(
+                        { allowPrivate: event.target.checked },
+                        true,
+                      )
                     }
                   />
                   <span>
@@ -630,7 +719,7 @@ export function AiSettingsForm({
           </div>
           {!connectionReady && (
             <p className="text-xs text-muted">
-              {isLocal && !form.allowPrivate
+              {isLocal && !values.allowPrivate
                 ? "Enable local access in advanced settings to fetch models."
                 : "Enter your API key to fetch available models."}
             </p>
@@ -669,18 +758,23 @@ export function AiSettingsForm({
           {manual ? (
             <div className="space-y-2">
               <Label htmlFor={`${id}-model`}>Model ID</Label>
-              <input
+              <Input
                 id={`${id}-model`}
-                className={fieldClass}
-                value={form.model}
-                onChange={(event) => change({ model: event.target.value })}
+                value={values.model}
+                onChange={(event) => patchFields({ model: event.target.value })}
                 placeholder={
                   preset?.models[0] ?? "Your provider’s exact model ID"
                 }
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={120}
+                aria-invalid={Boolean(formState.errors.model) || undefined}
               />
+              {formState.errors.model && (
+                <p role="alert" className="text-xs text-danger">
+                  {formState.errors.model.message}
+                </p>
+              )}
               <p className="text-xs leading-relaxed text-muted">
                 Use the exact ID from your provider. You can test it before
                 saving.
@@ -734,7 +828,7 @@ export function AiSettingsForm({
                       key={model.id}
                       className={cn(
                         "check-row m-0 min-h-12 cursor-pointer border-b border-rule-soft px-3 py-3 last:border-b-0 hover:bg-canvas",
-                        form.model === model.id && "bg-accent-soft",
+                        values.model === model.id && "bg-accent-soft",
                       )}
                     >
                       <input
@@ -742,8 +836,8 @@ export function AiSettingsForm({
                         name={`${id}-models`}
                         className="size-4! w-4! shrink-0 accent-accent"
                         value={model.id}
-                        checked={form.model === model.id}
-                        onChange={() => change({ model: model.id })}
+                        checked={values.model === model.id}
+                        onChange={() => patchFields({ model: model.id })}
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block break-all text-sm font-medium text-ink">
@@ -788,10 +882,10 @@ export function AiSettingsForm({
             </div>
           )}
           <p className="break-all text-xs leading-relaxed text-muted">
-            {form.model ? (
+            {values.model ? (
               <>
                 <span className="font-medium text-ink">Selected: </span>
-                {form.model}
+                {values.model}
               </>
             ) : (
               "No model selected yet."
@@ -799,8 +893,8 @@ export function AiSettingsForm({
           </p>
           {!manual &&
             catalog.state === "ready" &&
-            form.model &&
-            !catalog.models.some((model) => model.id === form.model) && (
+            values.model &&
+            !catalog.models.some((model) => model.id === values.model) && (
               <p className="text-xs leading-relaxed text-muted">
                 Your selected model is not in this catalog. Keep its ID or
                 choose another model.
@@ -815,25 +909,36 @@ export function AiSettingsForm({
             {error}
           </p>
         )}
-        {tested && (
-          <p
-            role="status"
-            className="flex items-start gap-2 text-xs leading-relaxed text-positive"
-          >
-            <PlainIcon name="check" size={14} className="mt-0.5 shrink-0" />
-            {dirty
-              ? "Connection verified for these settings. Save to use them."
-              : "Connection verified for your saved settings."}
-          </p>
-        )}
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={!canSave}>
-            {busy === "save" ? "Saving…" : "Save AI settings"}
-          </Button>
+          {busy === "test" && (
+            <Badge variant="secondary">
+              <Loader2
+                size={12}
+                className="animate-spin motion-reduce:animate-none"
+              />
+              Testing…
+            </Badge>
+          )}
+          {tested && !busy && <Badge variant="default">Connected</Badge>}
+          {testFailed && !busy && <Badge variant="destructive">Failed</Badge>}
+          {tested && (
+            <p role="status" className="text-xs leading-relaxed text-positive">
+              {dirty
+                ? "Connection verified for these settings. Save to use them."
+                : "Connection verified for your saved settings."}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {variant === "panel" && (
+            <Button type="submit" disabled={!canSave}>
+              {busy === "save" ? "Saving…" : "Save AI settings"}
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
-            disabled={Boolean(busy) || !connectionReady || !form.model.trim()}
+            disabled={Boolean(busy) || !connectionReady || !values.model.trim()}
             onClick={() => void test()}
           >
             {busy === "test" ? "Testing…" : "Test connection"}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { PlainIcon } from "../icon";
 import {
@@ -12,8 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { Button } from "../ui/button";
 import { SettingsGuardProvider, useSettingsGuard } from "./settings-guard";
+import {
+  MotionButton,
+  pageEnter,
+  saveBarSpring,
+  tabSwap,
+} from "./_lib/motion-presets";
 import { ExamsPanel } from "./exams-panel";
 import { TargetsPanel } from "./targets-panel";
 import { RemindersPanel } from "./reminders-panel";
@@ -27,13 +33,14 @@ import { Panel } from "../dashboard-panels";
  * Settings — seven groups behind one navigable rail.
  *
  * The section is a real selection: clicking the rail swaps the rendered
- * panel. (The previous implementation rendered every panel at once with
- * `hidden lg:block`, so the desktop rail only recoloured a button and the
- * page was one long stack.) The selection mirrors to `?section=` so a deep
- * link — "open the percentile target" — can land directly on the group.
+ * panel. The selection mirrors to `?section=` so a deep link — "open the
+ * percentile target" — can land directly on the group.
  *
- * Each panel owns its draft and registers with the guard, so leaving a
- * section with unsaved edits asks before discarding.
+ * Each draft-holding panel owns its form and registers { isDirty, reset,
+ * save } with the guard. The sticky save bar drives that contract; leaving a
+ * section with unsaved edits asks before discarding. The section swap and
+ * the save-bar spring are the one settings-scoped motion exception
+ * (DESIGN.md); everything still collapses to instant under reduced motion.
  */
 
 export const SETTINGS_SECTIONS = [
@@ -108,41 +115,161 @@ export function SettingsView({
 
   return (
     <SettingsGuardProvider section={section} onSectionChange={changeSection}>
-      <div className="grid gap-5 lg:grid-cols-[210px_minmax(0,1fr)]">
-        <SettingsNav section={section} />
-        <div className="min-w-0">
-          {section === "exams" && <ExamsPanel />}
-          {section === "targets" && <TargetsPanel saveTarget={saveTarget} busy={busy} />}
-          {section === "reminders" && <RemindersPanel />}
-          {section === "appearance" && <AppearancePanel />}
-          {section === "ai" && (
-            <Panel
-              dense
-              icon="sparkles"
-              title="AI provider"
-              description="Optional. The tracker stays fully usable without it."
-            >
-              <div className="px-4 pb-5 pt-2 sm:px-5">
-                <AiSettingsForm showHeading={false} />
-              </div>
-            </Panel>
-          )}
-          {section === "data" && (
-            <DataPanel
-              onDownload={onDownload}
-              onChooseFile={onChooseFile}
-              fileInput={fileInput}
-              backup={backup}
-              busy={busy}
-              onOpenReplace={onOpenReplace}
-            />
-          )}
-          {section === "about" && (
-            <AboutPanel userName={userName} userEmail={userEmail} />
-          )}
-        </div>
-      </div>
+      <SettingsBody
+        section={section}
+        userName={userName}
+        userEmail={userEmail}
+        onDownload={onDownload}
+        onChooseFile={onChooseFile}
+        fileInput={fileInput}
+        backup={backup}
+        onOpenReplace={onOpenReplace}
+        saveTarget={saveTarget}
+        busy={busy}
+      />
+      <SettingsDiscardDialog />
     </SettingsGuardProvider>
+  );
+}
+
+function SettingsBody({
+  section,
+  userName,
+  userEmail,
+  onDownload,
+  onChooseFile,
+  fileInput,
+  backup,
+  onOpenReplace,
+  saveTarget,
+  busy,
+}: {
+  section: SettingsSection;
+  userName: string;
+  userEmail: string;
+  onDownload: (format: "json" | "csv") => void;
+  onChooseFile: () => void;
+  fileInput: React.ReactNode;
+  backup: Omit<
+    ReturnType<typeof import("../use-backup-import").useBackupImport>,
+    "busy"
+  >;
+  onOpenReplace: () => void;
+  saveTarget: () => Promise<boolean>;
+  busy: boolean;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      {...(reduce ? {} : pageEnter)}
+      className="grid gap-5 lg:grid-cols-[210px_minmax(0,1fr)]"
+    >
+      <SettingsNav section={section} />
+      <div className="min-w-0">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={section}
+            {...(reduce ? {} : tabSwap)}
+          >
+            {section === "exams" && <ExamsPanel />}
+            {section === "targets" && (
+              <TargetsPanel saveTarget={saveTarget} busy={busy} />
+            )}
+            {section === "reminders" && <RemindersPanel />}
+            {section === "appearance" && <AppearancePanel />}
+            {section === "ai" && (
+              <Panel
+                dense
+                icon="sparkles"
+                title="AI provider"
+                description="Optional. The tracker stays fully usable without it."
+              >
+                <div className="px-4 pb-5 pt-2 sm:px-5">
+                  <AiSettingsForm showHeading={false} />
+                </div>
+              </Panel>
+            )}
+            {section === "data" && (
+              <DataPanel
+                onDownload={onDownload}
+                onChooseFile={onChooseFile}
+                fileInput={fileInput}
+                backup={backup}
+                busy={busy}
+                onOpenReplace={onOpenReplace}
+              />
+            )}
+            {section === "about" && (
+              <AboutPanel userName={userName} userEmail={userEmail} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+        <SaveBar />
+      </div>
+    </motion.div>
+  );
+}
+
+/**
+ * The one save affordance for every draft-holding section. Sticky at the
+ * bottom of the content column; slides in when the active panel's draft is
+ * dirty and drives its registered reset/save.
+ */
+function SaveBar() {
+  const guard = useSettingsGuard();
+  const reduce = useReducedMotion();
+  const draft = guard.activeDraft;
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!draft?.save) return;
+    setSaving(true);
+    try {
+      await draft.save();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <AnimatePresence initial={false}>
+      {draft?.isDirty && (
+        <motion.div
+          key="settings-save-bar"
+          initial={reduce ? false : { y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={reduce ? undefined : { y: 80, opacity: 0 }}
+          transition={saveBarSpring}
+          className="sticky bottom-4 z-30 mx-auto mt-5 max-w-3xl"
+        >
+          <div
+            role="status"
+            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-rule bg-paper px-4 py-3"
+          >
+            <p className="text-sm text-muted">You have unsaved changes</p>
+            <div className="ml-auto flex items-center gap-2">
+              <MotionButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={saving}
+                onClick={() => draft.reset()}
+              >
+                Discard
+              </MotionButton>
+              <MotionButton
+                type="button"
+                size="sm"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                {saving ? "Saving…" : "Save"}
+              </MotionButton>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -218,10 +345,10 @@ function SettingsNav({ section }: { section: SettingsSection }) {
 }
 
 /**
- * Rendered by SettingsView's parent so the dialog is never inside the
- * scrolling content column.
+ * Rendered at the SettingsView root (outside the animated content column)
+ * so the dirty-confirm dialog never unmounts mid-swap; it portals itself.
  */
-export function SettingsDiscardDialog() {
+function SettingsDiscardDialog() {
   const guard = useSettingsGuard();
   const label =
     SETTINGS_SECTIONS.find((s) => s.id === guard.pendingSection)?.label ??
@@ -240,9 +367,13 @@ export function SettingsDiscardDialog() {
           <AlertDialogCancel onClick={guard.cancelDiscard}>
             Keep editing
           </AlertDialogCancel>
-          <Button variant="destructive" onClick={guard.confirmDiscard} className="sm:order-last">
+          <MotionButton
+            variant="destructive"
+            onClick={guard.confirmDiscard}
+            whileTap={{ scale: 0.985 }}
+          >
             <PlainIcon name="close" size={13} /> Discard and continue
-          </Button>
+          </MotionButton>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

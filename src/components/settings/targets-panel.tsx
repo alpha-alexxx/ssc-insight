@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { Reveal, RevealItem } from "./_lib/motion-presets";
+import { targetsSchema } from "./_lib/schema";
 import { Panel } from "../dashboard-panels";
 import { PlainIcon } from "../icon";
 import { Button } from "../ui/button";
@@ -38,7 +42,10 @@ import { usePanelDraft } from "./settings-guard";
  *  3. Per-tier overrides, which reset back to the inherited default.
  *
  * Every field is the tier's own maximum, delivered by the server with the
- * resolved target — so the editor can never disagree with the chart.
+ * resolved target — so the editor can never disagree with the chart. All
+ * editable rows live in one react-hook-form form: the sticky save bar
+ * batches every dirty row into one PATCH, while each row keeps an
+ * instant single-row save and the inherit/clear actions.
  */
 export function TargetsPanel({
   saveTarget,
@@ -52,47 +59,130 @@ export function TargetsPanel({
   const toast = useToast();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  // Local drafts keyed by tier key / exam id, so a half-typed value survives
-  // a re-render and only commits on Save.
-  const [tierDrafts, setTierDrafts] = useState<Record<string, string>>({});
-  const [defaultDrafts, setDefaultDrafts] = useState<Record<string, string>>({});
-  const [percentileDrafts, setPercentileDrafts] = useState<Record<string, string>>(
-    {},
-  );
   const [tab, setTab] = useState("tiers");
-
-  const dirty =
-    Object.keys(tierDrafts).length > 0 ||
-    Object.keys(defaultDrafts).length > 0 ||
-    Object.keys(percentileDrafts).length > 0;
-
-  const resetDraft = useCallback(() => {
-    setTierDrafts({});
-    setDefaultDrafts({});
-    setPercentileDrafts({});
-    setError("");
-  }, []);
-  usePanelDraft("targets", { isDirty: dirty, reset: resetDraft });
 
   const exams = scope.exams;
   const enabledTierKeys = useMemo(() => exams?.enabledTiers ?? [], [exams]);
 
-  const commit = async (edits: TargetEditInput[], message: string) => {
-    setPending(true);
-    setError("");
-    try {
-      const fresh = await patchTargetsRequest(edits);
-      queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
-      // The dashboard draws the target, so its payload is now stale.
-      await queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      resetDraft();
-      toast.success(message);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the target");
-    } finally {
-      setPending(false);
+  // Each field's ceiling comes from the server-resolved target, so the
+  // schema can never accept a value above its own paper.
+  const maxima = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (!exams) return map;
+    for (const [key, target] of Object.entries(exams.resolvedTargets)) {
+      map[`tier:${key}`] = target.maxScore;
     }
-  };
+    for (const [signature, peers] of Object.entries(exams.targetPeers)) {
+      const target = peers
+        .map((key) => exams.resolvedTargets[key])
+        .find(Boolean);
+      if (target) map[`default:${signature}`] = target.maxScore;
+    }
+    return map;
+  }, [exams]);
+
+  const values = useMemo<Record<string, string>>(() => {
+    if (!exams) return {};
+    const map: Record<string, string> = {};
+    for (const key of exams.enabledTiers) {
+      const target = exams.resolvedTargets[key];
+      if (target) map[`tier:${key}`] = target.marks == null ? "" : String(target.marks);
+    }
+    for (const [signature, peers] of Object.entries(exams.targetPeers)) {
+      const target = peers
+        .map((key) => exams.resolvedTargets[key])
+        .find(Boolean);
+      if (target) {
+        map[`default:${signature}`] =
+          target.marks == null ? "" : String(target.marks);
+      }
+    }
+    for (const exam of [...exams.builtIn, ...exams.customExams]) {
+      const percentile = exams.percentiles[exam.id];
+      map[`pct:${exam.id}`] = percentile == null ? "" : String(percentile);
+    }
+    return map;
+  }, [exams]);
+
+  const schema = useMemo(() => targetsSchema(maxima), [maxima]);
+  const form = useForm<Record<string, string>>({
+    resolver: zodResolver(schema),
+    defaultValues: values,
+    values,
+    mode: "onChange",
+  });
+  const { control, handleSubmit, formState } = form;
+
+  const resetDraft = useCallback(() => form.reset(), [form]);
+
+  const commit = useCallback(
+    async (edits: TargetEditInput[], message: string) => {
+      setPending(true);
+      setError("");
+      try {
+        const fresh = await patchTargetsRequest(edits);
+        queryClient.setQueryData<ExamsResponse>(examsKeys.current(), fresh);
+        // The dashboard draws the target, so its payload is now stale.
+        await queryClient.invalidateQueries({ queryKey: ["analytics"] });
+        toast.success(message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not save the target");
+      } finally {
+        setPending(false);
+      }
+    },
+    [queryClient, toast],
+  );
+
+  /** One row's instant save (the row's own button). */
+  const commitField = useCallback(
+    (field: string, build: (value: string) => TargetEditInput, message: string) => {
+      void form
+        .trigger(field)
+        .then((valid) => {
+          if (!valid) return;
+          void commit([build(form.getValues(field) ?? "")], message);
+        });
+    },
+    [commit, form],
+  );
+
+  /** The sticky bar's save: every dirty row becomes one edit, batched. */
+  const save = useCallback(() => {
+    void handleSubmit((allValues) => {
+      const edits: TargetEditInput[] = [];
+      for (const [field, dirty] of Object.entries(formState.dirtyFields)) {
+        if (!dirty) continue;
+        const value = allValues[field] ?? "";
+        if (field.startsWith("tier:")) {
+          edits.push({
+            kind: "override",
+            tierKey: field.slice(5),
+            marks: value.trim() === "" ? null : Number(value),
+          });
+        } else if (field.startsWith("default:")) {
+          edits.push({
+            kind: "default",
+            signature: field.slice(8),
+            marks: value.trim() === "" ? null : Number(value),
+          });
+        } else if (field.startsWith("pct:")) {
+          edits.push({
+            kind: "percentile",
+            examId: field.slice(4),
+            percentile: value.trim() === "" ? null : Number(value),
+          });
+        }
+      }
+      if (edits.length > 0) void commit(edits, "Targets saved");
+    })();
+  }, [commit, formState.dirtyFields, handleSubmit]);
+
+  usePanelDraft("targets", {
+    isDirty: formState.isDirty,
+    reset: resetDraft,
+    save,
+  });
 
   if (!exams) {
     return (
@@ -137,40 +227,54 @@ export function TargetsPanel({
                   set a target.
                 </p>
               ) : (
-                <ul className="mt-3 divide-y divide-rule-soft">
-                  {enabledTierKeys.map((key) => {
-                    const target = exams.resolvedTargets[key];
-                    if (!target) return null;
-                    return (
-                      <TierTargetRow
-                        key={key}
-                        tierKey={key}
-                        target={target}
-                        label={tierLabel(exams, key)}
-                        value={
-                          tierDrafts[key] ??
-                          (target.marks == null ? "" : String(target.marks))
-                        }
-                        pending={pending || busy}
-                        onChange={(value) =>
-                          setTierDrafts((prev) => ({ ...prev, [key]: value }))
-                        }
-                        onSave={(marks) =>
-                          void commit(
-                            [{ kind: "override", tierKey: key, marks }],
-                            "Target saved",
-                          )
-                        }
-                        onInherit={() =>
-                          void commit(
-                            [{ kind: "inherit", tierKey: key }],
-                            "Target reset to the structure default",
-                          )
-                        }
-                      />
-                    );
-                  })}
-                </ul>
+                <Reveal>
+                  <ul className="mt-3 divide-y divide-rule-soft">
+                    {enabledTierKeys.map((key) => {
+                      const target = exams.resolvedTargets[key];
+                      if (!target) return null;
+                      const field = `tier:${key}`;
+                      return (
+                        <RevealItem key={key}>
+                          <Controller
+                            control={control}
+                            name={field}
+                            render={({ field: bound, fieldState }) => (
+                              <TierTargetRow
+                                target={target}
+                                label={tierLabel(exams, key)}
+                                value={bound.value}
+                                pending={pending || busy}
+                                invalid={!!fieldState.error}
+                                error={fieldState.error?.message}
+                                onChange={bound.onChange}
+                                onSave={() =>
+                                  commitField(
+                                    field,
+                                    (value) => ({
+                                      kind: "override",
+                                      tierKey: key,
+                                      marks:
+                                        value.trim() === ""
+                                          ? null
+                                          : Number(value),
+                                    }),
+                                    "Target saved",
+                                  )
+                                }
+                                onInherit={() =>
+                                  void commit(
+                                    [{ kind: "inherit", tierKey: key }],
+                                    "Target reset to the structure default",
+                                  )
+                                }
+                              />
+                            )}
+                          />
+                        </RevealItem>
+                      );
+                    })}
+                  </ul>
+                </Reveal>
               )}
             </TabsContent>
 
@@ -181,93 +285,116 @@ export function TargetsPanel({
                 (same subjects, counts and marking). It can never cross a
                 different maximum.
               </TabsCaption>
-              <ul className="mt-3 divide-y divide-rule-soft">
-                {Object.entries(exams.targetPeers).map(
-                  ([signature, peers]) => (
-                    <DefaultRow
-                      key={signature}
-                      signature={signature}
-                      peers={peers}
-                      target={targetForSignature(exams, peers)}
-                      labelFor={(key) => tierLabel(exams, key)}
-                      value={
-                        defaultDrafts[signature] ??
-                        (targetForSignature(exams, peers)?.marks == null
-                          ? ""
-                          : String(targetForSignature(exams, peers)!.marks))
-                      }
-                      pending={pending || busy}
-                      onChange={(value) =>
-                        setDefaultDrafts((prev) => ({
-                          ...prev,
-                          [signature]: value,
-                        }))
-                      }
-                      onSave={(marks) =>
-                        void commit(
-                          [{ kind: "default", signature, marks }],
-                          "Default saved",
-                        )
-                      }
-                      onClear={() =>
-                        void commit(
-                          [{ kind: "default", signature, marks: null }],
-                          "Default removed",
-                        )
-                      }
-                    />
-                  ),
-                )}
-              </ul>
+              <Reveal>
+                <ul className="mt-3 divide-y divide-rule-soft">
+                  {Object.entries(exams.targetPeers).map(
+                    ([signature, peers]) => {
+                      const field = `default:${signature}`;
+                      return (
+                        <RevealItem key={signature}>
+                          <Controller
+                            control={control}
+                            name={field}
+                            render={({ field: bound, fieldState }) => (
+                              <DefaultRow
+                                signature={signature}
+                                peers={peers}
+                                target={targetForSignature(exams, peers)}
+                                labelFor={(key) => tierLabel(exams, key)}
+                                value={bound.value}
+                                pending={pending || busy}
+                                invalid={!!fieldState.error}
+                                error={fieldState.error?.message}
+                                onChange={bound.onChange}
+                                onSave={() =>
+                                  commitField(
+                                    field,
+                                    (value) => ({
+                                      kind: "default",
+                                      signature,
+                                      marks:
+                                        value.trim() === ""
+                                          ? null
+                                          : Number(value),
+                                    }),
+                                    "Default saved",
+                                  )
+                                }
+                                onClear={() =>
+                                  void commit(
+                                    [{ kind: "default", signature, marks: null }],
+                                    "Default removed",
+                                  )
+                                }
+                              />
+                            )}
+                          />
+                        </RevealItem>
+                      );
+                    },
+                  )}
+                </ul>
+              </Reveal>
             </TabsContent>
 
             {/* ---- percentile goal ---- */}
             <TabsContent value="percentile">
               <PercentileExplainer />
-              <ul className="mt-3 divide-y divide-rule-soft">
-                {[
-                  ...exams.builtIn.map((e) => ({
-                    id: e.id,
-                    name: e.name,
-                    enabled: exams.enabledTiers.some((k) =>
-                      k.startsWith(`${e.id}:`),
-                    ),
-                  })),
-                  ...exams.customExams.map((e) => ({
-                    id: e.id,
-                    name: e.name,
-                    enabled: exams.enabledTiers.some((k) =>
-                      k.startsWith(`${e.id}:`),
-                    ),
-                  })),
-                ].map((exam) => (
-                  <PercentileRow
-                    key={exam.id}
-                    examId={exam.id}
-                    name={exam.name}
-                    enabled={exam.enabled}
-                    value={
-                      percentileDrafts[exam.id] ??
-                      (exams.percentiles[exam.id] == null
-                        ? ""
-                        : String(exams.percentiles[exam.id]))
-                    }
-                    pending={pending || busy}
-                    onChange={(value) =>
-                      setPercentileDrafts((prev) => ({
-                        ...prev,
-                        [exam.id]: value,
-                      }))
-                    }
-                    onSave={(percentile) =>
-                      void commit(
-                        [{ kind: "percentile", examId: exam.id, percentile }],
-                        "Percentile goal saved",
-                      )
-                    }
-                  />
-                ))}
-              </ul>
+              <Reveal>
+                <ul className="mt-3 divide-y divide-rule-soft">
+                  {[
+                    ...exams.builtIn.map((e) => ({
+                      id: e.id,
+                      name: e.name,
+                      enabled: exams.enabledTiers.some((k) =>
+                        k.startsWith(`${e.id}:`),
+                      ),
+                    })),
+                    ...exams.customExams.map((e) => ({
+                      id: e.id,
+                      name: e.name,
+                      enabled: exams.enabledTiers.some((k) =>
+                        k.startsWith(`${e.id}:`),
+                      ),
+                    })),
+                  ].map((exam) => {
+                    const field = `pct:${exam.id}`;
+                    return (
+                      <RevealItem key={exam.id}>
+                        <Controller
+                          control={control}
+                          name={field}
+                          render={({ field: bound, fieldState }) => (
+                            <PercentileRow
+                              name={exam.name}
+                              enabled={exam.enabled}
+                              value={bound.value}
+                              pending={pending || busy}
+                              invalid={!!fieldState.error}
+                              error={fieldState.error?.message}
+                              onChange={bound.onChange}
+                              onSave={() =>
+                                commitField(
+                                  field,
+                                  (value) => ({
+                                    kind: "percentile",
+                                    examId: exam.id,
+                                    percentile:
+                                      value.trim() === ""
+                                        ? null
+                                        : Number(value),
+                                  }),
+                                  "Percentile goal saved",
+                                )
+                              }
+                            />
+                          )}
+                        />
+                      </RevealItem>
+                    );
+                  })}
+                </ul>
+              </Reveal>
             </TabsContent>
 
             {error && (
@@ -329,23 +456,22 @@ function TierTargetRow({
   label,
   value,
   pending,
+  invalid,
+  error,
   onChange,
   onSave,
   onInherit,
 }: {
-  tierKey: string;
   target: EffectiveTargetDto;
   label: string;
   value: string;
   pending: boolean;
+  invalid?: boolean;
+  error?: string;
   onChange: (value: string) => void;
-  onSave: (marks: number | null) => void;
+  onSave: () => void;
   onInherit: () => void;
 }) {
-  const numeric = value.trim() === "" ? null : Number(value);
-  const valid =
-    value.trim() === "" ||
-    (Number.isFinite(numeric) && numeric != null && numeric >= 0 && numeric <= target.maxScore);
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -383,7 +509,7 @@ function TierTargetRow({
             placeholder={`up to ${target.maxScore}`}
             value={value}
             disabled={pending}
-            aria-invalid={!valid || undefined}
+            aria-invalid={invalid || undefined}
             aria-label={`Target marks for ${label}`}
             onChange={(e) => onChange(e.target.value)}
           />
@@ -392,8 +518,8 @@ function TierTargetRow({
           size="sm"
           variant="outline"
           className="h-9"
-          disabled={pending || !valid}
-          onClick={() => onSave(numeric)}
+          disabled={pending || invalid}
+          onClick={onSave}
         >
           Save
         </Button>
@@ -409,9 +535,9 @@ function TierTargetRow({
             <PlainIcon name="refresh" size={13} /> Use default
           </Button>
         )}
-        {!valid && (
+        {invalid && error && (
           <p role="alert" className="text-[0.6875rem] text-danger">
-            Enter 0–{target.maxScore}.
+            {error}
           </p>
         )}
       </div>
@@ -438,6 +564,8 @@ function DefaultRow({
   labelFor,
   value,
   pending,
+  invalid,
+  error,
   onChange,
   onSave,
   onClear,
@@ -448,15 +576,13 @@ function DefaultRow({
   labelFor: (key: string) => string;
   value: string;
   pending: boolean;
+  invalid?: boolean;
+  error?: string;
   onChange: (value: string) => void;
-  onSave: (marks: number | null) => void;
+  onSave: () => void;
   onClear: () => void;
 }) {
   const maxScore = target?.maxScore ?? 0;
-  const numeric = value.trim() === "" ? null : Number(value);
-  const valid =
-    value.trim() === "" ||
-    (Number.isFinite(numeric) && numeric != null && numeric >= 0 && numeric <= maxScore);
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -486,7 +612,7 @@ function DefaultRow({
             placeholder={`up to ${maxScore}`}
             value={value}
             disabled={pending}
-            aria-invalid={!valid || undefined}
+            aria-invalid={invalid || undefined}
             onChange={(e) => onChange(e.target.value)}
           />
         </label>
@@ -494,8 +620,8 @@ function DefaultRow({
           size="sm"
           variant="outline"
           className="h-9"
-          disabled={pending || !valid}
-          onClick={() => onSave(numeric)}
+          disabled={pending || invalid}
+          onClick={onSave}
         >
           Save default
         </Button>
@@ -510,9 +636,9 @@ function DefaultRow({
             Remove default
           </Button>
         )}
-        {!valid && (
+        {invalid && error && (
           <p role="alert" className="text-[0.6875rem] text-danger">
-            Enter 0–{maxScore}.
+            {error}
           </p>
         )}
       </div>
@@ -542,21 +668,21 @@ function PercentileRow({
   enabled,
   value,
   pending,
+  invalid,
+  error,
   onChange,
   onSave,
 }: {
-  examId: string;
   name: string;
   enabled: boolean;
   value: string;
   pending: boolean;
+  invalid?: boolean;
+  error?: string;
   onChange: (value: string) => void;
-  onSave: (percentile: number | null) => void;
+  onSave: () => void;
 }) {
-  const numeric = value.trim() === "" ? null : Number(value);
-  const valid =
-    value.trim() === "" ||
-    (Number.isFinite(numeric) && numeric != null && numeric >= 0 && numeric <= 100);
+  const numeric = value.trim() === "" ? 0 : Number(value);
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -572,7 +698,7 @@ function PercentileRow({
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <Slider
-          value={[Math.min(100, Math.max(0, numeric ?? 0))]}
+          value={[Math.min(100, Math.max(0, Number.isFinite(numeric) ? numeric : 0))]}
           min={0}
           max={100}
           step={1}
@@ -591,21 +717,21 @@ function PercentileRow({
           placeholder="e.g. 95"
           value={value}
           disabled={pending}
-          aria-invalid={!valid || undefined}
+          aria-invalid={invalid || undefined}
           aria-label={`${name} goal percentile value`}
           onChange={(e) => onChange(e.target.value)}
         />
         <Button
           size="sm"
           variant="outline"
-          disabled={pending || !valid}
-          onClick={() => onSave(numeric)}
+          disabled={pending || invalid}
+          onClick={onSave}
         >
           Save
         </Button>
-        {!valid && (
+        {invalid && error && (
           <p role="alert" className="text-[0.6875rem] text-danger">
-            Enter 0–100.
+            {error}
           </p>
         )}
       </div>
