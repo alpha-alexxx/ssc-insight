@@ -24,6 +24,7 @@ import {
 } from "../src/lib/ai/extraction";
 import {
   coachInsightSchema,
+  coerceCoachInsight,
   extractJsonText,
   parseModelJson,
 } from "../src/lib/ai/schemas";
@@ -428,6 +429,32 @@ test("model JSON extraction strips fences and takes one balanced object", () => 
   assert.throws(() =>
     parseModelJson('{"headline":"only"}', coachInsightSchema),
   );
+});
+
+test("coach coercion clamps near-miss output instead of failing the insight", () => {
+  const nearMiss = {
+    headline: "x".repeat(200),
+    summary: "y".repeat(2000),
+    strengths: ["s1", "", "s2", 42, "s3", "s4"],
+    focusAreas: ["f1", "f2", "f3", "f4"],
+    nextActions: [{ detail: "nested" }, "a1", null, "a2"],
+    caveats: "not an array",
+    extra: "dropped by the schema, not the coercion",
+  };
+  const insight = coachInsightSchema.parse(coerceCoachInsight(nearMiss));
+  assert.equal(insight.headline.length, 160);
+  assert.equal(insight.summary.length, 1200);
+  // Empty, non-string, and over-cap items drop; the count cap holds.
+  assert.deepEqual(insight.strengths, ["s1", "s2", "s3"]);
+  assert.equal(insight.focusAreas.length, 3);
+  assert.deepEqual(insight.nextActions, ["a1", "a2"]);
+  assert.deepEqual(insight.caveats, []);
+  // Missing core content still fails honesty, never fabricates.
+  assert.throws(() =>
+    coachInsightSchema.parse(coerceCoachInsight({ headline: "", summary: "s" })),
+  );
+  // Non-objects pass through untouched so the schema owns the rejection.
+  assert.equal(coerceCoachInsight("junk"), "junk");
 });
 
 test("extraction parses provider JSON text into an editable draft", () => {

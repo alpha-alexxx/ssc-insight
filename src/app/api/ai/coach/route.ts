@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { apiError, ok, readBody } from "@/lib/api";import { aiNotConfigured, AiError, aiProviderError } from "@/lib/ai/errors";
 import {
   CONTEXT_TOKEN_ESTIMATE,
@@ -7,7 +8,12 @@ import {
 import { coachMessages } from "@/lib/ai/prompts";
 import { createAiProvider } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
-import { coachInsightSchema, parseModelJson, structuredFormatFor } from "@/lib/ai/schemas";
+import {
+  coachInsightSchema,
+  coerceCoachInsight,
+  parseModelJson,
+  structuredFormatFor,
+} from "@/lib/ai/schemas";
 import { aiLimits, loadAiBundle } from "@/lib/ai/server";
 import {
   releaseSafely,
@@ -60,7 +66,11 @@ export async function POST(request: Request) {
         maxOutputTokens: config.maxOutputTokens,
         signal: request.signal,
         format: COACH_FORMAT,
-        parse: (raw) => parseModelJson(raw, coachInsightSchema),
+        parse: (raw) =>
+          // Pull near-miss output (an extra focus area, a long headline)
+          // back inside the contract first; only genuinely broken answers
+          // throw and trigger the provider's repair call.
+          coachInsightSchema.parse(coerceCoachInsight(parseModelJson(raw, z.unknown()))),
       });
     } catch (error) {
       const code = error instanceof AiError ? error.code : "AI_PROVIDER_ERROR";
