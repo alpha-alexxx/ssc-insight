@@ -164,3 +164,54 @@ test("only the local preset can opt into private or plaintext targets", () => {
     false,
   );
 });
+
+test("Anthropic model discovery uses protocol headers and display names", async () => {
+  const result = await fetchModelCatalog(
+    {
+      provider: "anthropic",
+      protocol: "anthropic-messages",
+      authMode: "anthropic-key",
+      baseUrl: "https://api.anthropic.com/v1",
+      modelsPath: "models",
+      apiKey: "anthropic-secret",
+    },
+    new AbortController().signal,
+    async (url, init) => {
+      assert.equal(url, "https://api.anthropic.com/v1/models?limit=1000");
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get("x-api-key"), "anthropic-secret");
+      assert.ok(headers.get("anthropic-version"));
+      assert.equal(headers.get("Authorization"), null);
+      return Response.json({
+        data: [
+          {
+            id: "claude-test",
+            display_name: "Claude Test",
+            type: "model",
+          },
+        ],
+      });
+    },
+  );
+  assert.deepEqual(result, [{ id: "claude-test", name: "Claude Test" }]);
+});
+
+test("no-auth model discovery omits credential headers", async () => {
+  await fetchModelCatalog(
+    {
+      provider: "ollama",
+      protocol: "openai-chat",
+      authMode: "none",
+      baseUrl: "http://localhost:11434/v1",
+      modelsPath: "models",
+      apiKey: "",
+    },
+    new AbortController().signal,
+    async (_url, init) => {
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get("Authorization"), null);
+      assert.equal(headers.get("x-api-key"), null);
+      return Response.json({ data: [{ id: "qwen2.5" }] });
+    },
+  );
+});
