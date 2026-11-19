@@ -822,9 +822,9 @@
     "semantic_hash": "b21b16cae223d6fa8a92618c1aa9b253"
   },
   "src/lib/domain.ts": {
-    "mtime": 1793533983.8702831,
-    "seen": 1793559250.1840186,
-    "ast_hash": "30028af402ab3557f982d9b409150305",
+    "mtime": 1795117840.7242,
+    "seen": 1795118484.9867225,
+    "ast_hash": "b06785428cfffc95313a1e05958ab9a8",
     "semantic_hash": ""
   },
   "src/lib/filters-url.ts": {
@@ -1050,21 +1050,21 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1795113281.5808678,
-    "seen": 1795114624.1596024,
-    "ast_hash": "da114d3244fe9fe1a991336cab1dec00",
+    "mtime": 1795117888.1886954,
+    "seen": 1795118485.0010252,
+    "ast_hash": "608d52724c80f2d3e9817a290ffb7f68",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1795113281.4988625,
-    "seen": 1795114624.1596117,
-    "ast_hash": "68fbe7a5798a7c7ebc0abccf099d4160",
+    "mtime": 1795117888.0136967,
+    "seen": 1795118485.0010285,
+    "ast_hash": "2858cac6b81ad0a9f2d9cd5072b06bf6",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1795113249.6800897,
-    "seen": 1795114624.1596189,
-    "ast_hash": "39b088edb959f166fe49e1ac9c834847",
+    "mtime": 1795117882.506974,
+    "seen": 1795118485.0010312,
+    "ast_hash": "2087f754d4ff7fd55987f250503728ca",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
@@ -2403,54 +2403,6 @@
     "mtime": 1795110203.1153915,
     "seen": 1795110820.4995413,
     "ast_hash": "72b5de91806059389e3bc22b67c4b58b",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/graphite-mira-dark/root-1440-dark.png": {
-    "mtime": 1795114385.9952369,
-    "seen": 1795114624.1746235,
-    "ast_hash": "ef635fcc9f2ef41db06094f00f7eb03b",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/graphite-mira-light/root-1440.png": {
-    "mtime": 1795114348.6863575,
-    "seen": 1795114624.1746314,
-    "ast_hash": "ea72952e74a65b38986c16827e183f00",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/graphite-vega-dark/root-1440-dark.png": {
-    "mtime": 1795114366.6682203,
-    "seen": 1795114624.1746368,
-    "ast_hash": "cb1a123a6a09e9c7885e71172bcd75e9",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/graphite-vega-light/root-1440.png": {
-    "mtime": 1795114331.0218315,
-    "seen": 1795114624.1746423,
-    "ast_hash": "5c41a4c196f212b6622c2fd5d859cd3f",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/orange-vega-light/root-1440.png": {
-    "mtime": 1795114404.2468877,
-    "seen": 1795114624.174649,
-    "ast_hash": "d7ba39044d1bf1537202c177f06fe954",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/root-1440-dark.png": {
-    "mtime": 1795114292.2774527,
-    "seen": 1795114624.174655,
-    "ast_hash": "4df7b4126522aa37a33206f6e13b5edf",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/root-1440.png": {
-    "mtime": 1795114255.6354473,
-    "seen": 1795114624.174661,
-    "ast_hash": "eb7feb6aca9c635d843b934aa6cd62dd",
-    "semantic_hash": ""
-  },
-  ".impeccable/graphite/rose-sera-light/root-1440.png": {
-    "mtime": 1795114422.6238475,
-    "seen": 1795114624.1746662,
-    "ast_hash": "89e86af3c97be25429b997b2ca221556",
     "semantic_hash": ""
   },
   "package-lock.json": {

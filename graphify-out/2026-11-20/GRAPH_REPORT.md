@@ -1,7 +1,7 @@
 # Graph Report - ssc-insight-2  (2026-11-20)
 
 ## Corpus Check
-- 399 files · ~298,562 words
+- 399 files · ~298,664 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 4, .css 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `21b9954a`
+- Built from commit: `369e4a44`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -573,7 +573,7 @@ Nodes (3): AiChatTab, UiState, useUiStore
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `cn()` connect `Request Proxy and Public Origins` to `Panel`, `ai-composer.tsx`, `ai-settings-form.tsx`, `calendar-view.tsx`, `Add Mock Route`, `my-tasks-view.tsx`, `Mock Comparison Route`, `personal-task-drawer.tsx`, `compare-view.tsx`, `ai-composer.tsx`, `Panel`, `Mock Entry Form and Validation`, `google-sign-in-button.tsx`, `queries/exams.ts`, `agenda-view.tsx`, `board-view.tsx`, `ai-prompt-security.test.ts`, `personal-todos.tsx`, `PlainIcon`, `visuals.ts`, `ai-chat-sheet.tsx`, `trash-view.tsx`, `showcase.tsx`, `Dashboard and Outcome Visual References`, `trash-view.tsx`, `calendar-view.tsx`, `extract/route.ts`, `ai/todos/route.ts`, `view-model.ts`, `sheet.tsx`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **What connects `RFC-1918`, `Analytics Projections Cache Policy (/api/analytics)`, `force-dynamic Public Auth-Adjacent Pages` to the rest of the system?**
   _36 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Panel` be split into smaller, more focused modules?**
@@ -583,7 +583,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `ai-composer.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.10080645161290322 - nodes in this community are weakly interconnected._
 - **Why does `react` connect `extract/route.ts` to `ai-composer.tsx`, `subject-performance.test.ts`, `ai-settings-form.tsx`, `calendar-view.tsx`, `Add Mock Route`, `my-tasks-view.tsx`, `Mock Comparison Route`, `personal-task-drawer.tsx`, `compare-view.tsx`, `ai-composer.tsx`, `Panel`, `Mock Entry Form and Validation`, `toast.tsx`, `queries/exams.ts`, `google-sign-in-button.tsx`, `Request Proxy and Public Origins`, `agenda-view.tsx`, `board-view.tsx`, `ai-prompt-security.test.ts`, `Outcome Cards and Dated AttemptRecordCard`, `personal-todos.tsx`, `PlainIcon`, `ai-chat-sheet.tsx`, `trash-view.tsx`, `showcase.tsx`, `format.ts`, `Dashboard and Outcome Visual References`, `trash-view.tsx`, `mock-entry.test.ts`, `private-workspace.tsx`, `calendar-view.tsx`, `ai/todos/route.ts`, `view-model.ts`, `sheet.tsx`, `client-types.ts`, `api`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
