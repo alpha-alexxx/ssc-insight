@@ -170,10 +170,22 @@ AI is **optional** and **read-only** for coaching/extraction. It cannot save, ed
 - **Todo Assistance**: Proposes changes to personal todos. Apply is transactional, version-checked, user-scoped, and idempotent (max 25 operations/batch).
 
 ### Security & Privacy
-- **Endpoint Safety**: The server refuses loopback, private (RFC1918), link-local, cloud-metadata (`169.254.169.254`), CGNAT, multicast, and reserved addresses. **DNS-rebinding mitigation**: The server re-resolves the hostname immediately before every provider call and rejects domains with suspiciously low TTLs. HTTP is refused except for explicitly opted-in local providers.
+- **Endpoint Safety**: The server refuses loopback, private (RFC1918), link-local, cloud-metadata (`169.254.169.254`), CGNAT, multicast, and reserved addresses, and re-resolves the hostname immediately before every provider call. Every resolved address must be public. **Residual risk**: DNS rebinding between our check and the provider's own resolution is not fully closed without IP pinning. HTTP is refused except for explicitly opted-in local providers.
 - **Data Sent**: Aggregate analytics, subject/section profile, target progress, and latest 20 full mocks. **Mock notes, email, user ID, auth data, and per-attempt detail outside the latest 20 are NEVER sent.**
 - **Key Storage**: User-entered keys are encrypted with AES-256-GCM under `AI_CREDENTIAL_SECRET`. Plaintext is never returned to the browser, logged, or exported.
-- **Usage Limits**: Enforced via `AiUsage` table per IST day. Over-limit responses return `429 AI_QUOTA_EXCEEDED`.
+- **Usage Limits**: Enforced via `AiUsage` table per IST day. Over-limit responses return `429 AI_QUOTA_EXCEEDED`. A personal key uses its own generous safety ceiling (400 requests / 2M tokens per IST day), never the deployment's shared-key caps; usage stays visible either way. Definitive pre-generation provider failures (auth, endpoint, model, rate limit) settle at zero tokens.
+
+### Supported API formats
+The provider layer speaks four wire protocols. Choose one per connection:
+
+| Format | Endpoint (relative to base URL) | Typical use |
+| :--- | :--- | :--- |
+| `openai-responses` | `/responses` | OpenAI's current API; native structured output |
+| `openai-chat` | `/chat/completions` | Default; widest compatibility (OpenRouter, Groq, DeepSeek, Together, Ollama) |
+| `openai-completions` | `/completions` | Legacy prompt-only models |
+| `anthropic-messages` | `/messages` | Anthropic keys (`x-api-key` + `anthropic-version`) |
+
+Server environment variables: `AI_PROTOCOL`, `AI_AUTH_MODE` (`bearer` \| `anthropic-key` \| `none`), `AI_GENERATION_PATH`, `AI_MODELS_PATH`. The in-app provider picker exposes the same choices per preset and previews the exact resolved request URL for custom endpoints. Custom paths must be relative — they cannot change the host, and every outbound fetch (generation, retry, repair, model discovery, connection test) re-runs the SSRF guard and refuses redirects.
 
 ---
 
@@ -216,6 +228,10 @@ Routes retain `{data}` / `{error: {code, message}}` response envelopes, validati
 | `/api/todos/:id` | PATCH, DELETE | Version-checked edits, completion, or soft deletion |
 | `/api/ai/coach` | POST | Structured coach insight from aggregate context |
 | `/api/ai/extract` | POST | Form-shaped draft from pasted report (never writes) |
+| `/api/ai/status` | GET | Truthful AI state: `unconfigured`, `ready`, `personal-invalid`, `env-ready` |
+| `/api/ai/settings` | GET, PUT, DELETE | Per-user provider credential (write-only key) |
+| `/api/ai/models` | POST | Protocol-aware model catalog discovery |
+| `/api/ai/test` | POST | One tiny draft completion; billable, rate-limited as a write |
 | `/api/trash` | GET | Owner-scoped deleted records with search/filters |
 | `/api/trash/restore` | POST | Restore selected records (409 if past 15-day window) |
 | `/api/cron/trash-cleanup`| GET | Scheduled physical removal. Requires `Authorization: Bearer $CRON_SECRET` |
