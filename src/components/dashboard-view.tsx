@@ -152,7 +152,7 @@ export function DashboardView({
             <div
               role="group"
               aria-label="Change the plan day"
-              className="flex h-11 w-full items-stretch divide-x divide-rule-soft overflow-hidden rounded-control border border-rule-soft bg-paper sm:h-9 sm:w-auto sm:shrink-0"
+              className="flex h-[var(--day-nav-size)] w-full items-stretch divide-x divide-rule-soft overflow-hidden rounded-control border border-rule-soft bg-paper sm:w-auto sm:shrink-0"
             >
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -161,7 +161,7 @@ export function DashboardView({
                     aria-label="Previous day"
                     disabled={activeDate <= plan.startDate}
                     onClick={() => shiftFocus(-1)}
-                    className="flex w-11 items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none sm:w-8"
+                    className="flex w-[var(--day-nav-size)] items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
                   >
                     <ChevronLeft size={15} />
                   </button>
@@ -190,7 +190,7 @@ export function DashboardView({
                     aria-label="Next day"
                     disabled={activeDate >= plan.endDate}
                     onClick={() => shiftFocus(1)}
-                    className="flex w-11 items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none sm:w-8"
+                    className="flex w-[var(--day-nav-size)] items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
                   >
                     <ChevronRight size={15} />
                   </button>

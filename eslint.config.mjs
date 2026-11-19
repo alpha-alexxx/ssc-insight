@@ -44,5 +44,10 @@ export default defineConfig([
     // Workspace tooling and content, not app source (also git-ignored).
     ".agents/**",
     "videos/**",
+    // Local artifacts that are git-ignored but would otherwise bury `npm run
+    // lint` under thousands of problems from a built app snapshot and
+    // assistant skill scripts.
+    "output/**",
+    ".claude/**",
   ]),
 ]);

@@ -269,7 +269,7 @@ export function AiChatSheet({
                 type="button"
                 aria-label="New chat"
                 title="New chat"
-                className="inline-flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink"
+                className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink sm:size-10"
                 onClick={() => {
                   onStop();
                   setHistoryOpen(false);
@@ -285,7 +285,7 @@ export function AiChatSheet({
                 aria-expanded={historyOpen}
                 aria-pressed={historyOpen}
                 className={cn(
-                  "inline-flex size-10 items-center justify-center rounded-control transition-colors",
+                  "inline-flex size-11 items-center justify-center rounded-control transition-colors sm:size-10",
                   historyOpen
                     ? "bg-soft text-ink"
                     : "text-muted hover:bg-soft hover:text-ink",
@@ -635,7 +635,7 @@ function CoachChatTab({
                 type="button"
                 aria-label="Clear conversation"
                 title="Clear conversation"
-                className="inline-flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+                className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40 sm:size-10"
                 disabled={streaming || !messages.length}
                 onClick={onClear}
               >
@@ -646,7 +646,7 @@ function CoachChatTab({
                   type="button"
                   aria-label="Edit question"
                   title="Edit question"
-                  className="inline-flex size-10 items-center justify-center rounded-control text-accent transition-colors hover:bg-soft disabled:pointer-events-none disabled:opacity-40"
+                  className="inline-flex size-11 items-center justify-center rounded-control text-accent transition-colors hover:bg-soft disabled:pointer-events-none disabled:opacity-40 sm:size-10"
                   onClick={() => setInput(lastSent)}
                 >
                   <Pencil size={15} />
@@ -662,7 +662,7 @@ function CoachChatTab({
                   type="button"
                   aria-label="Stop generating"
                   title="Stop"
-                  className="inline-flex size-10 items-center justify-center rounded-control border border-rule bg-paper text-ink transition-colors hover:bg-canvas"
+                  className="inline-flex size-11 items-center justify-center rounded-control border border-rule bg-paper text-ink transition-colors hover:bg-canvas sm:size-10"
                   onClick={onStop}
                 >
                   <Square size={14} />
@@ -672,7 +672,7 @@ function CoachChatTab({
                   type="submit"
                   aria-label="Send message"
                   title="Send"
-                  className="inline-flex size-10 items-center justify-center rounded-control bg-accent text-paper transition-colors duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:bg-canvas disabled:text-muted"
+                  className="inline-flex size-11 items-center justify-center rounded-control bg-accent text-paper transition-colors duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:bg-canvas disabled:text-muted sm:size-10"
                   disabled={!input.trim() || streaming}
                 >
                   <ArrowUp size={17} strokeWidth={2.4} />

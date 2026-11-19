@@ -1,17 +1,17 @@
 # Graph Report - ssc-insight-2  (2026-11-20)
 
 ## Corpus Check
-- 405 files · ~305,908 words
+- 405 files · ~305,961 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 4, .css 2, .example 1)
 
 ## Summary
-- 3214 nodes · 9760 edges · 162 communities (86 shown, 76 thin omitted)
+- 3214 nodes · 9759 edges · 161 communities (85 shown, 76 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 102 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `664422c0`
+- Built from commit: `e267052f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -109,7 +109,6 @@
 - about-panel.tsx
 - ref_node_fs
 - toast.tsx
-- next
 - google-sign-in-button.tsx
 - Paper Tokens and Design Handover
 - view-model.ts
@@ -156,11 +155,11 @@
 - **Printed-Ledger Design Identity Family** — design_paper_and_ink_system, design_typography_scale, docs_ui_overhaul_phase_2_design_spec_printed_progress_ledger, docs_ui_overhaul_phase_2_design_spec_radius_scale, docs_ui_overhaul_phase_1_audit_radius_system [INFERRED 0.85]
 - **Private-Account Auth and Ownership Flow** — claude_request_ownership_architecture, readme_google_signin_oauth, docs_private_accounts_ownership_model, docs_private_accounts_migration [INFERRED 0.85]
 
-## Communities (162 total, 76 thin omitted)
+## Communities (161 total, 76 thin omitted)
 
 ### Community 0 - "PlainIcon"
-Cohesion: 0.13
-Nodes (37): DashboardOverview(), Panel(), DashboardView(), RecentAttemptsPanel(), IconName, PlainIcon(), MetricCell(), MetricStripSkeleton() (+29 more)
+Cohesion: 0.16
+Nodes (29): Panel(), DashboardView(), RecentAttemptsPanel(), PlainIcon(), PerformancePreview(), Sparkline(), DayLedger(), EmptyActions() (+21 more)
 
 ### Community 1 - "ai-composer.tsx"
 Cohesion: 0.10
@@ -283,8 +282,8 @@ Cohesion: 0.06
 Nodes (61): GET, idSchema, kindSchema, runtime, POST, runtime, POST, runtime (+53 more)
 
 ### Community 36 - "shortDate"
-Cohesion: 0.24
-Nodes (20): AgendaGroups(), AgendaView(), EarlierRanges(), CalendarMetrics(), categoryLabel(), QuietDays(), CellRow(), planTickClass() (+12 more)
+Cohesion: 0.15
+Nodes (32): AgendaGroups(), AgendaView(), EarlierRanges(), CalendarMetrics(), categoryLabel(), QuietDays(), CellRow(), MonthCell() (+24 more)
 
 ### Community 37 - "ai-chat-sheet.tsx"
 Cohesion: 0.17
@@ -474,10 +473,6 @@ Nodes (4): packageDir, REPLACEMENTS, targets, root
 Cohesion: 0.29
 Nodes (7): Toast, ToastApi, ToastCard(), ToastContext, ToastTone, ToastViewport(), TONE_STYLES
 
-### Community 149 - "next"
-Cohesion: 0.29
-Nodes (3): next, metadata, metadata
-
 ### Community 151 - "google-sign-in-button.tsx"
 Cohesion: 0.14
 Nodes (13): @neondatabase/auth@0.7.0-beta, @neondatabase/auth, useAuthActions(), signIn(), GoogleGlyph(), GoogleSignInButton(), signIn(), GoogleSignInButtonProps (+5 more)
@@ -487,12 +482,12 @@ Cohesion: 0.20
 Nodes (9): args, evaluate(), pending, send(), target, url, wait, widths (+1 more)
 
 ### Community 157 - "view-model.ts"
-Cohesion: 0.11
-Nodes (27): PageHeader(), MonthCell(), MonthGrid, WEEKDAYS, TASK_LEGEND, PlanErrorCard(), PlanWeekView(), WeekRow() (+19 more)
+Cohesion: 0.12
+Nodes (23): DashboardOverview(), IconName, MetricCell(), MetricStripSkeleton(), PageHeader(), PlanErrorCard(), PlanWeekView(), WeekRow() (+15 more)
 
 ### Community 158 - "format.ts"
-Cohesion: 0.10
-Nodes (28): AttemptOutcomeCard(), AttemptRecordCard(), outcomes, percent(), ScoreRing(), subjectIcons, tierSuffix(), DayNotes() (+20 more)
+Cohesion: 0.08
+Nodes (31): next, metadata, metadata, AttemptOutcomeCard(), AttemptRecordCard(), outcomes, percent(), ScoreRing() (+23 more)
 
 ### Community 160 - "Pooled Vercel Runtime"
 Cohesion: 0.40
@@ -518,14 +513,14 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.053) - this node is a cross-community bridge._
 - **What connects `RFC-1918`, `Analytics Projections Cache Policy (/api/analytics)`, `force-dynamic Public Auth-Adjacent Pages` to the rest of the system?**
   _36 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `PlainIcon` be split into smaller, more focused modules?**
-  _Cohesion score 0.1276595744680851 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `PlainIcon`, `ai-composer.tsx`, `subject-performance.test.ts`, `ai-settings-form.tsx`, `calendar-view.tsx`, `Add Mock Route`, `MyTasksView`, `Mock Comparison Route`, `personal-task-drawer.tsx`, `compare-view.tsx`, `ai-composer.tsx`, `Setup and Operations Handbook`, `about-panel.tsx`, `Mock Entry Form and Validation`, `toast.tsx`, `queries/exams.ts`, `google-sign-in-button.tsx`, `Request Proxy and Public Origins`, `view-model.ts`, `format.ts`, `ai-prompt-security.test.ts`, `use-workspace-data.ts`, `Button`, `shortDate`, `ai-chat-sheet.tsx`, `exams-panel.tsx`, `app/layout.tsx`, `form.tsx`, `format.ts`, `reminders-panel.tsx`, `extraction.ts`, `Dashboard and Outcome Visual References`, `fixtures.ts`, `devDependencies`, `mock-entry.test.ts`, `trash-view.tsx`, `private-workspace.tsx`, `calendar-view.tsx`, `targets-panel.tsx`, `ai/todos/route.ts`, `sheet.tsx`, `client-types.ts`, `query-client.ts`, `icon.tsx`, `api`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
 - **Should `ai-composer.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.09851551956815115 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `PlainIcon`, `subject-performance.test.ts`, `calendar-view.tsx`, `Mock Comparison Route`, `ai-composer.tsx`, `lib/trash.ts`, `readBody`, `Request Proxy and Public Origins`, `progress.ts`, `use-workspace-data.ts`, `format.ts`, `view-model.ts`, `Pooled Vercel Runtime`, `app/layout.tsx`, `Dashboard and Outcome Visual References`, `devDependencies`, `private-workspace.tsx`, `calendar-view.tsx`, `ai/todos/route.ts`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `PlainIcon`, `ai-composer.tsx`, `subject-performance.test.ts`, `ai-settings-form.tsx`, `calendar-view.tsx`, `Add Mock Route`, `MyTasksView`, `Mock Comparison Route`, `personal-task-drawer.tsx`, `compare-view.tsx`, `ai-composer.tsx`, `Setup and Operations Handbook`, `about-panel.tsx`, `Mock Entry Form and Validation`, `toast.tsx`, `queries/exams.ts`, `google-sign-in-button.tsx`, `Request Proxy and Public Origins`, `view-model.ts`, `format.ts`, `ai-prompt-security.test.ts`, `use-workspace-data.ts`, `Button`, `shortDate`, `ai-chat-sheet.tsx`, `exams-panel.tsx`, `app/layout.tsx`, `form.tsx`, `format.ts`, `reminders-panel.tsx`, `extraction.ts`, `Dashboard and Outcome Visual References`, `fixtures.ts`, `devDependencies`, `mock-entry.test.ts`, `trash-view.tsx`, `private-workspace.tsx`, `calendar-view.tsx`, `targets-panel.tsx`, `ai/todos/route.ts`, `sheet.tsx`, `client-types.ts`, `query-client.ts`, `icon.tsx`, `api`?**
+  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+- **Should `personal-todos.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.10846560846560846 - nodes in this community are weakly interconnected._
+- **Why does `next` connect `format.ts` to `Pooled Vercel Runtime`, `PlainIcon`, `ai/todos/route.ts`, `subject-performance.test.ts`, `app/layout.tsx`, `calendar-view.tsx`, `Mock Comparison Route`, `ai-composer.tsx`, `lib/trash.ts`, `Dashboard and Outcome Visual References`, `use-workspace-data.ts`, `readBody`, `devDependencies`, `view-model.ts`, `Request Proxy and Public Origins`, `progress.ts`, `private-workspace.tsx`, `calendar-view.tsx`?**
+  _High betweenness centrality (0.047) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._

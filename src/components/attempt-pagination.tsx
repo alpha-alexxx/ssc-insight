@@ -83,7 +83,7 @@ export const AttemptPagination = memo(function AttemptPagination({
           <span className="hidden whitespace-nowrap sm:inline">Per page</span>
           <select
             aria-label="Rows per page"
-            className="rounded-control py-1 pl-1.5 pr-6 text-xs"
+            className="min-h-[var(--control-height-sm)] rounded-control py-1 pl-1.5 pr-6 text-xs"
             value={pageSize}
             onChange={(e) =>
               // The options are exactly PAGE_SIZES, so the value is one.

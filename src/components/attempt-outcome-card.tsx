@@ -267,7 +267,7 @@ export function AttemptRecordCard({
         </dl>
         <button
           type="button"
-          className={styles.recordAction}
+          className={`${styles.recordAction} tap-target`}
           aria-label={`View result for ${attempt.name}`}
           onClick={() => onOpen(attempt)}
         >

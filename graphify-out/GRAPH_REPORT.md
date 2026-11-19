@@ -1,17 +1,17 @@
 # Graph Report - ssc-insight-2  (2026-11-20)
 
 ## Corpus Check
-- 405 files · ~305,961 words
+- 405 files · ~306,024 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 4, .css 2, .example 1)
 
 ## Summary
-- 3214 nodes · 9759 edges · 161 communities (85 shown, 76 thin omitted)
+- 3214 nodes · 9758 edges · 161 communities (85 shown, 76 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 102 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e267052f`
+- Built from commit: `ed4e2523`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

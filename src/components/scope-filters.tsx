@@ -114,7 +114,7 @@ export function ScopeFilters({
         <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:ml-auto sm:flex sm:w-auto sm:justify-end">
           <select
             aria-label="Filter by platform"
-            className="w-full min-w-0 truncate rounded-control py-[9px] pl-3 pr-7 text-xs sm:w-auto sm:max-w-[11.5rem]"
+            className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
             value={filters.platform ?? "all"}
             onChange={(e) => changeFilter("platform", e.target.value)}
           >
@@ -126,7 +126,7 @@ export function ScopeFilters({
           {mode === "type" && (
             <select
               aria-label="Filter by subject"
-              className="w-full min-w-0 truncate rounded-control py-[9px] pl-3 pr-7 text-xs sm:w-auto sm:max-w-[11.5rem]"
+              className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
               value={filters.subject ?? "all"}
               onChange={(e) => changeFilter("subject", e.target.value)}
             >
@@ -141,7 +141,7 @@ export function ScopeFilters({
           {tiers.length > 1 && mode === "type" && (
             <select
               aria-label="Filter by tier"
-              className="w-full min-w-0 truncate rounded-control py-[9px] pl-3 pr-7 text-xs sm:w-auto sm:max-w-[11.5rem]"
+              className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
               value={filters.tier ?? "all"}
               onChange={(e) => changeFilter("tier", e.target.value)}
             >

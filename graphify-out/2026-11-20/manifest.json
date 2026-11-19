@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "src/components/plan/plan-day-view.tsx": {
-    "mtime": 1793519329.497779,
-    "seen": 1793559250.170815,
-    "ast_hash": "b83ecbf0bf052a5247c482e030a954b9",
+    "mtime": 1795127732.303985,
+    "seen": 1795127877.7444363,
+    "ast_hash": "d77e82a19d5babea11541fd06a32c7d5",
     "semantic_hash": ""
   },
   "src/components/plan/plan-shared.tsx": {
@@ -1308,9 +1308,9 @@
     "semantic_hash": ""
   },
   "src/components/plan/week-strip.tsx": {
-    "mtime": 1793435117.9294753,
-    "seen": 1793442381.653276,
-    "ast_hash": "c51883c50f030f85529ca2d45d342621",
+    "mtime": 1795127459.6673858,
+    "seen": 1795127877.74491,
+    "ast_hash": "d3f2c063d7802c41d891d9c04650865d",
     "semantic_hash": ""
   },
   "tools/shot.mjs": {
@@ -1560,9 +1560,9 @@
     "semantic_hash": ""
   },
   "src/components/plan/calendar/month-grid.tsx": {
-    "mtime": 1793472014.431907,
-    "seen": 1793559250.1706002,
-    "ast_hash": "bf0ab8ceb6755b495ae1285124fefaad",
+    "mtime": 1795127438.0986624,
+    "seen": 1795127877.7427878,
+    "ast_hash": "faf82a144f67eb54bd3a79aa2e36899a",
     "semantic_hash": ""
   },
   "src/components/plan/calendar/period-nav.tsx": {
@@ -1578,9 +1578,9 @@
     "semantic_hash": ""
   },
   "src/components/plan/calendar/week-view.tsx": {
-    "mtime": 1793472157.7804668,
-    "seen": 1793559250.1706102,
-    "ast_hash": "f3a2b23761ff066f303fe61c60cc6afe",
+    "mtime": 1795127438.0286608,
+    "seen": 1795127877.7434185,
+    "ast_hash": "845921a0efee2c4d7f0c69157908f611",
     "semantic_hash": ""
   },
   "src/components/plan/day/result-editor.tsx": {
@@ -1626,9 +1626,9 @@
     "semantic_hash": ""
   },
   "src/components/tasks/board-view.tsx": {
-    "mtime": 1793378158.4240317,
-    "seen": 1793442381.6533594,
-    "ast_hash": "f0a45c37dce9951b929874fd2fa3f281",
+    "mtime": 1795127438.2206616,
+    "seen": 1795127877.7486339,
+    "ast_hash": "e93e56a04151461877f23505efc17064",
     "semantic_hash": ""
   },
   "src/components/tasks/bulk-bar.tsx": {
@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "src/components/tasks/task-row.tsx": {
-    "mtime": 1793555976.954746,
-    "seen": 1793559250.1726782,
-    "ast_hash": "a1c8f9a3320f043389b8b1defe3bb90f",
+    "mtime": 1795127400.5919662,
+    "seen": 1795127877.7500968,
+    "ast_hash": "faa297a36bd8fa640ad3efb89cc94ad1",
     "semantic_hash": ""
   },
   "src/components/tasks/task-status-button.tsx": {
@@ -1986,9 +1986,9 @@
     "semantic_hash": ""
   },
   "src/components/plan/plan-week-view.tsx": {
-    "mtime": 1793518563.7438905,
-    "seen": 1793559250.171191,
-    "ast_hash": "976a1da469cef19da444ce2a3f50c184",
+    "mtime": 1795127732.290878,
+    "seen": 1795127877.744906,
+    "ast_hash": "3f6a4821c96b5234b2bf356b5e2ab73e",
     "semantic_hash": ""
   },
   "src/components/query-provider.tsx": {

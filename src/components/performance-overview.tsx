@@ -39,7 +39,6 @@ import {
   type DashboardScope,
   type SectionId,
   type SubjectId,
-  FULL_MOCK_MAX_SCORE,
   SUBJECTS,
   SUBJECT_INITIALS,
   formatNumber as n,
@@ -928,7 +927,7 @@ function GroupedScoreBars({
       <div className="px-4 pb-4 sm:px-5">
         <ChartContainer
           config={config}
-          className="!aspect-auto h-[190px] w-full sm:h-[220px] sm:h-[260px]"
+          className="!aspect-auto h-[190px] w-full sm:h-[260px]"
         >
           <BarChart
             data={data}

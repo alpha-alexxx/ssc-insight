@@ -916,7 +916,10 @@ export function MockForm({
                   <h3 className="font-medium text-sm mb-3">
                     {SUBJECTS[s.subjectId].name}
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Three columns until lg: 768-1023 with the sidebar open
+                      leaves ~490px, and five ~78px columns wrap the labels
+                      and pinch the number fields. */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     <label>
                       Questions
                       <input
