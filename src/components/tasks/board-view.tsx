@@ -59,7 +59,9 @@ export function BoardView({
   }
 
   return (
-    <div className="grid items-start gap-3 md:grid-cols-3">
+    // Two columns until lg: 768–1023 with the sidebar open leaves ~490px of
+    // content, and three ~150px columns wrap every card's meta into slivers.
+    <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {COLUMNS.map((column) => {
         const items = byColumn.get(column.id)!;
         const highlighted = overColumn === column.id;

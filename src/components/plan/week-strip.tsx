@@ -56,7 +56,7 @@ export function WeekStripPanel({
         <Link
           href="/calendar"
           aria-label="Open the full calendar"
-          className="group inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-rule-soft px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent/40 hover:bg-accent-soft sm:px-3"
+          className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-rule-soft px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent/40 hover:bg-accent-soft sm:min-h-0 sm:min-w-0 sm:px-3"
         >
           <PlainIcon name="calendar" size={13} />
           <span className="hidden sm:inline">Full calendar</span>

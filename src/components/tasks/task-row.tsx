@@ -105,7 +105,7 @@ export function TaskRow({
                 : "to do"
           }.`}
           title={`Status: ${meta.label} — click to advance`}
-          className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-110 motion-reduce:transition-none motion-reduce:hover:scale-100"
+          className="relative mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full transition-transform after:absolute after:-inset-2 after:content-[''] hover:scale-110 motion-reduce:transition-none motion-reduce:hover:scale-100"
         >
           <StatusDot status={display} size={16} />
         </button>

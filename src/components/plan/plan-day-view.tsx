@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
@@ -277,7 +277,7 @@ export function PlanDayView({
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
           <div className="min-w-0">
-            <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.03em] text-ink sm:text-[44px]">
+            <h1 className="text-[clamp(2rem,7vw,2.75rem)] font-semibold leading-none tracking-[-0.03em] text-ink">
               Day {current.day}
               <span className="ml-2 align-middle rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted">
                 CGL plan

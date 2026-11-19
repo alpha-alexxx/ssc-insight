@@ -2487,30 +2487,6 @@ html {
     --table-cell-pad-y: 13px;
     --table-cell-pad-x: 12px;
   }
-  /* Opt-in swipeable strip row (My Tasks overview): cells keep a readable
-     minimum width and the row scrolls horizontally with snap. */
-  .metric-strip-scroll {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-  }
-  .metric-strip-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .metric-strip-scroll .metric-cell {
-    flex: 0 0 9.5rem;
-    scroll-snap-align: start;
-    padding: 12px;
-  }
-  /* The swipe row is a single line, so every cell keeps a left hairline and
-     none gets the 2×2 top border the divided strip uses. */
-  .metric-strip-scroll .metric-cell + .metric-cell {
-    border-left: 1px solid var(--rule-soft);
-  }
-  .metric-strip-scroll .metric-cell:nth-child(n + 3) {
-    border-top: 0;
-  }
   .stat-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2653,6 +2629,32 @@ html {
   .metric-strip:not(.metric-strip-scroll) .metric-cell:nth-child(n + 3) {
     border-top: 1px solid var(--rule-soft);
   }
+  /* The opt-in swipeable variant (My Tasks overview) folds the same way the
+     2×2 grid does — by container width, not viewport — so the 768–1023
+     sidebar squeeze gets the readable scroll row instead of four ~120px
+     desktop cells. */
+  .metric-strip-scroll {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .metric-strip-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .metric-strip-scroll .metric-cell {
+    flex: 0 0 9.5rem;
+    scroll-snap-align: start;
+    padding: 12px;
+  }
+  /* The swipe row is a single line, so every cell keeps a left hairline and
+     none gets the 2×2 top border the divided strip uses. */
+  .metric-strip-scroll .metric-cell + .metric-cell {
+    border-left: 1px solid var(--rule-soft);
+  }
+  .metric-strip-scroll .metric-cell:nth-child(n + 3) {
+    border-top: 0;
+  }
   .score-band,
   .score-band.is-five {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2793,6 +2795,39 @@ html {
     display: flex;
   }
   .cal-cell-ticks {
+    display: none;
+  }
+}
+
+/* The week surface reuses the month grid's container logic: seven real
+   columns only once there is room for them (~80px each), a scannable row
+   list below that — so the 768–1023 sidebar squeeze gets the rows, not
+   seven 60px slivers. */
+.cal-week {
+  container-type: inline-size;
+}
+.cal-week-cols {
+  display: none;
+}
+@container (min-width: 560px) {
+  .cal-week-cols {
+    display: grid;
+  }
+  .cal-week-rows {
+    display: none;
+  }
+}
+
+/* Weekday headers abbreviate by the month surface's own width, in step with
+   the cell fold above, not the viewport. */
+.cal-weekday-full {
+  display: none;
+}
+@container (min-width: 560px) {
+  .cal-weekday-full {
+    display: inline;
+  }
+  .cal-weekday-initial {
     display: none;
   }
 }

@@ -21,9 +21,10 @@ import { categoryLabel } from "./entry-rows";
 const MAX_ROWS = 3;
 
 /**
- * Seven days around the selection. Columns at `md+`, a single-column day list
- * below it — a two-column grid leaves a ragged 4+3 tail, while a row list
- * reads as the schedule it is.
+ * Seven days around the selection. Columns once the surface is wide enough
+ * (a container query, so 768px with the sidebar open still gets the readable
+ * row list), a single-column day list below it — a two-column grid leaves a
+ * ragged 4+3 tail, while a row list reads as the schedule it is.
  *
  * Each column shows up to three ruled rows per layer and, when the day is
  * busy, scrolls inside a capped column rather than compressing text. The head
@@ -50,10 +51,10 @@ export const WeekView = memo(function WeekView({
   );
 
   return (
-    <>
-      {/* md+ — columns */}
+    <div className="cal-week">
+      {/* Wide surfaces — seven columns */}
       <ul
-        className="hidden grid-cols-7 gap-1.5 md:grid"
+        className="cal-week-cols grid-cols-7 gap-1.5"
         aria-label={`Week of ${shortDate(from)}`}
       >
         {week.map((iso) => (
@@ -71,9 +72,9 @@ export const WeekView = memo(function WeekView({
         ))}
       </ul>
 
-      {/* <md — one row per day, still inside the week */}
+      {/* Narrow surfaces — one row per day, still inside the week */}
       <ul
-        className="flex flex-col md:hidden"
+        className="cal-week-rows flex flex-col"
         aria-label={`Week of ${shortDate(from)}`}
       >
         {week.map((iso) => (
@@ -90,7 +91,7 @@ export const WeekView = memo(function WeekView({
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 });
 

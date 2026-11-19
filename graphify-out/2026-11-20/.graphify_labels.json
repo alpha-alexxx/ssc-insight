@@ -23,7 +23,6 @@
   "35": "Score Observatory verification",
   "38": "compare-view.tsx",
   "40": "Button",
-  "42": "trash-core.ts",
   "44": "api",
   "45": "requireUser",
   "49": "my-tasks-view.tsx",
@@ -40,7 +39,6 @@
   "67": "TypeScript Compiler Configuration",
   "68": "Caching and Revalidation Policy",
   "70": "ai/todos/route.ts",
-  "75": "Shadcn Aliases and Tailwind Configuration",
   "76": "ui-check.mjs",
   "77": "backup.test.ts",
   "78": "requireUser",
@@ -105,6 +103,5 @@
   "138": "Todo Pagination Filtering and Sorting",
   "139": "Add Mock Route",
   "141": "Mock Comparison Route",
-  "153": "Neon Ownership Migration and QA",
   "155": "Paper Tokens and Design Handover"
 }

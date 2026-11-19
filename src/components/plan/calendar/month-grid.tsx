@@ -123,8 +123,8 @@ export const MonthGrid = memo(function MonthGrid({
             aria-hidden="true"
             className="px-1 pb-1 text-center text-[11px] font-medium text-muted"
           >
-            <span className="hidden sm:inline">{name}</span>
-            <span className="sm:hidden">{name[0]}</span>
+            <span className="cal-weekday-full">{name}</span>
+            <span className="cal-weekday-initial">{name[0]}</span>
           </div>
         ))}
       </div>

@@ -13,7 +13,6 @@ import {
   dayAssignmentStats,
   isoWeekdayName,
   isMockType,
-  monthGridDays,
   planProgressStats,
   revisionQueue,
   weekRange,
