@@ -165,7 +165,7 @@ AI is **optional** and **read-only** for coaching/extraction. It cannot save, ed
 
 ### Features
 - **Coach Card**: Manual "Generate insight" action returning structured read of saved data. Never runs automatically.
-- **Chat Drawer**: Follow-up questions stream one answer at a time. History is ephemeral (in-memory only).
+- **Chat Drawer**: Follow-up questions stream one answer at a time. Conversations are saved on the device (browser localStorage, never on the server) so past chats can be reopened, renamed by their first question, edited, or deleted.
 - **AI-Assisted Paste**: Sends up to 20,000 characters to the server for editable extraction review. Required blockers must be resolved before values are copied to the form.
 - **Todo Assistance**: Proposes changes to personal todos. Apply is transactional, version-checked, user-scoped, and idempotent (max 25 operations/batch).
 

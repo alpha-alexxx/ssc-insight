@@ -1197,6 +1197,9 @@ function WorkspaceShellInner({
           configured={!!ai.aiStatus?.enabled}
           onSend={(text) => void ai.chat.send(text, aiScreenContext)}
           onRetry={() => ai.chat.retryLast()}
+          onRegenerate={() => ai.chat.regenerateLast()}
+          onEditResend={(messageId, text) => ai.chat.editResend(messageId, text)}
+          history={ai.chat.history}
           onStop={ai.chat.stop}
           onClear={ai.chat.clear}
           onAiConfigured={() => void ai.refreshAiStatus()}

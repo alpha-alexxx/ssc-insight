@@ -5,17 +5,20 @@ import {
   BarChart3,
   BookOpen,
   Calendar,
-  ChevronRight,
   Check,
+  ChevronRight,
   ClipboardPaste,
   Copy,
+  History,
   Info,
   Lightbulb,
   ListTodo,
   MessageSquare,
   Pencil,
+  RotateCcw,
   Sparkles,
   Square,
+  SquarePen,
   Trash2,
   TrendingUp,
 } from "lucide-react";
@@ -23,7 +26,6 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import { useOverlayViewport, useOverlayFocus } from "./use-overlay-viewport";
 import { Button } from "./ui/button";
-import { PlainIcon } from "./icon";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +54,8 @@ import {
 import { istTodayIso, linkHost } from "@/lib/plan/view-model";
 import type { AttemptInput, PatternShape } from "@/lib/domain";
 import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
+import type { ChatHistoryApi } from "./use-ai-workspace";
+import { shortDate } from "@/lib/format";
 
 const QUICK_QUESTIONS = [
   {
@@ -104,8 +108,8 @@ export type LogMockPayload = {
  * The AI panel: a tabbed right Sheet with "Coach chat" and "Log a mock".
  * Desktop keeps the workspace visible; mobile is a full-width Sheet with a
  * dvh flex layout so the composer stays above the keyboard. Conversation
- * state lives in the shell hook; closing aborts the stream but never clears
- * the history.
+ * state lives in the shell hook: finished turns persist to the device, the
+ * in-flight stream aborts on close, and the transcript survives reopening.
  */
 export function AiChatSheet({
   open,
@@ -121,6 +125,9 @@ export function AiChatSheet({
   onStop,
   onClear,
   onRetry,
+  onRegenerate,
+  onEditResend,
+  history,
   onAiConfigured,
   taskApi,
   onLogMock,
@@ -139,6 +146,12 @@ export function AiChatSheet({
   onStop: () => void;
   onClear: () => void;
   onRetry?: () => void;
+  /** Regenerate the latest answer on demand. */
+  onRegenerate?: () => void;
+  /** Replace an earlier question and re-run the conversation from it. */
+  onEditResend?: (messageId: string, text: string) => void;
+  /** Saved conversations (device-local) and the list mutations. */
+  history?: ChatHistoryApi;
   /** Notifies the shell so AI status can be refetched after setup. */
   onAiConfigured?: (credential: AiCredentialSummary | null) => void;
   /** Personal-task creator for suggest-and-confirm cards. */
@@ -151,10 +164,18 @@ export function AiChatSheet({
   const [tab, setTab] = useState<"chat" | "log" | "todos">("chat");
   // Reset to chat whenever the sheet reopens; the tab is not persistent state.
   const [lastOpen, setLastOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   if (open !== lastOpen) {
     setLastOpen(open);
     if (open) setTab(initialTab);
+    else setHistoryOpen(false);
   }
+  /** Tab switch that also closes the history overlay. */
+  const switchTab = (next: "chat" | "log" | "todos") => {
+    onStop();
+    setHistoryOpen(false);
+    setTab(next);
+  };
   const viewport = useOverlayViewport(open);
   const overlayFocus = useOverlayFocus();
 
@@ -185,61 +206,99 @@ export function AiChatSheet({
                 {contextLabel}
               </span>
             )}
-            <span>Kept until refresh or sign-out.</span>
+            <span>Chats are saved on this device.</span>
           </SheetDescription>
         </SheetHeader>
         <div
-          className="shrink-0 border-b border-rule-soft px-3 py-2.5 sm:px-4"
-          role="tablist"
-          aria-label="AI mode"
+          className="flex shrink-0 items-center gap-2 border-b border-rule-soft px-3 py-2.5 sm:px-4"
         >
-          {/* The app's one segmented-control grammar, not a bespoke tab bar. */}
-          <div className="segment-group !flex w-full">
-            {(
-              [
-                { id: "chat", label: "Ask", icon: MessageSquare },
-                { id: "todos", label: "Todos", icon: ListTodo },
-                { id: "log", label: "Log", icon: ClipboardPaste },
-              ] as const
-            ).map((item, index) => (
+          <div
+            className="min-w-0 flex-1"
+            role="tablist"
+            aria-label="AI mode"
+          >
+            {/* The app's one segmented-control grammar, not a bespoke tab bar. */}
+            <div className="segment-group !flex w-full">
+              {(
+                [
+                  { id: "chat", label: "Ask", icon: MessageSquare },
+                  { id: "todos", label: "Todos", icon: ListTodo },
+                  { id: "log", label: "Log", icon: ClipboardPaste },
+                ] as const
+              ).map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={`ai-tab-${item.id}`}
+                  aria-controls={`ai-panel-${item.id}`}
+                  aria-selected={tab === item.id}
+                  tabIndex={tab === item.id ? 0 : -1}
+                  onClick={() => switchTab(item.id)}
+                  onKeyDown={(event) => {
+                    const ids = ["chat", "todos", "log"] as const;
+                    const next =
+                      event.key === "ArrowRight"
+                        ? (index + 1) % 3
+                        : event.key === "ArrowLeft"
+                          ? (index + 2) % 3
+                          : event.key === "Home"
+                            ? 0
+                            : event.key === "End"
+                              ? 2
+                              : null;
+                    if (next !== null) {
+                      event.preventDefault();
+                      switchTab(ids[next]);
+                      document.getElementById(`ai-tab-${ids[next]}`)?.focus();
+                    }
+                  }}
+                  className="segment min-w-0 flex-1 justify-center"
+                >
+                  <item.icon size={15} className="shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Conversation controls ride the tab row on the chat tab only:
+              a clean slate and the saved-history list. */}
+          {tab === "chat" && history && (
+            <div className="flex shrink-0 items-center gap-1">
               <button
-                key={item.id}
                 type="button"
-                role="tab"
-                id={`ai-tab-${item.id}`}
-                aria-controls={`ai-panel-${item.id}`}
-                aria-selected={tab === item.id}
-                tabIndex={tab === item.id ? 0 : -1}
+                aria-label="New chat"
+                title="New chat"
+                className="inline-flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink"
                 onClick={() => {
                   onStop();
-                  setTab(item.id);
+                  setHistoryOpen(false);
+                  history.newChat();
                 }}
-                onKeyDown={(event) => {
-                  const ids = ["chat", "todos", "log"] as const;
-                  const next =
-                    event.key === "ArrowRight"
-                      ? (index + 1) % 3
-                      : event.key === "ArrowLeft"
-                        ? (index + 2) % 3
-                        : event.key === "Home"
-                          ? 0
-                          : event.key === "End"
-                            ? 2
-                            : null;
-                  if (next !== null) {
-                    event.preventDefault();
-                    onStop();
-                    setTab(ids[next]);
-                    document.getElementById(`ai-tab-${ids[next]}`)?.focus();
-                  }
-                }}
-                className="segment min-w-0 flex-1 justify-center"
               >
-                <item.icon size={15} className="shrink-0" />
-                {item.label}
+                <SquarePen size={16} />
               </button>
-            ))}
-          </div>
+              <button
+                type="button"
+                aria-label="Conversation history"
+                title="Conversation history"
+                aria-expanded={historyOpen}
+                aria-pressed={historyOpen}
+                className={cn(
+                  "inline-flex size-10 items-center justify-center rounded-control transition-colors",
+                  historyOpen
+                    ? "bg-soft text-ink"
+                    : "text-muted hover:bg-soft hover:text-ink",
+                )}
+                onClick={() => {
+                  onStop();
+                  setHistoryOpen((value) => !value);
+                }}
+              >
+                <History size={16} />
+              </button>
+            </div>
+          )}
         </div>
         <div
           role="tabpanel"
@@ -254,10 +313,15 @@ export function AiChatSheet({
               streaming={streaming}
               error={error}
               configured={configured}
+              history={history}
+              historyOpen={historyOpen}
+              onHistoryClose={() => setHistoryOpen(false)}
               onSend={onSend}
               onStop={onStop}
               onClear={onClear}
               onRetry={onRetry}
+              onRegenerate={onRegenerate}
+              onEditResend={onEditResend}
               onAiConfigured={onAiConfigured}
               taskApi={taskApi}
               onTaskAdded={onTaskAdded}
@@ -292,10 +356,15 @@ function CoachChatTab({
   streaming,
   error,
   configured,
+  history,
+  historyOpen,
+  onHistoryClose,
   onSend,
   onStop,
   onClear,
   onRetry,
+  onRegenerate,
+  onEditResend,
   onAiConfigured,
   taskApi,
   onTaskAdded,
@@ -305,10 +374,15 @@ function CoachChatTab({
   streaming: boolean;
   error: string;
   configured: boolean;
+  history?: ChatHistoryApi;
+  historyOpen?: boolean;
+  onHistoryClose?: () => void;
   onSend: (text: string) => void;
   onStop: () => void;
   onClear: () => void;
   onRetry?: () => void;
+  onRegenerate?: () => void;
+  onEditResend?: (messageId: string, text: string) => void;
   onAiConfigured?: (credential: AiCredentialSummary | null) => void;
   taskApi?: AiSheetTaskApi;
   onTaskAdded?: () => void;
@@ -320,6 +394,11 @@ function CoachChatTab({
   const follow = useRef(true);
   const [showLatest, setShowLatest] = useState(false);
   const [lastSent, setLastSent] = useState("");
+  // Inline editor state for "edit and resend" on an earlier question.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  // Seconds since the current stream started — the thinking indicator's clock.
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -333,6 +412,19 @@ function CoachChatTab({
     if (follow.current) log.scrollTop = log.scrollHeight;
   }, [messages, streaming]);
 
+  // One tick per second while a response streams. Resetting between turns is
+  // the render-time adjust below — a setState in the effect body would fire
+  // on every streaming flip and cascade renders.
+  useEffect(() => {
+    if (!streaming) return;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [streaming]);
+  if (!streaming && elapsed !== 0) setElapsed(0);
+
   function submit(text: string) {
     const value = text.trim();
     if (!value || streaming) return;
@@ -341,10 +433,28 @@ function CoachChatTab({
     setLastSent(value);
     onSend(value);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "";
   }
 
   const charCount = input.length;
   const maxChars = 1000;
+
+  if (historyOpen && history) {
+    return (
+      <ChatHistoryPanel
+        history={history}
+        streaming={streaming}
+        onClose={() => {
+          onHistoryClose?.();
+          window.setTimeout(() => inputRef.current?.focus(), 40);
+        }}
+        onNewChat={() => {
+          history.newChat();
+          onHistoryClose?.();
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -386,7 +496,7 @@ function CoachChatTab({
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">
                 Answers use your aggregates and your latest 20 full mocks —
-                never your notes or identity.
+                never your notes or identity. Earlier chats stay on this device.
               </p>
             </div>
             <div className="border-t border-rule-soft">
@@ -415,6 +525,26 @@ function CoachChatTab({
           <CoachMemos
             messages={messages}
             streaming={streaming}
+            elapsed={elapsed}
+            editingId={editingId}
+            editDraft={editDraft}
+            onEditStart={(message) => {
+              setEditingId(message.id);
+              setEditDraft(message.content);
+            }}
+            onEditDraftChange={setEditDraft}
+            onEditCancel={() => {
+              setEditingId(null);
+              setEditDraft("");
+            }}
+            onEditSubmit={(messageId, text) => {
+              setEditingId(null);
+              setEditDraft("");
+              follow.current = true;
+              setShowLatest(false);
+              onEditResend?.(messageId, text);
+            }}
+            onRegenerate={onRegenerate}
             taskApi={taskApi}
             onTaskAdded={onTaskAdded}
           />
@@ -481,7 +611,13 @@ function CoachChatTab({
             aria-label="Message your study coach"
             placeholder="Ask about a mock, a weak subject, or what to do next…"
             className="max-h-28 w-full resize-none border-0 bg-transparent px-3 pt-2.5 text-[13px] leading-relaxed placeholder:text-muted focus:outline-none focus:ring-0"
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              // Auto-grow to the content, capped at the max-height token.
+              const field = event.currentTarget;
+              field.style.height = "auto";
+              field.style.height = `${Math.min(field.scrollHeight, 112)}px`;
+            }}
             onKeyDown={(event) => {
               if (
                 event.key === "Enter" &&
@@ -547,6 +683,154 @@ function CoachChatTab({
         </div>
       </form>
     </>
+  );
+}
+
+/* ---------------- conversation history panel ---------------- */
+
+/** Relative age for a history row: "Just now", "5m ago", "Yesterday"-style
+ * short labels, then a real date. */
+function relativeLabel(iso: string): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return "";
+  const seconds = Math.round((Date.now() - then) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return shortDate(new Date(then).toISOString());
+}
+
+/**
+ * The saved-conversation list, replacing the transcript while it is open.
+ * Selecting a row restores it; the delete button removes it without opening.
+ */
+function ChatHistoryPanel({
+  history,
+  streaming,
+  onClose,
+  onNewChat,
+}: {
+  history: ChatHistoryApi;
+  streaming: boolean;
+  onClose: () => void;
+  onNewChat: () => void;
+}) {
+  const conversations = history.conversations;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-rule-soft px-4 py-3 sm:px-5">
+        <div className="min-w-0">
+          <h3 className="font-serif text-[1.125rem] font-medium leading-tight text-ink">
+            Conversation history
+          </h3>
+          <p className="mt-0.5 text-[11px] text-muted">
+            Saved on this device — {conversations.length}{" "}
+            {conversations.length === 1 ? "chat" : "chats"}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-11 sm:min-h-0"
+            onClick={onNewChat}
+            disabled={streaming}
+          >
+            <SquarePen size={14} /> New
+          </Button>
+          <button
+            type="button"
+            aria-label="Back to the conversation"
+            title="Back"
+            className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink sm:size-10"
+            onClick={onClose}
+          >
+            <History size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+        {conversations.length === 0 ? (
+          <div className="rounded-control border border-dashed border-rule px-4 py-6 text-center">
+            <p className="text-sm font-medium text-ink">No saved chats yet</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Conversations appear here as you talk, so you can pick a thread
+              back up after closing the panel.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-4 min-h-11 sm:min-h-0"
+              onClick={onNewChat}
+            >
+              <SquarePen size={14} /> Start a chat
+            </Button>
+          </div>
+        ) : (
+          <ul className="flex flex-col">
+            {conversations.map((conversation) => {
+              const active = conversation.id === history.activeId;
+              const turns = conversation.messages.filter(
+                (message) => message.role === "user",
+              ).length;
+              return (
+                <li key={conversation.id} className="border-b border-rule-soft last:border-b-0">
+                  <div className="group flex items-stretch gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        history.select(conversation.id);
+                        onClose();
+                      }}
+                      className="min-h-14 min-w-0 flex-1 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-soft"
+                      aria-current={active ? "true" : undefined}
+                    >
+                      <span
+                        className={cn(
+                          "block truncate text-[0.8125rem] leading-snug",
+                          active
+                            ? "font-medium text-accent"
+                            : "font-medium text-ink",
+                        )}
+                      >
+                        {conversation.title}
+                      </span>
+                      <span className="mt-1 flex items-center gap-x-2 text-[11px] text-muted tabular">
+                        <span>{relativeLabel(conversation.updatedAt)}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {turns} {turns === 1 ? "question" : "questions"}
+                        </span>
+                        {active && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span className="text-accent">Open</span>
+                          </>
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete "${conversation.title}"`}
+                      title="Delete"
+                      className="mr-1 inline-flex size-11 shrink-0 self-center items-center justify-center rounded-control text-muted transition-colors hover:bg-danger-soft hover:text-danger sm:size-10"
+                      onClick={() => history.remove(conversation.id)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -647,36 +931,59 @@ export function parseMemo(content: string): {
 }
 
 /** The memo list: one document, not a chat transcript. Your question becomes
- * the dateline that opens the answer beneath it. */
+ * the dateline that opens the answer beneath it; each question carries Edit /
+ * Copy affordances, and the running answer carries the thinking indicator. */
 function CoachMemos({
   messages,
   streaming,
+  elapsed,
+  editingId,
+  editDraft,
+  onEditStart,
+  onEditDraftChange,
+  onEditCancel,
+  onEditSubmit,
+  onRegenerate,
   taskApi,
   onTaskAdded,
 }: {
   messages: ChatMessage[];
   streaming: boolean;
+  elapsed: number;
+  editingId: string | null;
+  editDraft: string;
+  onEditStart: (message: ChatMessage) => void;
+  onEditDraftChange: (value: string) => void;
+  onEditCancel: () => void;
+  onEditSubmit: (messageId: string, text: string) => void;
+  onRegenerate?: () => void;
   taskApi?: AiSheetTaskApi;
   onTaskAdded?: () => void;
 }) {
+  const lastId = messages.at(-1)?.id;
   return (
     <div className="flex flex-col gap-6">
       {messages.map((message, index) =>
         message.role === "user" ? (
-          <div
+          <CoachUserTurn
             key={message.id}
-            className="border-t border-rule-soft pt-4 first:border-t-0 first:pt-0"
-          >
-            <p className="section-label">Asked</p>
-            <p className="mt-1.5 text-sm leading-snug text-ink">
-              {message.content}
-            </p>
-          </div>
+            message={message}
+            streaming={streaming}
+            editing={editingId === message.id}
+            editDraft={editDraft}
+            onEditStart={onEditStart}
+            onEditDraftChange={onEditDraftChange}
+            onEditCancel={onEditCancel}
+            onEditSubmit={onEditSubmit}
+          />
         ) : (
           <CoachMemo
             key={message.id}
             message={message}
             streaming={streaming && index === messages.length - 1}
+            elapsed={elapsed}
+            isLatest={message.id === lastId}
+            onRegenerate={onRegenerate}
             taskApi={taskApi}
             onTaskAdded={onTaskAdded}
           />
@@ -686,14 +993,144 @@ function CoachMemos({
   );
 }
 
+/** One asked question, with the chatbot affordances a transcript needs:
+ * copy, and edit-and-resend (the answers after it are discarded, exactly
+ * like regenerating from that point in any chat UI). */
+function CoachUserTurn({
+  message,
+  streaming,
+  editing,
+  editDraft,
+  onEditStart,
+  onEditDraftChange,
+  onEditCancel,
+  onEditSubmit,
+}: {
+  message: ChatMessage;
+  streaming: boolean;
+  editing: boolean;
+  editDraft: string;
+  onEditStart: (message: ChatMessage) => void;
+  onEditDraftChange: (value: string) => void;
+  onEditCancel: () => void;
+  onEditSubmit: (messageId: string, text: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1_600);
+    } catch {
+      // Clipboard unavailable (permissions/insecure context); ignore quietly.
+    }
+  };
+
+  return (
+    <div className="border-t border-rule-soft pt-4 first:border-t-0 first:pt-0">
+      <p className="section-label">Asked</p>
+      {editing ? (
+        <form
+          className="mt-1.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = editDraft.trim();
+            if (!value || streaming) return;
+            onEditSubmit(message.id, value);
+          }}
+        >
+          <textarea
+            ref={editRef}
+            rows={3}
+            maxLength={4000}
+            value={editDraft}
+            autoFocus
+            aria-label="Edit your question"
+            className="w-full resize-y text-sm leading-relaxed"
+            onChange={(event) => onEditDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault();
+                const value = editDraft.trim();
+                if (value && !streaming) onEditSubmit(message.id, value);
+              }
+            }}
+          />
+          <div className="action-row mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11 sm:min-h-0"
+              onClick={onEditCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="min-h-11 sm:min-h-0"
+              disabled={!editDraft.trim() || streaming}
+            >
+              Save &amp; resend
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p className="mt-1.5 text-sm leading-snug text-ink">
+            {message.content}
+          </p>
+          <div className="mt-1.5 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onEditStart(message)}
+              aria-label="Edit this question and resend"
+              className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
+            >
+              <Pencil size={12} /> Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => void copy()}
+              aria-label={copied ? "Copied" : "Copy question"}
+              className="ml-2 inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The blinking terminal caret that marks a running answer. */
+function StreamCaret() {
+  return <span className="stream-caret" aria-hidden="true" />;
+}
+
 function CoachMemo({
   message,
   streaming,
+  elapsed,
+  isLatest,
+  onRegenerate,
   taskApi,
   onTaskAdded,
 }: {
   message: ChatMessage;
   streaming: boolean;
+  elapsed: number;
+  isLatest: boolean;
+  onRegenerate?: () => void;
   taskApi?: AiSheetTaskApi;
   onTaskAdded?: () => void;
 }) {
@@ -715,19 +1152,26 @@ function CoachMemo({
   };
 
   if (!message.content) {
-    return (
-      <p className="inline-flex items-center gap-2 text-sm text-muted">
-        {streaming ? (
-          <>
-            <PlainIcon name="refresh" size={12} className="animate-spin" />
-            Writing…
-          </>
-        ) : (
-          "No response."
-        )}
-      </p>
-    );
+    // The stream is connected but the first token has not landed. Thinking
+    // models can spend a long while here, so the indicator carries a clock.
+    if (streaming) {
+      return (
+        <p className="inline-flex items-center gap-2.5 text-sm text-muted">
+          <span className="thinking-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span role="status">
+            Thinking{elapsed > 0 ? ` · ${elapsed}s` : ""}
+          </span>
+        </p>
+      );
+    }
+    return <p className="text-sm text-muted">No response.</p>;
   }
+
+  const lastBlockIndex = memo.blocks.length - 1;
 
   return (
     <article className="ai-memo min-w-0 break-words">
@@ -742,6 +1186,7 @@ function CoachMemo({
             <p className="section-label">{block.label}</p>
             <div className="ai-memo-body mt-1 text-sm leading-relaxed text-ink">
               <MessageContent content={block.body} />
+              {streaming && index === lastBlockIndex && <StreamCaret />}
             </div>
           </div>
         ) : (
@@ -750,9 +1195,12 @@ function CoachMemo({
             className="mt-2 text-sm leading-relaxed text-ink"
           >
             <MessageContent content={block.body} />
+            {streaming && index === lastBlockIndex && <StreamCaret />}
           </div>
         ),
       )}
+      {/* A running answer with sections still owes its caret somewhere. */}
+      {streaming && memo.blocks.length === 0 && <StreamCaret />}
       {parsed.suggestions.map((suggestion, index) => (
         <TaskSuggestionCard
           key={`${message.id}-${index}`}
@@ -767,15 +1215,27 @@ function CoachMemo({
           or try again.
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => void copy()}
-        aria-label={copied ? "Copied" : "Copy answer"}
-        className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
-      >
-        {copied ? <Check size={12} /> : <Copy size={12} />}
-        {copied ? "Copied" : "Copy"}
-      </button>
+      <div className="mt-3 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => void copy()}
+          aria-label={copied ? "Copied" : "Copy answer"}
+          className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+        {!streaming && isLatest && onRegenerate && (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            aria-label="Regenerate this answer"
+            className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
+          >
+            <RotateCcw size={12} /> Regenerate
+          </button>
+        )}
+      </div>
     </article>
   );
 }

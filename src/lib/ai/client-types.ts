@@ -98,6 +98,10 @@ export type ChatMessage = {
   content: string;
   /** The stream ended on a truncation stop reason; the answer may be cut off. */
   truncated?: boolean;
+  /** Client-clock ISO timestamp of the turn; used by the conversation
+   * history and the streaming "thinking" indicator. Older stored messages
+   * may omit it. */
+  at?: string;
 };
 
 export const AI_VIEWS = [

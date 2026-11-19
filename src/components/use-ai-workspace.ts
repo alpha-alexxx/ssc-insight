@@ -1,5 +1,11 @@
 "use client";
 import { chatBaseForSend } from "@/lib/ai/chat-history";
+import {
+  loadConversations,
+  saveConversations,
+  upsertConversation,
+  type StoredConversation,
+} from "@/lib/ai/conversations";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
@@ -64,11 +70,23 @@ function insightToChatText(insight: CoachInsight, meta: CoachMeta | null) {
   return lines.join("\n");
 }
 
+/** API shape for the sheet's history panel: the stored list plus the four
+ * mutations it offers. */
+export type ChatHistoryApi = {
+  conversations: StoredConversation[];
+  activeId: string | null;
+  newChat: () => void;
+  select: (id: string) => void;
+  remove: (id: string) => void;
+};
+
 /**
  * Client state for the optional AI subsystem: availability status, the coach
- * insight card, and the streaming chat drawer. Chat is in-memory only; the
- * in-flight stream aborts when the drawer closes or the workspace unmounts.
- * Everything here fails soft — AI must never block the tracker.
+ * insight card, and the streaming chat drawer. Finished conversations persist
+ * to localStorage (lib/ai/conversations.ts) so the drawer restores its
+ * history across reloads; the in-flight stream still aborts when the drawer
+ * closes or the workspace unmounts. Everything here fails soft — AI must
+ * never block the tracker.
  */
 export function useAiWorkspace() {
   const queryClient = useQueryClient();
@@ -85,10 +103,26 @@ export function useAiWorkspace() {
   // Drawer visibility lives in the UI store (header, dashboard cards, the
   // palette, and the shell all open it); messages and streaming stay local.
   const chatOpen = useUiStore((s) => s.aiChatOpen);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatStreaming, setChatStreaming] = useState(false);
   const [chatError, setChatError] = useState("");
   const chatAbort = useRef<AbortController | null>(null);
+  // Conversation history: React state mirrors refs so turn handlers never
+  // read stale closures, and persistence never runs inside a state updater
+  // (StrictMode would run it twice). The saved list hydrates in the state
+  // initializers — safe because the workspace shell is client-hydrated with
+  // the drawer closed, so the stored transcript never reaches server HTML.
+  const [boot] = useState(() => loadConversations());
+  const [conversations, setConversations] =
+    useState<StoredConversation[]>(boot);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(() => boot[0]?.id ?? null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
+    () => boot[0]?.messages ?? [],
+  );
+  const conversationsRef = useRef<StoredConversation[]>(boot);
+  const activeIdRef = useRef<string | null>(boot[0]?.id ?? null);
+  const messagesRef = useRef<ChatMessage[]>(boot[0]?.messages ?? []);
 
   // Revalidates after quota-consuming actions (coach/chat completion) — the
   // quota ledger may have moved.
@@ -101,6 +135,32 @@ export function useAiWorkspace() {
     },
     [],
   );
+
+  const applyMessages = useCallback(
+    (updater: (current: ChatMessage[]) => ChatMessage[]) => {
+      const next = updater(messagesRef.current);
+      messagesRef.current = next;
+      setChatMessages(next);
+    },
+    [],
+  );
+
+  /** Commit the current transcript into the conversation list and storage.
+   * Runs at turn boundaries only, so a streaming token never touches storage.
+   * An empty transcript removes the active conversation instead of storing
+   * an empty shell. */
+  const persistTurn = useCallback(() => {
+    const { list, activeId } = upsertConversation(
+      conversationsRef.current,
+      activeIdRef.current,
+      messagesRef.current,
+    );
+    conversationsRef.current = list;
+    activeIdRef.current = activeId;
+    setConversations(list);
+    setActiveConversationId(activeId);
+    saveConversations(list);
+  }, []);
 
   const clearCoach = useCallback(() => {
     setCoachInsight(null);
@@ -124,10 +184,10 @@ export function useAiWorkspace() {
     const assistantId = newId();
     // The request lands in the visible transcript: the chat context the model
     // sees on follow-ups includes what the insight covered.
-    setChatMessages((current) => [
+    applyMessages((current) => [
       ...chatBaseForSend(current, false),
-      { id: requestId, role: "user", content: INSIGHT_REQUEST_TEXT },
-      { id: assistantId, role: "assistant", content: "" },
+      { id: requestId, role: "user", content: INSIGHT_REQUEST_TEXT, at: new Date().toISOString() },
+      { id: assistantId, role: "assistant", content: "", at: new Date().toISOString() },
     ]);
     setCoachBusy(true);
     setCoachError("");
@@ -142,7 +202,7 @@ export function useAiWorkspace() {
       });
       setCoachInsight(result.insight);
       setCoachMeta(result.meta);
-      setChatMessages((current) =>
+      applyMessages((current) =>
         current.map((message) =>
           message.id === assistantId
             ? { ...message, content: insightToChatText(result.insight, result.meta) }
@@ -157,7 +217,7 @@ export function useAiWorkspace() {
           ? e.message
           : "Could not generate an insight";
       if (!aborted) setCoachError(message);
-      setChatMessages((current) =>
+      applyMessages((current) =>
         current.map((message) =>
           message.id === assistantId
             ? {
@@ -176,9 +236,10 @@ export function useAiWorkspace() {
         chatAbort.current = null;
         requestKindRef.current = null;
       }
+      persistTurn();
       void refreshAiStatus();
     }
-  }, [refreshAiStatus]);
+  }, [applyMessages, persistTurn, refreshAiStatus]);
 
   const openChat = useCallback(() => {
     setChatError("");
@@ -193,27 +254,87 @@ export function useAiWorkspace() {
   const stopChat = useCallback(() => {
     chatAbort.current?.abort();
   }, []);
-  const clearChat = useCallback(() => {
+
+  const startFreshConversation = useCallback(() => {
     chatAbort.current?.abort();
-    setChatMessages([]);
+    applyMessages(() => []);
+    activeIdRef.current = null;
+    setActiveConversationId(null);
     setChatError("");
-  }, []);
+  }, [applyMessages]);
+
+  /** Composer trash button: drop the current conversation from history and
+   * open a clean one. */
+  const clearChat = useCallback(() => {
+    const doomed = activeIdRef.current;
+    startFreshConversation();
+    if (!doomed) return;
+    const next = conversationsRef.current.filter(
+      (conversation) => conversation.id !== doomed,
+    );
+    conversationsRef.current = next;
+    setConversations(next);
+    saveConversations(next);
+  }, [startFreshConversation]);
+
+  const newChat = useCallback(() => {
+    startFreshConversation();
+    // An untouched transcript is not stored; an existing one keeps its turns
+    // (persistTurn already saved them). Opening history right away would
+    // otherwise lose the just-cleared view — the sheet handles that.
+    if (messagesRef.current.length) persistTurn();
+  }, [persistTurn, startFreshConversation]);
+
+  const selectConversation = useCallback(
+    (id: string) => {
+      if (id === activeIdRef.current) return;
+      chatAbort.current?.abort();
+      const conversation = conversationsRef.current.find(
+        (entry) => entry.id === id,
+      );
+      if (!conversation) return;
+      activeIdRef.current = id;
+      setActiveConversationId(id);
+      applyMessages(() => conversation.messages);
+      setChatError("");
+    },
+    [applyMessages],
+  );
+
+  const removeConversation = useCallback(
+    (id: string) => {
+      chatAbort.current?.abort();
+      const next = conversationsRef.current.filter(
+        (conversation) => conversation.id !== id,
+      );
+      conversationsRef.current = next;
+      setConversations(next);
+      saveConversations(next);
+      if (activeIdRef.current === id) {
+        activeIdRef.current = null;
+        setActiveConversationId(null);
+        applyMessages(() => []);
+      }
+    },
+    [applyMessages],
+  );
 
   const sendChat = useCallback(
     async (text: string, screen?: AiScreenContext | null, retry = false) => {
       if (chatAbort.current) return; // a stream is already in flight
-      const base = chatBaseForSend(chatMessages, retry);
+      const base = chatBaseForSend(messagesRef.current, retry);
       const userMessage: ChatMessage = {
         id: newId(),
         role: "user",
         content: text,
+        at: new Date().toISOString(),
       };
       const assistantId = newId();
       const history = trimChatHistory([...base, userMessage], 8);
-      setChatMessages([
+      applyMessages(() => [
         ...base,
         userMessage,
-        { id: assistantId, role: "assistant", content: "" },
+        { id: assistantId, role: "assistant", content: "", at: userMessage.at },
       ]);
       setChatStreaming(true);
       setChatError("");
@@ -250,7 +371,7 @@ export function useAiWorkspace() {
           const event = parseChatEvent(line);
           if (!event) return;
           if (event.type === "delta") {
-            setChatMessages((current) =>
+            applyMessages((current) =>
               current.map((message) =>
                 message.id === assistantId
                   ? { ...message, content: message.content + event.text }
@@ -262,7 +383,7 @@ export function useAiWorkspace() {
             finished = true;
           } else if (event.type === "done") {
             if (event.truncated) {
-              setChatMessages((current) =>
+              applyMessages((current) =>
                 current.map((message) =>
                   message.id === assistantId
                     ? { ...message, truncated: true }
@@ -297,10 +418,27 @@ export function useAiWorkspace() {
           chatAbort.current = null;
           requestKindRef.current = null;
         }
+        persistTurn();
         void refreshAiStatus();
       }
     },
-    [chatMessages, refreshAiStatus],
+    [applyMessages, persistTurn, refreshAiStatus],
+  );
+
+  /** Edit a previously sent user message: everything after it is discarded
+   * and the new text is sent in its place. The full replacement history is
+   * persisted when the re-sent turn settles. */
+  const editAndResend = useCallback(
+    (messageId: string, text: string) => {
+      if (chatAbort.current) return;
+      const index = messagesRef.current.findIndex(
+        (message) => message.id === messageId && message.role === "user",
+      );
+      if (index < 0) return;
+      applyMessages((current) => current.slice(0, index));
+      void sendChat(text, null, false);
+    },
+    [applyMessages, sendChat],
   );
 
   /** Retry replays the request kind that produced the last turn: a coach
@@ -312,12 +450,41 @@ export function useAiWorkspace() {
       return;
     }
     if (kind === "chat") {
-      const lastUser = chatMessages.findLast(
+      const lastUser = messagesRef.current.findLast(
         (message) => message.role === "user",
       );
       if (lastUser) void sendChat(lastUser.content, null, true);
     }
-  }, [chatMessages, generateCoach, sendChat]);
+  }, [generateCoach, sendChat]);
+
+  /** Regenerate the last answer on demand (not only after an error): the
+   * latest exchange is dropped and replayed against its original endpoint. */
+  const regenerateLast = useCallback(() => {
+    if (chatAbort.current) return;
+    const kind = requestKindRef.current ?? "chat";
+    if (kind === "coach") {
+      void generateCoach();
+      return;
+    }
+    const lastUser = messagesRef.current.findLast(
+      (message) => message.role === "user",
+    );
+    if (!lastUser) return;
+    const assistantIndex = messagesRef.current.findIndex(
+      (message) => message.id === lastUser.id,
+    );
+    // Drop everything after the question, then replay it.
+    applyMessages((current) => current.slice(0, assistantIndex + 1));
+    void sendChat(lastUser.content, null, true);
+  }, [applyMessages, generateCoach, sendChat]);
+
+  const history: ChatHistoryApi = {
+    conversations,
+    activeId: activeConversationId,
+    newChat,
+    select: selectConversation,
+    remove: removeConversation,
+  };
 
   return {
     aiStatus,
@@ -341,6 +508,9 @@ export function useAiWorkspace() {
       stop: stopChat,
       clear: clearChat,
       retryLast,
+      regenerateLast,
+      editResend: editAndResend,
+      history,
     },
   };
 }
