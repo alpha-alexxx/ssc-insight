@@ -117,7 +117,11 @@ export async function resolveAiConfig(
         jsonMode: stored.jsonMode,
         allowHttp: stored.allowHttp,
         allowPrivate: stored.allowPrivate,
-        maxOutputTokens: envConfig?.maxOutputTokens ?? 1_200,
+        // Thinking models spend output tokens on hidden reasoning before the
+        // answer, so a small cap guarantees empty replies (finish_reason
+        // "length", no content). 8,000 gives such models room while capping
+        // the worst case; the deployment's AI_MAX_OUTPUT_TOKENS overrides it.
+        maxOutputTokens: envConfig?.maxOutputTokens ?? 8_000,
         timeoutMs: envConfig?.timeoutMs ?? 45_000,
         dailyRequestLimit: 400,
         dailyTokenLimit: 2_000_000,

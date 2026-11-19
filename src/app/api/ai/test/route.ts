@@ -12,12 +12,20 @@ import type { AiConfig } from "@/lib/ai/config-core";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// Thinking models spend output tokens on hidden reasoning before answering,
+// so the probe needs headroom to finish. A 16-token budget made a perfectly
+// healthy connection fail: the model burned all 16 tokens reasoning and the
+// app saw an empty reply. 512 keeps the call cheap while letting small
+// reasoning chains complete.
+const TEST_MAX_OUTPUT_TOKENS = 512;
+
 /**
  * "Test connection" for the AI picker.
  *
- * This is intentionally tiny: one short completion, no tracker context, nothing
- * saved. It proves the endpoint, key, and model work without spending real
- * tokens on a full coach read, and it never echoes the key or the base URL back.
+ * This is intentionally small: one short completion, no tracker context,
+ * nothing saved. It proves the endpoint, key, and model work without spending
+ * real tokens on a full coach read, and it never echoes the key or the base
+ * URL back.
  *
  * Rate-limited as a write: it causes a billable outbound request.
  */
@@ -50,7 +58,7 @@ export const POST = defineRoute(
             jsonMode: parsed.data.jsonMode ?? true,
             allowHttp: parsed.data.allowHttp,
             allowPrivate: parsed.data.allowPrivate,
-            maxOutputTokens: 16,
+            maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
             timeoutMs: 20_000,
             dailyRequestLimit: 30,
             dailyTokenLimit: 300_000,
@@ -87,7 +95,7 @@ export const POST = defineRoute(
           },
           { role: "user", content: "Connection test." },
         ],
-        maxOutputTokens: 16,
+        maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
         signal: controller.signal,
       });
       return {

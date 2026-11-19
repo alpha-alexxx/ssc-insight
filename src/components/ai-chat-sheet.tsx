@@ -761,6 +761,12 @@ function CoachMemo({
           onTaskAdded={onTaskAdded}
         />
       ))}
+      {message.truncated && !streaming && (
+        <p className="mt-3 border-t border-rule-soft pt-2 text-[11px] text-muted">
+          This reply was cut off before it finished — increase the output limit
+          or try again.
+        </p>
+      )}
       <button
         type="button"
         onClick={() => void copy()}

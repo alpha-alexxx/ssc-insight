@@ -96,6 +96,8 @@ export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** The stream ended on a truncation stop reason; the answer may be cut off. */
+  truncated?: boolean;
 };
 
 export const AI_VIEWS = [

@@ -9,7 +9,7 @@ export type ChatUsage = {
 export type AiChatEvent =
   | { type: "start"; contextVersion: string }
   | { type: "delta"; text: string }
-  | { type: "done"; usage: ChatUsage }
+  | { type: "done"; usage: ChatUsage; truncated?: boolean }
   | { type: "error"; code: string; message: string };
 
 const encoder = new TextEncoder();
@@ -78,7 +78,11 @@ export function parseChatEvent(line: string): AiChatEvent | null {
       typeof usage.estimated === "boolean" &&
       typeof usage.providerCalls === "number"
     )
-      return { type: "done", usage: usage as ChatUsage };
+      return {
+        type: "done",
+        usage: usage as ChatUsage,
+        truncated: event.truncated === true,
+      };
   }
   return null;
 }

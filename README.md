@@ -98,8 +98,8 @@ Copy `.env.example` or use Neon's environment pull. **Never commit real values t
 | `AI_JSON_MODE` | `true` by default. Set `false` if the provider rejects `response_format`. |
 | `AI_DAILY_REQUEST_LIMIT` | AI requests per user per IST day (default: `30`). |
 | `AI_DAILY_TOKEN_LIMIT` | Charged tokens per user per IST day (default: `300000`). |
-| `AI_MAX_OUTPUT_TOKENS` | Per-call output cap (default: `1200`). |
-| `AI_TIMEOUT_MS` | Provider timeout below the 60-second route limit (default: `45000`). |
+| `AI_MAX_OUTPUT_TOKENS` | Per-call output cap (default: `1200`; example sets `8000`). Thinking models spend this budget on hidden reasoning before the answer, so keep it generous. |
+| `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `45000`). Whole-call wall clock for non-streaming completions; the stall limit between chunks for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
 | `AI_CREDENTIAL_SECRET` | Encrypts user-entered API keys (AES-256-GCM). 64 hex chars or ≥32-char passphrase. |
 | `CRON_SECRET` | Bearer token for `/api/cron/trash-cleanup`. Generate via `openssl rand -hex 32`. |
 

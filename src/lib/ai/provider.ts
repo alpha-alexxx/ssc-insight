@@ -59,7 +59,12 @@ export type AiProvider = {
   ): Promise<{ value: T; usage: AiUsage; providerCalls: number }>;
   stream(
     args: RequestArgs & { onDelta: (text: string) => void },
-  ): Promise<{ text: string; usage: AiUsage; providerCalls: number }>;
+  ): Promise<{
+    text: string;
+    usage: AiUsage;
+    providerCalls: number;
+    truncated: boolean;
+  }>;
 };
 
 const MAX_STREAM_CHARS = 60_000;
@@ -339,15 +344,32 @@ function completionText(config: AiConfig, payload: unknown): string {
     return text;
   }
   if (config.protocol === "anthropic-messages") {
-    return contentText(record.content);
+    const text = contentText(record.content);
+    // Thinking models can spend the entire output budget reasoning and end
+    // with empty text blocks. A truncation stop reason is an incomplete
+    // reply, not an unreadable format; refusal is a refusal.
+    if (!text.trim()) {
+      if (record.stop_reason === "max_tokens") throw aiOutputIncomplete();
+      if (record.stop_reason === "refusal") throw aiRefused();
+    }
+    return text;
   }
   const choices = record.choices;
   if (!Array.isArray(choices) || !choices.length) throw aiProviderError();
   const first = choices[0] as {
     message?: { content?: unknown };
     text?: unknown;
+    finish_reason?: unknown;
   };
-  return contentText(first.message?.content ?? first.text);
+  const text = contentText(first.message?.content ?? first.text);
+  if (!text.trim()) {
+    // Same trap as above for OpenAI-compatible relays serving thinking
+    // models: reasoning consumed the budget, content came back empty with
+    // finish_reason "length".
+    if (first.finish_reason === "length") throw aiOutputIncomplete();
+    if (first.finish_reason === "content_filter") throw aiRefused();
+  }
+  return text;
 }
 
 type StreamFrame = { event: string | null; data: string };
@@ -425,6 +447,7 @@ type StreamResult = {
   delta?: string;
   usage?: UsagePatch | null;
   done?: boolean;
+  finishReason?: string;
 };
 
 function parseStreamPayload(
@@ -468,7 +491,12 @@ function parseStreamPayload(
       return { usage: usagePatch(message?.usage) };
     }
     if (type === "message_delta") {
-      return { usage: usagePatch(record.usage) };
+      const delta = record.delta as Record<string, unknown> | undefined;
+      return {
+        usage: usagePatch(record.usage),
+        finishReason:
+          typeof delta?.stop_reason === "string" ? delta.stop_reason : undefined,
+      };
     }
     if (type === "message_stop") return { done: true };
     return {};
@@ -481,6 +509,7 @@ function parseStreamPayload(
             delta?: { content?: unknown };
             message?: { content?: unknown };
             text?: unknown;
+            finish_reason?: unknown;
           }
         | undefined)
     : undefined;
@@ -489,6 +518,10 @@ function parseStreamPayload(
       first?.delta?.content ?? first?.message?.content ?? first?.text,
     ),
     usage: usagePatch(record.usage),
+    finishReason:
+      typeof first?.finish_reason === "string"
+        ? first.finish_reason
+        : undefined,
   };
 }
 
@@ -518,6 +551,7 @@ export function createAiProvider(
     response: Response;
     cleanup: () => void;
     didTimeout: () => boolean;
+    kick: () => void;
   };
 
   async function open(
@@ -529,10 +563,22 @@ export function createAiProvider(
     let timedOut = false;
     const forwardAbort = () => controller.abort();
     signal.addEventListener("abort", forwardAbort, { once: true });
-    const timer = setTimeout(() => {
+    let timer = setTimeout(() => {
       timedOut = true;
       controller.abort();
     }, config.timeoutMs);
+    // For streams the deadline is re-armed after every received chunk, so it
+    // behaves as an inactivity (stall) timer: a thinking model can stream for
+    // minutes without being killed at one wall-clock window. complete() never
+    // kicks, keeping its total wall-clock contract.
+    const kick = () => {
+      if (timedOut) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, config.timeoutMs);
+    };
     const cleanup = () => {
       clearTimeout(timer);
       signal.removeEventListener("abort", forwardAbort);
@@ -580,6 +626,7 @@ export function createAiProvider(
       response,
       cleanup,
       didTimeout: () => timedOut,
+      kick,
     };
   }
 
@@ -629,7 +676,12 @@ export function createAiProvider(
 
   async function stream(
     args: RequestArgs & { onDelta: (text: string) => void },
-  ): Promise<{ text: string; usage: AiUsage; providerCalls: number }> {
+  ): Promise<{
+    text: string;
+    usage: AiUsage;
+    providerCalls: number;
+    truncated: boolean;
+  }> {
     const opened = await open(
       requestBody(config, args, { stream: true, json: false }),
       args.signal,
@@ -638,6 +690,7 @@ export function createAiProvider(
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
     let text = "";
     let providerTokens: UsagePatch | undefined;
+    let finishReason: string | undefined;
     let done = false;
 
     const mergeUsage = (patch?: UsagePatch | null) => {
@@ -658,6 +711,7 @@ export function createAiProvider(
         return;
       }
       const result = parseStreamPayload(config, payload);
+      if (result.finishReason) finishReason = result.finishReason;
       if (result.delta) {
         text += result.delta;
         args.onDelta(result.delta);
@@ -679,6 +733,7 @@ export function createAiProvider(
           text,
           usage: usageFrom(payload, estimatedUsage(args.messages, full)),
           providerCalls: 1,
+          truncated: false,
         };
       }
 
@@ -691,6 +746,7 @@ export function createAiProvider(
       while (!done) {
         const { done: finished, value } = await bodyReader.read();
         if (finished) break;
+        opened.kick();
         for (const frame of decoder.push(value)) {
           handleFrame(frame);
           if (done) break;
@@ -699,7 +755,13 @@ export function createAiProvider(
       if (!done) {
         for (const frame of decoder.flush()) handleFrame(frame);
       }
-      if (!text.trim()) throw aiInvalidOutput();
+      if (!text.trim()) {
+        if (finishReason === "length" || finishReason === "max_tokens")
+          throw aiOutputIncomplete();
+        if (finishReason === "content_filter" || finishReason === "refusal")
+          throw aiRefused();
+        throw aiInvalidOutput();
+      }
       const tokens = providerTokens;
       const inputTokens = tokens?.inputTokens ?? 0;
       const outputTokens = tokens?.outputTokens ?? 0;
@@ -714,6 +776,10 @@ export function createAiProvider(
             }
           : estimatedUsage(args.messages, text),
         providerCalls: 1,
+        // A truncation stop reason with partial text means the model ran out
+        // of budget mid-answer; the caller surfaces that instead of passing
+        // the cut-off text off as a complete reply.
+        truncated: finishReason === "length" || finishReason === "max_tokens",
       };
     } catch (error) {
       if (error instanceof AiError) throw error;

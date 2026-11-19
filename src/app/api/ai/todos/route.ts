@@ -99,7 +99,11 @@ export const POST = defineRoute(
       result = await createAiProvider(resolved.config).completeJson({
         messages,
         maxOutputTokens,
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(45_000)]),
+        // No route-level deadline: the provider enforces config.timeoutMs
+        // (an extra hard abort here beat it and surfaced as a misleading
+        // "The AI request was cancelled" instead of a timeout). The request
+        // signal still propagates a client disconnect.
+        signal: request.signal,
         parse: (raw) =>
           parseTodoProposals(
             raw,

@@ -131,6 +131,10 @@ export function readAiConfig(env: Env): AiConfig | null {
       100_000_000,
     ),
     maxOutputTokens: integerEnv(env, "AI_MAX_OUTPUT_TOKENS", 1_200, 64, 16_000),
-    timeoutMs: integerEnv(env, "AI_TIMEOUT_MS", 45_000, 5_000, 55_000),
+    // The ceiling leaves room for thinking models, whose hidden reasoning
+    // consumes wall-clock time before the answer arrives. Keep the configured
+    // value within the deployment platform's function limit (60s on Vercel)
+    // or raise maxDuration on the AI routes to match.
+    timeoutMs: integerEnv(env, "AI_TIMEOUT_MS", 45_000, 5_000, 180_000),
   };
 }

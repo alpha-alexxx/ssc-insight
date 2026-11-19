@@ -261,6 +261,15 @@ export function useAiWorkspace() {
             setChatError(event.message);
             finished = true;
           } else if (event.type === "done") {
+            if (event.truncated) {
+              setChatMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantId
+                    ? { ...message, truncated: true }
+                    : message,
+                ),
+              );
+            }
             finished = true;
           }
         };

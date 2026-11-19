@@ -157,6 +157,7 @@ export async function POST(request: Request) {
               ...result.usage,
               providerCalls: result.providerCalls,
             },
+            truncated: result.truncated,
           });
         } catch (error) {
           const code =

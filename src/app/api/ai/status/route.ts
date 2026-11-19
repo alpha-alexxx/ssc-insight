@@ -3,6 +3,7 @@ import { aiConfigOrNull } from "@/lib/ai/config";
 import {
   credentialStorageAvailable,
   describeAiCredential,
+  getAiCredential,
 } from "@/lib/ai/credentials";
 import { providerLabel } from "@/lib/ai/providers";
 import { USER_KEY_SAFETY_LIMITS } from "@/lib/ai/resolve-core";
@@ -46,6 +47,24 @@ export async function GET() {
     }
 
     if (source === "user" && credential) {
+      // describeAiCredential never decrypts, but resolveAiConfig refuses an
+      // undecryptable key. Check the decrypting read as well so status cannot
+      // claim "ready" for a credential every AI call would reject.
+      const stored = await getAiCredential(userId);
+      if (stored === "invalid") {
+        return ok({
+          enabled: false,
+          state: "personal-invalid",
+          source: null,
+          provider: null,
+          protocol: null,
+          authMode: null,
+          model: null,
+          usage: null,
+          storageAvailable,
+          credential,
+        });
+      }
       return ok({
         enabled: true,
         state: "ready",

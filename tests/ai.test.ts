@@ -172,6 +172,7 @@ test("AI config fails closed and validates the provider URL", () => {
   assert.equal(defaults?.dailyTokenLimit, 300_000);
   assert.equal(defaults?.jsonMode, true);
   assert.equal(defaults?.timeoutMs, 45_000);
+  assert.equal(defaults?.maxOutputTokens, 1_200);
 
   const custom = readAiConfig({
     AI_API_KEY: "key",
@@ -187,6 +188,14 @@ test("AI config fails closed and validates the provider URL", () => {
   assert.equal(custom?.dailyTokenLimit, 1_200);
   assert.equal(custom?.maxOutputTokens, 500);
   assert.equal(custom?.timeoutMs, 20_000);
+
+  // The timeout ceiling leaves room for thinking models; above it clamps.
+  const clamped = readAiConfig({
+    AI_API_KEY: "key",
+    AI_MODEL: "model",
+    AI_TIMEOUT_MS: "200000",
+  });
+  assert.equal(clamped?.timeoutMs, 180_000);
 });
 
 test("report sanitizing preserves score data and extraction prompt contract", () => {
