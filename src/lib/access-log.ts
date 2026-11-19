@@ -1,12 +1,15 @@
 /**
  * Structured HTTP access log — one JSON line per request on stdout, same
- * shape discipline as audit.ts (stable keys, PII-free) so the platform log
- * stream (Vercel/Neon/Docker) ships it with zero plumbing.
+ * shape discipline as audit.ts (stable keys, PII-free).
  *
  * Emitted from two places:
  * - src/proxy.ts for gate decisions made before the app runs
  *   (redirects, maintenance, CSRF rejections) via waitUntil.
  * - src/lib/route-handler.ts for every API route completion.
+ *
+ * Development aid only: production stays quiet about individual requests
+ * (the audit/error stream in audit.ts and route handlers still ships). The
+ * gate lives here so both emitters are covered by one decision.
  *
  * Fields:
  *   ts     ISO timestamp
@@ -35,6 +38,7 @@ export type AccessLogEvent = {
 };
 
 export function accessLog(event: AccessLogEvent): void {
+  if (process.env.NODE_ENV === "production") return;
   const line = {
     ts: new Date().toISOString(),
     evt: "http",

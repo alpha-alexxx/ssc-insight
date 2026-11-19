@@ -58,6 +58,12 @@ const nextConfig: NextConfig = {
     // Keep security-advisory upgrade reminders enabled for this app.
     agentUpgrade: "security",
   },
+  compiler: {
+    // Production bundles must not carry stray console output. Warn/error stay
+    // (server-side error reporting relies on them); log/debug/info are
+    // stripped, so debug logging cannot leak into a deployed build.
+    removeConsole: { exclude: ["warn", "error"] },
+  },
   // Development only: allow the sandbox preview host to load dev assets.
   // Has no effect on production builds.
   allowedDevOrigins: [

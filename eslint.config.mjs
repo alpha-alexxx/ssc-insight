@@ -21,6 +21,10 @@ export default defineConfig([
             "Query mock attempts through src/lib/repository.ts so the trash filter (deletedAt: null) is applied.",
         },
       ],
+      // Console debug output never ships: production bundles strip
+      // log/debug/info via compiler.removeConsole, and warn/error are the
+      // only sanctioned channels (server-side diagnostics).
+      "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
   {

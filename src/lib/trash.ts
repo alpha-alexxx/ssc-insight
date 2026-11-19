@@ -771,12 +771,14 @@ export async function purgeExpiredTrash(
     try {
       removed[label] = await work();
     } catch (error) {
+      // Same discipline as lib/api.ts: driver messages can carry connection
+      // details, so only safe identifiers reach the log stream.
       console.error(
         JSON.stringify({
           op: "trash.cleanup",
           kind: label,
           outcome: "error",
-          message: error instanceof Error ? error.message : "unknown",
+          name: error instanceof Error ? error.name : "unknown",
         }),
       );
     }
@@ -834,11 +836,12 @@ export async function purgeExpiredTrash(
       try {
         await pruneExamSettings(userId, ids);
       } catch (error) {
+        // Same discipline as lib/api.ts: log safe identifiers only.
         console.error(
           JSON.stringify({
             op: "trash.cleanup.settings",
             outcome: "error",
-            message: error instanceof Error ? error.message : "unknown",
+            name: error instanceof Error ? error.name : "unknown",
           }),
         );
       }

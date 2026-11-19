@@ -34,3 +34,11 @@ videos/*
 
 # local visual-QA screenshots (tools/shot.mjs output)
 .impeccable/refine/
+
+# ignoring videos and claude skills
+/videos
+/.claude
+/.taste-skill
+/playwright-report
+/test-results
+/.zcode
