@@ -6,7 +6,7 @@ import { resolveAiConfig } from "@/lib/ai/resolve";
 import { createAiProvider } from "@/lib/ai/provider";
 import { aiNotConfigured, AiError, aiProviderError } from "@/lib/ai/errors";
 import { aiLimits, loadAiContext } from "@/lib/ai/server";
-import { reservationTokens } from "@/lib/ai/quota";
+import { reservationTokens, chargedForAiFailure } from "@/lib/ai/quota";
 import { reserveAiUsage, settleSafely } from "@/lib/ai/usage";
 import { getPlanDays } from "@/lib/plan/plan";
 import { dayKey } from "@/lib/ai/tokens";
@@ -85,6 +85,8 @@ export const POST = defineRoute(
     const reservation = await reserveAiUsage(user.id, {
       feature: "todos",
       model: resolved.config.model,
+      provider: resolved.config.provider,
+      protocol: resolved.config.protocol,
       limits: aiLimits(resolved.config),
       reservedTokens: reservationTokens({
         promptText: messages.map((m) => m.content).join("\n"),
@@ -114,7 +116,7 @@ export const POST = defineRoute(
         status: code === "AI_ABORTED" ? "aborted" : "error",
         inputTokens: 0,
         outputTokens: 0,
-        tokensCharged: reservation.reservedTokens,
+        tokensCharged: chargedForAiFailure(error, reservation.reservedTokens),
         providerCalls: 2,
         errorCode: code,
       });

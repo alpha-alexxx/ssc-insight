@@ -54,7 +54,7 @@ export const PUT = defineRoute(
       );
     }
 
-    if (!parsed.data.apiKey) {
+    if (!parsed.data.apiKey && parsed.data.authMode !== "none") {
       const existing = await describeAiCredential(user.id);
       if (!existing || !sameCredentialTarget(existing, parsed.data)) {
         throw new RequestError(

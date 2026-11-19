@@ -1,13 +1,13 @@
-import { apiError, ok, readBody } from "@/lib/api";
-import { aiNotConfigured, AiError, aiProviderError } from "@/lib/ai/errors";
+import { apiError, ok, readBody } from "@/lib/api";import { aiNotConfigured, AiError, aiProviderError } from "@/lib/ai/errors";
 import {
   CONTEXT_TOKEN_ESTIMATE,
+  chargedForAiFailure,
   reservationTokens,
 } from "@/lib/ai/quota";
 import { coachMessages } from "@/lib/ai/prompts";
 import { createAiProvider } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
-import { coachInsightSchema, parseModelJson } from "@/lib/ai/schemas";
+import { coachInsightSchema, parseModelJson, structuredFormatFor } from "@/lib/ai/schemas";
 import { aiLimits, loadAiBundle } from "@/lib/ai/server";
 import {
   releaseSafely,
@@ -18,6 +18,8 @@ import { requireUser } from "@/lib/auth/require-user";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const COACH_FORMAT = structuredFormatFor(coachInsightSchema, "coach_insight");
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +34,8 @@ export async function POST(request: Request) {
     const reservation = await reserveAiUsage(userId, {
       feature: "coach",
       model: config.model,
+      provider: config.provider,
+      protocol: config.protocol,
       limits,
       reservedTokens: reservationTokens({
         promptText: "performance coach insight",
@@ -55,6 +59,7 @@ export async function POST(request: Request) {
         messages: coachMessages(bundle.context, bundle.shape, bundle.examName),
         maxOutputTokens: config.maxOutputTokens,
         signal: request.signal,
+        format: COACH_FORMAT,
         parse: (raw) => parseModelJson(raw, coachInsightSchema),
       });
     } catch (error) {
@@ -65,8 +70,10 @@ export async function POST(request: Request) {
         status: code === "AI_ABORTED" ? "aborted" : "error",
         inputTokens: 0,
         outputTokens: 0,
-        // A call may have started and been billed; never undercharge it.
-        tokensCharged: reservation.reservedTokens,
+        tokensCharged: chargedForAiFailure(
+          error,
+          reservation.reservedTokens,
+        ),
         providerCalls: 2,
         errorCode: code,
         contextVersion: bundle.context.contextVersion,

@@ -7,7 +7,7 @@ import {
   extractionMessages,
   sanitizeReport,
 } from "@/lib/ai/prompts";
-import { reservationTokens } from "@/lib/ai/quota";
+import { reservationTokens, chargedForAiFailure } from "@/lib/ai/quota";
 import { createAiProvider } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
 import { aiLimits } from "@/lib/ai/server";
@@ -60,6 +60,8 @@ export async function POST(request: Request) {
     const reservation = await reserveAiUsage(userId, {
       feature: "extract",
       model: config.model,
+      provider: config.provider,
+      protocol: config.protocol,
       limits: aiLimits(config),
       reservedTokens: reservationTokens({
         promptText: messages.map((message) => message.content).join("\n"),
@@ -84,7 +86,7 @@ export async function POST(request: Request) {
         status: code === "AI_ABORTED" ? "aborted" : "error",
         inputTokens: 0,
         outputTokens: 0,
-        tokensCharged: reservation.reservedTokens,
+        tokensCharged: chargedForAiFailure(error, reservation.reservedTokens),
         providerCalls: 2,
         errorCode: code,
       });

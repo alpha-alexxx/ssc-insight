@@ -47,3 +47,19 @@ export function parseModelJson<T>(raw: string, schema: z.ZodType<T>): T {
   if (!json) throw new Error("No JSON object in model output");
   return schema.parse(JSON.parse(json));
 }
+
+/**
+ * Convert an existing Zod contract into the JSON Schema used by native
+ * structured output (OpenAI text.format, Anthropic output_config). The
+ * provider-facing field is optional per call site, and prompt/Zod validation
+ * remains the enforcement path whenever a provider declines the format.
+ */
+export function structuredFormatFor(
+  schema: z.ZodType,
+  name: string,
+): { name: string; jsonSchema: Record<string, unknown> } {
+  const jsonSchema = z.toJSONSchema(schema, {
+    target: "draft-7",
+  }) as Record<string, unknown>;
+  return { name, jsonSchema };
+}

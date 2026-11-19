@@ -6,6 +6,7 @@ import { chatMessages } from "@/lib/ai/prompts";
 import { AI_VIEWS } from "@/lib/ai/client-types";
 import {
   CONTEXT_TOKEN_ESTIMATE,
+  chargedForAiFailure,
   reservationTokens,
 } from "@/lib/ai/quota";
 import { createAiProvider } from "@/lib/ai/provider";
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
     const reservation = await reserveAiUsage(userId, {
       feature: "chat",
       model: config.model,
+      provider: config.provider,
+      protocol: config.protocol,
       limits: aiLimits(config),
       reservedTokens: reservationTokens({
         promptText: body.messages
@@ -110,6 +113,7 @@ export async function POST(request: Request) {
         providerCalls: number;
       },
       errorCode?: string,
+      failure?: unknown,
     ) => {
       if (settled) return;
       settled = true;
@@ -119,11 +123,14 @@ export async function POST(request: Request) {
         status,
         inputTokens: result?.usage.inputTokens ?? 0,
         outputTokens: result?.usage.outputTokens ?? 0,
-        // A started stream may have been billed even when it failed/aborted.
+        // A started stream may have been billed even when it failed/aborted;
+        // definitive pre-generation failures settle at zero.
         tokensCharged:
           status === "success" && result
             ? result.usage.totalTokens
-            : reservation.reservedTokens,
+            : failure !== undefined
+              ? chargedForAiFailure(failure, reservation.reservedTokens)
+              : reservation.reservedTokens,
         providerCalls: result?.providerCalls ?? 1,
         errorCode: errorCode ?? null,
         contextVersion: bundle.context.contextVersion,
@@ -158,6 +165,7 @@ export async function POST(request: Request) {
             code === "AI_ABORTED" ? "aborted" : "error",
             undefined,
             code,
+            error,
           );
           if (!(error instanceof AiError))
             console.error("AI chat failed", {

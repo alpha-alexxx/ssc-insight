@@ -10,6 +10,8 @@ type ReservationInput = {
   model: string;
   reservedTokens: number;
   limits: AiQuotaLimits;
+  provider?: string | null;
+  protocol?: string | null;
 };
 
 function prismaCode(error: unknown) {
@@ -72,6 +74,8 @@ export async function reserveAiUsage(userId: string, input: ReservationInput) {
         day,
         feature: input.feature,
         model: input.model,
+        provider: input.provider?.slice(0, 40) ?? null,
+        protocol: input.protocol?.slice(0, 40) ?? null,
         tokensCharged: reservedTokens,
       },
     });
