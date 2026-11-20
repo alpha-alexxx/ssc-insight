@@ -1,30 +1,30 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Panel } from "./dashboard-panels";
-import { PlainIcon } from "./icon";
-import { Button } from "./ui/button";
-import { Skeleton } from "./ui/skeleton";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "./ui/tooltip";
-import { Swap } from "./motion-swap";
+} from "@/components/ui/tooltip";
+import { Swap } from "@/components/motion-swap";
 import { DashboardOverview } from "./dashboard-overview";
-import { AttemptRecordCard } from "./attempt-outcome-card";
-import { PerformancePreview } from "./performance-preview";
-import { PlanErrorCard } from "./plan/plan-shared";
+import { AttemptRecordCard } from "@/components/attempt-outcome-card";
+import { PerformancePreview } from "@/components/performance-preview";
+import { PlanErrorCard } from "@/components/plan/plan-shared";
 import {
   StudyPipelinePanel,
   TodayFocusPanel,
   type PlanWithToday,
-} from "./plan/dashboard-plan-sections";
-import { WeekStripPanel, WeekStripSkeleton } from "./plan/week-strip";
-import type { usePlanData } from "./use-plan-data";
+} from "@/components/plan/dashboard-plan-sections";
+import { WeekStripPanel, WeekStripSkeleton } from "@/components/plan/week-strip";
+import type { usePlanData } from "@/components/use-plan-data";
 import type { Analytics } from "@/lib/analytics";
 import type { Attempt } from "@/lib/domain";
-import { PersonalTodos } from "./plan/personal-todos";
+import { PersonalTodos } from "@/components/plan/personal-todos";
 import {
   addIsoDays,
   dayTypeLabel,
@@ -132,7 +132,7 @@ export function DashboardView({
             </p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2 id="today-plan-heading" className="section-title text-ink">
-                What&apos;s the Plan!
+                Today&apos;s plan
               </h2>
               {/* The return control sits beside the title, not in the arrow
                   cluster: it only appears once the day has stepped away, so
@@ -152,7 +152,7 @@ export function DashboardView({
             <div
               role="group"
               aria-label="Change the plan day"
-              className="flex h-[var(--day-nav-size)] w-full items-stretch divide-x divide-rule-soft overflow-hidden rounded-control border border-rule-soft bg-paper sm:w-auto sm:shrink-0"
+              className="flex h-[var(--day-nav-size)] w-full items-stretch divide-x divide-rule-soft overflow-hidden border border-rule-soft bg-paper sm:w-auto sm:shrink-0"
             >
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -178,7 +178,7 @@ export function DashboardView({
               >
                 {isoWeekdayShort(activeDate)}, {longDate(activeDate)}
                 {activeDate === today && (
-                  <span className="rounded-pill bg-ink px-1.5 py-px font-sans text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-paper">
+                  <span className="bg-ink px-1.5 py-px font-sans text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-paper">
                     Today
                   </span>
                 )}
@@ -280,7 +280,7 @@ export function DashboardView({
         </div>
       </section>
 
-      <section className="mt-6" aria-label="This week">
+      <section className="mt-8" aria-label="This week">
         {plan ? (
           <WeekStripPanel plan={plan} today={today} onOpenDay={onOpenDay} />
         ) : (
@@ -289,7 +289,7 @@ export function DashboardView({
       </section>
 
       {plan && (
-        <div className="mt-6 grid items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+        <div className="mt-8 grid items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
           <StudyPipelinePanel plan={plan} today={today} onOpenDay={onOpenDay} />
           <div className="flex min-w-0 flex-col gap-4">
             <RecentAttemptsPanel
@@ -306,7 +306,7 @@ export function DashboardView({
       {/* Awareness, not analysis: the four headline figures and a trend
           line, with the full workspace one click away. The detailed charts
           live at /performance and are never duplicated here. */}
-      <section className="mt-6" aria-label="Performance preview">
+      <section className="mt-8" aria-label="Performance preview">
         <PerformancePreview
           analytics={analytics}
           target={target}

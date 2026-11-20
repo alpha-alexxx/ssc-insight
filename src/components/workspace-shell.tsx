@@ -15,8 +15,7 @@ import {
   MotionConfig,
   useReducedMotion,
 } from "motion/react";
-import { PlainIcon, DuotoneTile } from "./icon";
-import { DashboardClock } from "./dashboard-clock";
+import { PlainIcon } from "./icon";
 import { CommandPalette } from "./command-palette";
 import { AppFrame, VIEW_META } from "./app-shell";
 import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
@@ -25,7 +24,7 @@ import { HistoryPanel } from "./history-panel";
 import { ScopeFilters } from "./scope-filters";
 import { MockDetailDialog } from "./mock-detail-dialog";
 import { AddMockView } from "./add-mock-view";
-import { DashboardView } from "./dashboard-view";
+import { DashboardShell } from "../app/(workspace)/dashboard/_dashboard/components/dashboard-shell";
 import { PerformanceView } from "./performance/performance-view";
 import { AiCoachCard } from "./ai-coach-card";
 import { AiChatSheet, type LogMockPayload } from "./ai-chat-sheet";
@@ -66,7 +65,7 @@ import {
 import { analyticsKeys } from "@/lib/queries/analytics";
 import { BACKUP_MAX_BYTES } from "@/lib/backup";
 import { type Attempt, type Filters } from "@/lib/domain";
-import { longDate, shortDate, isIsoDate } from "@/lib/format";
+import { shortDate, isIsoDate } from "@/lib/format";
 import {
   parseWorkspaceState,
   safeWorkspaceReturnTo,
@@ -796,74 +795,6 @@ function WorkspaceShellInner({
                   </Suspense>
                 ) : (
                   <>
-                    {view === "dashboard" && (
-                      <PageHeader
-                        title="Dashboard"
-                        description="Today's work, plan progress, and the performance that matters."
-                        icon={
-                          <div className="hidden sm:block">
-                            <DuotoneTile
-                              name="dashboard"
-                              tile="accent"
-                              className="size-11"
-                            />
-                          </div>
-                        }
-                        meta={
-                          <>
-                            <span className="inline-flex items-center gap-1.5">
-                              <PlainIcon name="calendar" size={12} />
-                              {longDate(istTodayIso())}
-                            </span>
-                            <span aria-hidden="true">·</span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <PlainIcon name="file" size={12} />
-                              <ActiveExamName />
-                            </span>
-                            {planApi.plan ? (
-                              <>
-                                <span aria-hidden="true">·</span>
-                                <span className="inline-flex items-center gap-1.5">
-                                  <PlainIcon name="target" size={12} />
-                                  {planApi.plan.days.find(
-                                    (day) => day.date === istTodayIso(),
-                                  )?.day
-                                    ? `Plan day ${
-                                        planApi.plan.days.find(
-                                          (day) => day.date === istTodayIso(),
-                                        )?.day
-                                      } of 50`
-                                    : "Outside the plan window"}
-                                </span>
-                              </>
-                            ) : null}
-                          </>
-                        }
-                        actions={
-                          <>
-                            <DashboardClock />
-                            <div className="flex items-center">
-                              <Button
-                                size="sm"
-                                className="rounded-r-none!"
-                                onClick={add}
-                              >
-                                <PlainIcon name="plus" size={14} /> Add mock
-                              </Button>
-                              <Button
-                                size="sm"
-                                aria-label="Create mock with AI"
-                                title="Create mock with AI"
-                                onClick={() => openAiChat("log")}
-                                className="rounded-l-none! border-l border-paper/40"
-                              >
-                                <PlainIcon name="sparkles" size={14} />
-                              </Button>
-                            </div>
-                          </>
-                        }
-                      />
-                    )}
                     {view === "history" && (
                       <PageHeader
                         title="Mock history"
@@ -990,9 +921,8 @@ function WorkspaceShellInner({
                     ) : view === "trash" ? (
                       <TrashView />
                     ) : view === "dashboard" ? (
-                      <DashboardView
+                      <DashboardShell
                         planApi={planApi}
-                        onOpenPersonalAi={() => openAiChat("todos")}
                         analytics={analytics}
                         attempts={dashboardAttempts}
                         target={target}
@@ -1000,6 +930,8 @@ function WorkspaceShellInner({
                         coach={coachNode}
                         onOpenAttempt={openDetail}
                         onAdd={add}
+                        onAddWithAi={() => openAiChat("log")}
+                        onOpenPersonalAi={() => openAiChat("todos")}
                         onViewAll={viewAllHistory}
                         onOpenDay={(date) => {
                           setPlannerDate(date);

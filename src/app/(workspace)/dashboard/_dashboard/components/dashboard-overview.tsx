@@ -1,6 +1,6 @@
 "use client";
-import { type IconName } from "./icon";
-import { MetricCell, MetricStripSkeleton } from "./metric-strip";
+import { type IconName } from "@/components/icon";
+import { MetricCell, MetricStripSkeleton } from "@/components/metric-strip";
 import type { Analytics } from "@/lib/analytics";
 import { formatNumber as n } from "@/lib/domain";
 import { headlineMetrics } from "@/lib/performance-metrics";
