@@ -36,8 +36,8 @@ import type {
   AiModelsResponse,
   AiSettingsResponse,
 } from "@/lib/ai/client-types";
-import { aiSchema, type AiValues } from "./settings/_lib/schema";
-import { usePanelDraft } from "./settings/settings-guard";
+import { aiSchema, type AiValues } from "@/components/shared/settings-schema";
+import { usePanelDraft } from "@/components/shared/settings-guard";
 
 type Props = {
   onChanged?: (credential: AiCredentialSummary | null) => void;

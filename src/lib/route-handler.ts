@@ -4,13 +4,11 @@ import { requireUser } from "@/lib/auth/require-user";
 import type { AccountUser } from "@/lib/auth/session-policy";
 import { apiError, ok, okCached, RequestError } from "@/lib/api";
 import {
-  apiRateLimiter,
-  clientIp,
-  rateLimitHeaders,
-  rateLimitKey,
-  writeRateLimiter,
-  type RateLimitResult,
+  consumeRateLimit,
+  rateLimitHeadersForDecision,
+  requestIdentity,
 } from "@/lib/rate-limit";
+import { describeDecision, type LimitDecision } from "@/lib/rate-limit-core";
 import { accessLog } from "@/lib/access-log";
 import { newRequestId } from "@/lib/middleware-utils";
 
@@ -87,10 +85,10 @@ export function defineRoute<P = Record<string, never>>(
     const pathname = request.nextUrl.pathname;
     let userId: string | undefined;
 
-    const decorate = (response: Response, rl?: RateLimitResult): Response => {
+    const decorate = (response: Response, rl?: LimitDecision): Response => {
       response.headers.set("x-request-id", requestId);
       if (rl) {
-        for (const [key, value] of new Headers(rateLimitHeaders(rl)).entries()) {
+        for (const [key, value] of new Headers(rateLimitHeadersForDecision(rl)).entries()) {
           response.headers.set(key, value);
         }
       }
@@ -123,19 +121,22 @@ export function defineRoute<P = Record<string, never>>(
         options.auth === "public" ? null : await requireUser();
       userId = user?.id;
 
-      // 2. Rate limit per identity. The bucket is consumed exactly once and
-      //    the result decorates success AND failure responses.
-      let rl: RateLimitResult | undefined;
+      // 2. Rate limit per identity, across both layers (in-memory L1 + Upstash
+      //    L2). Consumed exactly once; the decision decorates success AND
+      //    failure responses so a client can always read its remaining budget.
+      let rl: LimitDecision | undefined;
       if (options.rateLimit !== false) {
-        const limiter = options.kind === "write" ? writeRateLimiter : apiRateLimiter;
-        rl = limiter.consume(rateLimitKey({ userId, ip: clientIp(request) }));
-        if (!rl.allowed) {
+        rl = await consumeRateLimit(
+          options.kind === "write" ? "write" : "read",
+          requestIdentity(userId, request),
+        );
+        if (rl.outcome === "denied") {
           const denied = new RequestError(
             "Too many requests. Slow down and retry.",
             429,
           );
           options.onError?.(denied, userId, startedAt);
-          log(429, "rate-limited");
+          log(429, `rate-limited:${describeDecision(rl)}`);
           return decorate(apiError(denied), rl);
         }
       }

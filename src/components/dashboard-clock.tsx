@@ -1,19 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
+import { PlainIcon } from "./icon";
 import { istTimeLabel } from "@/lib/format";
 
 /**
- * Live IST time, inline in the dashboard header's metadata line.
- *
- * The date already sits beside it, so this shows time only — one fact per
- * surface. It renders as plain tabular text rather than a bordered tile: a
- * clock is context, not status, and the paper rules keep tinted or boxed hosts
- * for things that mean something.
+ * Live IST clock for the dashboard header. The date already appears in the
+ * page meta, so this shows time only — one fact per surface.
  *
  * The next tick is scheduled to the next minute boundary rather than a fixed
  * interval, so the clock never displays a minute that has already passed and
- * does not drift. Renders a neutral placeholder until mounted so server and
- * client markup cannot disagree on the time.
+ * does not drift. Renders a placeholder until mounted so server and client
+ * markup cannot disagree on the time.
  */
 export function DashboardClock() {
   const [time, setTime] = useState<string | null>(null);
@@ -29,11 +26,24 @@ export function DashboardClock() {
     return () => window.clearTimeout(timer);
   }, []);
   return (
-    <span
-      className="tabular"
+    <div
+      className="flex min-w-[7.5rem] items-center gap-2 rounded-control border border-rule-soft bg-paper px-2.5 py-1.5 sm:min-w-[8.75rem] sm:gap-2.5 sm:px-3"
       aria-label={`Current time in India Standard Time${time ? `: ${time}` : ""}`}
     >
-      {time ? `${time} IST` : "— IST"}
-    </span>
+      <span
+        className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent sm:flex"
+        aria-hidden="true"
+      >
+        <PlainIcon name="clock" size={15} />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-serif text-sm leading-tight tabular">
+          {time ?? "--:--"}
+        </span>
+        <span className="block text-[0.625rem] leading-tight text-muted">
+          IST
+        </span>
+      </span>
+    </div>
   );
 }

@@ -2,6 +2,7 @@ export type AiErrorCode =
   | "AI_NOT_CONFIGURED"
   | "AI_PERSONAL_CONFIG_INVALID"
   | "AI_QUOTA_EXCEEDED"
+  | "AI_RATE_LIMITED"
   | "AI_INPUT_TOO_LARGE"
   | "AI_TIMEOUT"
   | "AI_PROVIDER_ERROR"
@@ -58,6 +59,21 @@ export function aiQuotaExceeded(retryAfterSeconds: number) {
   return new AiError(
     "AI_QUOTA_EXCEEDED",
     "You have reached today's AI limit. It resets at midnight IST.",
+    429,
+    retryAfterSeconds,
+    "none",
+  );
+}
+
+/**
+ * The request-path rate limiter refused the call (not the provider: that is
+ * AI_PROVIDER_RATE_LIMIT). Distinct from AI_QUOTA_EXCEEDED, which is the daily
+ * generation budget; this one is a short burst limit.
+ */
+export function aiRateLimited(retryAfterSeconds: number) {
+  return new AiError(
+    "AI_RATE_LIMITED",
+    "That was a lot of AI requests at once. Wait a moment and try again.",
     429,
     retryAfterSeconds,
     "none",

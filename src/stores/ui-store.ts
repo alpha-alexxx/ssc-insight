@@ -2,6 +2,18 @@ import { create } from "zustand";
 import { istTodayIso } from "@/lib/plan/view-model";
 
 /**
+ * A reviewed mock draft handed from the AI panel to /add.
+ *
+ * Declared structurally rather than importing `LogMockPayload` from the sheet:
+ * the store must not depend on a component module (it would pull the whole AI
+ * panel into every consumer's graph). `LogMockPayload` is assignable to this.
+ */
+export type MockPrefillDraft = {
+  values: Record<string, unknown>;
+  date: string;
+};
+
+/**
  * Global shell UI state, on Zustand.
  *
  * Scope rules (see docs/state-audit.md and AGENTS.md):
@@ -46,6 +58,29 @@ type UiState = {
   consumedQuickAddNonce: number;
   requestQuickAdd: () => void;
   consumeQuickAdd: () => void;
+
+  /**
+   * One-shot reviewed mock draft handed from the AI panel to /add.
+   *
+   * It lives here, not in the URL: the draft contains the user's own mock
+   * content, and a query parameter would put it in browser history, in any
+   * proxy log, and in a shared link. `MockForm` stays the sole save path.
+   */
+  mockPrefill: MockPrefillDraft | null;
+  requestMockPrefill: (draft: MockPrefillDraft) => void;
+  consumeMockPrefill: () => void;
+
+  /**
+   * The record id whose detail dialog is open, or null.
+   *
+   * The dialog lives in the chrome (so every surface shares one overlay and one
+   * delete path); routes open it by id. Storing an id rather than the object
+   * keeps server data out of the store — the chrome reads the record from the
+   * query cache.
+   */
+  openAttemptId: string | null;
+  openAttempt: (id: string) => void;
+  closeAttempt: () => void;
 };
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -66,4 +101,12 @@ export const useUiStore = create<UiState>()((set) => ({
     set((state) => ({ quickAddNonce: state.quickAddNonce + 1 })),
   consumeQuickAdd: () =>
     set((state) => ({ consumedQuickAddNonce: state.quickAddNonce })),
+
+  mockPrefill: null,
+  requestMockPrefill: (draft) => set({ mockPrefill: draft }),
+  consumeMockPrefill: () => set({ mockPrefill: null }),
+
+  openAttemptId: null,
+  openAttempt: (id) => set({ openAttemptId: id }),
+  closeAttempt: () => set({ openAttemptId: null }),
 }));

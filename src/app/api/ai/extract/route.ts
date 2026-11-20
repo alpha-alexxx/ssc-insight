@@ -17,6 +17,8 @@ import {
   settleSafely,
 } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/require-user";
+import { consumeRateLimit, requestIdentity } from "@/lib/rate-limit";
+import { aiRateLimited } from "@/lib/ai/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,6 +33,11 @@ const bodySchema = z.object({
 export async function POST(request: Request) {
   try {
     const { id: userId } = await requireUser();
+    // These streaming routes bypass defineRoute, so they carry their own limit.
+    // AI is the most expensive request the app serves (cost 25 in the shared
+    // window); the AiUsage ledger still governs the actual generation budget.
+    const limit = await consumeRateLimit("ai", requestIdentity(userId, request));
+    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;

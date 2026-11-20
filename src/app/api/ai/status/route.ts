@@ -1,5 +1,6 @@
 import { apiError, ok } from "@/lib/api";
 import { aiConfigOrNull } from "@/lib/ai/config";
+import { aiRateLimited } from "@/lib/ai/errors";
 import {
   credentialStorageAvailable,
   describeAiCredential,
@@ -10,6 +11,7 @@ import { USER_KEY_SAFETY_LIMITS } from "@/lib/ai/resolve-core";
 import { aiLimits } from "@/lib/ai/server";
 import { getAiUsageToday } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/require-user";
+import { consumeRateLimit, requestIdentity } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,9 +25,13 @@ export const dynamic = "force-dynamic";
  *   env-ready         — the deployment's shared configuration is active
  *   ready             — the user's own credential is active
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { id: userId } = await requireUser();
+    // Status bypasses defineRoute, so it carries its own read-class limit.
+    // A read never consults Upstash, so this costs nothing extra.
+    const limit = await consumeRateLimit("read", requestIdentity(userId, request));
+    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
     const credential = await describeAiCredential(userId).catch(() => null);
     const envConfig = aiConfigOrNull();
     const storageAvailable = credentialStorageAvailable();

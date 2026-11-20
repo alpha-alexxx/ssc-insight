@@ -33,9 +33,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "./ui/sheet";
-import { TodoAiComposer } from "./tasks/ai-composer";
+import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
 import { AiSettingsForm } from "./ai-settings-form";
-import { ExtractionReview } from "./extraction-review";
+import { ExtractionReview } from "@/components/shared/add/extraction-review";
 import { useExamScope } from "./exam-context";
 import { parseReport } from "@/lib/report-parser";
 import {

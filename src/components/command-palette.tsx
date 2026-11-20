@@ -336,10 +336,9 @@ function PaletteBody({
                 onSelect={() =>
                   run(() => {
                     remember(query);
-                    // The URL param is the handoff: use-workspace-data
-                    // re-reads the address bar whenever the view changes, so
-                    // /history?search=… restores the filter and the mirror
-                    // keeps it shareable.
+                    // The URL param is the handoff: /history seeds its filter
+                    // state from the address bar on mount, so ?search=…
+                    // restores the filter and the mirror keeps it shareable.
                     router.push(
                       `/history?search=${encodeURIComponent(item.title)}`,
                     );
