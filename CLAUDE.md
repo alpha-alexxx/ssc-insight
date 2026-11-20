@@ -104,6 +104,24 @@ Browser client components
 - Failure queries land on `/`, never a dedicated page: `/auth/complete` forwards OAuth errors as `/?error=oauth`, the proxy and workspace layout use `/?error=unavailable`, and `private-workspace.tsx` uses `/?error=session`. `OAUTH_ERROR_PATH` is deliberately bare `/` because better-auth appends its own `error=<provider-code>`; the landing collapses the repeated key (Next hands it back as an array) and treats any unknown code as a failed OAuth round trip, raises a toast, then strips `?error` via `history.replaceState`. `/` is also the `bypassesMaintenance` entry that keeps sign-in reachable during maintenance.
 - Auth uses Neon Auth with Google. The app stores no email/user row and has no ownership relation to Neon Auth tables. A different Google account is a separate workspace. Do not write to `neon_auth` or add a server-side owner-reassignment endpoint.
 
+- Rate limiting is **two layers**, decided by the pure `src/lib/rate-limit-core.ts`:
+  an in-memory token bucket per instance (L1, free) and a Upstash sliding
+  window (L2, one Redis command, cross-instance authority). Reads never consult
+  L2; writes (cost 5) and AI (cost 25) always do; a drained L1 bucket asks L2
+  rather than refusing, because L1 is per-instance and its denial is not proof
+  of abuse. **Degrading never means allowing** — when L2 is skipped (no
+  credentials, daily budget, open circuit) the L1 verdict still stands.
+  `src/lib/rate-limit-budget.ts` caps consulted commands per instance per IST
+  day (soft 8000 / hard 9500 of a 10k allowance) and
+  `src/lib/rate-limit-breaker.ts` opens after 3 consecutive Upstash failures for
+  60 s, so a Redis outage runs L1-only instead of failing requests. Every
+  `defineRoute` handler is limited by `kind`; the four AI streaming routes
+  bypass `defineRoute` and consume the `ai` class explicitly; `/api/health` and
+  `/api/cron/*` are deliberately exempt. The 429 body and the
+  `X-RateLimit-*` / `Retry-After` header names are unchanged, so
+  `ApiError.retryAfterSeconds` and the query client's retry delay keep working.
+  Never add a second limiter, and never make a limiter throw on a Redis failure.
+
 ## Persistence and domain model
 
 Prisma models (`prisma/schema.prisma`, PostgreSQL schema `ssc_insight`):

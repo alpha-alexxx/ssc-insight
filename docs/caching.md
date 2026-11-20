@@ -79,3 +79,52 @@ session (unmount on logout) and `queryClient.clear()` on `ssc:session-ended`.
 4. **Eventual consistency windows**, explicitly accepted: settings LRU ≤ 60 s
    (per process), AI status until the next refresh, SWR windows for non-app
    consumers only.
+
+## Rate limiting (2026-11-20)
+
+Rate limiting is **not** a cache, but it shares the same cross-instance
+constraint and is documented here because its shaping depends on the caching
+posture: every workspace request is personalized and `no-store`, so a limiter
+sees more traffic than a cache-fronted app would.
+
+Two layers (`src/lib/rate-limit-core.ts` holds the policy):
+
+| Layer | Where | Cost | Authority |
+| --- | --- | --- | --- |
+| L1 in-memory token bucket | `src/lib/rate-limit.ts`, per process | free | one instance only |
+| L2 Upstash sliding window | `src/lib/rate-limit-upstash.ts` | 1 Redis command | all instances |
+
+Decision table (`decideRateLimit`):
+
+| Situation | L2 consulted? |
+| --- | --- |
+| read, L1 allows | **no** — the common path costs nothing |
+| write (cost 5), L1 allows | yes |
+| AI (cost 25), L1 allows | yes |
+| any class, L1 denies | yes — L1 is per-instance, so its denial is not proof of abuse |
+| daily budget ≥ soft cap (8000) | reads/writes no (degrade to L1); AI still yes |
+| daily budget ≥ hard cap (9500), no credentials, or open breaker | no — L1 only |
+
+**Degrading never means allowing.** When L2 is skipped the L1 verdict still
+stands, so a Redis outage cannot grant unlimited writes.
+
+**Free-tier budget.** `src/lib/rate-limit-budget.ts` counts consulted commands
+per instance per IST day (soft 8000 / hard 9500 against the 10k/day allowance).
+One `console.warn` fires on the first soft-cap crossing, never per request.
+
+**Failure posture.** `src/lib/rate-limit-breaker.ts` opens the circuit after 3
+consecutive Upstash failures and closes it after 60 s (a failed probe reopens it
+immediately). While open, every request runs on L1. A rate limiter must never be
+able to take the app down, and it must never fail open to unlimited traffic.
+
+**Header contract, unchanged from the single-layer version:**
+`X-RateLimit-Limit`, `X-RateLimit-Remaining` on every response, plus
+`Retry-After` on a 429. The 429 body stays
+`{ error: { code: "REQUEST_ERROR", message } }`, so `api()` keeps throwing
+`ApiError` with `retryAfterSeconds` and `lib/query-client.ts` keeps honouring it.
+
+**Route coverage.** Every `defineRoute` handler is limited by `kind`; the four
+AI streaming routes (which bypass `defineRoute`) consume the `ai` class
+explicitly, and `/api/ai/status` takes a read-class check. `/api/health` and
+`/api/cron/*` are deliberately exempt — a probe or a scheduled job that gets
+throttled is an outage.

@@ -102,6 +102,8 @@ Copy `.env.example` or use Neon's environment pull. **Never commit real values t
 | `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `45000`). Whole-call wall clock for non-streaming completions; the stall limit between chunks for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
 | `AI_CREDENTIAL_SECRET` | Encrypts user-entered API keys (AES-256-GCM). 64 hex chars or ≥32-char passphrase. |
 | `CRON_SECRET` | Bearer token for `/api/cron/trash-cleanup`. Generate via `openssl rand -hex 32`. |
+| `UPSTASH_REDIS_REST_URL` | Optional. Upstash Redis REST URL for cross-instance rate limiting. Blank runs the in-memory limiter only. |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional. Upstash Redis REST token. Required with the URL above. |
 
 > [!TIP]
 > Keep every variable server-side. None require a `NEXT_PUBLIC_` prefix. Missing Auth configuration fails closed; private records are never returned anonymously.
