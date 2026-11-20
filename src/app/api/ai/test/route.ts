@@ -75,6 +75,7 @@ export const POST = defineRoute(
             // so the test stays cheap whatever the user's own ceiling is.
             thinking: parsed.data.thinking,
             maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
+            visionEnabled: parsed.data.visionEnabled,
             timeoutMs: PROBE_TIMEOUT_MS,
             firstTokenTimeoutMs: PROBE_TIMEOUT_MS,
             dailyRequestLimit: 30,

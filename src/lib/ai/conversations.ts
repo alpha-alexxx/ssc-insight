@@ -53,6 +53,14 @@ function parseMessage(value: unknown): ChatMessage | null {
     message.reasoning = record.reasoning;
   if (typeof record.reasoningSeconds === "number" && record.reasoningSeconds > 0)
     message.reasoningSeconds = record.reasoningSeconds;
+  // Attached screenshots persist with the turn (data URLs, already
+  // downscaled); a malformed list is dropped rather than stored.
+  if (
+    Array.isArray(record.images) &&
+    record.images.length &&
+    record.images.every((url) => typeof url === "string" && url.startsWith("data:image/"))
+  )
+    message.images = record.images;
   return message;
 }
 

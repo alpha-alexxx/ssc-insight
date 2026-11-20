@@ -396,7 +396,12 @@ function useAiWorkspaceState() {
   }, []);
 
   const sendChat = useCallback(
-    async (text: string, screen?: AiScreenContext | null, retry = false) => {
+    async (
+      text: string,
+      screen?: AiScreenContext | null,
+      retry = false,
+      images?: string[],
+    ) => {
       if (chatAbort.current) return; // a stream is already in flight
       const base = chatBaseForSend(messagesRef.current, retry);
       const userMessage: ChatMessage = {
@@ -404,6 +409,7 @@ function useAiWorkspaceState() {
         role: "user",
         content: text,
         at: new Date().toISOString(),
+        ...(images?.length ? { images } : {}),
       };
       const assistantId = newId();
       // The user's own setting caps the prompt window; the server still
@@ -428,6 +434,7 @@ function useAiWorkspaceState() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: history,
+            ...(images?.length ? { images } : {}),
             ...(screen ? { context: screen } : {}),
           }),
           signal: abort.signal,

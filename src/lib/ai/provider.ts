@@ -22,8 +22,23 @@ import { estimateTokens } from "./tokens";
 
 export type AiMessage = {
   role: "system" | "user" | "assistant";
-  content: string;
+  /** Plain text, or content parts when images ride along (vision). */
+  content: string | AiContentPart[];
 };
+
+/** Provider-agnostic multimodal part; each protocol maps it to its own shape. */
+export type AiContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; imageUrl: string };
+
+/** Flatten a message to its text for prompt-length estimation and text-only
+ * protocols. Images contribute nothing to the character estimate. */
+export function messageText(message: AiMessage): string {
+  if (typeof message.content === "string") return message.content;
+  return message.content
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("");
+}
 
 export type AiUsage = {
   inputTokens: number;
@@ -123,7 +138,7 @@ function usageFrom(payload: unknown, fallback: AiUsage): AiUsage {
 
 function estimatedUsage(messages: AiMessage[], output: string): AiUsage {
   const inputTokens = estimateTokens(
-    messages.map((message) => message.content).join("\n"),
+    messages.map((message) => messageText(message)).join("\n"),
   );
   const outputTokens = estimateTokens(output);
   return {
@@ -200,8 +215,64 @@ function providerHeaders(
 
 function rolePrompt(messages: AiMessage[]) {
   return `${messages
-    .map((message) => `[${message.role.toUpperCase()}]\n${message.content}`)
+    .map((message) => `[${message.role.toUpperCase()}]\n${messageText(message)}`)
     .join("\n\n")}\n\n[ASSISTANT]\n`;
+}
+
+/** Split a validated data URL into its media type and base64 payload. */
+function dataUrlParts(dataUrl: string): {
+  mediaType: string;
+  data: string;
+} | null {
+  const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(
+    dataUrl,
+  );
+  if (!match) return null;
+  return { mediaType: match[1], data: match[2] };
+}
+
+/** openai-chat image content parts. */
+function chatContent(message: AiMessage): string | unknown[] {
+  if (typeof message.content === "string") return message.content;
+  return message.content.map((part) =>
+    part.type === "text"
+      ? { type: "text", text: part.text }
+      : { type: "image_url", image_url: { url: part.imageUrl } },
+  );
+}
+
+/** openai-responses input content parts. */
+function responsesContent(message: AiMessage): string | unknown[] {
+  if (typeof message.content === "string") return message.content;
+  return message.content.map((part) =>
+    part.type === "text"
+      ? { type: "input_text", text: part.text }
+      : { type: "input_image", image_url: part.imageUrl },
+  );
+}
+
+/** anthropic-messages content blocks; images become base64 source blocks. */
+function anthropicContent(message: AiMessage): string | unknown[] {
+  if (typeof message.content === "string") return message.content;
+  const blocks: unknown[] = [];
+  for (const part of message.content) {
+    if (part.type === "text") {
+      blocks.push({ type: "text", text: part.text });
+      continue;
+    }
+    const parsed = dataUrlParts(part.imageUrl);
+    if (parsed)
+      blocks.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: parsed.mediaType,
+          data: parsed.data,
+        },
+      });
+    // An unparseable image is dropped rather than failing the whole turn.
+  }
+  return blocks;
 }
 
 function responseFormat(format?: AiStructuredFormat) {
@@ -266,7 +337,10 @@ function requestBody(
     case "openai-responses":
       return {
         model: config.model,
-        input: args.messages,
+        input: args.messages.map((message) => ({
+          role: message.role,
+          content: responsesContent(message),
+        })),
         max_output_tokens: args.maxOutputTokens,
         ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
         ...(config.provider === "openai" ? { store: false } : {}),
@@ -283,11 +357,14 @@ function requestBody(
     case "anthropic-messages": {
       const systems = args.messages
         .filter((message) => message.role === "system")
-        .map((message) => message.content)
+        .map((message) => messageText(message))
         .join("\n\n");
       const messages = args.messages
         .filter((message) => message.role !== "system")
-        .map((message) => ({ role: message.role, content: message.content }));
+        .map((message) => ({
+          role: message.role,
+          content: anthropicContent(message),
+        }));
       // budget_tokens must stay below max_tokens; below Anthropic's 1,024
       // floor the request would be rejected, so thinking is dropped entirely.
       const budget = effort
@@ -320,7 +397,10 @@ function requestBody(
     case "openai-chat":
       return {
         model: config.model,
-        messages: args.messages,
+        messages: args.messages.map((message) => ({
+          role: message.role,
+          content: chatContent(message),
+        })),
         ...(effort ? { reasoning_effort: effort } : {}),
         ...(config.provider === "openai"
           ? { max_completion_tokens: args.maxOutputTokens, store: false }

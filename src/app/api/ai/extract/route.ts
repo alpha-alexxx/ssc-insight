@@ -8,7 +8,7 @@ import {
   sanitizeReport,
 } from "@/lib/ai/prompts";
 import { reservationTokens, chargedForAiFailure } from "@/lib/ai/quota";
-import { createAiProvider } from "@/lib/ai/provider";
+import { createAiProvider, messageText } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
 import { aiLimits } from "@/lib/ai/server";
 import { loadExamContext, requirePattern } from "@/lib/exam-settings";
@@ -23,8 +23,16 @@ import { aiRateLimited } from "@/lib/ai/errors";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// Scorecard screenshots ride inline as data URLs, same contract as chat.
+const MAX_IMAGE_CHARS = 3_500_000;
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+
 const bodySchema = z.object({
   text: z.string().min(1),
+  images: z
+    .array(z.string().regex(IMAGE_DATA_URL, "Send a PNG, JPEG, or WebP image."))
+    .max(2)
+    .optional(),
   // The exam/tier the add form is scoped to; defaults to the active exam.
   examId: z.string().min(1).max(40).optional(),
   tierId: z.string().min(1).max(40).optional(),
@@ -41,9 +49,27 @@ export async function POST(request: Request) {
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;
-    // Allow the textarea's full report to reach the AI-specific 20k check
-    // instead of failing first on the generic transport limit.
-    const body = bodySchema.parse(await readBody(request, 128 * 1024));
+    // Text may be short when a screenshot carries the scorecard, so the
+    // transport limit must admit the images too (Vercel caps near 4.5 MB).
+    const body = bodySchema.parse(await readBody(request, 4 * 1024 * 1024));
+    const images = body.images ?? [];
+    if (images.length) {
+      if (!config.visionEnabled)
+        throw new AiError(
+          "AI_VISION_DISABLED",
+          "Image input is off. Turn it on in Settings → AI provider.",
+          400,
+          undefined,
+          "none",
+        );
+      const imageChars = images.reduce((total, url) => total + url.length, 0);
+      if (imageChars > MAX_IMAGE_CHARS)
+        throw new AiError(
+          "AI_INPUT_TOO_LARGE",
+          "Those images are too large. Attach one or two screenshots.",
+          413,
+        );
+    }
     if (body.text.length > MAX_EXTRACT_CHARS)
       throw new AiError(
         "AI_INPUT_TOO_LARGE",
@@ -63,6 +89,7 @@ export async function POST(request: Request) {
       report,
       shape,
       pattern.examName,
+      images.length ? images : undefined,
     );
     const reservation = await reserveAiUsage(userId, {
       feature: "extract",
@@ -71,7 +98,7 @@ export async function POST(request: Request) {
       protocol: config.protocol,
       limits: aiLimits(config),
       reservedTokens: reservationTokens({
-        promptText: messages.map((message) => message.content).join("\n"),
+        promptText: messages.map((message) => messageText(message)).join("\n"),
         maxOutputTokens: config.maxOutputTokens,
         providerCalls: 2,
       }),

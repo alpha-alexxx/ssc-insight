@@ -43,6 +43,7 @@ function config(
     timeoutMs: 5_000,
     firstTokenTimeoutMs: 5_000,
     thinking: "default",
+    visionEnabled: false,
     ...overrides,
   };
 }

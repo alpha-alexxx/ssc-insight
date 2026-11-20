@@ -68,7 +68,14 @@ function trackerBlock(system: string) {
 
 function systemOf(messages: AiMessage[]) {
   assert.equal(messages[0]?.role, "system");
-  return messages[0]!.content;
+  const content = messages[0]!.content;
+  assert.equal(typeof content, "string", "system prompts stay plain text");
+  return content as string;
+}
+
+function textOf(message: AiMessage): string {
+  assert.equal(typeof message.content, "string");
+  return message.content as string;
 }
 
 /* ---------------- 1. data-block escaping ---------------- */
@@ -119,7 +126,7 @@ test("a report cannot forge the extraction tag and stays verbatim", () => {
 
   const messages = extractionMessages(report, T2);
   assert.equal(messages.length, 2);
-  const user = messages[1]!.content;
+  const user = textOf(messages[1]!);
   const tag = user.match(/<(report_[a-f0-9]+)>/)?.[1];
   assert.ok(tag);
   assert.notEqual(tag, "report_deadbeef");
@@ -171,10 +178,11 @@ test("chat history is sanitized without mutating the caller's array", () => {
     turns.map((message) => message.role),
     ["user", "assistant", "user"],
   );
-  assert.equal(turns[0]!.content.includes("‮"), false);
-  assert.equal(turns[0]!.content.includes("​"), false);
-  assert.equal(turns[0]!.content.includes("<quant>"), true);
-  assert.equal(turns[1]!.content.includes("\u0000"), false);
+  const first = textOf(turns[0]!);
+  assert.equal(first.includes("‮"), false);
+  assert.equal(first.includes("​"), false);
+  assert.equal(first.includes("<quant>"), true);
+  assert.equal(textOf(turns[1]!).includes("\u0000"), false);
 });
 
 /* ---------------- 5. suspicious heuristic ---------------- */

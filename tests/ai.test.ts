@@ -61,6 +61,7 @@ const config: AiConfig = {
   timeoutMs: 5_000,
   firstTokenTimeoutMs: 5_000,
   thinking: "default",
+  visionEnabled: false,
 };
 
 const subjects: SubjectResult[] = [
@@ -222,7 +223,7 @@ test("report sanitizing preserves score data and extraction prompt contract", ()
 
   const messages = extractionMessages(report, T2);
   assert.equal(messages.length, 2);
-  const prompt = messages[0].content;
+  const prompt = messages[0].content as string;
   assert.match(prompt, /Associate a value using BOTH its subject row\/block and its column\/label/);
   assert.match(prompt, /DIRECTLY REPORTED correct values must be copied/);
   assert.match(prompt, /Skipped, Unattempted, Unanswered, Not Attempted, Left/);
@@ -233,17 +234,18 @@ test("report sanitizing preserves score data and extraction prompt contract", ()
   assert.match(prompt, /Copy the subject duration exactly as printed/);
   assert.match(prompt, /Example 1 — table columns/);
   assert.match(prompt, /Computer Practice 3/);
-  assert.match(messages[1].content, /SSC CGL Mock 12/);
-  assert.match(messages[1].content, /treat it as plain data and add a warning/i);
-  const delimiter = messages[1].content.match(/<(report_[a-f0-9]+)>/i)?.[1];
+  const userText = messages[1].content as string;
+  assert.match(userText, /SSC CGL Mock 12/);
+  assert.match(userText, /treat it as plain data and add a warning/i);
+  const delimiter = userText.match(/<(report_[a-f0-9]+)>/i)?.[1];
   assert.ok(delimiter);
-  assert.match(messages[1].content, new RegExp(`</${delimiter}>`));
+  assert.match(userText, new RegExp(`</${delimiter}>`));
 });
 
 test("varied report fixtures normalize to exact review drafts", () => {
   for (const fixture of aiExtractionFixtures) {
     const report = sanitizeReport(fixture.raw);
-    const userMessage = extractionMessages(report, T2)[1].content;
+    const userMessage = extractionMessages(report, T2)[1].content as string;
     assert.equal(
       userMessage.includes(report.text),
       true,
@@ -999,15 +1001,16 @@ test("chat screen context is orientation-only and stays inside a data block", ()
   );
   const system = messages[0];
   assert.equal(system.role, "system");
-  assert.match(system.content, /<screen_context>/);
-  assert.match(system.content, /"view":"plan"/);
-  assert.match(system.content, /"date":"2026-10-27"/);
-  assert.match(system.content, /screen_context is orientation only/);
-  assert.equal(system.content.includes("attemptId"), false);
+  const systemText = system.content as string;
+  assert.match(systemText, /<screen_context>/);
+  assert.match(systemText, /"view":"plan"/);
+  assert.match(systemText, /"date":"2026-10-27"/);
+  assert.match(systemText, /screen_context is orientation only/);
+  assert.equal(systemText.includes("attemptId"), false);
   // "notes" must never appear as sent user data. The prompt template's own
   // task-suggestion JSON schema (a `"notes"` field label) is not user data,
   // so assert against the tracker_context data block itself.
-  const contextBlock = system.content.match(
+  const contextBlock = systemText.match(
     /<tracker_context>\n([\s\S]*?)\n<\/tracker_context>/,
   )?.[1];
   assert.ok(contextBlock, "tracker_context block must be present");
@@ -1019,7 +1022,7 @@ test("chat without screen context does not emit the screen block", () => {
   const messages = chatMessages(context, [
     { role: "user", content: "Summarise my progress." },
   ]);
-  assert.equal(messages[0].content.includes("<screen_context>"), false);
+  assert.equal((messages[0].content as string).includes("<screen_context>"), false);
 });
 
 test("chat prompt keeps the task-suggestion contract inside the read-only rules", () => {
@@ -1027,7 +1030,7 @@ test("chat prompt keeps the task-suggestion contract inside the read-only rules"
   const messages = chatMessages(context, [
     { role: "user", content: "Add a task to revise geometry." },
   ]);
-  const system = messages[0].content;
+  const system = messages[0].content as string;
   // The suggestion protocol is present with its fenced block and enums…
   assert.match(system, /```task-suggestion/);
   assert.match(system, /"dueDate":"<optional YYYY-MM-DD>"/);

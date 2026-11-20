@@ -285,6 +285,19 @@ export function ChatTranscript({
                 >
                   {message.role === "user" ? (
                     <div className="flex flex-col items-end gap-1">
+                      {message.images?.length ? (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {message.images.map((image, index) => (
+                            // eslint-disable-next-line @next/next/no-img-element -- user-attached data URL, not a remote asset
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Attached screenshot ${index + 1}`}
+                              className="max-h-32 rounded-control border border-rule-soft object-contain"
+                            />
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="max-w-[85%] rounded-control border border-rule-soft bg-soft px-3.5 py-2.5 text-[length:var(--type-body)] leading-relaxed whitespace-pre-wrap text-ink">
                         {message.content}
                       </div>

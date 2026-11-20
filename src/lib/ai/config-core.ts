@@ -59,6 +59,9 @@ export type AiConfig = {
    */
   firstTokenTimeoutMs: number;
   thinking: AiThinking;
+  /** Image input in chat and report extraction. Env config opts in with
+   * AI_VISION; a user credential carries its own toggle. */
+  visionEnabled: boolean;
 };
 
 type Env = Record<string, string | undefined>;
@@ -182,5 +185,8 @@ export function readAiConfig(env: Env): AiConfig | null {
     thinking: isAiThinking(env.AI_THINKING?.trim().toLowerCase() ?? "")
       ? (env.AI_THINKING!.trim().toLowerCase() as AiThinking)
       : "default",
+    visionEnabled: ["1", "true", "yes"].includes(
+      (env.AI_VISION?.trim().toLowerCase() ?? ""),
+    ),
   };
 }

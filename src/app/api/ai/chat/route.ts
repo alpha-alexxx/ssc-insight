@@ -29,6 +29,10 @@ export const maxDuration = 300;
 
 const MAX_HISTORY_CHARS = 48_000;
 const HEARTBEAT_MS = 15_000;
+// Images ride inline as data URLs: two downscaled screenshots stay well
+// under this and under Vercel's ~4.5 MB request ceiling.
+const MAX_IMAGE_CHARS = 3_500_000;
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
 const bodySchema = z
   .object({
@@ -41,6 +45,10 @@ const bodySchema = z
       )
       .min(1)
       .max(16),
+    images: z
+      .array(z.string().regex(IMAGE_DATA_URL, "Send a PNG, JPEG, or WebP image."))
+      .max(2)
+      .optional(),
     context: z
       .object({
         // Derived from the shared list: a hand-maintained copy silently
@@ -65,7 +73,25 @@ export async function POST(request: Request) {
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;
-    const body = bodySchema.parse(await readBody(request, 64 * 1024));
+    const body = bodySchema.parse(await readBody(request, 4 * 1024 * 1024));
+    const images = body.images ?? [];
+    if (images.length) {
+      if (!config.visionEnabled)
+        throw new AiError(
+          "AI_VISION_DISABLED",
+          "Image input is off. Turn it on in Settings → AI provider.",
+          400,
+          undefined,
+          "none",
+        );
+      const imageChars = images.reduce((total, url) => total + url.length, 0);
+      if (imageChars > MAX_IMAGE_CHARS)
+        throw new AiError(
+          "AI_INPUT_TOO_LARGE",
+          "Those images are too large. Attach one or two screenshots.",
+          413,
+        );
+    }
     const historyChars = body.messages.reduce(
       (total, message) => total + message.content.length,
       0,
@@ -108,6 +134,7 @@ export async function POST(request: Request) {
       body.context,
       bundle.shape,
       bundle.examName,
+      images.length ? images : undefined,
     );
     const abort = new AbortController();
     const signal = AbortSignal.any([request.signal, abort.signal]);

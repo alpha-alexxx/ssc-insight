@@ -134,6 +134,7 @@ export async function resolveAiConfig(
         timeoutMs: envConfig?.timeoutMs ?? 45_000,
         firstTokenTimeoutMs: envConfig?.firstTokenTimeoutMs ?? 120_000,
         thinking: stored.thinking,
+        visionEnabled: stored.visionEnabled,
         dailyRequestLimit: 400,
         dailyTokenLimit: 2_000_000,
       },

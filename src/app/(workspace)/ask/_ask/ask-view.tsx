@@ -138,12 +138,13 @@ export function AskView() {
               <ChatComposer
                 value={input}
                 onChange={setInput}
-                onSubmit={(text) => {
-                  ai.chat.send(text, screenContext);
+                onSubmit={(text, images) => {
+                  ai.chat.send(text, screenContext, false, images);
                   setInput("");
                 }}
                 onStop={ai.chat.stop}
                 streaming={ai.chat.streaming}
+                visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
                 placeholder="Ask about your mocks, targets, or plan…"
                 meta={composerMeta}
               />

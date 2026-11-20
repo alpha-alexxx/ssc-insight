@@ -128,6 +128,9 @@ export type ChatMessage = {
   /** Client-measured seconds the model spent reasoning before its first
    * answer token. Older stored messages may omit it. */
   reasoningSeconds?: number;
+  /** Downscaled data-URL screenshots attached to a user turn (vision).
+   * Never re-sent with follow-up history. */
+  images?: string[];
   /** The stream ended on a truncation stop reason; the answer may be cut off. */
   truncated?: boolean;
   /** Client-clock ISO timestamp of the turn; used by the conversation

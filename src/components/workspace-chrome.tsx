@@ -196,7 +196,10 @@ export function WorkspaceChrome({
               : undefined
           }
           configured={!!ai.aiStatus?.enabled}
-          onSend={(text) => void ai.chat.send(text, aiScreenContext)}
+          visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+          onSend={(text, images) =>
+            void ai.chat.send(text, aiScreenContext, false, images)
+          }
           onRetry={() => ai.chat.retryLast()}
           onRegenerate={() => ai.chat.regenerateLast()}
           onEditResend={(messageId, text) => ai.chat.editResend(messageId, text)}

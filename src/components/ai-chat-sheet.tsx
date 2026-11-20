@@ -46,6 +46,7 @@ import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
 import type { AiSheetTaskApi } from "@/components/shared/ai/task-suggestion-card";
 import { ChatTranscript } from "@/components/shared/ai/chat-transcript";
 import { ChatComposer } from "@/components/shared/ai/chat-composer";
+import { prepareImages } from "@/components/shared/ai/image";
 import { ConversationList } from "@/components/shared/ai/conversation-list";
 import type { ChatHistoryApi, ChatPhase } from "./use-ai-workspace";
 
@@ -100,6 +101,8 @@ export function AiChatSheet({
   error,
   contextLabel,
   configured = true,
+  /** Image attach enabled for this user (server still gates the send). */
+  visionEnabled = false,
   /** Tab to land on when the sheet opens; callers can deep-link a flow. */
   initialTab = "chat",
   onSend,
@@ -124,8 +127,10 @@ export function AiChatSheet({
   contextLabel?: string;
   /** False when no AI provider is configured; shows the setup form instead. */
   configured?: boolean;
+  /** Image attach enabled for this user (server still gates the send). */
+  visionEnabled?: boolean;
   initialTab?: "chat" | "log" | "todos";
-  onSend: (text: string) => void;
+  onSend: (text: string, images?: string[]) => void;
   onStop: () => void;
   onClear: () => void;
   onRetry?: () => void;
@@ -296,6 +301,7 @@ export function AiChatSheet({
               phase={phase ?? null}
               error={error}
               configured={configured}
+              visionEnabled={visionEnabled}
               history={history}
               historyOpen={historyOpen}
               onHistoryClose={() => setHistoryOpen(false)}
@@ -318,6 +324,7 @@ export function AiChatSheet({
           {tab === "log" && (
             <LogMockTab
               configured={configured}
+              visionEnabled={visionEnabled}
               onAiConfigured={onAiConfigured}
               onLogMock={(payload) => {
                 onLogMock?.(payload);
@@ -339,6 +346,7 @@ function AskChatTab({
   phase,
   error,
   configured,
+  visionEnabled,
   history,
   historyOpen,
   onHistoryClose,
@@ -357,6 +365,7 @@ function AskChatTab({
   phase: ChatPhase | null;
   error: string;
   configured: boolean;
+  visionEnabled: boolean;
   history?: ChatHistoryApi;
   historyOpen: boolean;
   onHistoryClose: () => void;
@@ -486,6 +495,7 @@ function AskChatTab({
             onStop={onStop}
             streaming={streaming}
             disabled={false}
+            visionEnabled={visionEnabled}
             placeholder="Ask about a mock, a weak subject, or what to do next…"
             meta={composerMeta}
           />
@@ -710,10 +720,12 @@ function SubjectRoster({
  * real form. This tab never saves; /add remains the sole save path. */
 function LogMockTab({
   configured,
+  visionEnabled,
   onAiConfigured,
   onLogMock,
 }: {
   configured: boolean;
+  visionEnabled: boolean;
   onAiConfigured?: (credential: AiCredentialSummary | null) => void;
   onLogMock: (draft: LogMockPayload) => void;
 }) {
@@ -734,6 +746,8 @@ function LogMockTab({
     sections: [],
   };
   const [paste, setPaste] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [preparingImages, setPreparingImages] = useState(false);
   const [draft, setDraft] = useState<ExtractionDraft | null>(null);
   /* false = paste step, "roster" = the parsed summary, "details" = the full
      field editor. The roster is the default review surface. */
@@ -768,7 +782,10 @@ function LogMockTab({
     try {
       const result = await api<{ draft?: ExtractionDraft }>("/api/ai/extract", {
         method: "POST",
-        body: JSON.stringify({ text: paste }),
+        body: JSON.stringify({
+          text: paste,
+          ...(images.length ? { images } : {}),
+        }),
       });
       if (!result.draft) throw new Error("Could not arrange this report.");
       setDraft(result.draft);
@@ -895,6 +912,60 @@ function LogMockTab({
           Clear paste
         </button>
       </div>
+
+      {visionEnabled && (
+        <div className="mt-3">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              className="sr-only"
+              aria-label="Attach scorecard screenshots"
+              onChange={(event) => {
+                const files = event.target.files;
+                if (files?.length) {
+                  setPreparingImages(true);
+                  void prepareImages(files, images.length)
+                    .then((next) => {
+                      if (next.length)
+                        setImages((current) => [...current, ...next].slice(0, 2));
+                    })
+                    .finally(() => setPreparingImages(false));
+                }
+                event.target.value = "";
+              }}
+            />
+            {preparingImages ? "Preparing…" : "Attach scorecard screenshot"}
+          </label>
+          {images.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {images.map((image, index) => (
+                <span key={index} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user-attached data URL, not a remote asset */}
+                  <img
+                    src={image}
+                    alt={`Scorecard screenshot ${index + 1}`}
+                    className="h-16 w-16 rounded-control border border-rule-soft object-cover"
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remove screenshot ${index + 1}`}
+                    className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-rule bg-paper text-muted hover:text-ink"
+                    onClick={() =>
+                      setImages((current) =>
+                        current.filter((_, at) => at !== index),
+                      )
+                    }
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <p

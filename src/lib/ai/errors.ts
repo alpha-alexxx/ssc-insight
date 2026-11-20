@@ -4,6 +4,7 @@ export type AiErrorCode =
   | "AI_QUOTA_EXCEEDED"
   | "AI_RATE_LIMITED"
   | "AI_INPUT_TOO_LARGE"
+  | "AI_VISION_DISABLED"
   | "AI_TIMEOUT"
   | "AI_PROVIDER_ERROR"
   | "AI_PROVIDER_AUTH"
