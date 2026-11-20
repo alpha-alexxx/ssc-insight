@@ -20,8 +20,6 @@ import { DashboardClock } from "./dashboard-clock";
 import { CommandPalette } from "./command-palette";
 import { AppFrame, VIEW_META } from "./app-shell";
 import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
-import { CompareView, type CompareReference } from "./compare-view";
-import { HistoryPanel } from "./history-panel";
 import { ScopeFilters } from "./scope-filters";
 import { MockDetailDialog } from "./mock-detail-dialog";
 import { AddMockView } from "./add-mock-view";
@@ -30,7 +28,6 @@ import { AiCoachCard } from "./ai-coach-card";
 import { AiChatSheet, type LogMockPayload } from "./ai-chat-sheet";
 import { PageHeader } from "./page-header";
 import { useAiWorkspace } from "./use-ai-workspace";
-import { useBackupImport } from "./use-backup-import";
 import {
   collectSelectedAttempts,
   useAttemptPage,
@@ -44,7 +41,6 @@ import { planKeys } from "@/lib/queries/plan";
 import { CalendarView } from "./plan/calendar-view";
 import { PlanDayView } from "./plan/plan-day-view";
 import { PlanWeekView } from "./plan/plan-week-view";
-import { SettingsView } from "./settings/settings-view";
 import { useToast } from "./toast";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { useThemePrefs, viewTransition } from "./theme-style-provider";
@@ -102,7 +98,7 @@ import { Dialog } from "radix-ui";
  * page, so the shell renders its `children` instead of the legacy `view ===`
  * switch. Each migration adds one entry; Task 20 removes the switch entirely.
  */
-const MIGRATED_VIEWS = new Set<string>(["trash", "performance"]);
+const MIGRATED_VIEWS = new Set<string>(["trash", "performance", "history", "compare", "settings"]);
 
 export function WorkspaceShell({
   authEnabled = false,
@@ -517,14 +513,6 @@ function WorkspaceShellInner({
     ]);
   }, [invalidateTodos, queryClient, refreshAfterMutation]);
 
-  const backup = useBackupImport({
-    download,
-    refresh: refreshAfterImport,
-    onTargetApplied: reloadSettings,
-    setBusy,
-    fileRef,
-  });
-
   useKeyboardShortcuts(
     useMemo(
       () => ({
@@ -557,44 +545,6 @@ function WorkspaceShellInner({
 
   // Derived view inputs. Memoized so the memoized panels below skip
   // re-renders while chat streams or unrelated shell state changes.
-  const compared = useMemo(
-    () => collectSelectedAttempts(selectedResults),
-    [selectedResults],
-  );
-  /** Compare rows stage the selection and take the user to the comparison,
-   * so a row action in History has a visible destination. */
-  const compareFromRow = useCallback(
-    (a: Attempt) => {
-      setSelected((ids) =>
-        ids.includes(a.id) ? ids : ids.length < 4 ? [...ids, a.id] : ids,
-      );
-      go("compare");
-    },
-    [go],
-  );
-  /**
-   * The target shown beside a compared mock must be the target for THAT
-   * mock\u2019s own paper, resolved from the exam payload rather than inferred
-   * from the active scope \u2014 comparing a CGL Tier 1 mock against a Tier 2
-   * target would be meaningless.
-   */
-  const compareAveragePercentage =
-    compareList.data?.stats?.avgScorePct ?? null;
-  const compareAverageCount = compareList.data?.stats?.totalMocks ?? null;
-  const compareReference = useMemo<CompareReference>(
-    () => ({
-      targetFor: (attempt) => {
-        const target = examScope.targetForTier(
-          `${attempt.examId}:${attempt.tierId}`,
-        );
-        if (!target?.marks) return null;
-        return { marks: target.marks, maxScore: target.maxScore };
-      },
-      averagePercentage: compareAveragePercentage,
-      averageCount: compareAverageCount,
-    }),
-    [compareAverageCount, compareAveragePercentage, examScope],
-  );
   const platforms = useMemo(
     () => [...new Set(allAttempts.map((a) => a.platform))].sort(),
     [allAttempts],
@@ -975,29 +925,6 @@ function WorkspaceShellInner({
                           onOpenAttempt={openDetail}
                         />
                       )
-                    ) : view === "settings" ? (
-                      <SettingsView
-                        userName={userName}
-                        userEmail={userEmail}
-                        saveTarget={saveTarget}
-                        busy={busy}
-                        onDownload={(format) => void download(format)}
-                        onChooseFile={() => fileRef.current?.click()}
-                        fileInput={
-                          <input
-                            className="hidden"
-                            type="file"
-                            accept=".json,application/json"
-                            ref={fileRef}
-                            aria-label="Choose backup file"
-                            onChange={(e) =>
-                              void backup.readBackup(e.target.files?.[0])
-                            }
-                          />
-                        }
-                        backup={backup}
-                        onOpenReplace={() => backup.setReplaceOpen(true)}
-                      />
                     ) : view === "dashboard" ? (
                       <DashboardView
                         planApi={planApi}
@@ -1016,68 +943,12 @@ function WorkspaceShellInner({
                         }}
                       />
                     ) : (
-                      <>
-                        <div className="mb-4">
-                          <ScopeFilters
-                            mode="type"
-                            scope={scope}
-                            setScope={setScope}
-                            filters={filters}
-                            setFilters={updateFilters}
-                            changeFilter={changeFilter}
-                            platforms={platforms}
-                          />
-                        </div>
-                        {listFetching && (
-                          <p
-                            role="status"
-                            className="mb-3 flex items-center gap-2 text-xs text-muted"
-                          >
-                            <PlainIcon
-                              name="refresh"
-                              size={12}
-                              className="animate-spin"
-                            />{" "}
-                            Updating your results…
-                          </p>
-                        )}
-                        {view === "compare" ? (
-                          <CompareView
-                            data={compareList.data}
-                            isFetching={compareList.isFetching}
-                            error={compareList.isError ? compareList.error : null}
-                            onRetry={() => void compareList.refetch()}
-                            onPageChange={setComparePage}
-                            onPageSizeChange={setPageSize}
-                            compared={compared}
-                            selected={selected}
-                            onToggle={toggleCompare}
-                            onClear={clearCompare}
-                            onOpen={openDetail}
-                            reference={compareReference}
-                          />
-                        ) : (
-                          <HistoryPanel
-                            data={historyList.data}
-                            isFetching={historyList.isFetching}
-                            error={historyList.isError ? historyList.error : null}
-                            onRetry={() => {
-                              clearWorkspaceFilters();
-                              void historyList.refetch();
-                            }}
-                            sort={{ key: sort, dir }}
-                            onSort={changeSort}
-                            onPageChange={setPage}
-                            onPageSizeChange={setPageSize}
-                            search={filters.search ?? ""}
-                            onSearch={searchFilter}
-                            onOpen={openDetail}
-                            onAdd={add}
-                            onCompare={compareFromRow}
-                            accountTotal={allAttempts.length}
-                          />
-                        )}
-                      </>
+                      // Reached only by a view that is neither migrated nor
+                      // explicitly handled above. Route migrations remove cases
+                      // from this switch one at a time; Task 20 deletes it.
+                      <p className="text-sm text-muted">
+                        This view is moving to its own route.
+                      </p>
                     )}
                     <footer className="flex flex-wrap justify-between gap-2 pt-6 text-[0.625rem] text-muted">
                       <p>Built for progress, one mock at a time.</p>
@@ -1108,73 +979,6 @@ function WorkspaceShellInner({
           onDelete={(a) => void remove(a)}
           busy={busy}
         />
-        <Dialog.Root
-          open={backup.replaceOpen && backup.preview !== null}
-          onOpenChange={backup.setReplaceOpen}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="dialog-overlay fixed inset-0 bg-ink/40 z-40" />
-            <Dialog.Content className="dialog-content fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-paper border border-rule rounded-panel w-[calc(100%-32px)] max-w-xl p-6 md:p-8 shadow-pop">
-              <Dialog.Title className="font-serif text-3xl leading-tight pr-8">
-                Replace this account’s data?
-              </Dialog.Title>
-              <Dialog.Description className="muted text-xs mt-2">
-                Signed in as {userEmail || "the current account"}. This action
-                cannot be undone from the app.
-              </Dialog.Description>
-              {backup.preview && (
-                <div className="mt-5 space-y-3 text-sm">
-                  <p>
-                    This permanently deletes{" "}
-                    <strong className="tabular">
-                      {backup.preview.willDelete}
-                    </strong>{" "}
-                    existing mocks in this account and imports{" "}
-                    <strong className="tabular">
-                      {backup.preview.importable}
-                    </strong>{" "}
-                    mocks from the backup.
-                  </p>
-                  <p className="text-xs muted">
-                    Settings:{" "}
-                    {backup.applyTarget && backup.preview.settings.available
-                      ? backup.preview.settings.changed
-                        ? "apply the backup's exam scope and targets"
-                        : "same as the current scope"
-                      : "keep the current exam scope and targets"}
-                    .{" "}
-                    {backup.safetyDownloaded
-                      ? "A safety backup was downloaded."
-                      : "Download a safety backup first."}
-                  </p>
-                  <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs">
-                    Keep the downloaded safety backup until you have verified
-                    the imported data. This cannot be undone from the app. Your
-                    Trash is not affected.
-                  </div>
-                </div>
-              )}
-              <div className="flex flex-wrap justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => backup.setReplaceOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={busy || !backup.safetyDownloaded}
-                  onClick={() => void backup.commitImport(true)}
-                >
-                  Replace account data
-                </Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
         <AiChatSheet
           open={ai.chat.open}
           onOpenChange={ai.chat.setOpen}

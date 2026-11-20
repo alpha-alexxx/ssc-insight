@@ -1,44 +1,32 @@
-import { attemptListSchema, attemptSchemaFor, type Filters } from "@/lib/domain";
+import { attemptSchemaFor } from "@/lib/domain";
 import { readBody, RequestError } from "@/lib/api";
-import {
-  createAttempt,
-  LIST_ATTEMPTS_MAX,
-  listAttempts,
-  listAttemptsPaged,
-} from "@/lib/repository";
+import { createAttempt } from "@/lib/repository";
 import { loadExamContext, requirePattern } from "@/lib/exam-settings";
+import {
+  attemptFiltersFrom,
+  loadAttemptList,
+  loadAttemptPage,
+  parseAttemptListQuery,
+} from "@/lib/services/attempts";
 import { defineRoute } from "@/lib/route-handler";
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
+/**
+ * The reads live in src/lib/services/attempts.ts so this handler and the
+ * /history, /compare, /calendar, /dashboard and /plan pages share one
+ * implementation — scope, ownership and the trash filter cannot diverge.
+ */
 export const GET = defineRoute({ kind: "read" }, async ({ request, user }) => {
-  // Filters (type/subject/platform/date-range/search) flow back through the
-  // same attemptWhere builder /history and /compare were always meant to
-  // use. A request without `page` stays the unpaged full list the dashboard,
-  // calendar, plan views, and the shell's caches depend on; `page` opts into
-  // the server-paged envelope { items, total, page, pageSize, pageCount }
-  // (plus `stats` KPI aggregates for /history) with optional sort/dir.
-  const list = attemptListSchema.parse(
+  const list = parseAttemptListQuery(
     Object.fromEntries(new URL(request.url).searchParams.entries()),
   );
-  // Attempts are always scoped to the user's active tier — the switcher
-  // decides the scope (the combined "all" view leaves the tier open), and
-  // filters refine within it.
   const ctx = await loadExamContext(user.id);
-  const filters: Filters = {
-    examId: ctx.activeExamId,
-    type: list.type,
-    subject: list.subject,
-    platform: list.platform,
-    from: list.from,
-    to: list.to,
-    search: list.search,
-    // attemptWhere skips "all", so the combined view stays unfiltered.
-    tier: list.tier ?? ctx.activeTierId,
-  };
+  const filters = attemptFiltersFrom(list, ctx);
+
   if (list.page != null) {
-    const data = await listAttemptsPaged(user.id, filters, {
+    const data = await loadAttemptPage(user.id, filters, {
       page: list.page,
       pageSize: list.pageSize ?? 10,
       sort: list.sort ?? "date",
@@ -47,11 +35,12 @@ export const GET = defineRoute({ kind: "read" }, async ({ request, user }) => {
     });
     return { data, cache: { maxAgeSec: 0, swrSec: 2 } };
   }
-  const items = await listAttempts(user.id, filters);
+
+  const { items, truncated } = await loadAttemptList(user.id, filters);
   const headers: Record<string, string> = {};
-  if (items.length >= LIST_ATTEMPTS_MAX) {
+  if (truncated) {
     headers["X-List-Truncated"] = "true";
-    headers["X-List-Max"] = String(LIST_ATTEMPTS_MAX);
+    headers["X-List-Max"] = "50";
   }
   return { data: items, cache: { maxAgeSec: 0, swrSec: 2 }, headers };
 });

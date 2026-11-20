@@ -10,20 +10,20 @@ import {
   RevealItem,
   switchBounce,
 } from "./_lib/motion-presets";
-import { remindersSchema, type ReminderValues } from "./_lib/schema";
-import { Panel } from "../dashboard-panels";
-import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
-import { Switch, SwitchRow } from "../ui/switch";
-import { useToast } from "../toast";
-import { useExamScope } from "../exam-context";
+import { remindersSchema, type ReminderValues } from "@/components/shared/settings-schema";
+import { Panel } from "@/components/dashboard-panels";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch, SwitchRow } from "@/components/ui/switch";
+import { useToast } from "@/components/toast";
+import { useExamScope } from "@/components/exam-context";
 import {
   examsKeys,
   putScopeRequest,
   type ExamsResponse,
   type PreferencesDto,
 } from "@/lib/queries/exams";
-import { usePanelDraft } from "./settings-guard";
+import { usePanelDraft } from "@/components/shared/settings-guard";
 
 /**
  * Reminders — IN-APP ONLY.

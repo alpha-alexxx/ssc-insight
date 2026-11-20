@@ -1,17 +1,17 @@
 "use client";
 import { memo, useMemo } from "react";
-import { PlainIcon } from "./icon";
-import { Button } from "./ui/button";
-import { Panel } from "./dashboard-panels";
-import { Skeleton } from "./ui/skeleton";
-import { AttemptPagination } from "./attempt-pagination";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/dashboard-panels";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AttemptPagination } from "@/components/attempt-pagination";
 import {
   Delta,
   accuracyTone,
   comparablePercentage,
   scoreBarTone,
   typeChip,
-} from "./attempt-display";
+} from "@/components/attempt-display";
 import {
   SUBJECTS,
   sectionIds,

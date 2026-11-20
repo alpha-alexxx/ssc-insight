@@ -1,20 +1,91 @@
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
+import { prefetchInto } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { loadExamContext } from "@/lib/exam-settings";
+import {
+  attemptFiltersFrom,
+  loadAttemptList,
+  loadAttemptPage,
+  parseAttemptListQuery,
+} from "@/lib/services/attempts";
+import { attemptListQueryOptions, attemptKeys } from "@/lib/queries/attempts";
+import { HistoryRoute } from "./_history/history-route";
 
-/**
- * Route placeholder: /history.
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders the mock history on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
-export default async function HistoryPage() {
-  await requireUser();
-  return null;
+/**
+ * `/history` — the server-paged record list, served as a Server Component.
+ *
+ * The page and the client hook derive their request the same way: the query
+ * string is parsed by the shared `parseAttemptListQuery`, the search term is
+ * gated by the same two-character rule, and the paging defaults match. That is
+ * what makes the prefetch land on the key `HistoryRoute` actually reads.
+ */
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { id: userId } = await requireUser();
+  const params = await searchParams;
+
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first != null) search.set(key, first);
+  }
+
+  const ctx = await loadExamContext(userId);
+  const list = parseAttemptListQuery(Object.fromEntries(search.entries()));
+  const filters = attemptFiltersFrom(list, ctx);
+
+  // Mirror the client's search gate: one character is too broad to fetch.
+  const rawSearch = filters.search ?? "";
+  const gated = {
+    ...filters,
+    search: rawSearch.length >= 2 ? rawSearch : "",
+  };
+
+  const paging = {
+    filters: gated,
+    page: list.page ?? 1,
+    pageSize: list.pageSize ?? 10,
+    sort: list.sort ?? "date",
+    dir: list.dir ?? "desc",
+    withStats: true,
+  } as const;
+
+  const queryClient = getQueryClient();
+  await prefetchInto(queryClient, [
+    {
+      key: attemptKeys.list(paging),
+      load: () =>
+        loadAttemptPage(userId, gated, {
+          page: paging.page,
+          pageSize: paging.pageSize,
+          sort: paging.sort,
+          dir: paging.dir,
+          withStats: true,
+        }),
+    },
+    {
+      // The filter row's platform list and the account total.
+      key: attemptKeys.full(),
+      load: () =>
+        loadAttemptList(userId, {
+          examId: ctx.activeExamId,
+          tier: ctx.activeTierId,
+          type: "all",
+          subject: "all",
+        }).then((result) => result.items),
+    },
+  ]);
+  void attemptListQueryOptions;
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <HistoryRoute />
+    </HydrationBoundary>
+  );
 }

@@ -5,22 +5,22 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Reveal, RevealItem } from "./_lib/motion-presets";
-import { targetsSchema } from "./_lib/schema";
-import { Panel } from "../dashboard-panels";
-import { PlainIcon } from "../icon";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Slider } from "../ui/slider";
-import { Progress } from "../ui/progress";
+import { targetsSchema } from "@/components/shared/settings-schema";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
 import {
   Tabs,
   TabsCaption,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "../ui/tabs";
-import { useToast } from "../toast";
-import { useExamScope } from "../exam-context";
+} from "@/components/ui/tabs";
+import { useToast } from "@/components/toast";
+import { useExamScope } from "@/components/exam-context";
 import {
   examsKeys,
   patchTargetsRequest,
@@ -30,7 +30,7 @@ import {
 } from "@/lib/queries/exams";
 import { formatNumber as n } from "@/lib/domain";
 import { cn } from "@/lib/utils";
-import { usePanelDraft } from "./settings-guard";
+import { usePanelDraft } from "@/components/shared/settings-guard";
 
 /**
  * Targets — three INDEPENDENT systems, kept visibly distinct:

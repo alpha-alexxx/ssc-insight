@@ -1,20 +1,31 @@
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/require-user";
+import { SessionError } from "@/lib/auth/session-policy";
+import { SettingsRoute } from "./_settings/settings-route";
 
-/**
- * Route placeholder: /settings.
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders settings on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
+/**
+ * `/settings` — the account workspace.
+ *
+ * No data prefetch: every panel reads the shared exam/settings payload through
+ * its own query (`useExamScope`), which the layout has already mounted, so the
+ * panels hydrate from that cache rather than a second server read.
+ */
 export default async function SettingsPage() {
-  await requireUser();
-  return null;
+  let user;
+  try {
+    user = await requireUser();
+  } catch (error) {
+    if (error instanceof SessionError && error.status === 401) redirect("/");
+    redirect("/?error=unavailable");
+  }
+  return (
+    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+      <SettingsRoute
+        userName={user.name ?? ""}
+        userEmail={user.email ?? ""}
+      />
+    </div>
+  );
 }

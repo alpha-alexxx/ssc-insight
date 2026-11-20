@@ -5,18 +5,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Reveal, RevealItem } from "./_lib/motion-presets";
-import { examsScopeSchema, type ExamsScopeValues } from "./_lib/schema";
-import { Panel } from "../dashboard-panels";
-import { PlainIcon } from "../icon";
-import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
-import { Input } from "../ui/input";
+import { examsScopeSchema, type ExamsScopeValues } from "@/components/shared/settings-schema";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "../ui/accordion";
+} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,10 +26,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import { Dialog } from "radix-ui";
-import { useToast } from "../toast";
-import { useExamScope } from "../exam-context";
+import { useToast } from "@/components/toast";
+import { useExamScope } from "@/components/exam-context";
 import {
   createCustomExamRequest,
   deleteCustomExamRequest,
@@ -43,7 +43,7 @@ import {
 import { SUBJECTS, type SubjectId } from "@/lib/domain";
 import { trashKeys } from "@/lib/queries/trash";
 import { cn } from "@/lib/utils";
-import { usePanelDraft } from "./settings-guard";
+import { usePanelDraft } from "@/components/shared/settings-guard";
 
 /**
  * Exams & tiers: enable the tiers you are preparing for, see each paper's

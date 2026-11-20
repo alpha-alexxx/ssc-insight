@@ -1,17 +1,17 @@
 "use client";
 import { memo } from "react";
-import { PlainIcon, DuotoneTile } from "./icon";
-import { Button } from "./ui/button";
-import { Panel } from "./dashboard-panels";
-import { Skeleton } from "./ui/skeleton";
-import { AttemptPagination } from "./attempt-pagination";
-import { AttemptRecordCard } from "./attempt-outcome-card";
+import { PlainIcon, DuotoneTile } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/dashboard-panels";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AttemptPagination } from "@/components/attempt-pagination";
+import { AttemptRecordCard } from "@/components/attempt-outcome-card";
 import {
   accuracyTone,
   scoreBarTone,
   typeChip,
-} from "./attempt-display";
-import { MetricCell } from "./metric-strip";
+} from "@/components/attempt-display";
+import { MetricCell } from "@/components/metric-strip";
 import {
   totals,
   formatNumber as n,

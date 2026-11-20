@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { PlainIcon } from "../icon";
+import { PlainIcon } from "@/components/icon";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,8 +12,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
-import { SettingsGuardProvider, useSettingsGuard } from "./settings-guard";
+} from "@/components/ui/alert-dialog";
+import { SettingsGuardProvider, useSettingsGuard } from "@/components/shared/settings-guard";
 import {
   MotionButton,
   pageEnter,
@@ -25,9 +25,9 @@ import { TargetsPanel } from "./targets-panel";
 import { RemindersPanel } from "./reminders-panel";
 import { DataPanel } from "./data-panel";
 import { AboutPanel } from "./about-panel";
-import { AppearancePanel } from "../appearance-panel";
-import { AiSettingsForm } from "../ai-settings-form";
-import { Panel } from "../dashboard-panels";
+import { AppearancePanel } from "@/components/appearance-panel";
+import { AiSettingsForm } from "@/components/ai-settings-form";
+import { Panel } from "@/components/dashboard-panels";
 
 /**
  * Settings — seven groups behind one navigable rail.
@@ -87,7 +87,7 @@ export function SettingsView({
   onChooseFile: () => void;
   fileInput: React.ReactNode;
   backup: Omit<
-    ReturnType<typeof import("../use-backup-import").useBackupImport>,
+    ReturnType<typeof import("./use-backup-import").useBackupImport>,
     "busy"
   >;
   onOpenReplace: () => void;
@@ -151,7 +151,7 @@ function SettingsBody({
   onChooseFile: () => void;
   fileInput: React.ReactNode;
   backup: Omit<
-    ReturnType<typeof import("../use-backup-import").useBackupImport>,
+    ReturnType<typeof import("./use-backup-import").useBackupImport>,
     "busy"
   >;
   onOpenReplace: () => void;

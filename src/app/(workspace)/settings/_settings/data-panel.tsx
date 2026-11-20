@@ -1,9 +1,9 @@
 "use client";
 
-import { Panel } from "../dashboard-panels";
-import { PlainIcon, DuotoneIcon } from "../icon";
-import { Button } from "../ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon, DuotoneIcon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { longDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { BackupPreview, ImportMode } from "@/lib/backup";

@@ -1,9 +1,9 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { Badge } from "../ui/badge";
-import { Panel } from "../dashboard-panels";
-import { useExamScope } from "../exam-context";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Panel } from "@/components/dashboard-panels";
+import { useExamScope } from "@/components/exam-context";
 import { CATALOG_VERSION } from "@/lib/exams";
 
 /**
