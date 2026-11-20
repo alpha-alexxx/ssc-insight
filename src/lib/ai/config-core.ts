@@ -11,6 +11,26 @@ import {
 
 export const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
 
+/**
+ * How hard to ask the provider to reason. "default" sends nothing and lets
+ * the model behave as its deployment configures it; "off" also sends nothing
+ * (unknown relays have no portable way to disable a thinking model) — the
+ * stream layer captures whatever reasoning the model produces anyway.
+ */
+export type AiThinking = "default" | "off" | "low" | "medium" | "high";
+
+const AI_THINKING_LEVELS: readonly AiThinking[] = [
+  "default",
+  "off",
+  "low",
+  "medium",
+  "high",
+];
+
+export function isAiThinking(value: string): value is AiThinking {
+  return (AI_THINKING_LEVELS as readonly string[]).includes(value);
+}
+
 export type AiConfig = {
   provider: string;
   protocol: AiProtocol;
@@ -26,7 +46,16 @@ export type AiConfig = {
   dailyRequestLimit: number;
   dailyTokenLimit: number;
   maxOutputTokens: number;
+  /** Inactivity window between stream chunks once bytes are flowing. */
   timeoutMs: number;
+  /**
+   * Grace before the FIRST stream byte. Thinking models can stay silent far
+   * past the stall window while reasoning; killing them at `timeoutMs` made
+   * every deep question a 504. Applies to streams only — `complete()` keeps
+   * its total wall-clock contract.
+   */
+  firstTokenTimeoutMs: number;
+  thinking: AiThinking;
 };
 
 type Env = Record<string, string | undefined>;
@@ -136,5 +165,19 @@ export function readAiConfig(env: Env): AiConfig | null {
     // value within the deployment platform's function limit (60s on Vercel)
     // or raise maxDuration on the AI routes to match.
     timeoutMs: integerEnv(env, "AI_TIMEOUT_MS", 45_000, 5_000, 180_000),
+    // Deliberately more generous than the stall window: the whole point is a
+    // model that produces nothing visible for a long first stretch.
+    firstTokenTimeoutMs: integerEnv(
+      env,
+      "AI_FIRST_TOKEN_TIMEOUT_MS",
+      120_000,
+      5_000,
+      300_000,
+    ),
+    // Unknown values degrade to the provider default rather than rejecting
+    // the whole config: this is a preference, not a security boundary.
+    thinking: isAiThinking(env.AI_THINKING?.trim().toLowerCase() ?? "")
+      ? (env.AI_THINKING!.trim().toLowerCase() as AiThinking)
+      : "default",
   };
 }

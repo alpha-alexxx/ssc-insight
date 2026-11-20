@@ -123,6 +123,8 @@ export async function resolveAiConfig(
         // the worst case; the deployment's AI_MAX_OUTPUT_TOKENS overrides it.
         maxOutputTokens: envConfig?.maxOutputTokens ?? 8_000,
         timeoutMs: envConfig?.timeoutMs ?? 45_000,
+        firstTokenTimeoutMs: envConfig?.firstTokenTimeoutMs ?? 120_000,
+        thinking: "default",
         dailyRequestLimit: 400,
         dailyTokenLimit: 2_000_000,
       },

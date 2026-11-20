@@ -41,6 +41,8 @@ function config(
     dailyTokenLimit: 300_000,
     maxOutputTokens: 200,
     timeoutMs: 5_000,
+    firstTokenTimeoutMs: 5_000,
+    thinking: "default",
     ...overrides,
   };
 }
@@ -427,14 +429,16 @@ test("chat completions empty content with a clean stop is still unreadable outpu
   );
 });
 
-test("chat completions streaming ignores reasoning deltas and reports length truncation", async () => {
+test("chat completions streaming forwards reasoning deltas and reports length truncation", async () => {
   const fetcher: typeof fetch = async () =>
     sse([
       'data: {"choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Thinking..."}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{"reasoning_content":" more"}}]}\n\n',
       'data: {"choices":[{"index":0,"delta":{},"finish_reason":"length"}]}\n\n',
       "data: [DONE]\n\n",
     ]);
   const deltas: string[] = [];
+  const reasoning: string[] = [];
   await assert.rejects(
     () =>
       createAiProvider(config("openai-chat"), fetcher).stream({
@@ -442,11 +446,150 @@ test("chat completions streaming ignores reasoning deltas and reports length tru
         maxOutputTokens: 16,
         signal: new AbortController().signal,
         onDelta: (text) => deltas.push(text),
+        onReasoning: (text) => reasoning.push(text),
       }),
     (error: unknown) =>
       error instanceof AiError && error.code === "AI_OUTPUT_INCOMPLETE",
   );
+  // Reasoning reaches the caller even though the answer itself never came.
   assert.deepEqual(deltas, []);
+  assert.equal(reasoning.join(""), "Thinking... more");
+});
+
+test("chat completions streaming forwards gateway-style `reasoning` deltas", async () => {
+  const fetcher: typeof fetch = async () =>
+    sse([
+      'data: {"choices":[{"index":0,"delta":{"reasoning":"chain of thought"}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{"content":"Answer"}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n',
+      "data: [DONE]\n\n",
+    ]);
+  const reasoning: string[] = [];
+  const result = await createAiProvider(config("openai-chat"), fetcher).stream({
+    messages: [{ role: "user", content: "hello" }],
+    maxOutputTokens: 16,
+    signal: new AbortController().signal,
+    onDelta: () => undefined,
+    onReasoning: (text) => reasoning.push(text),
+  });
+  assert.equal(result.text, "Answer");
+  assert.equal(reasoning.join(""), "chain of thought");
+});
+
+test("anthropic messages streaming forwards thinking deltas before text", async () => {
+  const fetcher: typeof fetch = async () =>
+    sse([
+      'event: message_start\ndata: {"type":"message_start","message":{"usage":{"input_tokens":12,"output_tokens":1}}}\n\n',
+      'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"Let me look at the mocks."}}\n\n',
+      'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"signature_delta","signature":"sig=="}}\n\n',
+      'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}\n\n',
+      'event: message_stop\ndata: {"type":"message_stop"}\n\n',
+    ]);
+  const reasoning: string[] = [];
+  const deltas: string[] = [];
+  const result = await createAiProvider(
+    config("anthropic-messages"),
+    fetcher,
+  ).stream({
+    messages: [{ role: "user", content: "hello" }],
+    maxOutputTokens: 20,
+    signal: new AbortController().signal,
+    onDelta: (text) => deltas.push(text),
+    onReasoning: (text) => reasoning.push(text),
+  });
+  assert.equal(result.text, "Hi");
+  assert.deepEqual(deltas, ["Hi"]);
+  assert.equal(reasoning.join(""), "Let me look at the mocks.");
+});
+
+test("openai responses streaming forwards reasoning summary deltas", async () => {
+  const fetcher: typeof fetch = async () =>
+    sse([
+      'event: response.reasoning_summary_text.delta\ndata: {"type":"response.reasoning_summary_text.delta","delta":"summarizing"}\n\n',
+      'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"OK"}\n\n',
+      'event: response.completed\ndata: {"type":"response.completed","response":{"usage":{"input_tokens":7,"output_tokens":2,"total_tokens":9,"output_tokens_details":{"reasoning_tokens":1}}}}\n\n',
+    ]);
+  const reasoning: string[] = [];
+  const result = await createAiProvider(
+    config("openai-responses"),
+    fetcher,
+  ).stream({
+    messages: [{ role: "user", content: "hello" }],
+    maxOutputTokens: 20,
+    signal: new AbortController().signal,
+    onDelta: () => undefined,
+    onReasoning: (text) => reasoning.push(text),
+  });
+  assert.equal(result.text, "OK");
+  assert.equal(reasoning.join(""), "summarizing");
+});
+
+test("thinking level maps to per-protocol request parameters", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  // One payload that every protocol's completion parser accepts: the chat
+  // branch reads `choices`, Anthropic reads `content`, Responses reads
+  // `output` — so the same fake fetch serves all three request shapes.
+  const anyShape = {
+    choices: [{ message: { content: "ok" } }],
+    type: "message",
+    role: "assistant",
+    content: [{ type: "text", text: "ok" }],
+    output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
+  };
+  const fetcher: typeof fetch = async (_url, init) => {
+    bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return json(anyShape);
+  };
+  const complete = (protocol: AiProtocol, thinking: AiConfig["thinking"], maxOutputTokens = 8_000) =>
+    createAiProvider(config(protocol, { thinking }), fetcher).complete({
+      messages: [{ role: "user", content: "hi" }],
+      maxOutputTokens,
+      signal: new AbortController().signal,
+    });
+
+  await complete("openai-chat", "default");
+  await complete("openai-chat", "off");
+  await complete("openai-chat", "high");
+  assert.equal("reasoning_effort" in bodies[0], false);
+  assert.equal("reasoning_effort" in bodies[1], false);
+  assert.equal(bodies[2].reasoning_effort, "high");
+
+  await complete("anthropic-messages", "medium");
+  assert.deepEqual(bodies[3].thinking, { type: "enabled", budget_tokens: 6_144 });
+
+  // budget_tokens must stay below max_tokens: with a 2,048 cap the budget
+  // clamps to its 1,024 floor, and under it thinking is dropped entirely.
+  await complete("anthropic-messages", "medium", 2_048);
+  assert.deepEqual(bodies[4].thinking, { type: "enabled", budget_tokens: 1_024 });
+
+  await complete("anthropic-messages", "high", 1_200);
+  assert.equal("thinking" in bodies[5], false);
+
+  await complete("openai-responses", "low");
+  assert.deepEqual(bodies[6].reasoning, { effort: "low", summary: "auto" });
+});
+
+test("structured JSON output requests never send thinking parameters", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const fetcher: typeof fetch = async (_url, init) => {
+    bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return json({
+      type: "message",
+      role: "assistant",
+      content: [{ type: "text", text: '{"ok":true}' }],
+    });
+  };
+  await createAiProvider(
+    config("anthropic-messages", { thinking: "high" }),
+    fetcher,
+  ).completeJson({
+    messages: [{ role: "user", content: "Return JSON." }],
+    maxOutputTokens: 8_000,
+    signal: new AbortController().signal,
+    format: FORMAT,
+    parse: (raw) => JSON.parse(raw) as { ok: boolean },
+  });
+  assert.equal("thinking" in bodies[0], false);
 });
 
 test("anthropic messages truncation inside thinking reports incomplete output", async () => {
@@ -536,4 +679,121 @@ test("chat stream partial answer cut by a truncation stop reason reports truncat
   });
   assert.equal(result.text, "Partial ans");
   assert.equal(result.truncated, true);
+});
+
+/** Fake fetch whose SSE body produces chunk `i` after `gaps[i]` ms. */
+function gappedSseFetch(chunks: string[], gaps: number[]): typeof fetch {
+  const encoder = new TextEncoder();
+  return async (_url, init) =>
+    new Response(
+      new ReadableStream({
+        async start(controller) {
+          const signal = init?.signal;
+          const abort = () => {
+            try {
+              controller.error(new DOMException("Aborted", "AbortError"));
+            } catch {
+              /* already errored or closed */
+            }
+          };
+          signal?.addEventListener("abort", abort, { once: true });
+          for (let i = 0; i < chunks.length; i += 1) {
+            await new Promise((resolve) => setTimeout(resolve, gaps[i] ?? 0));
+            if (signal?.aborted) return;
+            try {
+              controller.enqueue(encoder.encode(chunks[i]));
+            } catch {
+              return;
+            }
+          }
+          controller.close();
+        },
+      }),
+      { headers: { "content-type": "text/event-stream" } },
+    );
+}
+
+test("first-byte grace lets a silent thinking model survive past the stall window", async () => {
+  // The first byte arrives at 300ms — beyond the 120ms stall window but well
+  // inside the 500ms first-byte grace. Under the old single-timer behavior
+  // this stream died with AI_TIMEOUT before anything arrived.
+  const fetcher: typeof fetch = gappedSseFetch(
+    [
+      'data: {"choices":[{"index":0,"delta":{"reasoning_content":"deep thought"}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{"content":"Answer"}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n',
+      "data: [DONE]\n\n",
+    ],
+    [300, 40, 40, 0],
+  );
+  const reasoning: string[] = [];
+  const result = await createAiProvider(
+    config("openai-chat", { timeoutMs: 120, firstTokenTimeoutMs: 500 }),
+    fetcher,
+  ).stream({
+    messages: [{ role: "user", content: "hello" }],
+    maxOutputTokens: 20,
+    signal: new AbortController().signal,
+    onDelta: () => undefined,
+    onReasoning: (text) => reasoning.push(text),
+  });
+  assert.equal(result.text, "Answer");
+  assert.equal(reasoning.join(""), "deep thought");
+});
+
+test("silence beyond the first-byte grace still aborts with AI_TIMEOUT", async () => {
+  const fetcher: typeof fetch = gappedSseFetch(
+    [
+      'data: {"choices":[{"index":0,"delta":{"content":"never"}}]}\n\n',
+      "data: [DONE]\n\n",
+    ],
+    [400, 0],
+  );
+  await assert.rejects(
+    () =>
+      createAiProvider(
+        config("openai-chat", { timeoutMs: 5_000, firstTokenTimeoutMs: 120 }),
+        fetcher,
+      ).stream({
+        messages: [{ role: "user", content: "hello" }],
+        maxOutputTokens: 20,
+        signal: new AbortController().signal,
+        onDelta: () => undefined,
+      }),
+    (error: unknown) =>
+      error instanceof AiError && error.code === "AI_TIMEOUT",
+  );
+});
+
+test("complete keeps its total wall-clock contract regardless of the first-byte grace", async () => {
+  // A stream's first-byte grace must not leak into complete(): a slow JSON
+  // response past the stall window is a timeout, not a success. The fake
+  // fetch must reject on abort, the way a real fetch body does.
+  const fetcher: typeof fetch = async (_url, init) => {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, 300);
+      init?.signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          reject(new DOMException("Aborted", "AbortError"));
+        },
+        { once: true },
+      );
+    });
+    return json({ choices: [{ message: { content: "late" } }] });
+  };
+  await assert.rejects(
+    () =>
+      createAiProvider(
+        config("openai-chat", { timeoutMs: 120, firstTokenTimeoutMs: 5_000 }),
+        fetcher,
+      ).complete({
+        messages: [{ role: "user", content: "hello" }],
+        maxOutputTokens: 20,
+        signal: new AbortController().signal,
+      }),
+    (error: unknown) =>
+      error instanceof AiError && error.code === "AI_TIMEOUT",
+  );
 });

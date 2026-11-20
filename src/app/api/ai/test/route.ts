@@ -60,6 +60,8 @@ export const POST = defineRoute(
             allowPrivate: parsed.data.allowPrivate,
             maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
             timeoutMs: 20_000,
+            firstTokenTimeoutMs: 20_000,
+            thinking: "default",
             dailyRequestLimit: 30,
             dailyTokenLimit: 300_000,
           },

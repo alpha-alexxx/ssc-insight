@@ -1,4 +1,4 @@
-import type { AiConfig } from "./config-core";
+import type { AiConfig, AiThinking } from "./config-core";
 import {
   AiError,
   aiAborted,
@@ -58,7 +58,10 @@ export type AiProvider = {
     args: JsonRequestArgs<T>,
   ): Promise<{ value: T; usage: AiUsage; providerCalls: number }>;
   stream(
-    args: RequestArgs & { onDelta: (text: string) => void },
+    args: RequestArgs & {
+      onDelta: (text: string) => void;
+      onReasoning?: (text: string) => void;
+    },
   ): Promise<{
     text: string;
     usage: AiUsage;
@@ -227,6 +230,24 @@ function responsesTextFormat(format?: AiStructuredFormat) {
     : { format: { type: "json_object" } };
 }
 
+const ANTHROPIC_THINKING_BUDGET: Record<
+  "low" | "medium" | "high",
+  number
+> = {
+  low: 2_048,
+  medium: 6_144,
+  high: 12_288,
+};
+
+/** The effort value for protocols that accept one, or null to send nothing. */
+function reasoningEffort(
+  thinking: AiThinking,
+): "low" | "medium" | "high" | null {
+  return thinking === "low" || thinking === "medium" || thinking === "high"
+    ? thinking
+    : null;
+}
+
 function requestBody(
   config: AiConfig,
   args: RequestArgs,
@@ -237,12 +258,17 @@ function requestBody(
   },
 ): Record<string, unknown> {
   const structured = options.json && config.jsonMode;
+  // Structured output and extended thinking do not combine reliably across
+  // providers, so JSON routes with an explicit format keep thinking off.
+  // Prompt-only JSON callers (extract, todos) and chat keep their level.
+  const effort = options.format ? null : reasoningEffort(config.thinking);
   switch (config.protocol) {
     case "openai-responses":
       return {
         model: config.model,
         input: args.messages,
         max_output_tokens: args.maxOutputTokens,
+        ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
         ...(config.provider === "openai" ? { store: false } : {}),
         ...(options.stream ? { stream: true } : {}),
         ...(structured ? { text: responsesTextFormat(options.format) } : {}),
@@ -262,11 +288,22 @@ function requestBody(
       const messages = args.messages
         .filter((message) => message.role !== "system")
         .map((message) => ({ role: message.role, content: message.content }));
+      // budget_tokens must stay below max_tokens; below Anthropic's 1,024
+      // floor the request would be rejected, so thinking is dropped entirely.
+      const budget = effort
+        ? Math.min(
+            ANTHROPIC_THINKING_BUDGET[effort],
+            Math.max(0, args.maxOutputTokens - 1_024),
+          )
+        : null;
       return {
         model: config.model,
         ...(systems ? { system: systems } : {}),
         messages,
         max_tokens: args.maxOutputTokens,
+        ...(budget && budget >= 1_024
+          ? { thinking: { type: "enabled", budget_tokens: budget } }
+          : {}),
         ...(options.stream ? { stream: true } : {}),
         ...(structured && options.format
           ? {
@@ -284,6 +321,7 @@ function requestBody(
       return {
         model: config.model,
         messages: args.messages,
+        ...(effort ? { reasoning_effort: effort } : {}),
         ...(config.provider === "openai"
           ? { max_completion_tokens: args.maxOutputTokens, store: false }
           : { max_tokens: args.maxOutputTokens }),
@@ -445,6 +483,7 @@ function parseSseFrame(raw: string): StreamFrame | null {
 
 type StreamResult = {
   delta?: string;
+  reasoning?: string;
   usage?: UsagePatch | null;
   done?: boolean;
   finishReason?: string;
@@ -463,6 +502,15 @@ function parseStreamPayload(
     if (type === "response.output_text.delta") {
       return { delta: typeof record.delta === "string" ? record.delta : "" };
     }
+    // Reasoning summaries arrive as their own delta stream before the text.
+    if (
+      type === "response.reasoning_summary_text.delta" ||
+      type === "response.reasoning_text.delta"
+    ) {
+      return {
+        reasoning: typeof record.delta === "string" ? record.delta : "",
+      };
+    }
     if (type === "response.completed") {
       const response = record.response as Record<string, unknown> | undefined;
       return {
@@ -479,6 +527,10 @@ function parseStreamPayload(
     const type = typeof record.type === "string" ? record.type : "";
     if (type === "content_block_delta") {
       const delta = record.delta as Record<string, unknown> | undefined;
+      // Extended thinking surfaces as thinking_delta blocks before the text
+      // blocks; signature_delta is an integrity marker, not content.
+      if (delta?.type === "thinking_delta" && typeof delta.thinking === "string")
+        return { reasoning: delta.thinking };
       return {
         delta:
           delta?.type === "text_delta" && typeof delta.text === "string"
@@ -506,17 +558,30 @@ function parseStreamPayload(
   const first = Array.isArray(choices)
     ? (choices[0] as
         | {
-            delta?: { content?: unknown };
+            delta?: {
+              content?: unknown;
+              reasoning_content?: unknown;
+              reasoning?: unknown;
+            };
             message?: { content?: unknown };
             text?: unknown;
             finish_reason?: unknown;
           }
         | undefined)
     : undefined;
+  // GLM / DeepSeek / Qwen style relays carry hidden reasoning on the delta
+  // under `reasoning_content`; some gateways use `reasoning` instead.
+  const reasoningText =
+    typeof first?.delta?.reasoning_content === "string"
+      ? first.delta.reasoning_content
+      : typeof first?.delta?.reasoning === "string"
+        ? first.delta.reasoning
+        : "";
   return {
     delta: contentText(
       first?.delta?.content ?? first?.message?.content ?? first?.text,
     ),
+    ...(reasoningText ? { reasoning: reasoningText } : {}),
     usage: usagePatch(record.usage),
     finishReason:
       typeof first?.finish_reason === "string"
@@ -545,6 +610,8 @@ export function createAiProvider(
       legacy.modelsPath === undefined ? modelsPathFor(protocol) : legacy.modelsPath,
     allowHttp: legacy.allowHttp ?? false,
     allowPrivate: legacy.allowPrivate ?? false,
+    thinking: legacy.thinking ?? "default",
+    firstTokenTimeoutMs: legacy.firstTokenTimeoutMs ?? config.timeoutMs,
   };
 
   type Opened = {
@@ -563,14 +630,18 @@ export function createAiProvider(
     let timedOut = false;
     const forwardAbort = () => controller.abort();
     signal.addEventListener("abort", forwardAbort, { once: true });
+    // Streams open with the first-byte grace: a thinking model can stay
+    // silent well past the stall window while reasoning before its first
+    // token. After the first byte, kick() re-arms the shorter inactivity
+    // deadline per chunk, so a flowing stream is never killed. complete()
+    // never kicks, keeping its total wall-clock contract.
+    const firstWindow = body.stream
+      ? config.firstTokenTimeoutMs
+      : config.timeoutMs;
     let timer = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, config.timeoutMs);
-    // For streams the deadline is re-armed after every received chunk, so it
-    // behaves as an inactivity (stall) timer: a thinking model can stream for
-    // minutes without being killed at one wall-clock window. complete() never
-    // kicks, keeping its total wall-clock contract.
+    }, firstWindow);
     const kick = () => {
       if (timedOut) return;
       clearTimeout(timer);
@@ -675,7 +746,10 @@ export function createAiProvider(
   }
 
   async function stream(
-    args: RequestArgs & { onDelta: (text: string) => void },
+    args: RequestArgs & {
+      onDelta: (text: string) => void;
+      onReasoning?: (text: string) => void;
+    },
   ): Promise<{
     text: string;
     usage: AiUsage;
@@ -712,6 +786,9 @@ export function createAiProvider(
       }
       const result = parseStreamPayload(config, payload);
       if (result.finishReason) finishReason = result.finishReason;
+      // Reasoning is forwarded only — it is never accumulated server-side,
+      // never charged beyond the provider's own usage, and never stored.
+      if (result.reasoning) args.onReasoning?.(result.reasoning);
       if (result.delta) {
         text += result.delta;
         args.onDelta(result.delta);

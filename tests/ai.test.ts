@@ -59,6 +59,8 @@ const config: AiConfig = {
   dailyTokenLimit: 300_000,
   maxOutputTokens: 100,
   timeoutMs: 5_000,
+  firstTokenTimeoutMs: 5_000,
+  thinking: "default",
 };
 
 const subjects: SubjectResult[] = [
@@ -174,6 +176,8 @@ test("AI config fails closed and validates the provider URL", () => {
   assert.equal(defaults?.jsonMode, true);
   assert.equal(defaults?.timeoutMs, 45_000);
   assert.equal(defaults?.maxOutputTokens, 1_200);
+  assert.equal(defaults?.firstTokenTimeoutMs, 120_000);
+  assert.equal(defaults?.thinking, "default");
 
   const custom = readAiConfig({
     AI_API_KEY: "key",
@@ -183,20 +187,30 @@ test("AI config fails closed and validates the provider URL", () => {
     AI_DAILY_TOKEN_LIMIT: "1200",
     AI_MAX_OUTPUT_TOKENS: "500",
     AI_TIMEOUT_MS: "20000",
+    AI_FIRST_TOKEN_TIMEOUT_MS: "15000",
+    AI_THINKING: "HIGH",
   });
   assert.equal(custom?.jsonMode, false);
   assert.equal(custom?.dailyRequestLimit, 3);
   assert.equal(custom?.dailyTokenLimit, 1_200);
   assert.equal(custom?.maxOutputTokens, 500);
   assert.equal(custom?.timeoutMs, 20_000);
+  assert.equal(custom?.firstTokenTimeoutMs, 15_000);
+  assert.equal(custom?.thinking, "high");
 
   // The timeout ceiling leaves room for thinking models; above it clamps.
   const clamped = readAiConfig({
     AI_API_KEY: "key",
     AI_MODEL: "model",
     AI_TIMEOUT_MS: "200000",
+    AI_FIRST_TOKEN_TIMEOUT_MS: "400000",
+    AI_THINKING: "some-unheard-of-level",
   });
   assert.equal(clamped?.timeoutMs, 180_000);
+  assert.equal(clamped?.firstTokenTimeoutMs, 300_000);
+  // Unknown thinking levels degrade to the provider default instead of
+  // rejecting the whole config.
+  assert.equal(clamped?.thinking, "default");
 });
 
 test("report sanitizing preserves score data and extraction prompt contract", () => {
