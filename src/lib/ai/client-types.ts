@@ -48,6 +48,14 @@ export type AiCredentialSummary = {
   jsonMode: boolean;
   allowHttp: boolean;
   allowPrivate: boolean;
+  /** Provider default, off, or a reasoning-effort hint for the provider. */
+  thinking: string;
+  /** Per-user output ceiling; null inherits the deployment default. */
+  maxOutputTokens: number | null;
+  /** Conversation turns sent per question; null inherits the default (8). */
+  historyTurns: number | null;
+  /** Gates image input in chat and report extraction. */
+  visionEnabled: boolean;
   updatedAt: string | null;
 };
 
@@ -58,6 +66,24 @@ export type AiSettingsResponse = {
 
 export type AiModelsResponse = {
   models: { id: string; name: string }[];
+};
+
+/** Result of POST /api/ai/test — per-phase diagnostics for the checklist UI. */
+export type AiTestResponse = {
+  ok: boolean;
+  model: string;
+  protocol: string;
+  source: string;
+  replyChars: number;
+  latencyMs: number;
+  /** The streaming probe produced at least one delta. */
+  streaming: boolean;
+  /** Time to the first stream delta, when one arrived. */
+  streamLatencyMs: number | null;
+  /** Any hidden reasoning arrived during the stream probe. */
+  thinkingObserved: boolean;
+  /** Sanitized failure code when the streaming probe failed. */
+  streamError?: string;
 };
 
 export type CoachMeta = {

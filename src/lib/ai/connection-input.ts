@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AI_THINKING_VALUES } from "./config-core";
 import {
   AI_AUTH_MODES,
   AI_PROTOCOLS,
@@ -45,6 +46,12 @@ const connectionFields = {
   jsonMode: z.boolean().optional(),
   allowHttp: z.boolean().optional(),
   allowPrivate: z.boolean().optional(),
+  // Per-user model behavior. Null/omitted means "inherit" (env, then the
+  // built-in default) — an explicit value is the user's own choice.
+  thinking: z.enum(AI_THINKING_VALUES).optional(),
+  maxOutputTokens: z.number().int().min(256).max(32_000).nullable().optional(),
+  historyTurns: z.number().int().min(2).max(16).nullable().optional(),
+  visionEnabled: z.boolean().optional(),
 };
 
 type RawConnection = z.infer<z.ZodObject<typeof connectionFields>>;
@@ -60,6 +67,10 @@ type NormalisedConnection = Omit<
   jsonMode: boolean;
   allowHttp: boolean;
   allowPrivate: boolean;
+  thinking: (typeof AI_THINKING_VALUES)[number];
+  maxOutputTokens: number | null;
+  historyTurns: number | null;
+  visionEnabled: boolean;
 };
 
 /**
@@ -93,6 +104,10 @@ export function normaliseAiConnectionInput(
     jsonMode: input.jsonMode ?? true,
     allowHttp: input.allowHttp ?? false,
     allowPrivate: input.allowPrivate ?? false,
+    thinking: input.thinking ?? "default",
+    maxOutputTokens: input.maxOutputTokens ?? null,
+    historyTurns: input.historyTurns ?? null,
+    visionEnabled: input.visionEnabled ?? false,
   };
 }
 

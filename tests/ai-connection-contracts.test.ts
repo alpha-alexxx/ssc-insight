@@ -80,6 +80,68 @@ test("connection schemas normalize legacy payloads and allow explicit no-auth lo
   );
 });
 
+test("per-user model preferences parse with inherit-on-null semantics and bounds", () => {
+  // Omitted preferences normalize to inherit-everything defaults.
+  const defaults = aiCredentialSchema.parse({
+    provider: "openai",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "key",
+    model: "gpt-test",
+  });
+  assert.equal(defaults.thinking, "default");
+  assert.equal(defaults.maxOutputTokens, null);
+  assert.equal(defaults.historyTurns, null);
+  assert.equal(defaults.visionEnabled, false);
+
+  const explicit = aiCredentialSchema.parse({
+    provider: "openai",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "key",
+    model: "gpt-test",
+    thinking: "high",
+    maxOutputTokens: 12_000,
+    historyTurns: 16,
+    visionEnabled: true,
+  });
+  assert.equal(explicit.thinking, "high");
+  assert.equal(explicit.maxOutputTokens, 12_000);
+  assert.equal(explicit.historyTurns, 16);
+  assert.equal(explicit.visionEnabled, true);
+
+  // Bounds: the provider-facing output cap and the client history length
+  // both clamp here, at the write path.
+  assert.equal(
+    aiCredentialSchema.safeParse({
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "key",
+      model: "m",
+      maxOutputTokens: 200,
+    }).success,
+    false,
+  );
+  assert.equal(
+    aiCredentialSchema.safeParse({
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "key",
+      model: "m",
+      historyTurns: 20,
+    }).success,
+    false,
+  );
+  assert.equal(
+    aiCredentialSchema.safeParse({
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "key",
+      model: "m",
+      thinking: "maximum",
+    }).success,
+    false,
+  );
+});
+
 test("saved key reuse fingerprint includes protocol, auth mode and endpoint paths", () => {
   const stored = {
     provider: "custom",
@@ -161,4 +223,17 @@ test("Prisma schema and additive migration carry protocol metadata without expos
   assert.match(migration, /ADD COLUMN\s+"protocol"/);
   assert.match(migration, /DEFAULT 'openai-chat'/);
   assert.doesNotMatch(migration, /DROP\s+(TABLE|COLUMN)/i);
+
+  // Per-user model preferences: additive columns on the same row.
+  assert.match(credential, /thinking\s+String\s+@default\("default"\)/);
+  assert.match(credential, /maxOutputTokens\s+Int\?/);
+  assert.match(credential, /historyTurns\s+Int\?/);
+  assert.match(credential, /visionEnabled\s+Boolean\s+@default\(false\)/);
+  const preferences = readFileSync(
+    join(root, "prisma/migrations/20261120000000_ai_preferences/migration.sql"),
+    "utf8",
+  );
+  assert.match(preferences, /ADD COLUMN\s+"thinking"/);
+  assert.match(preferences, /ADD COLUMN\s+"visionEnabled"/);
+  assert.doesNotMatch(preferences, /DROP\s+(TABLE|COLUMN)/i);
 });

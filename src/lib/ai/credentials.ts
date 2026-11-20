@@ -8,6 +8,7 @@ import {
   keyHint,
 } from "./crypto";
 import type { AiAuthMode, AiProtocol } from "./protocols";
+import { isAiThinking } from "./config-core";
 import { assertSafeBaseUrlShape } from "./ssrf-core";
 
 /**
@@ -35,6 +36,10 @@ export type AiCredentialInput = {
   jsonMode?: boolean;
   allowHttp?: boolean;
   allowPrivate?: boolean;
+  thinking?: string;
+  maxOutputTokens?: number | null;
+  historyTurns?: number | null;
+  visionEnabled?: boolean;
 };
 
 /** Client-safe description. Contains no secret material. */
@@ -51,6 +56,10 @@ export type AiCredentialSummary = {
   jsonMode: boolean;
   allowHttp: boolean;
   allowPrivate: boolean;
+  thinking: string;
+  maxOutputTokens: number | null;
+  historyTurns: number | null;
+  visionEnabled: boolean;
   updatedAt: string | null;
 };
 
@@ -86,6 +95,10 @@ export async function describeAiCredential(
       jsonMode: true,
       allowHttp: true,
       allowPrivate: true,
+      thinking: true,
+      maxOutputTokens: true,
+      historyTurns: true,
+      visionEnabled: true,
       updatedAt: true,
     },
   });
@@ -103,6 +116,10 @@ export async function describeAiCredential(
     jsonMode: row.jsonMode,
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
+    thinking: isAiThinking(row.thinking) ? row.thinking : "default",
+    maxOutputTokens: row.maxOutputTokens,
+    historyTurns: row.historyTurns,
+    visionEnabled: row.visionEnabled,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -127,6 +144,10 @@ export async function getAiCredential(userId: string) {
       jsonMode: true,
       allowHttp: true,
       allowPrivate: true,
+      thinking: true,
+      maxOutputTokens: true,
+      historyTurns: true,
+      visionEnabled: true,
     },
   });
   if (!row) return null;
@@ -149,6 +170,10 @@ export async function getAiCredential(userId: string) {
     jsonMode: row.jsonMode,
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
+    thinking: isAiThinking(row.thinking) ? row.thinking : "default",
+    maxOutputTokens: row.maxOutputTokens,
+    historyTurns: row.historyTurns,
+    visionEnabled: row.visionEnabled,
   };
 }
 
@@ -210,6 +235,10 @@ export async function saveAiCredential(
       jsonMode: input.jsonMode ?? true,
       allowHttp: input.allowHttp ?? false,
       allowPrivate: input.allowPrivate ?? false,
+      thinking: input.thinking ?? "default",
+      maxOutputTokens: input.maxOutputTokens ?? null,
+      historyTurns: input.historyTurns ?? null,
+      visionEnabled: input.visionEnabled ?? false,
     },
     update: {
       provider: input.provider,
@@ -224,6 +253,10 @@ export async function saveAiCredential(
       jsonMode: input.jsonMode ?? true,
       allowHttp: input.allowHttp ?? false,
       allowPrivate: input.allowPrivate ?? false,
+      thinking: input.thinking ?? "default",
+      maxOutputTokens: input.maxOutputTokens ?? null,
+      historyTurns: input.historyTurns ?? null,
+      visionEnabled: input.visionEnabled ?? false,
     },
     select: {
       provider: true,
@@ -237,6 +270,10 @@ export async function saveAiCredential(
       jsonMode: true,
       allowHttp: true,
       allowPrivate: true,
+      thinking: true,
+      maxOutputTokens: true,
+      historyTurns: true,
+      visionEnabled: true,
       updatedAt: true,
     },
   });
@@ -254,6 +291,10 @@ export async function saveAiCredential(
     jsonMode: row.jsonMode,
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
+    thinking: isAiThinking(row.thinking) ? row.thinking : "default",
+    maxOutputTokens: row.maxOutputTokens,
+    historyTurns: row.historyTurns,
+    visionEnabled: row.visionEnabled,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

@@ -35,6 +35,7 @@ import type {
   AiCredentialSummary,
   AiModelsResponse,
   AiSettingsResponse,
+  AiTestResponse,
 } from "@/lib/ai/client-types";
 import { aiSchema, type AiValues } from "@/components/shared/settings-schema";
 import { usePanelDraft } from "@/components/shared/settings-guard";
@@ -55,6 +56,10 @@ const EMPTY_FORM: AiValues = {
   apiKey: "",
   jsonMode: true,
   allowPrivate: false,
+  thinking: "default",
+  maxOutputTokens: "",
+  historyTurns: "",
+  visionEnabled: false,
 };
 
 type Catalog = {
@@ -75,8 +80,28 @@ function credentialToValues(credential: AiCredentialSummary): AiValues {
     apiKey: "",
     jsonMode: credential.jsonMode,
     allowPrivate: credential.allowPrivate,
+    thinking: THINKING_LEVELS.includes(credential.thinking as AiValues["thinking"])
+      ? (credential.thinking as AiValues["thinking"])
+      : "default",
+    maxOutputTokens:
+      credential.maxOutputTokens != null
+        ? String(credential.maxOutputTokens)
+        : "",
+    historyTurns:
+      credential.historyTurns != null ? String(credential.historyTurns) : "",
+    visionEnabled: credential.visionEnabled,
   };
 }
+
+const THINKING_LEVELS = ["default", "off", "low", "medium", "high"] as const;
+
+const THINKING_LABELS: Record<AiValues["thinking"], string> = {
+  default: "Provider default",
+  off: "Off — don't ask for reasoning",
+  low: "Low",
+  medium: "Medium",
+  high: "High — deepest, slowest",
+};
 
 const PROTOCOL_LABELS: Record<AiProtocol, string> = {
   "openai-responses": "OpenAI Responses (/responses)",
@@ -104,6 +129,7 @@ export function AiSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [tested, setTested] = useState(false);
   const [testFailed, setTestFailed] = useState(false);
+  const [testResult, setTestResult] = useState<AiTestResponse | null>(null);
   const [revealKey, setRevealKey] = useState(false);
   const [manual, setManual] = useState(false);
   const [query, setQuery] = useState("");
@@ -159,6 +185,7 @@ export function AiSettingsForm({
     const subscription = watch(() => {
       setTested(false);
       setTestFailed(false);
+      setTestResult(null);
       setConfirmRemove(false);
     });
     return () => subscription.unsubscribe();
@@ -184,6 +211,13 @@ export function AiSettingsForm({
       stored.model !== values.model.trim() ||
       stored.jsonMode !== values.jsonMode ||
       stored.allowPrivate !== values.allowPrivate ||
+      stored.thinking !== values.thinking ||
+      (stored.maxOutputTokens != null
+        ? String(stored.maxOutputTokens)
+        : "") !== values.maxOutputTokens.trim() ||
+      (stored.historyTurns != null ? String(stored.historyTurns) : "") !==
+        values.historyTurns.trim() ||
+      stored.visionEnabled !== values.visionEnabled ||
       Boolean(values.apiKey.trim());
   const canSave =
     !busy &&
@@ -214,6 +248,7 @@ export function AiSettingsForm({
     setError(null);
     setTested(false);
     setTestFailed(false);
+    setTestResult(null);
     setConfirmRemove(false);
     if (resetCatalog) {
       catalogRequest.current?.abort();
@@ -244,6 +279,8 @@ export function AiSettingsForm({
   }
 
   function payloadFrom(source: AiValues) {
+    const maxOutput = source.maxOutputTokens.trim();
+    const turns = source.historyTurns.trim();
     return {
       provider: source.provider,
       protocol: source.protocol,
@@ -255,6 +292,10 @@ export function AiSettingsForm({
       jsonMode: source.jsonMode,
       allowHttp: isLocal,
       allowPrivate: source.allowPrivate,
+      thinking: source.thinking,
+      maxOutputTokens: maxOutput === "" ? null : Number(maxOutput),
+      historyTurns: turns === "" ? null : Number(turns),
+      visionEnabled: source.visionEnabled,
     };
   }
 
@@ -302,6 +343,7 @@ export function AiSettingsForm({
         setRevealKey(false);
         setTested(false);
         setTestFailed(false);
+        setTestResult(null);
         toast.success("AI settings saved", `${data.model} is selected.`);
         onChanged?.(data);
       } catch (cause) {
@@ -328,12 +370,15 @@ export function AiSettingsForm({
     setError(null);
     setTested(false);
     setTestFailed(false);
+    setTestResult(null);
     try {
-      await api("/api/ai/test", {
+      const data = await api<AiTestResponse>("/api/ai/test", {
         method: "POST",
         body: JSON.stringify(payloadFrom(getValues())),
       });
-      if (mounted.current) setTested(true);
+      if (!mounted.current) return;
+      setTested(true);
+      setTestResult(data);
     } catch (cause) {
       if (mounted.current) {
         setTestFailed(true);
@@ -390,6 +435,7 @@ export function AiSettingsForm({
     setError(null);
     setTested(false);
     setTestFailed(false);
+    setTestResult(null);
     setRevealKey(false);
     setConfirmRemove(false);
     catalogRequest.current?.abort();
@@ -900,6 +946,116 @@ export function AiSettingsForm({
                 choose another model.
               </p>
             )}
+
+          <div className="space-y-4 border-t border-rule-soft pt-4">
+            <legend className="sr-only">Model behavior</legend>
+            <p className="section-label">Model behavior</p>
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-thinking`}>Thinking effort</Label>
+              <Select
+                value={values.thinking}
+                onValueChange={(next) =>
+                  patchFields({
+                    thinking: next as AiValues["thinking"],
+                  })
+                }
+              >
+                <SelectTrigger id={`${id}-thinking`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {THINKING_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {THINKING_LABELS[level]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted">
+                Asks the model to reason before answering. What the provider
+                does with this depends on the model — its own thinking is
+                always shown collapsed above the answer when it streams any.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor={`${id}-max-output`}>Max reply tokens</Label>
+                <Input
+                  id={`${id}-max-output`}
+                  type="number"
+                  inputMode="numeric"
+                  min={256}
+                  max={32000}
+                  step={128}
+                  value={values.maxOutputTokens}
+                  onChange={(event) =>
+                    patchFields({ maxOutputTokens: event.target.value })
+                  }
+                  placeholder="Default"
+                  autoComplete="off"
+                  aria-invalid={
+                    Boolean(formState.errors.maxOutputTokens) || undefined
+                  }
+                />
+                {formState.errors.maxOutputTokens ? (
+                  <p role="alert" className="text-xs text-danger">
+                    {formState.errors.maxOutputTokens.message}
+                  </p>
+                ) : (
+                  <p className="text-xs leading-relaxed text-muted">
+                    256–32000. Reasoning counts toward this.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`${id}-history`}>Conversation memory</Label>
+                <Input
+                  id={`${id}-history`}
+                  type="number"
+                  inputMode="numeric"
+                  min={2}
+                  max={16}
+                  step={1}
+                  value={values.historyTurns}
+                  onChange={(event) =>
+                    patchFields({ historyTurns: event.target.value })
+                  }
+                  placeholder="Default (8 turns)"
+                  autoComplete="off"
+                  aria-invalid={
+                    Boolean(formState.errors.historyTurns) || undefined
+                  }
+                />
+                {formState.errors.historyTurns ? (
+                  <p role="alert" className="text-xs text-danger">
+                    {formState.errors.historyTurns.message}
+                  </p>
+                ) : (
+                  <p className="text-xs leading-relaxed text-muted">
+                    2–16 earlier turns sent with each question.
+                  </p>
+                )}
+              </div>
+            </div>
+            <label className="check-row items-start text-xs">
+              <input
+                type="checkbox"
+                checked={values.visionEnabled}
+                onChange={(event) =>
+                  patchFields({ visionEnabled: event.target.checked })
+                }
+              />
+              <span>
+                <span className="font-medium text-ink">
+                  Allow image input
+                </span>
+                <span className="mt-0.5 block leading-relaxed text-muted">
+                  Attach screenshots in the chat and read scorecard images in
+                  the Log tab. Images are downscaled before sending.
+                </span>
+              </span>
+            </label>
+          </div>
         </fieldset>
       </div>
 
@@ -919,9 +1075,14 @@ export function AiSettingsForm({
               Testing…
             </Badge>
           )}
-          {tested && !busy && <Badge variant="default">Connected</Badge>}
+          {tested && !busy && testResult?.streaming !== false && (
+            <Badge variant="default">Connected</Badge>
+          )}
           {testFailed && !busy && <Badge variant="destructive">Failed</Badge>}
-          {tested && (
+          {tested && testResult?.streaming === false && !busy && (
+            <Badge variant="secondary">Chat streaming unavailable</Badge>
+          )}
+          {tested && !busy && (
             <p role="status" className="text-xs leading-relaxed text-positive">
               {dirty
                 ? "Connection verified for these settings. Save to use them."
@@ -929,6 +1090,65 @@ export function AiSettingsForm({
             </p>
           )}
         </div>
+        {tested && testResult && !busy && (
+          <ul
+            className="space-y-1.5 text-xs text-muted"
+            aria-label="Connection diagnostics"
+          >
+            <li className="flex items-center gap-2">
+              <PlainIcon name="check" size={13} className="text-positive" />
+              <span className="text-ink">Completion</span>
+              <span>· {testResult.latencyMs} ms</span>
+              <span>· {testResult.replyChars} chars</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {testResult.streaming ? (
+                <PlainIcon
+                  name="check"
+                  size={13}
+                  className="text-positive"
+                />
+              ) : (
+                <span
+                  aria-hidden
+                  className="inline-block size-[13px] rounded-full bg-danger-soft"
+                />
+              )}
+              <span className="text-ink">Streaming</span>
+              {testResult.streaming ? (
+                <span>
+                  · first byte {testResult.streamLatencyMs ?? "—"} ms
+                </span>
+              ) : (
+                <span className="text-danger">
+                  · no stream data — chat will fall back to errors
+                  {testResult.streamError ? ` (${testResult.streamError})` : ""}
+                </span>
+              )}
+            </li>
+            <li className="flex items-center gap-2">
+              {testResult.thinkingObserved ? (
+                <PlainIcon
+                  name="check"
+                  size={13}
+                  className="text-positive"
+                />
+              ) : (
+                <span
+                  aria-hidden
+                  className="inline-block size-[13px] rounded-full bg-canvas"
+                />
+              )}
+              <span className="text-ink">Thinking</span>
+              <span>
+                ·{" "}
+                {testResult.thinkingObserved
+                  ? "the model streams its reasoning; it will be shown collapsed"
+                  : "no reasoning streamed at this level; answers appear directly"}
+              </span>
+            </li>
+          </ul>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {variant === "panel" && (
             <Button type="submit" disabled={!canSave}>

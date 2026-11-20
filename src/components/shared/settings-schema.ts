@@ -67,7 +67,8 @@ export type TargetsValues = Record<string, string>;
 
 /** AI provider: mirrors PUT /api/ai/settings. The key stays write-only.
  * The unions mirror lib/ai/protocols (AI_PROTOCOLS / AI_AUTH_MODES) without
- * importing the server-only module into a client file. */
+ * importing the server-only module into a client file. Numeric per-user
+ * preferences are form strings where a blank value means "inherit". */
 export const aiSchema = z.object({
   provider: z.string().min(1),
   protocol: z.enum([
@@ -97,5 +98,27 @@ export const aiSchema = z.object({
   apiKey: z.string(),
   jsonMode: z.boolean(),
   allowPrivate: z.boolean(),
+  thinking: z.enum(["default", "off", "low", "medium", "high"]),
+  maxOutputTokens: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === "" ||
+        (Number.isInteger(Number(value)) &&
+          Number(value) >= 256 &&
+          Number(value) <= 32_000),
+      "Enter 256–32000, or leave blank for the default.",
+    ),
+  historyTurns: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === "" ||
+        (Number.isInteger(Number(value)) && Number(value) >= 2 && Number(value) <= 16),
+      "Enter 2–16, or leave blank for the default.",
+    ),
+  visionEnabled: z.boolean(),
 });
 export type AiValues = z.infer<typeof aiSchema>;

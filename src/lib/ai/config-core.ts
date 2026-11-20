@@ -27,6 +27,9 @@ const AI_THINKING_LEVELS: readonly AiThinking[] = [
   "high",
 ];
 
+/** Shared with the zod schemas that validate a stored credential row. */
+export const AI_THINKING_VALUES = AI_THINKING_LEVELS;
+
 export function isAiThinking(value: string): value is AiThinking {
   return (AI_THINKING_LEVELS as readonly string[]).includes(value);
 }

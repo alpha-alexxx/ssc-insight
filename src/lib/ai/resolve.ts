@@ -1,5 +1,5 @@
 import "server-only";
-import { readAiConfig, type AiConfig } from "./config-core";
+import { readAiConfig, type AiConfig, type AiThinking } from "./config-core";
 import { getAiCredential } from "./credentials";
 import { resolveSourcePolicy, type AiConfigSource } from "./resolve-core";
 import {
@@ -46,6 +46,10 @@ export async function resolveAiConfig(
         jsonMode: boolean;
         allowHttp: boolean;
         allowPrivate: boolean;
+        thinking: AiThinking;
+        maxOutputTokens: number | null;
+        historyTurns: number | null;
+        visionEnabled: boolean;
       }
     | null
     | "invalid" = null;
@@ -66,6 +70,10 @@ export async function resolveAiConfig(
         jsonMode: row.jsonMode,
         allowHttp: row.allowHttp,
         allowPrivate: row.allowPrivate,
+        thinking: row.thinking,
+        maxOutputTokens: row.maxOutputTokens,
+        historyTurns: row.historyTurns,
+        visionEnabled: row.visionEnabled,
       };
     }
   } catch {
@@ -120,11 +128,12 @@ export async function resolveAiConfig(
         // Thinking models spend output tokens on hidden reasoning before the
         // answer, so a small cap guarantees empty replies (finish_reason
         // "length", no content). 8,000 gives such models room while capping
-        // the worst case; the deployment's AI_MAX_OUTPUT_TOKENS overrides it.
-        maxOutputTokens: envConfig?.maxOutputTokens ?? 8_000,
+        // the worst case. The user's own setting wins, then the deployment's
+        // AI_MAX_OUTPUT_TOKENS, then this floor.
+        maxOutputTokens: stored.maxOutputTokens ?? envConfig?.maxOutputTokens ?? 8_000,
         timeoutMs: envConfig?.timeoutMs ?? 45_000,
         firstTokenTimeoutMs: envConfig?.firstTokenTimeoutMs ?? 120_000,
-        thinking: "default",
+        thinking: stored.thinking,
         dailyRequestLimit: 400,
         dailyTokenLimit: 2_000_000,
       },

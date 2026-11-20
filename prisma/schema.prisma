@@ -202,6 +202,13 @@ model AiCredential {
   jsonMode       Boolean  @default(true)
   allowHttp      Boolean  @default(false)
   allowPrivate   Boolean  @default(false)
+  // Per-user model behavior. `thinking` maps to per-protocol reasoning
+  // request params (see src/lib/ai/provider.ts); null overrides mean
+  // "inherit" — the deployment env value, then the built-in default.
+  thinking        String   @default("default") @db.VarChar(20)
+  maxOutputTokens Int?
+  historyTurns    Int?
+  visionEnabled   Boolean  @default(false)
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @db.Timestamptz(3)
 

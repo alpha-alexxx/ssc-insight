@@ -18,16 +18,28 @@ export const maxDuration = 60;
 // app saw an empty reply. 512 keeps the call cheap while letting small
 // reasoning chains complete.
 const TEST_MAX_OUTPUT_TOKENS = 512;
+const PROBE_TIMEOUT_MS = 20_000;
+const STREAM_PROBE_TIMEOUT_MS = 25_000;
+
+const PROBE_MESSAGES = [
+  {
+    role: "system" as const,
+    content:
+      "Reply with exactly: OK. Do not add any other text or punctuation.",
+  },
+  { role: "user" as const, content: "Connection test." },
+];
 
 /**
  * "Test connection" for the AI picker.
  *
- * This is intentionally small: one short completion, no tracker context,
- * nothing saved. It proves the endpoint, key, and model work without spending
- * real tokens on a full coach read, and it never echoes the key or the base
- * URL back.
+ * Two short probes, no tracker context, nothing saved: a non-streaming
+ * completion proves the endpoint, key, and model; a tiny stream proves the
+ * streaming path the chat actually uses (some gateways accept completions
+ * but mishandle SSE). The response reports each phase so the settings UI can
+ * render a checklist, and never echoes the key or the base URL back.
  *
- * Rate-limited as a write: it causes a billable outbound request.
+ * Rate-limited as a write: it causes billable outbound requests.
  */
 export const POST = defineRoute(
   { kind: "write" },
@@ -58,10 +70,13 @@ export const POST = defineRoute(
             jsonMode: parsed.data.jsonMode ?? true,
             allowHttp: parsed.data.allowHttp,
             allowPrivate: parsed.data.allowPrivate,
+            // The probe honours the caller's chosen thinking level so the
+            // test reflects real behavior, but keeps the 512-token probe cap
+            // so the test stays cheap whatever the user's own ceiling is.
+            thinking: parsed.data.thinking,
             maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
-            timeoutMs: 20_000,
-            firstTokenTimeoutMs: 20_000,
-            thinking: "default",
+            timeoutMs: PROBE_TIMEOUT_MS,
+            firstTokenTimeoutMs: PROBE_TIMEOUT_MS,
             dailyRequestLimit: 30,
             dailyTokenLimit: 300_000,
           },
@@ -84,30 +99,81 @@ export const POST = defineRoute(
       );
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
     try {
       const provider = createAiProvider(resolved.config);
-      const result = await provider.complete({
-        messages: [
-          {
-            role: "system",
-            content:
-              "Reply with exactly: OK. Do not add any other text or punctuation.",
+      const completeController = new AbortController();
+      const completeTimer = setTimeout(
+        () => completeController.abort(),
+        PROBE_TIMEOUT_MS,
+      );
+      let latencyMs: number;
+      let replyChars: number;
+      try {
+        const startedAt = Date.now();
+        const result = await provider.complete({
+          messages: PROBE_MESSAGES,
+          maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
+          signal: completeController.signal,
+        });
+        latencyMs = Date.now() - startedAt;
+        // Confirms a real completion happened without exposing content.
+        replyChars = result.text.trim().length;
+      } finally {
+        clearTimeout(completeTimer);
+      }
+
+      // The streaming probe: what matters for chat is that deltas actually
+      // arrive. Failure here does not fail the whole test — the checklist
+      // shows exactly which phase broke.
+      const streamController = new AbortController();
+      const streamTimer = setTimeout(
+        () => streamController.abort(),
+        STREAM_PROBE_TIMEOUT_MS,
+      );
+      let streaming = false;
+      let thinkingObserved = false;
+      let streamLatencyMs: number | null = null;
+      let streamError: string | null = null;
+      try {
+        const streamStartedAt = Date.now();
+        await provider.stream({
+          messages: PROBE_MESSAGES,
+          maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
+          signal: streamController.signal,
+          onDelta: () => {
+            if (!streaming) streamLatencyMs = Date.now() - streamStartedAt;
+            streaming = true;
           },
-          { role: "user", content: "Connection test." },
-        ],
-        maxOutputTokens: TEST_MAX_OUTPUT_TOKENS,
-        signal: controller.signal,
-      });
+          onReasoning: () => {
+            thinkingObserved = true;
+          },
+        });
+      } catch (error) {
+        if (error instanceof AiError) {
+          streamError = error.code;
+          if (error.code === "AI_TIMEOUT" && streamLatencyMs == null) {
+            streamError =
+              "AI_FIRST_TOKEN_TIMEOUT: the model produced nothing before the probe deadline";
+          }
+        } else {
+          streamError = "AI_PROVIDER_ERROR";
+        }
+      } finally {
+        clearTimeout(streamTimer);
+      }
+
       return {
         data: {
           ok: true,
           model: resolved.config.model,
           protocol: resolved.config.protocol,
           source: resolved.source,
-          // Confirms a real completion happened without exposing content.
-          replyChars: result.text.trim().length,
+          replyChars,
+          latencyMs,
+          streaming,
+          streamLatencyMs,
+          thinkingObserved,
+          ...(streamError ? { streamError } : {}),
         },
       };
     } catch (error) {
@@ -122,8 +188,6 @@ export const POST = defineRoute(
         "The provider could not be reached. Check the base URL, key, and model.",
         502,
       );
-    } finally {
-      clearTimeout(timer);
     }
   },
 );
