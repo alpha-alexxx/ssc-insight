@@ -1,5 +1,16 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { budgetState, checkBudget, spendCommand } from "./rate-limit-budget";
+import {
+  decideRateLimit,
+  resolveLimiterOutcome,
+  type LimitDecision,
+  type RateClass,
+  type RateLimitHeaders,
+  rateLimitHeadersFor,
+} from "./rate-limit-core";
+import { consumeUpstash, breakerOpen, redisConfigured } from "./rate-limit-upstash";
+import { istDateKey } from "./format";
 
 /**
  * In-memory token-bucket rate limiter.
@@ -134,10 +145,72 @@ export const writeRateLimiter = new TokenBucketRateLimiter({
 /** Headers a caller can copy onto a 429 response. Does NOT include
  * Cache-Control — the route owns that header (SWR for GETs, no-store for
  * everything else). */
-export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
+export function rateLimitHeaders(result: RateLimitResult): RateLimitHeaders {
   return {
     "X-RateLimit-Limit": String(result.limit),
     "X-RateLimit-Remaining": String(result.remaining),
     "Retry-After": String(Math.max(1, result.retryAfter)),
   };
+}
+
+// ── Two-layer consumption ───────────────────────────────────────────────────
+
+/**
+ * Consume one request against both layers and return the settled decision.
+ *
+ * L1 (the token bucket above) is free and per-instance. L2 (Upstash) is the
+ * cross-instance authority but spends a Redis command from the daily budget, so
+ * `decideRateLimit` decides whether the consultation is worth it: reads never
+ * pay, writes and AI always check, and a drained L1 bucket asks L2 instead of
+ * refusing outright.
+ *
+ * Failure posture: a missing configuration, an open circuit or a timeout all
+ * degrade to L1 — never to "allow unconditionally", and never to a failed
+ * request. A rate limiter must not be able to take the app down.
+ */
+export async function consumeRateLimit(
+  rateClass: RateClass,
+  identity: string,
+): Promise<LimitDecision> {
+  const limiter = rateClass === "write" ? writeRateLimiter : apiRateLimiter;
+  const bucket = limiter.consume(identity);
+  const day = istDateKey(new Date());
+  const budget = budgetState(day);
+
+  const plan = decideRateLimit({
+    rateClass,
+    l1: { allowed: bucket.allowed, remaining: bucket.remaining },
+    budget,
+    breakerOpen: breakerOpen(),
+    redisConfigured: redisConfigured(),
+  });
+
+  let l2: Awaited<ReturnType<typeof consumeUpstash>> = null;
+  if (plan.consultL2) {
+    l2 = await consumeUpstash(identity, rateClass);
+    // Charge the budget only for a command we actually issued.
+    if (l2 !== null) {
+      const spent = spendCommand(day);
+      if (checkBudget(spent) === "soft" && checkBudget(budget) !== "soft") {
+        // One line on the first crossing, not per request.
+        console.warn("[rate-limit] daily Upstash command soft cap reached; reads and writes now run on L1 only");
+      }
+    }
+  }
+
+  return resolveLimiterOutcome({
+    plan,
+    l1: { allowed: bucket.allowed, remaining: bucket.remaining },
+    l2,
+  });
+}
+
+/** Headers for a settled two-layer decision. */
+export function rateLimitHeadersForDecision(decision: LimitDecision): RateLimitHeaders {
+  return rateLimitHeadersFor(decision);
+}
+
+/** The identity for the current request: user id when signed in, hashed IP otherwise. */
+export function requestIdentity(userId: string | undefined, request: Request): string {
+  return rateLimitKey({ userId, ip: clientIp(request) });
 }

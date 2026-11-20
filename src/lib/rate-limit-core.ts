@@ -35,6 +35,13 @@ export const RATE_COST: Record<RateClass, number> = {
 /** L2 window: 300 units per 60 seconds, per identity. */
 export const L2_WINDOW = { limit: 300, windowSeconds: 60 } as const;
 
+/**
+ * Per-call ceiling for an Upstash consultation. The SDK's default is 5000 ms,
+ * which would hold a route handler open far longer than any database call this
+ * app makes; 250 ms keeps Redis from ever becoming the bottleneck.
+ */
+export const L2_TIMEOUT_MS = 250;
+
 /** Command budget against the provider's daily allowance (10k/day free tier). */
 export const BUDGET_CAPS = { softCap: 8000, hardCap: 9500 } as const;
 
@@ -161,4 +168,60 @@ export function describeDecision(decision: LimitDecision): string {
   if (decision.outcome === "denied") return "denied";
   if (decision.outcome === "degraded") return `degraded:${decision.reason}`;
   return `allowed:${decision.source}`;
+}
+
+/** An L2 consultation's answer, or null when the call could not happen. */
+export type L2Verdict = {
+  allowed: boolean;
+  remaining: number;
+  limit: number;
+  retryAfter: number;
+};
+
+/**
+ * Merge the three verdicts (policy plan, L1 bucket, L2 window) into one
+ * decision.
+ *
+ * Precedence:
+ *  - A plan that already settled the request locally (degraded/unavailable L2)
+ *    stands; a null L2 verdict re-derives it so the L1 verdict is never lost.
+ *  - An L2 denial refuses even when L1 allowed — L2 is the cross-instance
+ *    authority.
+ *  - An L2 allow recorded after an L1 denial is labelled "l1-override": the
+ *    request passed because the *global* budget was intact, not because the
+ *    local bucket had room.
+ *  - A read (or a degraded class) never reached L2, so L1's allow stands.
+ */
+export function resolveLimiterOutcome(input: {
+  plan: RateLimitPlan;
+  l1: { allowed: boolean; remaining: number };
+  l2: L2Verdict | null;
+}): LimitDecision {
+  const { plan, l1, l2 } = input;
+
+  // The policy settled it without asking L2 (no Redis, open breaker, budget),
+  // or the consultation itself failed. Either way L1's verdict is the limit.
+  if (plan.preemptiveDeny) return plan.preemptiveDeny;
+  if (!plan.consultL2) {
+    return l1.allowed
+      ? { outcome: "allowed", source: "l1", remaining: l1.remaining, limit: 0 }
+      : { outcome: "denied", retryAfter: 1, limit: 0 };
+  }
+
+  if (l2 === null) {
+    // Consulted but unavailable (timeout / SDK error / circuit opened mid-call).
+    return l1.allowed
+      ? { outcome: "degraded", reason: "breaker", remaining: l1.remaining, limit: 0 }
+      : { outcome: "denied", retryAfter: 1, limit: 0 };
+  }
+
+  if (!l2.allowed) {
+    return { outcome: "denied", retryAfter: l2.retryAfter, limit: l2.limit };
+  }
+  return {
+    outcome: "allowed",
+    source: l1.allowed ? "l2" : "l1-override",
+    remaining: l2.remaining,
+    limit: l2.limit,
+  };
 }
