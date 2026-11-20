@@ -99,7 +99,10 @@ Copy `.env.example` or use Neon's environment pull. **Never commit real values t
 | `AI_DAILY_REQUEST_LIMIT` | AI requests per user per IST day (default: `30`). |
 | `AI_DAILY_TOKEN_LIMIT` | Charged tokens per user per IST day (default: `300000`). |
 | `AI_MAX_OUTPUT_TOKENS` | Per-call output cap (default: `1200`; example sets `8000`). Thinking models spend this budget on hidden reasoning before the answer, so keep it generous. |
-| `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `45000`). Whole-call wall clock for non-streaming completions; the stall limit between chunks for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
+| `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `45000`). Whole-call wall clock for non-streaming completions; the inter-chunk stall limit for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
+| `AI_FIRST_TOKEN_TIMEOUT_MS` | Grace before the first stream byte, clamped to 5s–300s (default: `120000`). Thinking models can stay silent far past the stall window while reasoning; this is what keeps a deep question from dying as a 504. Streams only — non-streaming completions keep the `AI_TIMEOUT_MS` wall clock. |
+| `AI_THINKING` | Default reasoning request for env-configured providers: `default` (send nothing), `off`, `low`, `medium`, `high`. Per-user choices in Settings override this. |
+| `AI_VISION` | `true` to allow image input for env-configured providers (default `false`). Users with a saved credential control their own toggle in Settings. |
 | `AI_CREDENTIAL_SECRET` | Encrypts user-entered API keys (AES-256-GCM). 64 hex chars or ≥32-char passphrase. |
 | `CRON_SECRET` | Bearer token for `/api/cron/trash-cleanup`. Generate via `openssl rand -hex 32`. |
 | `UPSTASH_REDIS_REST_URL` | Optional. Upstash Redis REST URL for cross-instance rate limiting. Blank runs the in-memory limiter only. |
@@ -167,9 +170,14 @@ AI is **optional** and **read-only** for coaching/extraction. It cannot save, ed
 
 ### Features
 - **Coach Card**: Manual "Generate insight" action returning structured read of saved data. Never runs automatically.
-- **Chat Drawer**: Follow-up questions stream one answer at a time. Conversations are saved on the device (browser localStorage, never on the server) so past chats can be reopened, renamed by their first question, edited, or deleted.
-- **AI-Assisted Paste**: Sends up to 20,000 characters to the server for editable extraction review. Required blockers must be resolved before values are copied to the form.
+- **Ask AI** (`/ask`): full-page chat with a history rail and an activity ledger (what the AI did, per the usage ledger). The side AI panel renders the same conversation in three tabs (Ask / Todos / Log); the sheet and the page share one live state.
+- **Chat Streaming**: answers stream as NDJSON with a 15s keepalive ping during provider silence, a first-byte grace (`AI_FIRST_TOKEN_TIMEOUT_MS`) so thinking models are not killed mid-thought, and a real phase indicator (Connecting / Thinking / Writing). Hidden reasoning arrives as a collapsed "Thought for Ns" disclosure when the provider streams it; the wire also carries `reasoning` and `ping` events, skipped safely by older clients.
+- **Markdown Answers**: GitHub-flavored markdown rendered in the app's design system — ruled tables, per-block code copy, safe links; raw HTML stays escaped. Per-turn Copy / Edit / Regenerate.
+- **Conversation History**: device-local (browser localStorage, never on the server; excluded from backups), 50 conversations / 200 messages, with search, inline rename, and delete. The user's per-user "conversation memory" setting caps how many turns ride with each question.
+- **Vision**: with the per-user toggle (or `AI_VISION` for the env config) up to two screenshots can be attached in Ask and in Log-a-mock; the client downscales to 1568px JPEG before sending and the server re-validates format, count, and size.
+- **AI-Assisted Paste**: Sends up to 20,000 characters (plus optional screenshots) to the server for editable extraction review. Required blockers must be resolved before values are copied to the form.
 - **Todo Assistance**: Proposes changes to personal todos. Apply is transactional, version-checked, user-scoped, and idempotent (max 25 operations/batch).
+- **Connection Test**: two probes — a small completion and a tiny stream — reporting completion latency, first stream byte, and whether reasoning streamed, so the settings UI shows a per-phase checklist.
 
 ### Security & Privacy
 - **Endpoint Safety**: The server refuses loopback, private (RFC1918), link-local, cloud-metadata (`169.254.169.254`), CGNAT, multicast, and reserved addresses, and re-resolves the hostname immediately before every provider call. Every resolved address must be public. **Residual risk**: DNS rebinding between our check and the provider's own resolution is not fully closed without IP pinning. HTTP is refused except for explicitly opted-in local providers.
