@@ -5,6 +5,7 @@ import { WorkspaceChrome } from "@/components/workspace-chrome";
 import { QueryProvider } from "@/components/query-provider";
 import { ExamScopeProvider } from "@/components/exam-context";
 import { ToastProvider } from "@/components/toast";
+import { AiWorkspaceProvider } from "@/components/use-ai-workspace";
 import { requireUser } from "@/lib/auth/require-user";
 import { SessionError } from "@/lib/auth/session-policy";
 
@@ -44,15 +45,17 @@ export default async function WorkspaceLayout({
       <QueryProvider>
         <ExamScopeProvider>
           <ToastProvider>
-            <WorkspaceChrome
-              defaultSidebarOpen={defaultSidebarOpen}
-              authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
-              userEmail={user.email ?? ""}
-              userName={user.name ?? ""}
-              userImage={user.image ?? ""}
-            >
-              {children}
-            </WorkspaceChrome>
+            <AiWorkspaceProvider>
+              <WorkspaceChrome
+                defaultSidebarOpen={defaultSidebarOpen}
+                authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
+                userEmail={user.email ?? ""}
+                userName={user.name ?? ""}
+                userImage={user.image ?? ""}
+              >
+                {children}
+              </WorkspaceChrome>
+            </AiWorkspaceProvider>
           </ToastProvider>
         </ExamScopeProvider>
       </QueryProvider>

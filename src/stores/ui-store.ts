@@ -69,6 +69,18 @@ type UiState = {
   mockPrefill: MockPrefillDraft | null;
   requestMockPrefill: (draft: MockPrefillDraft) => void;
   consumeMockPrefill: () => void;
+
+  /**
+   * The record id whose detail dialog is open, or null.
+   *
+   * The dialog lives in the chrome (so every surface shares one overlay and one
+   * delete path); routes open it by id. Storing an id rather than the object
+   * keeps server data out of the store — the chrome reads the record from the
+   * query cache.
+   */
+  openAttemptId: string | null;
+  openAttempt: (id: string) => void;
+  closeAttempt: () => void;
 };
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -93,4 +105,8 @@ export const useUiStore = create<UiState>()((set) => ({
   mockPrefill: null,
   requestMockPrefill: (draft) => set({ mockPrefill: draft }),
   consumeMockPrefill: () => set({ mockPrefill: null }),
+
+  openAttemptId: null,
+  openAttempt: (id) => set({ openAttemptId: id }),
+  closeAttempt: () => set({ openAttemptId: null }),
 }));

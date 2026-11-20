@@ -7,6 +7,14 @@ import { CommandPalette } from "./command-palette";
 import { AiChatSheet } from "./ai-chat-sheet";
 import { useAiWorkspace } from "./use-ai-workspace";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
+import { MockDetailDialog } from "./mock-detail-dialog";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  attemptDetailQueryOptions,
+  attemptKeys,
+  deleteAttemptRequest,
+} from "@/lib/queries/attempts";
+import { analyticsKeys } from "@/lib/queries/analytics";
 import { ToastProvider, useToast } from "./toast";
 import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
 import { useUiStore } from "@/stores/ui-store";
@@ -14,6 +22,7 @@ import { AI_VIEWS, type AiScreenContext, type AiView } from "@/lib/ai/client-typ
 import { istTodayIso } from "@/lib/plan/view-model";
 import { shortDate } from "@/lib/format";
 import { VIEW_META } from "./app-shell";
+import { ScopeGate } from "./shared/empty-scope-notice";
 import { usePlanData } from "./use-plan-data";
 
 /**
@@ -57,6 +66,37 @@ export function WorkspaceChrome({
   // Mounted here, not in a page: the transcript and any streaming reply must
   // survive navigation.
   const ai = useAiWorkspace();
+  const queryClient = useQueryClient();
+
+  // One detail dialog for the whole workspace. Every surface's "View result"
+  // only names an id; the record itself is read from the query cache, so the
+  // store never holds server data.
+  const openAttemptId = useUiStore((s) => s.openAttemptId);
+  const closeAttempt = useUiStore((s) => s.closeAttempt);
+  const detail = useQuery({
+    ...attemptDetailQueryOptions(openAttemptId ?? ""),
+    enabled: !!openAttemptId,
+  });
+
+  const removeAttempt = async () => {
+    const attempt = detail.data;
+    if (!attempt) return;
+    try {
+      await deleteAttemptRequest(attempt.id);
+      closeAttempt();
+      queryClient.removeQueries({ queryKey: attemptKeys.detail(attempt.id) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: attemptKeys.all }),
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
+      ]);
+      toast.success("Moved to Trash", "Recoverable for 15 days");
+    } catch (error) {
+      toast.error(
+        "Couldn't delete",
+        error instanceof Error ? error.message : "Could not delete",
+      );
+    }
+  };
 
   // The AI panel's orientation: a view name and (when relevant) a date. It
   // carries no titles, notes, IDs, email, or attempt records.
@@ -114,10 +154,25 @@ export function WorkspaceChrome({
           onOpenAi={() => openAiChat("chat")}
           onOpenSearch={openSearch}
         >
-          <div className="workspace-content mx-auto w-full max-w-[1560px]">
-            {children}
+          {/* px-* lives here once, so a route cannot forget it (one did). */}
+          <div className="workspace-content mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+            <ScopeGate pathname={pathname}>{children}</ScopeGate>
           </div>
         </AppFrame>
+        <MockDetailDialog
+          attempt={detail.data ?? null}
+          onClose={closeAttempt}
+          onEdit={(attempt) => {
+            closeAttempt();
+            router.push(`/add?id=${attempt.id}`);
+          }}
+          onCompare={(attempt) => {
+            closeAttempt();
+            router.push(`/compare?ids=${attempt.id}`);
+          }}
+          onDelete={() => void removeAttempt()}
+          busy={false}
+        />
         <CommandPalette
           open={searchOpen}
           onOpenChange={setSearchOpen}

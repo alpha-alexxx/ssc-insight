@@ -12,7 +12,7 @@ import { MyTasksView } from "./my-tasks-view";
 export function MyTasksRoute() {
   const planApi = usePlanData();
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <MyTasksView planApi={planApi} />
     </div>
   );

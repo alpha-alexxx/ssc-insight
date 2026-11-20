@@ -15,7 +15,7 @@ export function RouteSkeleton({ children }: { children?: React.ReactNode }) {
     <div
       aria-busy="true"
       aria-live="polite"
-      className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5"
+      className="mx-auto w-full max-w-[1560px]"
     >
       <span className="sr-only">Loading…</span>
       {children ?? <SkeletonHeader />}

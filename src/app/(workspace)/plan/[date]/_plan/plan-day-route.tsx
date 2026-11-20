@@ -27,13 +27,13 @@ export function PlanDayRoute({ date }: { date: string }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <PlanDayView
         date={date}
         planApi={planApi}
         attempts={attempts}
         onAddMock={addMockForDate}
-        onOpenAttempt={() => router.push("/history")}
+        onOpenAttempt={(attempt) => useUiStore.getState().openAttempt(attempt.id)}
       />
     </div>
   );

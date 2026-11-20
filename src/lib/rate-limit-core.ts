@@ -71,8 +71,12 @@ export type LimitDecision =
 
 export type RateLimitInput = {
   rateClass: RateClass;
-  /** The in-memory bucket's verdict for this request. */
-  l1: { allowed: boolean; remaining: number };
+  /**
+   * The in-memory bucket's verdict. `retryAfter` is the bucket's own estimate —
+   * it must survive into the response, or a rate-limited client is told to wait
+   * 1 s while the bucket actually needs several.
+   */
+  l1: { allowed: boolean; remaining: number; retryAfter?: number; limit?: number };
   budget: BudgetState;
   breakerOpen: boolean;
   redisConfigured: boolean;
@@ -129,16 +133,16 @@ export function decideRateLimit(input: RateLimitInput): RateLimitPlan {
 
 /** Settle a request locally when L2 is unavailable: L1's verdict stands. */
 function localFallback(
-  l1: { allowed: boolean; remaining: number },
+  l1: { allowed: boolean; remaining: number; retryAfter?: number; limit?: number },
   reason: "no-redis" | "budget" | "breaker",
 ): LimitDecision {
   if (!l1.allowed) {
-    // Retry-After is supplied by the caller's bucket in the real path; when a
-    // degraded request is refused, one second is a safe minimum because the
-    // client's retry policy backs off independently.
-    return { outcome: "denied", retryAfter: 1, limit: 0 };
+    // Use the bucket's own wait. The old hard-coded 1 s made the query client's
+    // Retry-After-aware delay retry too early and loop (the write bucket refills
+    // at 0.5/s, so a real wait can be 4 s).
+    return { outcome: "denied", retryAfter: l1.retryAfter ?? 1, limit: l1.limit ?? 0 };
   }
-  return { outcome: "degraded", reason, remaining: l1.remaining, limit: 0 };
+  return { outcome: "degraded", reason, remaining: l1.remaining, limit: l1.limit ?? 0 };
 }
 
 /**
@@ -194,7 +198,7 @@ export type L2Verdict = {
  */
 export function resolveLimiterOutcome(input: {
   plan: RateLimitPlan;
-  l1: { allowed: boolean; remaining: number };
+  l1: { allowed: boolean; remaining: number; retryAfter?: number; limit?: number };
   l2: L2Verdict | null;
 }): LimitDecision {
   const { plan, l1, l2 } = input;
@@ -204,15 +208,27 @@ export function resolveLimiterOutcome(input: {
   if (plan.preemptiveDeny) return plan.preemptiveDeny;
   if (!plan.consultL2) {
     return l1.allowed
-      ? { outcome: "allowed", source: "l1", remaining: l1.remaining, limit: 0 }
-      : { outcome: "denied", retryAfter: 1, limit: 0 };
+      ? {
+          outcome: "allowed",
+          source: "l1",
+          remaining: l1.remaining,
+          // The real ceiling, not 0: `X-RateLimit-Limit: 0` with a remaining
+          // count of 118 is a nonsense pair that breaks any remaining/limit math.
+          limit: l1.limit ?? 0,
+        }
+      : { outcome: "denied", retryAfter: l1.retryAfter ?? 1, limit: l1.limit ?? 0 };
   }
 
   if (l2 === null) {
     // Consulted but unavailable (timeout / SDK error / circuit opened mid-call).
     return l1.allowed
-      ? { outcome: "degraded", reason: "breaker", remaining: l1.remaining, limit: 0 }
-      : { outcome: "denied", retryAfter: 1, limit: 0 };
+      ? {
+          outcome: "degraded",
+          reason: "breaker",
+          remaining: l1.remaining,
+          limit: l1.limit ?? 0,
+        }
+      : { outcome: "denied", retryAfter: l1.retryAfter ?? 1, limit: l1.limit ?? 0 };
   }
 
   if (!l2.allowed) {

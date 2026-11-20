@@ -30,8 +30,11 @@ export default async function PerformancePage({
 }) {
   const { id: userId } = await requireUser();
   const params = await searchParams;
-  const view = Array.isArray(params.view) ? params.view[0] : params.view;
-  const scope = parseScope(view ?? "all");
+  // The app writes the scope as `?scope=` (filters-url.ts). `?view=` is accepted
+  // only so older shared links keep working; reading `view` alone made every
+  // /performance?scope=… link prefetch the wrong scope and hydrate nothing.
+  const rawScope = params.scope ?? params.view;
+  const scope = parseScope(Array.isArray(rawScope) ? rawScope[0] : rawScope);
 
   // Rebuild the filter object the client would send, from the same parameters
   // the browser is on, so the prefetch key and the client's request agree.

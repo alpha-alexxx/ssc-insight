@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { loadExamContext } from "@/lib/exam-settings";
 import {
   attemptFiltersFrom,
+  clientFiltersFrom,
   loadAttemptPage,
   loadScopedAttemptsOrNull,
   parseAttemptListQuery,
@@ -47,9 +48,15 @@ export default async function HistoryPage({
     ...filters,
     search: rawSearch.length >= 2 ? rawSearch : "",
   };
+  // The KEY must be built from the filters the client can express (no injected
+  // examId/tier), or it never matches the hook's key and the payload is dropped.
+  const keyFilters = {
+    ...clientFiltersFrom(list),
+    search: rawSearch.length >= 2 ? rawSearch : "",
+  };
 
   const paging = {
-    filters: gated,
+    filters: keyFilters,
     page: list.page ?? 1,
     pageSize: list.pageSize ?? 10,
     sort: list.sort ?? "date",

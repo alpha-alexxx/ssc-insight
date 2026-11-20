@@ -28,7 +28,13 @@ export async function prefetchInto(
   entries: { key: QueryKey; load: () => Promise<unknown> }[],
 ): Promise<void> {
   if (entries.length === 0) return;
-  const results = await Promise.allSettled(entries.map((entry) => entry.load()));
+  // `Promise.resolve().then(...)` wraps each loader so a SYNCHRONOUS throw is
+  // converted into a rejection. Without it, `entries.map((e) => e.load())` runs
+  // every loader eagerly and one sync throw escapes before allSettled runs,
+  // rejecting the page and discarding every sibling's payload too.
+  const results = await Promise.allSettled(
+    entries.map((entry) => Promise.resolve().then(entry.load)),
+  );
   results.forEach((result, index) => {
     if (result.status !== "fulfilled") return;
     if (result.value === undefined) return;

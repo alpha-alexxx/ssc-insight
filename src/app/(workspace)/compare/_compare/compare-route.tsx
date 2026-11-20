@@ -46,7 +46,6 @@ export function CompareRoute() {
   // Keep the address bar in step. replaceState, not a navigation: selecting a
   // record must not re-render the server tree. `params` is a dependency so a
   // fresh deep link re-syncs; the guard below stops a rewrite loop.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const next = new URLSearchParams(window.location.search);
     if (selected.length) next.set("ids", selected.join(","));
@@ -125,7 +124,7 @@ export function CompareRoute() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <PageHeader
         title="Compare mocks"
         description="Put up to four results side by side and find the difference behind the scores."

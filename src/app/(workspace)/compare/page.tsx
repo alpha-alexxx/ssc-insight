@@ -6,6 +6,7 @@ import { loadExamContext } from "@/lib/exam-settings";
 import { getAttempt } from "@/lib/repository";
 import {
   attemptFiltersFrom,
+  clientFiltersFrom,
   loadAttemptPage,
   parseAttemptListQuery,
 } from "@/lib/services/attempts";
@@ -47,8 +48,13 @@ export default async function ComparePage({
     ...filters,
     search: rawSearch.length >= 2 ? rawSearch : "",
   };
+  // Key from the client-expressible filters; load with the server-resolved ones.
+  const keyFilters = {
+    ...clientFiltersFrom(list),
+    search: rawSearch.length >= 2 ? rawSearch : "",
+  };
   const paging = {
-    filters: gated,
+    filters: keyFilters,
     page: list.page ?? 1,
     pageSize: list.pageSize ?? 10,
     sort: "date" as const,

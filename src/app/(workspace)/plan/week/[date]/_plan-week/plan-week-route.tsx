@@ -15,7 +15,7 @@ export function PlanWeekRoute({ date }: { date: string }) {
   const planApi = usePlanData();
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <PlanWeekView
         date={date}
         planApi={planApi}

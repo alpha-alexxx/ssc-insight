@@ -179,7 +179,12 @@ export async function consumeRateLimit(
 
   const plan = decideRateLimit({
     rateClass,
-    l1: { allowed: bucket.allowed, remaining: bucket.remaining },
+    l1: {
+      allowed: bucket.allowed,
+      remaining: bucket.remaining,
+      retryAfter: bucket.retryAfter,
+      limit: bucket.limit,
+    },
     budget,
     breakerOpen: breakerOpen(),
     redisConfigured: redisConfigured(),
@@ -200,7 +205,12 @@ export async function consumeRateLimit(
 
   return resolveLimiterOutcome({
     plan,
-    l1: { allowed: bucket.allowed, remaining: bucket.remaining },
+    l1: {
+      allowed: bucket.allowed,
+      remaining: bucket.remaining,
+      retryAfter: bucket.retryAfter,
+      limit: bucket.limit,
+    },
     l2,
   });
 }

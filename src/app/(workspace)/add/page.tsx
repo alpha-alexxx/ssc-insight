@@ -4,7 +4,7 @@ import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
 import { loadScopedAttemptsOrNull } from "@/lib/services/attempts";
 import { loadExamContext } from "@/lib/exam-settings";
-import { getAttempt, listAttempts } from "@/lib/repository";
+import { getAttempt } from "@/lib/repository";
 import { attemptDetailQueryOptions, attemptKeys } from "@/lib/queries/attempts";
 import { AddRoute } from "./_add/add-route";
 

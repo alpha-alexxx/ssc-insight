@@ -1,6 +1,12 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/toast";
+import { safeWorkspaceReturnTo } from "@/lib/filters-url";
+import { attemptKeys } from "@/lib/queries/attempts";
+import { planKeys } from "@/lib/queries/plan";
+import { analyticsKeys } from "@/lib/queries/analytics";
 import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "@/stores/ui-store";
 import { useAllAttempts } from "@/components/shared/use-analytics-data";
@@ -35,35 +41,47 @@ export function AddRoute() {
 function AddRouteInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const queryClient = useQueryClient();
+  const toast = useToast();
   const knownAttempts = useAllAttempts();
-  // The one-shot AI draft is read ONCE, during the first render, and cleared
-  // from the store in a state initializer — not in an effect. An effect would
-  // render the empty form first and then swap the draft in (a visible flash),
-  // and it would re-fire on every store change. `useState` with a lazy
-  // initializer is the only way to read a value once without a render pass.
-  const [prefill, setPrefill] = useState<LogMockPayload | null>(() => {
-    const draft = useUiStore.getState().mockPrefill;
-    if (draft) useUiStore.getState().consumeMockPrefill();
-    // The store's structural type is assignable to LogMockPayload; the cast is
-    // the one boundary where the store's looser declaration meets the form.
-    return (draft as LogMockPayload | null) ?? null;
-  });
+  // The AI draft is SUBSCRIBED to, not read once in an initializer:
+  //  - the sheet's Log tab is reachable while already on /add, and pushing the
+  //    current path does not remount this component, so an initializer would
+  //    never see the second draft and it would leak into a later visit;
+  //  - the store is cleared only in `onPrefillApplied`, i.e. after MockForm has
+  //    actually merged it. Clearing earlier lost the draft irrecoverably if the
+  //    form never got that far (a Suspense re-mount, a load error).
+  const prefillDraft = useUiStore((s) => s.mockPrefill);
+  const consumePrefill = useUiStore((s) => s.consumeMockPrefill);
+  const clearPrefill = useCallback(() => {
+    consumePrefill();
+  }, [consumePrefill]);
 
   const editId = params.get("id") ?? "";
   const detail = useQuery({ ...attemptDetailQueryOptions(editId), enabled: !!editId });
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <AddMockView
         key={editId || "new"}
         attempt={detail.data}
         knownAttempts={knownAttempts}
-        prefill={prefill}
-        onConsumePrefill={() => setPrefill(null)}
+        prefill={(prefillDraft as LogMockPayload | null) ?? null}
+        onConsumePrefill={clearPrefill}
         onClose={() => router.push("/dashboard")}
-        onSaved={() => {
-          const returnTo = params.get("returnTo");
-          router.push(returnTo && returnTo.startsWith("/") ? returnTo : "/dashboard");
+        onSaved={async () => {
+          // Every affected family, so the dashboard, history, charts and the
+          // calendar all stop showing the pre-save state.
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: attemptKeys.all }),
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
+            queryClient.invalidateQueries({ queryKey: planKeys.all }),
+          ]);
+          toast.success("Mock saved", "Your progress is up to date.");
+          // `safeWorkspaceReturnTo` (not a bare startsWith("/")) — a value like
+          // "//evil.example" is a protocol-relative navigation, not a path.
+          const returnTo = safeWorkspaceReturnTo(params.get("returnTo"));
+          router.push(returnTo ?? "/dashboard");
         }}
       />
     </div>

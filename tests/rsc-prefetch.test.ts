@@ -48,6 +48,25 @@ test("a rejecting loader does not reject prefetchInto", async () => {
   assert.equal(queryClient.getQueryData(["boom"]), undefined);
 });
 
+test("a loader that throws SYNCHRONOUSLY does not reject prefetchInto", async () => {
+  // `entries.map((e) => e.load())` runs every loader eagerly, so a synchronous
+  // throw escapes before allSettled is reached — taking the sibling payloads
+  // with it and 500ing the page. Today's callers are all async, which is why
+  // only a sync-throwing test catches this.
+  const queryClient = newClient();
+  await prefetchInto(queryClient, [
+    { key: ["sib"], load: async () => "kept" },
+    {
+      key: ["sync-boom"],
+      load: () => {
+        throw new Error("thrown before any promise existed");
+      },
+    },
+  ]);
+  assert.equal(queryClient.getQueryData(["sib"]), "kept");
+  assert.equal(queryClient.getQueryData(["sync-boom"]), undefined);
+});
+
 test("a rejected prefetch entry is not cached as an error state", async () => {
   const queryClient = newClient();
   await prefetchInto(queryClient, [

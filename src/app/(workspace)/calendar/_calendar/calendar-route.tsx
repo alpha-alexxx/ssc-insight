@@ -20,7 +20,7 @@ export function CalendarRoute() {
   const setPlannerDate = useUiStore((s) => s.setPlannerDate);
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <CalendarView
         planApi={planApi}
         attempts={attempts}
@@ -33,7 +33,7 @@ export function CalendarRoute() {
           if (task) params.set("name", task.name);
           router.push(`/add?${params.toString()}`);
         }}
-        onOpenAttempt={() => router.push("/history")}
+        onOpenAttempt={(attempt) => useUiStore.getState().openAttempt(attempt.id)}
         onSelectedDateChange={setPlannerDate}
       />
     </div>

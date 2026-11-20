@@ -6,7 +6,14 @@ import {
   upsertConversation,
   type StoredConversation,
 } from "@/lib/ai/conversations";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { aiKeys, aiStatusQueryOptions } from "@/lib/queries/ai";
@@ -20,6 +27,8 @@ import type {
 } from "@/lib/ai/client-types";
 import type { CoachInsight } from "@/lib/ai/schemas";
 import { longDate } from "@/lib/format";
+
+const AiWorkspaceContext = createContext<AiWorkspace | null>(null);
 
 function newId() {
   return (
@@ -88,7 +97,44 @@ export type ChatHistoryApi = {
  * closes or the workspace unmounts. Everything here fails soft — AI must
  * never block the tracker.
  */
-export function useAiWorkspace() {
+export type AiWorkspace = ReturnType<typeof useAiWorkspaceState>;
+
+/**
+ * The ONE AI workspace instance for the workspace shell.
+ *
+ * This must be a provider, not a plain hook. It was a plain hook until the
+ * folder-routing shift put two call sites in the tree (the chrome's AI sheet and
+ * the dashboard's coach card), and a hook called twice is two independent
+ * `useState` trees: the dashboard would generate an insight into a transcript
+ * the sheet never renders, and both would write the whole conversation list to
+ * localStorage from their own snapshot, so the last writer clobbered the other.
+ *
+ * Mounted once by the (workspace) layout, above both consumers.
+ */
+export function useAiWorkspace(): AiWorkspace {
+  const value = useContext(AiWorkspaceContext);
+  if (!value)
+    throw new Error("useAiWorkspace must be used inside <AiWorkspaceProvider>");
+  return value;
+}
+
+/**
+ * Provider for the single AI workspace. Consumers use `useAiWorkspace()`.
+ */
+export function AiWorkspaceProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const value = useAiWorkspaceState();
+  return (
+    <AiWorkspaceContext.Provider value={value}>
+      {children}
+    </AiWorkspaceContext.Provider>
+  );
+}
+
+function useAiWorkspaceState() {
   const queryClient = useQueryClient();
   // Availability status is the only cacheable AI resource; it lives in the
   // query cache (lib/queries/ai.ts). A status failure must never block the
@@ -186,8 +232,18 @@ export function useAiWorkspace() {
     // sees on follow-ups includes what the insight covered.
     applyMessages((current) => [
       ...chatBaseForSend(current, false),
-      { id: requestId, role: "user", content: INSIGHT_REQUEST_TEXT, at: new Date().toISOString() },
-      { id: assistantId, role: "assistant", content: "", at: new Date().toISOString() },
+      {
+        id: requestId,
+        role: "user",
+        content: INSIGHT_REQUEST_TEXT,
+        at: new Date().toISOString(),
+      },
+      {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        at: new Date().toISOString(),
+      },
     ]);
     setCoachBusy(true);
     setCoachError("");
@@ -205,7 +261,10 @@ export function useAiWorkspace() {
       applyMessages((current) =>
         current.map((message) =>
           message.id === assistantId
-            ? { ...message, content: insightToChatText(result.insight, result.meta) }
+            ? {
+                ...message,
+                content: insightToChatText(result.insight, result.meta),
+              }
             : message,
         ),
       );

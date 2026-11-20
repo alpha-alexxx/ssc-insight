@@ -73,7 +73,7 @@ export function DashboardRoute() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <DashboardView
         planApi={planApi}
         analytics={analytics}
@@ -82,7 +82,7 @@ export function DashboardRoute() {
         loading={loading}
         coach={coach}
         // The detail dialog and the add flow are places now, not modes.
-        onOpenAttempt={() => router.push("/history")}
+        onOpenAttempt={(attempt) => useUiStore.getState().openAttempt(attempt.id)}
         onAdd={() => router.push("/add")}
         onViewAll={() => router.push("/history")}
         onOpenDay={openDay}

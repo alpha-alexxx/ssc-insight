@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -77,12 +78,23 @@ const toItemRef = (item: TrashItem) => ({ kind: item.kind, id: item.id });
 export function TrashView() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  // Seed from the URL so a shared/bookmarked filtered Trash link opens the view
+  // it names — and so the first render builds the SAME cache key the server
+  // prefetched. Hard-coded defaults here silently discarded every deep link,
+  // including the dehydrated payload for it.
+  const initialQuery = useSearchParams();
 
-  const [kind, setKind] = useState<KindFilter>("all");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"all" | "expiring">("all");
-  const [sort, setSort] = useState<"recent" | "expiring">("recent");
-  const [page, setPage] = useState(1);
+  const [kind, setKind] = useState<KindFilter>(
+    () => (initialQuery.get("kind") as KindFilter | null) ?? "all",
+  );
+  const [search, setSearch] = useState(() => initialQuery.get("q") ?? "");
+  const [status, setStatus] = useState<"all" | "expiring">(
+    () => (initialQuery.get("status") as "all" | "expiring" | null) ?? "all",
+  );
+  const [sort, setSort] = useState<"recent" | "expiring">(
+    () => (initialQuery.get("sort") as "recent" | "expiring" | null) ?? "recent",
+  );
+  const [page, setPage] = useState(() => Number(initialQuery.get("page") ?? 1) || 1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<{ kind: TrashKind; id: string } | null>(
     null,

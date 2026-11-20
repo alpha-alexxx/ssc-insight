@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   mirrorsWorkspaceState,
   parseWorkspaceState,
@@ -46,14 +46,28 @@ export type FiltersState = {
 
 export function useFiltersState(): FiltersState {
   const pathname = usePathname();
-  const [filters, setFilters] = useState<Filters>({});
-  const [scope, setScope] = useState<DashboardScope>("full");
-  const [page, setPage] = useState(1);
-  const [comparePage, setComparePage] = useState(1);
-  const [pageSize, setPageSizeState] = useState<PageSize>(10);
+  // Seed from the URL SYNCHRONOUSLY, not in an effect. A first render with
+  // default filters builds a different TanStack key than the one the server
+  // prefetched, so the hydrated payload is ignored and the route refetches what
+  // it already had. `useSearchParams` is the same source the mirror below writes
+  // to, and is populated on the server render and the client's first render
+  // alike, so key and prefetch agree on paint one.
+  const searchParams = useSearchParams();
+  const initial = useMemo(
+    () => parseWorkspaceState(`?${searchParams.toString()}`),
+    // Re-seeding on every param change is unnecessary (the mirror keeps the URL
+    // in step); the mount value is what the first render needs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [filters, setFilters] = useState<Filters>(initial.filters);
+  const [scope, setScope] = useState<DashboardScope>(initial.scope);
+  const [page, setPage] = useState(initial.list.page);
+  const [comparePage, setComparePage] = useState(initial.list.page);
+  const [pageSize, setPageSizeState] = useState<PageSize>(initial.list.pageSize);
   const [sortState, setSortState] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "date",
-    dir: "desc",
+    key: initial.list.sort,
+    dir: initial.list.dir,
   });
   const sort = sortState.key;
   const dir = sortState.dir;
@@ -98,7 +112,15 @@ export function useFiltersState(): FiltersState {
   // this is a sync with an external system (the address bar), and it must land
   // before the debounced query reads `filters`.
   const [urlReady, setUrlReady] = useState(false);
+  const firstPathname = useRef(pathname);
   useEffect(() => {
+    // The mount case is already seeded above; only a genuine route change (the
+    // layout keeps this component alive across navigations) re-reads the URL.
+    if (firstPathname.current === pathname) {
+      setUrlReady(true);
+      return;
+    }
+    firstPathname.current = pathname;
     const state = parseWorkspaceState(window.location.search);
     /* eslint-disable react-hooks/set-state-in-effect */
     setFilters(state.filters);

@@ -1,5 +1,9 @@
 import "server-only";
-import { attemptListSchema, type Filters } from "@/lib/domain";
+import {
+  attemptListSchema,
+  filtersSchema,
+  type Filters,
+} from "@/lib/domain";
 import {
   LIST_ATTEMPTS_MAX,
   listAttempts,
@@ -45,6 +49,29 @@ export function attemptFiltersFrom(
     // attemptWhere skips "all", so the combined view stays unfiltered.
     tier: list.tier ?? ctx?.activeTierId,
   };
+}
+
+/**
+ * The filters the CLIENT can express — i.e. the ones `filtersSchema` allows.
+ *
+ * `attemptFiltersFrom` additionally injects the server-resolved `examId` and
+ * `tier`. Those must never enter a prefetch key: the client hook builds its key
+ * from `useFiltersState()`'s filters, which cannot contain them, so a key
+ * carrying them never matches and the dehydrated payload is silently discarded.
+ * Key from this; load with the full filters.
+ */
+export function clientFiltersFrom(
+  list: ReturnType<typeof attemptListSchema.parse>,
+): Filters {
+  return filtersSchema.parse({
+    type: list.type,
+    subject: list.subject,
+    platform: list.platform,
+    from: list.from,
+    to: list.to,
+    search: list.search,
+    tier: list.tier,
+  });
 }
 
 /** Parse a raw query object the way the API route does. */

@@ -21,7 +21,7 @@ export default async function SettingsPage() {
     redirect("/?error=unavailable");
   }
   return (
-    <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
+    <div className="mx-auto w-full max-w-[1560px]">
       <SettingsRoute userName={user.name ?? ""} userEmail={user.email ?? ""} />
     </div>
   );
