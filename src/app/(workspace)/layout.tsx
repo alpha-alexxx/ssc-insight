@@ -2,48 +2,62 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PrivateWorkspace } from "@/components/private-workspace";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { QueryProvider } from "@/components/query-provider";
+import { ExamScopeProvider } from "@/components/exam-context";
+import { ToastProvider } from "@/components/toast";
 import { requireUser } from "@/lib/auth/require-user";
 import { SessionError } from "@/lib/auth/session-policy";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Auth gate for every workspace route (/dashboard, /add, /history,
- * /compare, /settings). The proxy guards these paths too; this layout is
- * the second line of defense (Server Functions and direct handler calls
- * can bypass the proxy matcher).
+ * Auth gate and provider host for every workspace route.
  *
- * The route-group layout stays mounted across client navigations, so the
- * WorkspaceShell inside PrivateWorkspace keeps its state while the URL
- * moves between the five routes. The routed `children` are placeholder
- * pages (the shell renders the view content from its own state), so they
- * are intentionally not mounted here.
+ * Responsibilities, in order:
+ *  1. Authenticate. The proxy guards these paths too; this is the second line
+ *     of defense (Server Components and direct handler calls can bypass the
+ *     proxy matcher).
+ *  2. Mount the providers that must outlive a route change: the TanStack cache
+ *     (which dies with the session), the exam scope, and toasts.
+ *  3. Render the chrome once and pass the routed page through as `children`.
+ *
+ * The providers used to live inside `WorkspaceShell`, which also discarded
+ * `children` and rendered every view itself. Mounting them here instead means a
+ * route page is a real Server Component that can prefetch and hydrate its own
+ * data, while the sidebar and the AI drawer stay mounted across navigation
+ * (the layout is not re-rendered when only the page segment changes).
  */
 export default async function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  void children;
   let user;
   try {
     user = await requireUser();
   } catch (error) {
-    if (error instanceof SessionError && error.status === 401)
-      redirect("/");
+    if (error instanceof SessionError && error.status === 401) redirect("/");
     redirect("/?error=unavailable");
   }
   const defaultSidebarOpen =
     (await cookies()).get("sidebar_state")?.value !== "false";
   return (
     <PrivateWorkspace key={user.id} userId={user.id}>
-        <WorkspaceShell
-          defaultSidebarOpen={defaultSidebarOpen}
-          authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
-          userEmail={user.email ?? ""}
-          userName={user.name ?? ""}
-          userImage={user.image ?? ""}
-        />
+      <QueryProvider>
+        <ExamScopeProvider>
+          <ToastProvider>
+            <WorkspaceShell
+              defaultSidebarOpen={defaultSidebarOpen}
+              authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
+              userEmail={user.email ?? ""}
+              userName={user.name ?? ""}
+              userImage={user.image ?? ""}
+            >
+              {children}
+            </WorkspaceShell>
+          </ToastProvider>
+        </ExamScopeProvider>
+      </QueryProvider>
     </PrivateWorkspace>
   );
 }

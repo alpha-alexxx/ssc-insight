@@ -30,7 +30,6 @@ import { PerformanceView } from "./performance/performance-view";
 import { AiCoachCard } from "./ai-coach-card";
 import { AiChatSheet, type LogMockPayload } from "./ai-chat-sheet";
 import { PageHeader } from "./page-header";
-import { QueryProvider } from "./query-provider";
 import { useAiWorkspace } from "./use-ai-workspace";
 import { useBackupImport } from "./use-backup-import";
 import {
@@ -48,7 +47,7 @@ import { PlanDayView } from "./plan/plan-day-view";
 import { PlanWeekView } from "./plan/plan-week-view";
 import { SettingsView } from "./settings/settings-view";
 import { TrashView } from "./trash/trash-view";
-import { ToastProvider, useToast } from "./toast";
+import { useToast } from "./toast";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { useThemePrefs, viewTransition } from "./theme-style-provider";
 import { useUiStore, type AiChatTab } from "@/stores/ui-store";
@@ -58,7 +57,7 @@ import {
   examsKeys,
   patchTargetsRequest,
 } from "@/lib/queries/exams";
-import { ExamScopeProvider, useExamScope } from "./exam-context";
+import { useExamScope } from "./exam-context";
 import {
   attemptKeys,
   deleteAttemptRequest,
@@ -98,38 +97,48 @@ import { Dialog } from "radix-ui";
 
 /** Route path → shell view. Unknown paths fall back to the dashboard;
  * /plan/<date> is a dynamic route matched by prefix. */
+/**
+ * View identity of a route that renders its own Server Component page.
+ *
+ * The strangler seam: a view in this set has been migrated to its own route
+ * page, so the shell renders its `children` instead of the legacy `view ===`
+ * switch. Each migration adds one entry; Task 20 removes the switch entirely.
+ */
+const MIGRATED_VIEWS = new Set<string>();
+
 export function WorkspaceShell({
   authEnabled = false,
   userEmail = "",
   userName = "",
   userImage = "",
   defaultSidebarOpen = true,
+  children,
 }: {
   authEnabled?: boolean;
   userEmail?: string;
   userName?: string;
   userImage?: string;
   defaultSidebarOpen?: boolean;
+  /** The routed page, rendered in place of the legacy view switch once the
+   * view is migrated. */
+  children?: React.ReactNode;
 }) {
-  // ToastProvider wraps the inner component so useToast works inside it.
-  // ErrorBoundary already wraps the whole tree in layout.tsx.
-  // QueryProvider scopes the TanStack cache to the workspace session —
-  // lib/query-client.ts owns the client config, devtools are dev-only, and
-  // unmounting the shell (logout) drops the cache with it.
+  // Providers are mounted by the (workspace) layout, which stays mounted across
+  // client navigation, so this component is purely the view host.
+  const pathname = usePathname();
+  const migrated =
+    MIGRATED_VIEWS.has(pathname) || MIGRATED_VIEWS.has(viewForPathname(pathname));
   return (
-    <QueryProvider>
-      <ExamScopeProvider>
-      <ToastProvider>
-        <WorkspaceShellInner
-          authEnabled={authEnabled}
-          userEmail={userEmail}
-          defaultSidebarOpen={defaultSidebarOpen}
-          userName={userName}
-          userImage={userImage}
-        />
-      </ToastProvider>
-      </ExamScopeProvider>
-    </QueryProvider>
+    <WorkspaceShellInner
+      authEnabled={authEnabled}
+      userEmail={userEmail}
+      defaultSidebarOpen={defaultSidebarOpen}
+      userName={userName}
+      userImage={userImage}
+      migrated={migrated}
+    >
+      {children}
+    </WorkspaceShellInner>
   );
 }
 
@@ -139,12 +148,16 @@ function WorkspaceShellInner({
   userName = "",
   userImage = "",
   defaultSidebarOpen = true,
+  migrated = false,
+  children,
 }: {
   authEnabled?: boolean;
   userEmail?: string;
   userName?: string;
   userImage?: string;
   defaultSidebarOpen?: boolean;
+  migrated?: boolean;
+  children?: React.ReactNode;
 }) {
   const toast = useToast();
   const reduced = useReducedMotion();
@@ -773,7 +786,12 @@ function WorkspaceShellInner({
                 exit={reduced ? undefined : { opacity: 0, y: -6 }}
                 transition={viewMotion}
               >
-                {view === "add" && noScope ? (
+                {migrated ? (
+                  // This view owns a real route page. The page rendered its own
+                  // Server Component tree and hydrated its own data; the shell
+                  // contributes only the chrome around it.
+                  children
+                ) : view === "add" && noScope ? (
                   <EmptyScopeNotice />
                 ) : view === "add" ? (
                   <Suspense
