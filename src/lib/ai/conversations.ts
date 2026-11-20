@@ -27,9 +27,9 @@ export const CONVERSATIONS_STORAGE_KEY = "ssc.ai.conversations.v1";
 /** A conversation keeps its last N turns-worth of messages (oldest dropped).
  * The prompt window only ever reads the trailing exchanges, so this bounds
  * storage without changing what the model can see. */
-export const MAX_CONVERSATION_MESSAGES = 100;
+export const MAX_CONVERSATION_MESSAGES = 200;
 /** Oldest conversations fall off the list first. */
-export const MAX_CONVERSATIONS = 30;
+export const MAX_CONVERSATIONS = 50;
 export const TITLE_MAX_CHARS = 60;
 
 function isRole(value: unknown): value is ChatMessage["role"] {
@@ -47,6 +47,12 @@ function parseMessage(value: unknown): ChatMessage | null {
   };
   if (record.truncated === true) message.truncated = true;
   if (typeof record.at === "string" && record.at) message.at = record.at;
+  // Hidden reasoning and its measured duration survive persistence; older
+  // rows without them stay valid.
+  if (typeof record.reasoning === "string" && record.reasoning)
+    message.reasoning = record.reasoning;
+  if (typeof record.reasoningSeconds === "number" && record.reasoningSeconds > 0)
+    message.reasoningSeconds = record.reasoningSeconds;
   return message;
 }
 
@@ -140,7 +146,9 @@ export function upsertConversation(
   const timestamp = now.toISOString();
   const conversation: StoredConversation = {
     id: existing?.id ?? newConversationId(now),
-    title: titleFromMessages(messages),
+    // A renamed conversation keeps its name across later turns; new ones are
+    // named after their first question.
+    title: existing?.title ?? titleFromMessages(messages),
     createdAt: existing?.createdAt ?? timestamp,
     updatedAt: timestamp,
     messages,
@@ -149,6 +157,40 @@ export function upsertConversation(
     list: pruneConversations([conversation, ...rest]),
     activeId: conversation.id,
   };
+}
+
+/** Rename a stored conversation. The trimmed, capped title keeps the list
+ * readable; an empty name is ignored. Pure. */
+export function renameConversation(
+  conversations: StoredConversation[],
+  id: string,
+  title: string,
+): StoredConversation[] {
+  const cleaned = title.replace(/\s+/g, " ").trim();
+  if (!cleaned) return conversations;
+  const finalTitle =
+    cleaned.length > TITLE_MAX_CHARS
+      ? `${cleaned.slice(0, TITLE_MAX_CHARS - 1).trimEnd()}…`
+      : cleaned;
+  return conversations.map((conversation) =>
+    conversation.id === id ? { ...conversation, title: finalTitle } : conversation,
+  );
+}
+
+/** Case-insensitive substring match over title and message bodies, newest
+ * first. Used by the history rails; pure so tests can pin the ordering. */
+export function searchConversations(
+  conversations: StoredConversation[],
+  query: string,
+): StoredConversation[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return conversations;
+  return conversations.filter((conversation) => {
+    if (conversation.title.toLowerCase().includes(needle)) return true;
+    return conversation.messages.some((message) =>
+      message.content.toLowerCase().includes(needle),
+    );
+  });
 }
 
 export function newConversationId(now = new Date()): string {

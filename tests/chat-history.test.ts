@@ -4,7 +4,9 @@ import {
   newConversationId,
   parseStoredConversations,
   pruneConversations,
+  renameConversation,
   saveConversations,
+  searchConversations,
   titleFromMessages,
   upsertConversation,
 } from "../src/lib/ai/conversations";
@@ -129,25 +131,25 @@ test("upsert with an empty transcript removes the conversation", () => {
 });
 
 test("the cap keeps the newest conversations and the trailing messages", () => {
-  const conversations = Array.from({ length: 40 }, (_, index) => ({
+  const conversations = Array.from({ length: 60 }, (_, index) => ({
     id: `c${index}`,
     title: `t${index}`,
     createdAt: `2026-01-01T00:00:${String(index % 60).padStart(2, "0")}Z`,
     updatedAt: `2026-01-0${(index % 9) + 1}T00:00:00Z`,
     messages: [
       user(`q${index}`),
-      ...Array.from({ length: 150 }, (_, m) =>
+      ...Array.from({ length: 250 }, (_, m) =>
         m % 2 === 0 ? user(`q${index}-${m}`) : assistant(`a${index}-${m}`),
       ),
     ],
   }));
   const pruned = pruneConversations(conversations);
-  assert.equal(pruned.length, 30);
+  assert.equal(pruned.length, 50);
   // Newest first: the highest updatedAt (2026-01-09) leads.
   assert.ok(pruned[0]!.updatedAt.startsWith("2026-01-09"));
   // Per-conversation cap: trailing window, starting at a user turn.
   const messages = pruned[0]!.messages;
-  assert.equal(messages.length, 100);
+  assert.equal(messages.length, 200);
   assert.equal(messages[0]!.role, "user");
 });
 
@@ -175,6 +177,81 @@ test("parsing drops malformed entries and coerces what it can", () => {
   assert.equal(parsed[0]!.messages[1]!.truncated, true);
   assert.equal(parsed[0]!.messages[0]!.at, "2026-01-01T00:00:00Z");
   assert.deepEqual(parseStoredConversations("junk"), []);
+});
+
+test("reasoning survives persistence and older rows stay valid", () => {
+  const parsed = parseStoredConversations([
+    {
+      id: "c1",
+      messages: [
+        user("why?"),
+        {
+          role: "assistant",
+          content: "because",
+          reasoning: "let me check the mocks",
+          reasoningSeconds: 14,
+        },
+      ],
+    },
+    {
+      id: "c2",
+      messages: [user("legacy"), assistant("old row without reasoning")],
+    },
+  ]);
+  assert.equal(parsed[0]!.messages[1]!.reasoning, "let me check the mocks");
+  assert.equal(parsed[0]!.messages[1]!.reasoningSeconds, 14);
+  assert.equal(parsed[1]!.messages[1]!.reasoning, undefined);
+  assert.equal(parsed[1]!.messages[1]!.reasoningSeconds, undefined);
+  // Malformed reasoning fields are dropped, not stored.
+  const bad = parseStoredConversations([
+    {
+      id: "c3",
+      messages: [{ role: "assistant", content: "x", reasoning: 42 }],
+    },
+  ]);
+  assert.equal(bad[0]!.messages[0]!.reasoning, undefined);
+});
+
+test("rename changes the title, keeps it capped, and later turns preserve it", () => {
+  const { list } = upsertConversation([], null, [
+    user("what is my weakest subject?"),
+    assistant("quant"),
+  ]);
+  const renamed = renameConversation(list, list[0]!.id, "  Quant   deep-dive  ");
+  assert.equal(renamed[0]!.title, "Quant deep-dive");
+
+  const capped = renameConversation(list, list[0]!.id, "x".repeat(100));
+  assert.equal(capped[0]!.title.length, 60);
+  assert.ok(capped[0]!.title.endsWith("…"));
+
+  // A blank rename is a no-op; an unknown id changes nothing.
+  assert.deepEqual(renameConversation(list, list[0]!.id, "   "), list);
+  assert.deepEqual(renameConversation(list, "nope", "New"), list);
+
+  // The next turn keeps the user's name instead of re-deriving it.
+  const afterTurn = upsertConversation(renamed, renamed[0]!.id, [
+    ...renamed[0]!.messages,
+    user("and my strongest?"),
+    assistant("english"),
+  ]);
+  assert.equal(afterTurn.list[0]!.title, "Quant deep-dive");
+});
+
+test("search matches titles and message bodies case-insensitively", () => {
+  const { list } = upsertConversation([], null, [
+    user("plan my revision week"),
+    assistant("Focus on algebra"),
+  ]);
+  const other = upsertConversation(list, null, [
+    user("accuracy trends"),
+    assistant("English is improving"),
+  ]);
+  assert.equal(searchConversations(other.list, "").length, 2);
+  assert.equal(searchConversations(other.list, "REVISION").length, 1);
+  assert.equal(searchConversations(other.list, "revision").length, 1);
+  assert.equal(searchConversations(other.list, "algebra").length, 1);
+  assert.equal(searchConversations(other.list, "improving").length, 1);
+  assert.equal(searchConversations(other.list, "nothing-matches").length, 0);
 });
 
 test("storage failures degrade to an empty history, not a crash", () => {

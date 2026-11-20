@@ -2,6 +2,7 @@
 import { chatBaseForSend } from "@/lib/ai/chat-history";
 import {
   loadConversations,
+  renameConversation,
   saveConversations,
   upsertConversation,
   type StoredConversation,
@@ -79,7 +80,7 @@ function insightToChatText(insight: CoachInsight, meta: CoachMeta | null) {
   return lines.join("\n");
 }
 
-/** API shape for the sheet's history panel: the stored list plus the four
+/** API shape for the sheet's history panel: the stored list plus the
  * mutations it offers. */
 export type ChatHistoryApi = {
   conversations: StoredConversation[];
@@ -87,7 +88,15 @@ export type ChatHistoryApi = {
   newChat: () => void;
   select: (id: string) => void;
   remove: (id: string) => void;
+  rename: (id: string, title: string) => void;
 };
+
+/**
+ * What the model is doing right now, derived from real stream evidence:
+ * `connecting` until the server says anything, `thinking` while reasoning
+ * (or pings) arrive with no answer text yet, `writing` once content flows.
+ */
+export type ChatPhase = "connecting" | "thinking" | "writing";
 
 /**
  * Client state for the optional AI subsystem: availability status, the coach
@@ -150,6 +159,7 @@ function useAiWorkspaceState() {
   // palette, and the shell all open it); messages and streaming stay local.
   const chatOpen = useUiStore((s) => s.aiChatOpen);
   const [chatStreaming, setChatStreaming] = useState(false);
+  const [chatPhase, setChatPhase] = useState<ChatPhase | null>(null);
   const [chatError, setChatError] = useState("");
   const chatAbort = useRef<AbortController | null>(null);
   // Conversation history: React state mirrors refs so turn handlers never
@@ -378,6 +388,13 @@ function useAiWorkspaceState() {
     [applyMessages],
   );
 
+  const renameConversationById = useCallback((id: string, title: string) => {
+    const next = renameConversation(conversationsRef.current, id, title);
+    conversationsRef.current = next;
+    setConversations(next);
+    saveConversations(next);
+  }, []);
+
   const sendChat = useCallback(
     async (text: string, screen?: AiScreenContext | null, retry = false) => {
       if (chatAbort.current) return; // a stream is already in flight
@@ -389,13 +406,17 @@ function useAiWorkspaceState() {
         at: new Date().toISOString(),
       };
       const assistantId = newId();
-      const history = trimChatHistory([...base, userMessage], 8);
+      // The user's own setting caps the prompt window; the server still
+      // enforces its hard maximum, so a stale value cannot overflow it.
+      const turns = aiStatus?.credential?.historyTurns ?? 8;
+      const history = trimChatHistory([...base, userMessage], turns);
       applyMessages(() => [
         ...base,
         userMessage,
         { id: assistantId, role: "assistant", content: "", at: userMessage.at },
       ]);
       setChatStreaming(true);
+      setChatPhase("connecting");
       setChatError("");
       const abort = new AbortController();
       chatAbort.current = abort;
@@ -426,10 +447,50 @@ function useAiWorkspaceState() {
         const reader = response.body.getReader();
         const decoder = new NdjsonDecoder();
         let finished = false;
+        let writing = false;
+        let reasoningStartedAt: number | null = null;
         const handle = (line: string) => {
           const event = parseChatEvent(line);
           if (!event) return;
+          if (event.type === "ping") {
+            // Keepalive only: proof the connection is alive while the model
+            // thinks. The phase moves forward, nothing is appended.
+            if (!writing) setChatPhase("thinking");
+            return;
+          }
+          if (event.type === "reasoning") {
+            if (reasoningStartedAt == null) reasoningStartedAt = Date.now();
+            if (!writing) setChatPhase("thinking");
+            applyMessages((current) =>
+              current.map((message) =>
+                message.id === assistantId
+                  ? {
+                      ...message,
+                      reasoning: (message.reasoning ?? "") + event.text,
+                    }
+                  : message,
+              ),
+            );
+            return;
+          }
           if (event.type === "delta") {
+            if (!writing) {
+              writing = true;
+              setChatPhase("writing");
+              if (reasoningStartedAt != null) {
+                const seconds = Math.max(
+                  1,
+                  Math.round((Date.now() - reasoningStartedAt) / 1000),
+                );
+                applyMessages((current) =>
+                  current.map((message) =>
+                    message.id === assistantId
+                      ? { ...message, reasoningSeconds: seconds }
+                      : message,
+                  ),
+                );
+              }
+            }
             applyMessages((current) =>
               current.map((message) =>
                 message.id === assistantId
@@ -473,6 +534,7 @@ function useAiWorkspaceState() {
           );
       } finally {
         setChatStreaming(false);
+        setChatPhase(null);
         if (chatAbort.current === abort) {
           chatAbort.current = null;
           requestKindRef.current = null;
@@ -481,7 +543,7 @@ function useAiWorkspaceState() {
         void refreshAiStatus();
       }
     },
-    [applyMessages, persistTurn, refreshAiStatus],
+    [aiStatus, applyMessages, persistTurn, refreshAiStatus],
   );
 
   /** Edit a previously sent user message: everything after it is discarded
@@ -543,6 +605,7 @@ function useAiWorkspaceState() {
     newChat,
     select: selectConversation,
     remove: removeConversation,
+    rename: renameConversationById,
   };
 
   return {
@@ -562,6 +625,7 @@ function useAiWorkspaceState() {
       setOpen: setChatOpenSafe,
       messages: chatMessages,
       streaming: chatStreaming,
+      phase: chatPhase,
       error: chatError,
       send: sendChat,
       stop: stopChat,

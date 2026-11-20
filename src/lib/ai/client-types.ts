@@ -122,6 +122,12 @@ export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Hidden reasoning the model streamed before the answer, shown collapsed.
+   * Never sent back to the server with follow-up questions. */
+  reasoning?: string;
+  /** Client-measured seconds the model spent reasoning before its first
+   * answer token. Older stored messages may omit it. */
+  reasoningSeconds?: number;
   /** The stream ended on a truncation stop reason; the answer may be cut off. */
   truncated?: boolean;
   /** Client-clock ISO timestamp of the turn; used by the conversation
