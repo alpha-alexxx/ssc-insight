@@ -1,23 +1,17 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
-  ArrowUp,
   BarChart3,
   BookOpen,
   Calendar,
-  Check,
   ChevronRight,
   ClipboardPaste,
-  Copy,
   History,
   Info,
   Lightbulb,
   ListTodo,
   MessageSquare,
-  Pencil,
-  RotateCcw,
   Sparkles,
-  Square,
   SquarePen,
   Trash2,
   TrendingUp,
@@ -47,15 +41,13 @@ import {
 } from "@/lib/ai/extraction";
 import { SUBJECTS } from "@/lib/domain";
 import { mockTypeLabel } from "@/lib/format";
-import {
-  parseTaskSuggestions,
-  type TaskSuggestion,
-} from "@/lib/ai/task-suggestion";
-import { istTodayIso, linkHost } from "@/lib/plan/view-model";
 import type { AttemptInput, PatternShape } from "@/lib/domain";
 import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
-import type { ChatHistoryApi } from "./use-ai-workspace";
-import { shortDate } from "@/lib/format";
+import type { AiSheetTaskApi } from "@/components/shared/ai/task-suggestion-card";
+import { ChatTranscript } from "@/components/shared/ai/chat-transcript";
+import { ChatComposer } from "@/components/shared/ai/chat-composer";
+import { ConversationList } from "@/components/shared/ai/conversation-list";
+import type { ChatHistoryApi, ChatPhase } from "./use-ai-workspace";
 
 const QUICK_QUESTIONS = [
   {
@@ -84,20 +76,6 @@ const QUICK_QUESTIONS = [
   },
 ];
 
-/** What the sheet needs beyond chat state. The create handler performs the
- * actual personal-task write (AI stays read-only; this is the confirm step). */
-export type AiSheetTaskApi = {
-  createPersonalTask: (input: {
-    title: string;
-    notes?: string;
-    dueDate?: string | null;
-    url?: string | null;
-    category: string;
-    priority: string;
-    status: string;
-  }) => Promise<unknown>;
-};
-
 /** A reviewed mock draft handed to the real form. */
 export type LogMockPayload = {
   values: Partial<AttemptInput>;
@@ -105,7 +83,9 @@ export type LogMockPayload = {
 };
 
 /**
- * The AI panel: a tabbed right Sheet with "Coach chat" and "Log a mock".
+ * The AI panel: a tabbed right Sheet — Ask, Todos, Log. Ask renders the
+ * shared chat transcript and composer (the same components the /ask page
+ * uses, over the same live state); Todos and Log keep their own flows.
  * Desktop keeps the workspace visible; mobile is a full-width Sheet with a
  * dvh flex layout so the composer stays above the keyboard. Conversation
  * state lives in the shell hook: finished turns persist to the device, the
@@ -116,6 +96,7 @@ export function AiChatSheet({
   onOpenChange,
   messages,
   streaming,
+  phase,
   error,
   contextLabel,
   configured = true,
@@ -137,6 +118,8 @@ export function AiChatSheet({
   onOpenChange: (open: boolean) => void;
   messages: ChatMessage[];
   streaming: boolean;
+  /** What the model is doing right now, from stream evidence. */
+  phase?: ChatPhase | null;
   error: string;
   contextLabel?: string;
   /** False when no AI provider is configured; shows the setup form instead. */
@@ -307,10 +290,10 @@ export function AiChatSheet({
           className="flex min-h-0 flex-1 flex-col"
         >
           {tab === "chat" && (
-            <CoachChatTab
-              open={open}
+            <AskChatTab
               messages={messages}
               streaming={streaming}
+              phase={phase ?? null}
               error={error}
               configured={configured}
               history={history}
@@ -348,12 +331,12 @@ export function AiChatSheet({
   );
 }
 
-/* ---------------- Coach chat tab ---------------- */
+/* ---------------- Ask tab ---------------- */
 
-function CoachChatTab({
-  open,
+function AskChatTab({
   messages,
   streaming,
+  phase,
   error,
   configured,
   history,
@@ -369,14 +352,14 @@ function CoachChatTab({
   taskApi,
   onTaskAdded,
 }: {
-  open: boolean;
   messages: ChatMessage[];
   streaming: boolean;
+  phase: ChatPhase | null;
   error: string;
   configured: boolean;
   history?: ChatHistoryApi;
-  historyOpen?: boolean;
-  onHistoryClose?: () => void;
+  historyOpen: boolean;
+  onHistoryClose: () => void;
   onSend: (text: string) => void;
   onStop: () => void;
   onClear: () => void;
@@ -388,1116 +371,127 @@ function CoachChatTab({
   onTaskAdded?: () => void;
 }) {
   const [input, setInput] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
-  const logRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const follow = useRef(true);
-  const [showLatest, setShowLatest] = useState(false);
-  const [lastSent, setLastSent] = useState("");
-  // Inline editor state for "edit and resend" on an earlier question.
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  // Seconds since the current stream started — the thinking indicator's clock.
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!open) return;
-    endRef.current?.scrollIntoView({ block: "end" });
-    const timer = window.setTimeout(() => inputRef.current?.focus(), 80);
-    return () => window.clearTimeout(timer);
-  }, [open]);
-  useEffect(() => {
-    const log = logRef.current;
-    if (!log) return;
-    if (follow.current) log.scrollTop = log.scrollHeight;
-  }, [messages, streaming]);
-
-  // One tick per second while a response streams. Resetting between turns is
-  // the render-time adjust below — a setState in the effect body would fire
-  // on every streaming flip and cascade renders.
-  useEffect(() => {
-    if (!streaming) return;
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [streaming]);
-  if (!streaming && elapsed !== 0) setElapsed(0);
-
-  function submit(text: string) {
-    const value = text.trim();
-    if (!value || streaming) return;
-    follow.current = true;
-    setShowLatest(false);
-    setLastSent(value);
-    onSend(value);
-    setInput("");
-    if (inputRef.current) inputRef.current.style.height = "";
-  }
-
-  const charCount = input.length;
-  const maxChars = 1000;
+  // The composer's clear affordance keeps the one-shot trash action next to
+  // the field it clears; edit-last lives on the user turn itself.
+  const composerMeta = (
+    <>
+      <button
+        type="button"
+        aria-label="Clear conversation"
+        title="Clear conversation"
+        className="inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+        disabled={streaming || !messages.length}
+        onClick={onClear}
+      >
+        <Trash2 size={14} />
+      </button>
+      <span className="text-[10px] text-muted">
+        Answers read your aggregates and latest 20 full mocks — never notes.
+      </span>
+    </>
+  );
 
   if (historyOpen && history) {
     return (
-      <ChatHistoryPanel
-        history={history}
-        streaming={streaming}
-        onClose={() => {
-          onHistoryClose?.();
-          window.setTimeout(() => inputRef.current?.focus(), 40);
-        }}
-        onNewChat={() => {
-          history.newChat();
-          onHistoryClose?.();
-        }}
-      />
+      <div className="flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4">
+        <ConversationList
+          history={history}
+          streaming={streaming}
+          onNewChat={onHistoryClose}
+          className="flex-1"
+        />
+        <button
+          type="button"
+          className="mt-2 min-h-9 text-xs font-medium text-muted underline underline-offset-4 hover:text-ink"
+          onClick={onHistoryClose}
+        >
+          Back to the conversation
+        </button>
+      </div>
     );
   }
 
   return (
     <>
-      {/* Quick questions or message log */}
-      <div
-        ref={logRef}
-        role="log"
-        aria-live="polite"
-        aria-busy={streaming}
-        onScroll={(event) => {
-          const log = event.currentTarget;
-          follow.current =
-            log.scrollHeight - log.scrollTop - log.clientHeight < 80;
-          setShowLatest(!follow.current);
-        }}
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
-      >
-        {!messages.length && !configured && (
-          <div className="rounded-control border border-rule bg-canvas p-4">
-            <p className="text-xs leading-relaxed text-muted">
-              Add a provider and API key to start asking questions. Your key is
-              encrypted before storage and never returned to this page.
-            </p>
-            <div className="mt-3">
-              <AiSettingsForm
-                variant="panel"
-                showHeading={false}
-                onChanged={onAiConfigured}
-              />
+      <ChatTranscript
+        messages={messages}
+        streaming={streaming}
+        phase={phase}
+        onRetry={onRetry}
+        onEditResend={onEditResend}
+        onRegenerate={onRegenerate}
+        taskApi={taskApi}
+        onTaskAdded={onTaskAdded}
+        error={error}
+        className="px-3 sm:px-5"
+        emptyState={
+          configured ? (
+            <div className="flex flex-col gap-5 pt-2">
+              <div>
+                <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
+                  What would help you study today?
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Ask anything about your mocks, targets, or plan. Earlier
+                  chats stay on this device.
+                </p>
+              </div>
+              <div className="border-t border-rule-soft">
+                {QUICK_QUESTIONS.map((question) => (
+                  <button
+                    key={question.text}
+                    type="button"
+                    onClick={() => onSend(question.text)}
+                    className="group flex min-h-12 w-full items-center gap-3 border-b border-rule-soft px-1 py-3 text-left text-sm leading-snug text-ink transition-colors hover:bg-soft"
+                  >
+                    <question.icon
+                      size={15}
+                      className="shrink-0 text-muted group-hover:text-accent"
+                    />
+                    <span className="min-w-0 flex-1">{question.text}</span>
+                    <ChevronRight
+                      size={15}
+                      className="shrink-0 text-muted group-hover:text-accent"
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {!messages.length && configured && (
-          <div className="flex flex-col gap-5 py-1">
-            <div>
-              <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
-                What would help you study today?
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                Answers use your aggregates and your latest 20 full mocks —
-                never your notes or identity. Earlier chats stay on this device.
+          ) : (
+            <div className="rounded-control border border-rule bg-canvas p-4">
+              <p className="text-xs leading-relaxed text-muted">
+                Add a provider and API key to start asking questions. Your key
+                is encrypted before storage and never returned to this page.
               </p>
+              <div className="mt-3">
+                <AiSettingsForm
+                  variant="panel"
+                  showHeading={false}
+                  onChanged={onAiConfigured}
+                />
+              </div>
             </div>
-            <div className="border-t border-rule-soft">
-              {QUICK_QUESTIONS.slice(0, 4).map((question) => (
-                <button
-                  key={question.text}
-                  type="button"
-                  onClick={() => submit(question.text)}
-                  className="group flex min-h-12 w-full items-center gap-3 border-b border-rule-soft px-1 py-3 text-left text-sm leading-snug text-ink transition-colors hover:bg-soft"
-                >
-                  <question.icon
-                    size={15}
-                    className="shrink-0 text-muted group-hover:text-accent"
-                  />
-                  <span className="min-w-0 flex-1">{question.text}</span>
-                  <ChevronRight
-                    size={15}
-                    className="shrink-0 text-muted group-hover:text-accent"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {messages.length > 0 && (
-          <CoachMemos
-            messages={messages}
-            streaming={streaming}
-            elapsed={elapsed}
-            editingId={editingId}
-            editDraft={editDraft}
-            onEditStart={(message) => {
-              setEditingId(message.id);
-              setEditDraft(message.content);
-            }}
-            onEditDraftChange={setEditDraft}
-            onEditCancel={() => {
-              setEditingId(null);
-              setEditDraft("");
-            }}
-            onEditSubmit={(messageId, text) => {
-              setEditingId(null);
-              setEditDraft("");
-              follow.current = true;
-              setShowLatest(false);
-              onEditResend?.(messageId, text);
-            }}
-            onRegenerate={onRegenerate}
-            taskApi={taskApi}
-            onTaskAdded={onTaskAdded}
-          />
-        )}
-        <div ref={endRef} />
-      </div>
-
-      {showLatest && (
-        <div className="flex shrink-0 justify-center border-t border-rule-soft py-1">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              follow.current = true;
-              setShowLatest(false);
-              if (logRef.current)
-                logRef.current.scrollTop = logRef.current.scrollHeight;
-            }}
-          >
-            Jump to latest
-          </Button>
-        </div>
-      )}
-      {error && (
-        <div
-          role="alert"
-          className="flex flex-wrap items-center justify-between gap-2 border-t border-warning bg-warning-soft px-4 py-2.5 text-[11px] text-warning sm:px-5"
-        >
-          <span className="min-w-0">{error}</span>
-          {!streaming && onRetry && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="min-h-11 w-full sm:min-h-0 sm:w-auto"
-              onClick={onRetry}
-            >
-              Try again
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Composer */}
-      <form
-        className={
-          configured
-            ? "ai-composer shrink-0 bg-paper px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-3"
-            : "hidden"
+          )
         }
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit(input);
-        }}
-      >
-        <div className="ai-composer-field">
-          <textarea
-            ref={inputRef}
-            id="ai-chat-input"
-            rows={2}
-            maxLength={maxChars}
+      />
+      {configured && (
+        <div className="shrink-0 bg-paper px-3 pb-3 sm:px-5 sm:pb-4">
+          <ChatComposer
             value={input}
-            aria-label="Message your study coach"
-            placeholder="Ask about a mock, a weak subject, or what to do next…"
-            className="max-h-28 w-full resize-none border-0 bg-transparent px-3 pt-2.5 text-[13px] leading-relaxed placeholder:text-muted focus:outline-none focus:ring-0"
-            onChange={(event) => {
-              setInput(event.target.value);
-              // Auto-grow to the content, capped at the max-height token.
-              const field = event.currentTarget;
-              field.style.height = "auto";
-              field.style.height = `${Math.min(field.scrollHeight, 112)}px`;
+            onChange={setInput}
+            onSubmit={(text) => {
+              onSend(text);
+              setInput("");
             }}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing
-              ) {
-                event.preventDefault();
-                submit(input);
-              }
-            }}
-          />
-          <div className="flex items-center justify-between gap-2 border-t border-rule-soft px-2 py-1.5">
-            <div className="flex min-w-0 items-center gap-1">
-              <button
-                type="button"
-                aria-label="Clear conversation"
-                title="Clear conversation"
-                className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40 sm:size-10"
-                disabled={streaming || !messages.length}
-                onClick={onClear}
-              >
-                <Trash2 size={16} />
-              </button>
-              {error && lastSent && (
-                <button
-                  type="button"
-                  aria-label="Edit question"
-                  title="Edit question"
-                  className="inline-flex size-11 items-center justify-center rounded-control text-accent transition-colors hover:bg-soft disabled:pointer-events-none disabled:opacity-40 sm:size-10"
-                  onClick={() => setInput(lastSent)}
-                >
-                  <Pencil size={15} />
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="tabular text-[10px] text-muted">
-                {charCount}/{maxChars}
-              </span>
-              {streaming ? (
-                <button
-                  type="button"
-                  aria-label="Stop generating"
-                  title="Stop"
-                  className="inline-flex size-11 items-center justify-center rounded-control border border-rule bg-paper text-ink transition-colors hover:bg-canvas sm:size-10"
-                  onClick={onStop}
-                >
-                  <Square size={14} />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  aria-label="Send message"
-                  title="Send"
-                  className="inline-flex size-11 items-center justify-center rounded-control bg-accent text-paper transition-colors duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:bg-canvas disabled:text-muted sm:size-10"
-                  disabled={!input.trim() || streaming}
-                >
-                  <ArrowUp size={17} strokeWidth={2.4} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </form>
-    </>
-  );
-}
-
-/* ---------------- conversation history panel ---------------- */
-
-/** Relative age for a history row: "Just now", "5m ago", "Yesterday"-style
- * short labels, then a real date. */
-function relativeLabel(iso: string): string {
-  const then = Date.parse(iso);
-  if (Number.isNaN(then)) return "";
-  const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 60) return "Just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return shortDate(new Date(then).toISOString());
-}
-
-/**
- * The saved-conversation list, replacing the transcript while it is open.
- * Selecting a row restores it; the delete button removes it without opening.
- */
-function ChatHistoryPanel({
-  history,
-  streaming,
-  onClose,
-  onNewChat,
-}: {
-  history: ChatHistoryApi;
-  streaming: boolean;
-  onClose: () => void;
-  onNewChat: () => void;
-}) {
-  const conversations = history.conversations;
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-rule-soft px-4 py-3 sm:px-5">
-        <div className="min-w-0">
-          <h3 className="font-serif text-[1.125rem] font-medium leading-tight text-ink">
-            Conversation history
-          </h3>
-          <p className="mt-0.5 text-[11px] text-muted">
-            Saved on this device — {conversations.length}{" "}
-            {conversations.length === 1 ? "chat" : "chats"}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="min-h-11 sm:min-h-0"
-            onClick={onNewChat}
-            disabled={streaming}
-          >
-            <SquarePen size={14} /> New
-          </Button>
-          <button
-            type="button"
-            aria-label="Back to the conversation"
-            title="Back"
-            className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink sm:size-10"
-            onClick={onClose}
-          >
-            <History size={16} />
-          </button>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
-        {conversations.length === 0 ? (
-          <div className="rounded-control border border-dashed border-rule px-4 py-6 text-center">
-            <p className="text-sm font-medium text-ink">No saved chats yet</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
-              Conversations appear here as you talk, so you can pick a thread
-              back up after closing the panel.
-            </p>
-            <Button
-              type="button"
-              size="sm"
-              className="mt-4 min-h-11 sm:min-h-0"
-              onClick={onNewChat}
-            >
-              <SquarePen size={14} /> Start a chat
-            </Button>
-          </div>
-        ) : (
-          <ul className="flex flex-col">
-            {conversations.map((conversation) => {
-              const active = conversation.id === history.activeId;
-              const turns = conversation.messages.filter(
-                (message) => message.role === "user",
-              ).length;
-              return (
-                <li key={conversation.id} className="border-b border-rule-soft last:border-b-0">
-                  <div className="group flex items-stretch gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        history.select(conversation.id);
-                        onClose();
-                      }}
-                      className="min-h-14 min-w-0 flex-1 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-soft"
-                      aria-current={active ? "true" : undefined}
-                    >
-                      <span
-                        className={cn(
-                          "block truncate text-[0.8125rem] leading-snug",
-                          active
-                            ? "font-medium text-accent"
-                            : "font-medium text-ink",
-                        )}
-                      >
-                        {conversation.title}
-                      </span>
-                      <span className="mt-1 flex items-center gap-x-2 text-[11px] text-muted tabular">
-                        <span>{relativeLabel(conversation.updatedAt)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>
-                          {turns} {turns === 1 ? "question" : "questions"}
-                        </span>
-                        {active && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="text-accent">Open</span>
-                          </>
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete "${conversation.title}"`}
-                      title="Delete"
-                      className="mr-1 inline-flex size-11 shrink-0 self-center items-center justify-center rounded-control text-muted transition-colors hover:bg-danger-soft hover:text-danger sm:size-10"
-                      onClick={() => history.remove(conversation.id)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- coach memos ---------------- */
-
-/** Section labels the coach is prompted to use. Recognised here so a memo can
- * render them as a ruled left-label column instead of a wall of prose. */
-const MEMO_LABELS = new Set([
-  "WHAT I SEE",
-  "WHAT TO DO",
-  "WORKING WELL",
-  "NEEDS ATTENTION",
-  "NEXT ACTIONS",
-  "NEXT STEPS",
-  "WHY",
-]);
-
-type MemoBlock =
-  | { kind: "section"; label: string; body: string }
-  | { kind: "text"; body: string };
-
-const HEADLINE_MAX = 92;
-
-/** Split an answer into an optional headline and labelled sections.
- *
- * The headline is only the answer's **first paragraph**, and only when that
- * paragraph is a short declarative line — a long opening paragraph is body
- * text, not a title, and setting it in the display serif would shout. Prose
- * the model writes before its first section stays body text; prose after a
- * section closes that section. Everything renders through the same safe
- * formatter, so nothing is lost whichever branch is taken. */
-export function parseMemo(content: string): {
-  headline: string[];
-  blocks: MemoBlock[];
-} {
-  const headline: string[] = [];
-  const blocks: MemoBlock[] = [];
-  let current: { label: string; lines: string[] } | null = null;
-  let seenSection = false;
-  /** Untouched prose seen before the first section head. */
-  let preamble: string[] = [];
-
-  const flush = () => {
-    if (!current) return;
-    blocks.push({
-      kind: "section",
-      label: current.label,
-      body: current.lines.join("\n").trim(),
-    });
-    current = null;
-  };
-
-  const flushPreamble = () => {
-    if (!preamble.length) return;
-    const [first, ...rest] = preamble;
-    const short =
-      first!.length <= HEADLINE_MAX &&
-      !/^\s*[-*\d]/.test(first!) &&
-      rest.every((line) => !line.trim());
-    if (short) headline.push(first!);
-    else blocks.push({ kind: "text", body: preamble.join("\n").trim() });
-    preamble = [];
-  };
-
-  for (const raw of content.split("\n")) {
-    const line = raw.trim();
-    if (!line) {
-      if (current) current.lines.push("");
-      else if (!seenSection) preamble.push("");
-      continue;
-    }
-    const arrow = line.match(/^\*\*([A-Za-z][A-Za-z \-']{2,28}?)\*\*:?\s*(.*)$/);
-    const upper = line.match(
-      /^(WHAT I SEE|WHAT TO DO|WORKING WELL|NEEDS ATTENTION|NEXT ACTIONS|NEXT STEPS|WHY)\b:?\s*(.*)$/i,
-    );
-    const candidate = arrow
-      ? arrow[1]!.trim().toUpperCase()
-      : upper
-        ? upper[1]!.trim().toUpperCase()
-        : null;
-    if (candidate && MEMO_LABELS.has(candidate)) {
-      flush();
-      flushPreamble();
-      seenSection = true;
-      current = { label: candidate, lines: [arrow?.[2] ?? upper?.[2] ?? ""] };
-      continue;
-    }
-    if (current) current.lines.push(line);
-    else if (!seenSection) preamble.push(line);
-    else {
-      flush();
-      blocks.push({ kind: "text", body: line });
-    }
-  }
-  flush();
-  flushPreamble();
-  return { headline, blocks };
-}
-
-/** The memo list: one document, not a chat transcript. Your question becomes
- * the dateline that opens the answer beneath it; each question carries Edit /
- * Copy affordances, and the running answer carries the thinking indicator. */
-function CoachMemos({
-  messages,
-  streaming,
-  elapsed,
-  editingId,
-  editDraft,
-  onEditStart,
-  onEditDraftChange,
-  onEditCancel,
-  onEditSubmit,
-  onRegenerate,
-  taskApi,
-  onTaskAdded,
-}: {
-  messages: ChatMessage[];
-  streaming: boolean;
-  elapsed: number;
-  editingId: string | null;
-  editDraft: string;
-  onEditStart: (message: ChatMessage) => void;
-  onEditDraftChange: (value: string) => void;
-  onEditCancel: () => void;
-  onEditSubmit: (messageId: string, text: string) => void;
-  onRegenerate?: () => void;
-  taskApi?: AiSheetTaskApi;
-  onTaskAdded?: () => void;
-}) {
-  const lastId = messages.at(-1)?.id;
-  return (
-    <div className="flex flex-col gap-6">
-      {messages.map((message, index) =>
-        message.role === "user" ? (
-          <CoachUserTurn
-            key={message.id}
-            message={message}
+            onStop={onStop}
             streaming={streaming}
-            editing={editingId === message.id}
-            editDraft={editDraft}
-            onEditStart={onEditStart}
-            onEditDraftChange={onEditDraftChange}
-            onEditCancel={onEditCancel}
-            onEditSubmit={onEditSubmit}
+            disabled={false}
+            placeholder="Ask about a mock, a weak subject, or what to do next…"
+            meta={composerMeta}
           />
-        ) : (
-          <CoachMemo
-            key={message.id}
-            message={message}
-            streaming={streaming && index === messages.length - 1}
-            elapsed={elapsed}
-            isLatest={message.id === lastId}
-            onRegenerate={onRegenerate}
-            taskApi={taskApi}
-            onTaskAdded={onTaskAdded}
-          />
-        ),
-      )}
-    </div>
-  );
-}
-
-/** One asked question, with the chatbot affordances a transcript needs:
- * copy, and edit-and-resend (the answers after it are discarded, exactly
- * like regenerating from that point in any chat UI). */
-function CoachUserTurn({
-  message,
-  streaming,
-  editing,
-  editDraft,
-  onEditStart,
-  onEditDraftChange,
-  onEditCancel,
-  onEditSubmit,
-}: {
-  message: ChatMessage;
-  streaming: boolean;
-  editing: boolean;
-  editDraft: string;
-  onEditStart: (message: ChatMessage) => void;
-  onEditDraftChange: (value: string) => void;
-  onEditCancel: () => void;
-  onEditSubmit: (messageId: string, text: string) => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const editRef = useRef<HTMLTextAreaElement>(null);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1_600);
-    } catch {
-      // Clipboard unavailable (permissions/insecure context); ignore quietly.
-    }
-  };
-
-  return (
-    <div className="border-t border-rule-soft pt-4 first:border-t-0 first:pt-0">
-      <p className="section-label">Asked</p>
-      {editing ? (
-        <form
-          className="mt-1.5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const value = editDraft.trim();
-            if (!value || streaming) return;
-            onEditSubmit(message.id, value);
-          }}
-        >
-          <textarea
-            ref={editRef}
-            rows={3}
-            maxLength={4000}
-            value={editDraft}
-            autoFocus
-            aria-label="Edit your question"
-            className="w-full resize-y text-sm leading-relaxed"
-            onChange={(event) => onEditDraftChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing
-              ) {
-                event.preventDefault();
-                const value = editDraft.trim();
-                if (value && !streaming) onEditSubmit(message.id, value);
-              }
-            }}
-          />
-          <div className="action-row mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-11 sm:min-h-0"
-              onClick={onEditCancel}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="min-h-11 sm:min-h-0"
-              disabled={!editDraft.trim() || streaming}
-            >
-              Save &amp; resend
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <>
-          <p className="mt-1.5 text-sm leading-snug text-ink">
-            {message.content}
-          </p>
-          <div className="mt-1.5 flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onEditStart(message)}
-              aria-label="Edit this question and resend"
-              className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
-            >
-              <Pencil size={12} /> Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => void copy()}
-              aria-label={copied ? "Copied" : "Copy question"}
-              className="ml-2 inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-/** The blinking terminal caret that marks a running answer. */
-function StreamCaret() {
-  return <span className="stream-caret" aria-hidden="true" />;
-}
-
-function CoachMemo({
-  message,
-  streaming,
-  elapsed,
-  isLatest,
-  onRegenerate,
-  taskApi,
-  onTaskAdded,
-}: {
-  message: ChatMessage;
-  streaming: boolean;
-  elapsed: number;
-  isLatest: boolean;
-  onRegenerate?: () => void;
-  taskApi?: AiSheetTaskApi;
-  onTaskAdded?: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const parsed = useMemo(
-    () => parseTaskSuggestions(message.content),
-    [message.content],
-  );
-  const memo = useMemo(() => parseMemo(parsed.text), [parsed.text]);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1_600);
-    } catch {
-      // Clipboard unavailable (permissions/insecure context); ignore quietly.
-    }
-  };
-
-  if (!message.content) {
-    // The stream is connected but the first token has not landed. Thinking
-    // models can spend a long while here, so the indicator carries a clock.
-    if (streaming) {
-      return (
-        <p className="inline-flex items-center gap-2.5 text-sm text-muted">
-          <span className="thinking-dots" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <span role="status">
-            Thinking{elapsed > 0 ? ` · ${elapsed}s` : ""}
-          </span>
-        </p>
-      );
-    }
-    return <p className="text-sm text-muted">No response.</p>;
-  }
-
-  const lastBlockIndex = memo.blocks.length - 1;
-
-  return (
-    <article className="ai-memo min-w-0 break-words">
-      {memo.headline.length > 0 && (
-        <h3 className="font-serif text-[1.0625rem] font-medium leading-snug text-ink">
-          <MessageContent content={memo.headline.join("\n")} />
-        </h3>
-      )}
-      {memo.blocks.map((block, index) =>
-        block.kind === "section" ? (
-          <div key={index} className="ai-memo-section mt-3">
-            <p className="section-label">{block.label}</p>
-            <div className="ai-memo-body mt-1 text-sm leading-relaxed text-ink">
-              <MessageContent content={block.body} />
-              {streaming && index === lastBlockIndex && <StreamCaret />}
-            </div>
-          </div>
-        ) : (
-          <div
-            key={index}
-            className="mt-2 text-sm leading-relaxed text-ink"
-          >
-            <MessageContent content={block.body} />
-            {streaming && index === lastBlockIndex && <StreamCaret />}
-          </div>
-        ),
-      )}
-      {/* A running answer with sections still owes its caret somewhere. */}
-      {streaming && memo.blocks.length === 0 && <StreamCaret />}
-      {parsed.suggestions.map((suggestion, index) => (
-        <TaskSuggestionCard
-          key={`${message.id}-${index}`}
-          suggestion={suggestion}
-          taskApi={taskApi}
-          onTaskAdded={onTaskAdded}
-        />
-      ))}
-      {message.truncated && !streaming && (
-        <p className="mt-3 border-t border-rule-soft pt-2 text-[11px] text-muted">
-          This reply was cut off before it finished — increase the output limit
-          or try again.
-        </p>
-      )}
-      <div className="mt-3 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => void copy()}
-          aria-label={copied ? "Copied" : "Copy answer"}
-          className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
-        >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-        {!streaming && isLatest && onRegenerate && (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            aria-label="Regenerate this answer"
-            className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-ink"
-          >
-            <RotateCcw size={12} /> Regenerate
-          </button>
-        )}
-      </div>
-    </article>
-  );
-}
-
-/** Minimal safe formatter over plain strings — no HTML, no dangerouslySet.
- * Supports paragraphs, "-" bullets, fenced code, ### headings, **bold**,
- * `inline code`, and bare https?:// links. */
-function MessageContent({ content }: { content: string }) {
-  const lines = content.split("\n");
-  const blocks: ReactNode[] = [];
-  let list: string[] = [];
-  let code: string[] = [];
-  let inCode = false;
-
-  const flushList = () => {
-    if (!list.length) return;
-    blocks.push(
-      <ul
-        key={`list-${blocks.length}`}
-        className="my-1 flex flex-col gap-0.5 pl-4 list-disc"
-      >
-        {list.map((item, index) => (
-          <li key={index}>{inlineNodes(item)}</li>
-        ))}
-      </ul>,
-    );
-    list = [];
-  };
-  const flushCode = () => {
-    if (!code.length) return;
-    blocks.push(
-      <pre
-        key={`code-${blocks.length}`}
-        className="my-1 overflow-x-auto rounded-control border border-rule-soft bg-paper p-2 text-[11px]"
-      >
-        <code>{code.join("\n")}</code>
-      </pre>,
-    );
-    code = [];
-  };
-
-  for (const line of lines) {
-    if (line.trim().startsWith("```")) {
-      flushList();
-      if (inCode) {
-        flushCode();
-        inCode = false;
-      } else {
-        inCode = true;
-      }
-      continue;
-    }
-    if (inCode) {
-      code.push(line);
-      continue;
-    }
-    const heading = line.match(/^#{1,4}\s+(.*)$/);
-    if (heading) {
-      flushList();
-      blocks.push(
-        <p
-          key={`h-${blocks.length}`}
-          className="mt-1.5 font-serif text-[15px] font-medium leading-snug"
-        >
-          {inlineNodes(heading[1]!)}
-        </p>,
-      );
-      continue;
-    }
-    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
-    if (bullet) {
-      list.push(bullet[1]!);
-      continue;
-    }
-    flushList();
-    if (line.trim()) {
-      blocks.push(
-        <p key={`p-${blocks.length}`} className="my-0.5 whitespace-pre-wrap">
-          {inlineNodes(line)}
-        </p>,
-      );
-    }
-  }
-  flushList();
-  flushCode();
-  return <>{blocks.length ? blocks : content}</>;
-}
-
-/** Inline formatting: **bold**, `code`, and bare http(s) links. Built from
- * plain-string regex only — never HTML. */
-function inlineNodes(text: string): ReactNode[] {
-  const pattern = /(\*\*[^*]+\*\*)|(`[^`]+`)|(https?:\/\/[^\s<>()\[\]{}"']+)/g;
-  const nodes: ReactNode[] = [];
-  let last = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > last) nodes.push(text.slice(last, match.index));
-    const [raw, bold, code, url] = match;
-    if (bold) {
-      nodes.push(
-        <strong key={`b-${key++}`} className="font-semibold">
-          {bold.slice(2, -2)}
-        </strong>,
-      );
-    } else if (code) {
-      nodes.push(
-        <code
-          key={`c-${key++}`}
-          className="rounded-[3px] bg-paper px-1 py-0.5 text-[12px]"
-        >
-          {code.slice(1, -1)}
-        </code>,
-      );
-    } else if (url) {
-      nodes.push(
-        <a
-          key={`u-${key++}`}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="text-accent underline decoration-dotted underline-offset-2 hover:text-accent-hover"
-        >
-          {linkHost(url) ?? url}
-        </a>,
-      );
-    } else {
-      nodes.push(raw);
-    }
-    last = match.index + raw.length;
-  }
-  if (last < text.length) nodes.push(text.slice(last));
-  return nodes;
-}
-
-/* ---------------- task suggestion card ---------------- */
-
-function TaskSuggestionCard({
-  suggestion,
-  taskApi,
-  onTaskAdded,
-}: {
-  suggestion: TaskSuggestion;
-  taskApi?: AiSheetTaskApi;
-  onTaskAdded?: () => void;
-}) {
-  const [state, setState] = useState<
-    "pending" | "busy" | "added" | "failed" | "dismissed"
-  >("pending");
-  const [failure, setFailure] = useState("");
-  const host = suggestion.url ? linkHost(suggestion.url) : null;
-  // Personal todos now require a date; when the model leaves one out, the
-  // confirmation card defaults to today (IST) instead of failing on save.
-  const dueDate = suggestion.dueDate ?? istTodayIso();
-
-  const add = () => {
-    if (!taskApi || (state !== "pending" && state !== "failed")) return;
-    setState("busy");
-    taskApi
-      .createPersonalTask({
-        title: suggestion.title,
-        notes: suggestion.notes || undefined,
-        dueDate,
-        url: suggestion.url,
-        category: suggestion.category,
-        priority: suggestion.priority,
-        status: "todo",
-      })
-      .then(() => {
-        setState("added");
-        onTaskAdded?.();
-      })
-      .catch((cause: unknown) => {
-        setState("failed");
-        setFailure(
-          cause instanceof Error ? cause.message : "Could not add the task.",
-        );
-      });
-  };
-
-  if (state === "dismissed") return null;
-  return (
-    <div
-      role="group"
-      aria-label="Task suggestion from the coach"
-      className="mt-3 border-l-2 border-l-accent bg-paper py-2 pl-3"
-    >
-      <p className="section-label text-accent">Suggested task</p>
-      <p className="mt-1.5 text-[13px] font-medium leading-snug">
-        {suggestion.title}
-      </p>
-      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-        <span className="rounded-pill border border-rule-soft bg-soft px-2 py-0.5">
-          {suggestion.category === "other"
-            ? "Personal"
-            : suggestion.category.replace(/_/g, " ")}
-        </span>
-        {dueDate && <span className="tabular">Due {dueDate}</span>}
-        {suggestion.priority !== "normal" && (
-          <span
-            className={
-              suggestion.priority === "high" ? "text-accent font-medium" : ""
-            }
-          >
-            {suggestion.priority} priority
-          </span>
-        )}
-        {host && <span className="truncate">Link: {host}</span>}
-      </p>
-      {suggestion.notes && (
-        <p className="mt-1 text-[11px] leading-relaxed text-muted">
-          {suggestion.notes}
-        </p>
-      )}
-      {suggestion.urlRemovedReason && (
-        <p className="mt-1 text-[11px] text-warning">
-          {suggestion.urlRemovedReason}
-        </p>
-      )}
-      {state === "added" ? (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-positive">
-          <Check size={13} /> Added to My Tasks
-        </p>
-      ) : state === "failed" ? (
-        <div className="mt-2">
-          <p role="alert" className="text-xs text-danger">
-            {failure}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-1.5"
-            onClick={add}
-          >
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-2.5 flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            className="min-h-11 flex-1 sm:min-h-0 sm:flex-none"
-            onClick={add}
-            disabled={!taskApi || state === "busy"}
-          >
-            {state === "busy" ? "Adding…" : "Add task"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="min-h-11 sm:min-h-0"
-            onClick={() => setState("dismissed")}
-            disabled={state === "busy"}
-          >
-            Dismiss
-          </Button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

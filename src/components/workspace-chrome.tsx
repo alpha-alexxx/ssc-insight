@@ -186,6 +186,7 @@ export function WorkspaceChrome({
           initialTab={aiChatTab}
           messages={ai.chat.messages}
           streaming={ai.chat.streaming}
+          phase={ai.chat.phase}
           error={ai.chat.error}
           // Names the screen the coach is looking at, so an answer is never
           // ambiguous about which view it was asked from.

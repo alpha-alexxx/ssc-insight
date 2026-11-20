@@ -10,9 +10,12 @@ import {
 import { ArrowDown, ChevronDown, Pencil } from "lucide-react";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";
+import type { AiSheetTaskApi } from "./task-suggestion-card";
+import { parseTaskSuggestions } from "@/lib/ai/task-suggestion";
 import { Markdown } from "./markdown";
 import { CopyButton } from "./copy-button";
 import { ThinkingIndicator } from "./thinking-indicator";
+import { TaskSuggestionCard } from "./task-suggestion-card";
 import { cn } from "@/lib/utils";
 
 export type ChatTranscriptProps = {
@@ -25,6 +28,11 @@ export type ChatTranscriptProps = {
   onRetry?: () => void;
   onEditResend?: (messageId: string, text: string) => void;
   onRegenerate?: () => void;
+  /** Personal-task creator for coach-suggested task cards (read-only AI;
+   * the card's Add click performs the real write). */
+  taskApi?: AiSheetTaskApi;
+  /** Shell feedback (toast) after a suggested task is added. */
+  onTaskAdded?: () => void;
   /** Rendered when there are no messages yet (quick questions, setup). */
   emptyState?: React.ReactNode;
   error?: string;
@@ -168,6 +176,42 @@ function ReasoningDisclosure({
 }
 
 /**
+ * One assistant answer: the prose as markdown, plus any ```task-suggestion
+ * blocks the coach appended, rendered as confirm-before-write cards. The
+ * fenced block stays in the stored content (Copy copies what was said), so
+ * it is stripped for display only, here — the one place both chat surfaces
+ * render answers.
+ */
+function AssistantBody({
+  message,
+  live,
+  taskApi,
+  onTaskAdded,
+}: {
+  message: ChatMessage;
+  live: boolean;
+  taskApi?: AiSheetTaskApi;
+  onTaskAdded?: () => void;
+}) {
+  const { text, suggestions } = parseTaskSuggestions(message.content);
+  return (
+    <>
+      {text.trim() || !suggestions.length ? (
+        <Markdown content={text} streaming={live} />
+      ) : null}
+      {suggestions.map((suggestion, index) => (
+        <TaskSuggestionCard
+          key={`${message.id}-${index}`}
+          suggestion={suggestion}
+          taskApi={taskApi}
+          onTaskAdded={onTaskAdded}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
  * The chat transcript shared by the side sheet and the /ask page: one
  * `role="log"` scroller of turns — the user's question as a restrained soft
  * surface, the answer as full-width markdown — with per-turn actions, the
@@ -181,6 +225,8 @@ export function ChatTranscript({
   onRetry,
   onEditResend,
   onRegenerate,
+  taskApi,
+  onTaskAdded,
   emptyState,
   error,
   className,
@@ -259,9 +305,11 @@ export function ChatTranscript({
                         />
                       ) : null}
                       {message.content ? (
-                        <Markdown
-                          content={message.content}
-                          streaming={live || (isLast && streaming)}
+                        <AssistantBody
+                          message={message}
+                          live={live || (isLast && streaming)}
+                          taskApi={taskApi}
+                          onTaskAdded={onTaskAdded}
                         />
                       ) : isLast && streaming ? (
                         <ThinkingIndicator
