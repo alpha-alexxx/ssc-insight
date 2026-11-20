@@ -12,6 +12,8 @@ import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
 import { useUiStore } from "@/stores/ui-store";
 import { AI_VIEWS, type AiScreenContext, type AiView } from "@/lib/ai/client-types";
 import { istTodayIso } from "@/lib/plan/view-model";
+import { shortDate } from "@/lib/format";
+import { VIEW_META } from "./app-shell";
 import { usePlanData } from "./use-plan-data";
 
 /**
@@ -130,6 +132,13 @@ export function WorkspaceChrome({
           messages={ai.chat.messages}
           streaming={ai.chat.streaming}
           error={ai.chat.error}
+          // Names the screen the coach is looking at, so an answer is never
+          // ambiguous about which view it was asked from.
+          contextLabel={
+            aiScreenContext?.date != null
+              ? `${VIEW_META[view].label} · ${shortDate(`${aiScreenContext.date}T12:00:00+05:30`)}`
+              : undefined
+          }
           configured={!!ai.aiStatus?.enabled}
           onSend={(text) => void ai.chat.send(text, aiScreenContext)}
           onRetry={() => ai.chat.retryLast()}

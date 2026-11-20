@@ -2,6 +2,18 @@ import { create } from "zustand";
 import { istTodayIso } from "@/lib/plan/view-model";
 
 /**
+ * A reviewed mock draft handed from the AI panel to /add.
+ *
+ * Declared structurally rather than importing `LogMockPayload` from the sheet:
+ * the store must not depend on a component module (it would pull the whole AI
+ * panel into every consumer's graph). `LogMockPayload` is assignable to this.
+ */
+export type MockPrefillDraft = {
+  values: Record<string, unknown>;
+  date: string;
+};
+
+/**
  * Global shell UI state, on Zustand.
  *
  * Scope rules (see docs/state-audit.md and AGENTS.md):
@@ -54,8 +66,8 @@ type UiState = {
    * content, and a query parameter would put it in browser history, in any
    * proxy log, and in a shared link. `MockForm` stays the sole save path.
    */
-  mockPrefill: unknown | null;
-  requestMockPrefill: (draft: unknown) => void;
+  mockPrefill: MockPrefillDraft | null;
+  requestMockPrefill: (draft: MockPrefillDraft) => void;
   consumeMockPrefill: () => void;
 };
 

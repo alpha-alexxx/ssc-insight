@@ -44,6 +44,8 @@ function AddRouteInner() {
   const [prefill, setPrefill] = useState<LogMockPayload | null>(() => {
     const draft = useUiStore.getState().mockPrefill;
     if (draft) useUiStore.getState().consumeMockPrefill();
+    // The store's structural type is assignable to LogMockPayload; the cast is
+    // the one boundary where the store's looser declaration meets the form.
     return (draft as LogMockPayload | null) ?? null;
   });
 
