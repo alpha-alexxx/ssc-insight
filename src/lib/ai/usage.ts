@@ -172,3 +172,48 @@ export async function getAiUsageToday(userId: string, limits: AiQuotaLimits) {
     retryAfterSeconds: secondsUntilIstMidnight(),
   };
 }
+
+/** Client-safe row of the usage ledger: what the AI did, never what it said. */
+export type AiActivityEntry = {
+  id: string;
+  day: string;
+  feature: string;
+  model: string;
+  status: "pending" | "success" | "error" | "aborted";
+  tokensCharged: number;
+  errorCode: string | null;
+  createdAt: string;
+};
+
+/** The most recent ledger rows for one account, newest first. Owner-scoped
+ * by the caller; rows carry no prompt or response content by design. */
+export async function listRecentAiUsage(
+  userId: string,
+  limit = 30,
+): Promise<AiActivityEntry[]> {
+  const rows = await database().aiUsage.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(Math.max(1, limit), 100),
+    select: {
+      id: true,
+      day: true,
+      feature: true,
+      model: true,
+      status: true,
+      tokensCharged: true,
+      errorCode: true,
+      createdAt: true,
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    day: row.day,
+    feature: row.feature,
+    model: row.model,
+    status: row.status,
+    tokensCharged: row.tokensCharged,
+    errorCode: row.errorCode,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}

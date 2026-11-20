@@ -56,6 +56,7 @@ export const VIEW_META: Record<
   compare: { label: "Compare mocks", icon: "compare" },
   performance: { label: "Performance", icon: "report" },
   add: { label: "Log a mock", icon: "add" },
+  ask: { label: "Ask AI", icon: "sparkles" },
   trash: { label: "Trash", icon: "trash" },
   settings: { label: "Settings", icon: "settings" },
 };
@@ -147,6 +148,12 @@ export const NAV_GROUPS: {
       { view: "history", label: "Mock history", href: VIEW_HREF.history },
       { view: "compare", label: "Compare mocks", href: VIEW_HREF.compare },
       { view: "performance", label: "Performance", href: VIEW_HREF.performance },
+    ],
+  },
+  {
+    label: "Coach",
+    items: [
+      { view: "ask", label: "Ask AI", href: VIEW_HREF.ask },
     ],
   },
 ];

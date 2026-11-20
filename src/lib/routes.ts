@@ -24,6 +24,7 @@ export const VIEW_PATH = {
   compare: "/compare",
   performance: "/performance",
   add: "/add",
+  ask: "/ask",
   trash: "/trash",
   settings: "/settings",
 } as const;
