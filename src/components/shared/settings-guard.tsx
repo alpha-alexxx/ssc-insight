@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -172,16 +173,42 @@ export function useOptionalSettingsGuard(): SettingsGuard | null {
   return useContext(SettingsGuardContext);
 }
 
-/** Register one panel's draft with the guard. Call with `null` on unmount. */
+/** Stable no-registration draft, so a null panel never churns identities. */
+const NO_DRAFT: PanelDraft = {
+  isDirty: false,
+  reset: () => undefined,
+  save: () => undefined,
+};
+
+/**
+ * Register one panel's draft with the guard. Unregisters on unmount.
+ *
+ * The guard context value is re-created whenever ANY panel registers (the
+ * provider memo tracks the drafts record through `requestSection`), so the
+ * context identity must NOT sit in these effects' dependencies: an
+ * unregister-cleanup keyed on it would run on every registration anywhere
+ * and ping-pong against the register here — remove, re-add, remove — each
+ * beat storing a fresh draft object and re-creating the context, until React
+ * exceeds the update depth. Reading the guard through a ref keeps these
+ * effects keyed on the draft's own fields alone; the register-side equality
+ * check then makes a same-values re-registration a no-op.
+ */
 export function usePanelDraft(section: string, draft: PanelDraft | null) {
   const guard = useOptionalSettingsGuard();
-  const { isDirty, reset, save } = draft ?? {
-    isDirty: false,
-    reset: () => {},
-    save: () => {},
-  };
+  const guardRef = useRef(guard);
+  // The latest-ref pattern: this effect runs after every render (no deps),
+  // so `registerDraft` below always reaches the current provider without
+  // the context identity sitting in its dependencies.
   useEffect(() => {
-    guard?.register(section, { isDirty, reset, save });
-  }, [guard, isDirty, reset, save, section]);
-  useEffect(() => () => guard?.register(section, null), [guard, section]);
+    guardRef.current = guard;
+  });
+  const { isDirty, reset, save } = draft ?? NO_DRAFT;
+  const registerDraft = useCallback(
+    () => guardRef.current?.register(section, { isDirty, reset, save }),
+    [isDirty, reset, save, section],
+  );
+  useEffect(() => {
+    registerDraft();
+    return () => guardRef.current?.register(section, null);
+  }, [registerDraft, section]);
 }
