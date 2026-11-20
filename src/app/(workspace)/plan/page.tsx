@@ -1,10 +1,20 @@
+import { requireUser } from "@/lib/auth/require-user";
+
 /**
- * `/plan` is a valid route so the bare path does not 404 — but it renders
- * nothing itself. The `(workspace)` layout deliberately discards `children`
- * (the shell derives the view from the pathname), so a `redirect()` here
- * would never run; the shell resolves `/plan` to today in IST and replaces
- * the URL. See `workspace-shell.tsx`.
+ * Route placeholder: /plan.
+ *
+ * This file exists to define the address and to authenticate it. The
+ * (workspace) layout still renders the daily plan on the client until this route is
+ * migrated to its own Server Component; that migration replaces this file with
+ * one that prefetches its own data and renders its colocated components.
+ *
+ * `requireUser()` is required on every page regardless: server components and
+ * route handlers are the real security boundary, and the proxy's page guard is
+ * only convenience.
  */
-export default function PlanIndexPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PlanPage() {
+  await requireUser();
   return null;
 }

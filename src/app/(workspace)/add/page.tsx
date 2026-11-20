@@ -1,8 +1,20 @@
+import { requireUser } from "@/lib/auth/require-user";
+
 /**
- * Route placeholder: the workspace shell in the group layout renders the
- * mock-entry form (the view is derived from the pathname so its state
- * survives navigation). This file exists to define the /add route.
+ * Route placeholder: /add.
+ *
+ * This file exists to define the address and to authenticate it. The
+ * (workspace) layout still renders the mock form on the client until this route is
+ * migrated to its own Server Component; that migration replaces this file with
+ * one that prefetches its own data and renders its colocated components.
+ *
+ * `requireUser()` is required on every page regardless: server components and
+ * route handlers are the real security boundary, and the proxy's page guard is
+ * only convenience.
  */
-export default function AddPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AddPage() {
+  await requireUser();
   return null;
 }

@@ -1,8 +1,20 @@
+import { requireUser } from "@/lib/auth/require-user";
+
 /**
- * Route placeholder: the workspace shell in the group layout renders the
- * settings panels (the view is derived from the pathname so its state
- * survives navigation). This file exists to define the /settings route.
+ * Route placeholder: /settings.
+ *
+ * This file exists to define the address and to authenticate it. The
+ * (workspace) layout still renders settings on the client until this route is
+ * migrated to its own Server Component; that migration replaces this file with
+ * one that prefetches its own data and renders its colocated components.
+ *
+ * `requireUser()` is required on every page regardless: server components and
+ * route handlers are the real security boundary, and the proxy's page guard is
+ * only convenience.
  */
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  await requireUser();
   return null;
 }

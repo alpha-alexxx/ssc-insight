@@ -1,8 +1,20 @@
+import { requireUser } from "@/lib/auth/require-user";
+
 /**
- * Route placeholder: the workspace shell renders the weekly planner for the
- * date in the URL (/plan/week/2026-11-01). This file defines the route; the
- * shell derives the view from the pathname so its state survives navigation.
+ * Route placeholder: /plan/week/[date].
+ *
+ * This file exists to define the address and to authenticate it. The
+ * (workspace) layout still renders the daily study workspace on the client until this route is
+ * migrated to its own Server Component; that migration replaces this file with
+ * one that prefetches its own data and renders its colocated components.
+ *
+ * `requireUser()` is required on every page regardless: server components and
+ * route handlers are the real security boundary, and the proxy's page guard is
+ * only convenience.
  */
-export default function PlanWeekPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PlanWeekPage() {
+  await requireUser();
   return null;
 }

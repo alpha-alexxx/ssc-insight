@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AI_VIEWS } from "../src/lib/ai/client-types";
 import { VIEW_META } from "../src/components/app-shell";
@@ -110,4 +110,71 @@ test("every workspace view has a real route file", () => {
     if (!existsSync(file)) missing.push(`${view} -> ${path}`);
   }
   assert.deepEqual(missing, [], `views without a route file: ${missing.join(", ")}`);
+});
+
+test("every workspace route has a page, a loading skeleton and an error boundary", () => {
+  const missing: string[] = [];
+  for (const view of ALL_VIEWS) {
+    if (view === "plan") continue; // nested dynamic routes, checked separately
+    const dir = join(
+      process.cwd(),
+      "src",
+      "app",
+      "(workspace)",
+      VIEW_HREF[view].replace(/^\//, ""),
+    );
+    for (const file of ["page.tsx", "loading.tsx", "error.tsx"]) {
+      if (!existsSync(join(dir, file))) missing.push(`${view} -> ${file}`);
+    }
+  }
+  assert.deepEqual(missing, [], `routes without required files: ${missing.join(", ")}`);
+});
+
+test("no workspace page is a client component", () => {
+  const offenders: string[] = [];
+  for (const view of ALL_VIEWS) {
+    if (view === "plan") continue;
+    const file = join(
+      process.cwd(),
+      "src",
+      "app",
+      "(workspace)",
+      VIEW_HREF[view].replace(/^\//, ""),
+      "page.tsx",
+    );
+    if (!existsSync(file)) continue;
+    if (/^\s*["']use client["']/m.test(readFileSync(file, "utf8"))) {
+      offenders.push(view);
+    }
+  }
+  assert.deepEqual(offenders, [], `client-component pages: ${offenders.join(", ")}`);
+});
+
+test("every workspace page authenticates with requireUser", () => {
+  const offenders: string[] = [];
+  for (const view of ALL_VIEWS) {
+    if (view === "plan") continue;
+    const file = join(
+      process.cwd(),
+      "src",
+      "app",
+      "(workspace)",
+      VIEW_HREF[view].replace(/^\//, ""),
+      "page.tsx",
+    );
+    if (!existsSync(file)) continue;
+    if (!/requireUser\s*\(/.test(readFileSync(file, "utf8"))) offenders.push(view);
+  }
+  assert.deepEqual(offenders, [], `pages without requireUser: ${offenders.join(", ")}`);
+});
+
+test("every dynamic route has its loading, error and not-found files", () => {
+  const missing: string[] = [];
+  for (const rel of ["plan/[date]", "plan/week/[date]"]) {
+    for (const file of ["page.tsx", "loading.tsx", "error.tsx", "not-found.tsx"]) {
+      const full = join(process.cwd(), "src", "app", "(workspace)", rel, file);
+      if (!existsSync(full)) missing.push(`${rel} -> ${file}`);
+    }
+  }
+  assert.deepEqual(missing, [], `dynamic routes missing: ${missing.join(", ")}`);
 });

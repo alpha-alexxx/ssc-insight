@@ -1,7 +1,20 @@
+import { requireUser } from "@/lib/auth/require-user";
+
 /**
- * Route placeholder: the workspace shell in the group layout renders the
- * Trash view. This file exists to define the /trash route.
+ * Route placeholder: /trash.
+ *
+ * This file exists to define the address and to authenticate it. The
+ * (workspace) layout still renders the Trash list on the client until this route is
+ * migrated to its own Server Component; that migration replaces this file with
+ * one that prefetches its own data and renders its colocated components.
+ *
+ * `requireUser()` is required on every page regardless: server components and
+ * route handlers are the real security boundary, and the proxy's page guard is
+ * only convenience.
  */
-export default function TrashPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TrashPage() {
+  await requireUser();
   return null;
 }
