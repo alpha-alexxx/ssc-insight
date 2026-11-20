@@ -81,3 +81,15 @@ export function useAnalyticsData({
     },
   };
 }
+
+/**
+ * The unfiltered attempt list on its own.
+ *
+ * The plan day view needs the attempts to match against plan tasks but not the
+ * analytics payload; asking for the whole analytics bundle there would build
+ * charts nobody renders.
+ */
+export function useAllAttempts(): Attempt[] {
+  const query = useQuery(allAttemptsQueryOptions);
+  return query.data ?? EMPTY_ATTEMPTS;
+}

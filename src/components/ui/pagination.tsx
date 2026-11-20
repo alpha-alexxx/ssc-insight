@@ -1,5 +1,5 @@
 import * as React from "react";
-import { PlainIcon } from "../icon";
+import { PlainIcon } from "@/components/icon";
 import { cn } from "@/lib/utils";
 
 /**

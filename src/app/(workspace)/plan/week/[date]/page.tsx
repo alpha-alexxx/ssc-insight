@@ -1,20 +1,40 @@
+import { notFound } from "next/navigation";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
+import { prefetchInto } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { getPlanPayload } from "@/lib/plan/progress";
+import { istTodayIso } from "@/lib/plan/view-model";
+import { isIsoDate } from "@/lib/format";
+import { planKeys } from "@/lib/queries/plan";
+import { PlanWeekRoute } from "./_plan-week/plan-week-route";
 
-/**
- * Route placeholder: /plan/week/[date].
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders the daily study workspace on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
-export default async function PlanWeekPage() {
-  await requireUser();
-  return null;
+/** `/plan/week/[date]` — the seven-day schedule around the named date. */
+export default async function PlanWeekPage({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}) {
+  const { date } = await params;
+  if (!isIsoDate(date)) notFound();
+
+  const { id: userId } = await requireUser();
+  const queryClient = getQueryClient();
+  await prefetchInto(queryClient, [
+    {
+      key: planKeys.current(),
+      load: async () => ({
+        ...(await getPlanPayload(userId)),
+        today: istTodayIso(),
+      }),
+    },
+  ]);
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <PlanWeekRoute date={date} />
+    </HydrationBoundary>
+  );
 }

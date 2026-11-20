@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PrivateWorkspace } from "@/components/private-workspace";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceChrome } from "@/components/workspace-chrome";
 import { QueryProvider } from "@/components/query-provider";
 import { ExamScopeProvider } from "@/components/exam-context";
 import { ToastProvider } from "@/components/toast";
@@ -11,21 +11,19 @@ import { SessionError } from "@/lib/auth/session-policy";
 export const dynamic = "force-dynamic";
 
 /**
- * Auth gate and provider host for every workspace route.
+ * Auth gate and chrome host for every workspace route.
  *
- * Responsibilities, in order:
  *  1. Authenticate. The proxy guards these paths too; this is the second line
  *     of defense (Server Components and direct handler calls can bypass the
  *     proxy matcher).
  *  2. Mount the providers that must outlive a route change: the TanStack cache
  *     (which dies with the session), the exam scope, and toasts.
- *  3. Render the chrome once and pass the routed page through as `children`.
+ *  3. Render the chrome once — sidebar, header, palette, AI drawer — and pass
+ *     the routed page through as `children`.
  *
- * The providers used to live inside `WorkspaceShell`, which also discarded
- * `children` and rendered every view itself. Mounting them here instead means a
- * route page is a real Server Component that can prefetch and hydrate its own
- * data, while the sidebar and the AI drawer stay mounted across navigation
- * (the layout is not re-rendered when only the page segment changes).
+ * The layout does not re-render when only the page segment changes, which is
+ * what keeps the sidebar mounted and the AI drawer's transcript alive while
+ * /dashboard becomes /history.
  */
 export default async function WorkspaceLayout({
   children,
@@ -46,7 +44,7 @@ export default async function WorkspaceLayout({
       <QueryProvider>
         <ExamScopeProvider>
           <ToastProvider>
-            <WorkspaceShell
+            <WorkspaceChrome
               defaultSidebarOpen={defaultSidebarOpen}
               authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
               userEmail={user.email ?? ""}
@@ -54,7 +52,7 @@ export default async function WorkspaceLayout({
               userImage={user.image ?? ""}
             >
               {children}
-            </WorkspaceShell>
+            </WorkspaceChrome>
           </ToastProvider>
         </ExamScopeProvider>
       </QueryProvider>

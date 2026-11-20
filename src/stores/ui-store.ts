@@ -46,6 +46,17 @@ type UiState = {
   consumedQuickAddNonce: number;
   requestQuickAdd: () => void;
   consumeQuickAdd: () => void;
+
+  /**
+   * One-shot reviewed mock draft handed from the AI panel to /add.
+   *
+   * It lives here, not in the URL: the draft contains the user's own mock
+   * content, and a query parameter would put it in browser history, in any
+   * proxy log, and in a shared link. `MockForm` stays the sole save path.
+   */
+  mockPrefill: unknown | null;
+  requestMockPrefill: (draft: unknown) => void;
+  consumeMockPrefill: () => void;
 };
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -66,4 +77,8 @@ export const useUiStore = create<UiState>()((set) => ({
     set((state) => ({ quickAddNonce: state.quickAddNonce + 1 })),
   consumeQuickAdd: () =>
     set((state) => ({ consumedQuickAddNonce: state.quickAddNonce })),
+
+  mockPrefill: null,
+  requestMockPrefill: (draft) => set({ mockPrefill: draft }),
+  consumeMockPrefill: () => set({ mockPrefill: null }),
 }));

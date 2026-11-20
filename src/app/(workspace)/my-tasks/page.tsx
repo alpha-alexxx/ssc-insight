@@ -1,20 +1,42 @@
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
+import { prefetchInto } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { getPlanPayload, listPersonalTasks } from "@/lib/plan/progress";
+import { istTodayIso } from "@/lib/plan/view-model";
+import { planKeys } from "@/lib/queries/plan";
+import { todoTasksQueryOptions } from "@/lib/queries/todos";
+import { MyTasksRoute } from "./_tasks/my-tasks-route";
 
-/**
- * Route placeholder: /my-tasks.
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders the task workspace on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
+/**
+ * `/my-tasks` — the personal task workspace.
+ *
+ * Personal tasks and the plan are separate stores, so both are prefetched: the
+ * board renders the tasks, and the plan rail shows what the schedule expects.
+ */
 export default async function MyTasksPage() {
-  await requireUser();
-  return null;
+  const { id: userId } = await requireUser();
+  const queryClient = getQueryClient();
+
+  await prefetchInto(queryClient, [
+    {
+      key: todoTasksQueryOptions.queryKey,
+      load: () => listPersonalTasks(userId),
+    },
+    {
+      key: planKeys.current(),
+      load: async () => ({
+        ...(await getPlanPayload(userId)),
+        today: istTodayIso(),
+      }),
+    },
+  ]);
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <MyTasksRoute />
+    </HydrationBoundary>
+  );
 }

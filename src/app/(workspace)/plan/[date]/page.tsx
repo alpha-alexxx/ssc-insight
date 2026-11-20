@@ -1,20 +1,71 @@
+import { notFound } from "next/navigation";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
+import { prefetchInto } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { loadExamContext } from "@/lib/exam-settings";
+import { listAttempts } from "@/lib/repository";
+import { getPlanPayload } from "@/lib/plan/progress";
+import { istTodayIso } from "@/lib/plan/view-model";
+import { isIsoDate } from "@/lib/format";
+import { attemptKeys } from "@/lib/queries/attempts";
+import { planKeys } from "@/lib/queries/plan";
+import { todoKeys, todoTasksQueryOptions } from "@/lib/queries/todos";
+import { listPersonalTasks } from "@/lib/plan/progress";
+import { PlanDayRoute } from "./_plan/plan-day-route";
 
-/**
- * Route placeholder: /plan/[date].
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders the daily study workspace on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
-export default async function PlanDayPage() {
-  await requireUser();
-  return null;
+/**
+ * `/plan/[date]` — the daily study workspace.
+ *
+ * An unparseable date segment renders the route's `not-found.tsx` rather than
+ * redirecting: the URL is shareable, so the visitor must see that this exact
+ * address has no day behind it.
+ *
+ * The segment is already decoded by Next. Decoding it again throws on a stray
+ * `%` and used to take the whole view down, so the check is a plain shape test.
+ */
+export default async function PlanDayPage({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}) {
+  const { date } = await params;
+  if (!isIsoDate(date)) notFound();
+
+  const { id: userId } = await requireUser();
+  const ctx = await loadExamContext(userId);
+  const queryClient = getQueryClient();
+
+  await prefetchInto(queryClient, [
+    {
+      key: planKeys.current(),
+      load: async () => ({
+        ...(await getPlanPayload(userId)),
+        today: istTodayIso(),
+      }),
+    },
+    {
+      key: todoTasksQueryOptions.queryKey,
+      load: () => listPersonalTasks(userId),
+    },
+    {
+      key: attemptKeys.full(),
+      load: () =>
+        listAttempts(userId, {
+          examId: ctx.activeExamId,
+          tier: ctx.activeTierId,
+          type: "all",
+          subject: "all",
+        }),
+    },
+  ]);
+  void todoKeys;
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <PlanDayRoute date={date} />
+    </HydrationBoundary>
+  );
 }
