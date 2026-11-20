@@ -1,6 +1,6 @@
 "use client";
-import { Panel } from "../dashboard-panels";
-import { PlainIcon } from "../icon";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon } from "@/components/icon";
 import type { Finding } from "@/lib/performance-metrics";
 
 /**

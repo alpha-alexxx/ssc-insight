@@ -4,8 +4,8 @@ import { Panel } from "./dashboard-panels";
 import { PlainIcon } from "./icon";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-import { ScoreBand } from "./performance/score-band";
-import { Sparkline } from "./performance/sparkline";
+import { ScoreBand } from "@/components/shared/charts/score-band";
+import { Sparkline } from "@/components/shared/charts/sparkline";
 import { sparklinePoints } from "@/lib/performance-metrics";
 import type { Analytics } from "@/lib/analytics";
 

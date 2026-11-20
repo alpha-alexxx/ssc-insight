@@ -34,7 +34,7 @@ import {
   targetColor,
 } from "@/lib/chart-theme";
 import { Panel, EmptyChart } from "./dashboard-panels";
-import { ScoreBand } from "./performance/score-band";
+import { ScoreBand } from "@/components/shared/charts/score-band";
 import {
   type DashboardScope,
   type SectionId,

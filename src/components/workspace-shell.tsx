@@ -26,7 +26,6 @@ import { ScopeFilters } from "./scope-filters";
 import { MockDetailDialog } from "./mock-detail-dialog";
 import { AddMockView } from "./add-mock-view";
 import { DashboardView } from "./dashboard-view";
-import { PerformanceView } from "./performance/performance-view";
 import { AiCoachCard } from "./ai-coach-card";
 import { AiChatSheet, type LogMockPayload } from "./ai-chat-sheet";
 import { PageHeader } from "./page-header";
@@ -103,7 +102,7 @@ import { Dialog } from "radix-ui";
  * page, so the shell renders its `children` instead of the legacy `view ===`
  * switch. Each migration adds one entry; Task 20 removes the switch entirely.
  */
-const MIGRATED_VIEWS = new Set<string>(["trash"]);
+const MIGRATED_VIEWS = new Set<string>(["trash", "performance"]);
 
 export function WorkspaceShell({
   authEnabled = false,
@@ -1015,26 +1014,6 @@ function WorkspaceShellInner({
                           setPlannerDate(date);
                           router.push(`/plan/${date}`);
                         }}
-                      />
-                    ) : view === "performance" ? (
-                      <PerformanceView
-                        analytics={analytics}
-                        target={target}
-                        loading={loading}
-                        controls={
-                          <ScopeFilters
-                            mode="scope"
-                            scope={scope}
-                            setScope={setScope}
-                            filters={filters}
-                            setFilters={updateFilters}
-                            changeFilter={changeFilter}
-                            platforms={platforms}
-                            onReset={clearWorkspaceFilters}
-                          />
-                        }
-                        onOpenAttempt={openDetail}
-                        onAdd={add}
                       />
                     ) : (
                       <>
