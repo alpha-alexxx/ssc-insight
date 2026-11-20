@@ -139,7 +139,9 @@ function localFallback(
  * single-layer implementation, so `ApiError.retryAfterSeconds` and the query
  * client's `retryDelay` keep working with no client change.
  */
-export function rateLimitHeadersFor(decision: LimitDecision): HeadersInit {
+export type RateLimitHeaders = Record<string, string>;
+
+export function rateLimitHeadersFor(decision: LimitDecision): RateLimitHeaders {
   if (decision.outcome === "denied") {
     return {
       "X-RateLimit-Limit": String(decision.limit),
