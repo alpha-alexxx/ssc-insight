@@ -120,3 +120,38 @@ function workspacesWithPrefetch(): string[] {
   })(app);
   return out;
 }
+
+test("prefetch keys equal the keys the client hooks build", async () => {
+  // The failure this prevents: the page seeds ["analytics","request","view=all"]
+  // but the hook reads a slightly different key, so the hydrated payload is
+  // fetched and then ignored — silently, with no error anywhere.
+  const { attemptKeys, attemptListQueryOptions } = await import(
+    "../src/lib/queries/attempts"
+  );
+  const paging = {
+    filters: { search: "" },
+    page: 1,
+    pageSize: 10,
+    sort: "date" as const,
+    dir: "desc" as const,
+    withStats: true,
+  };
+  assert.deepEqual(attemptKeys.list(paging), attemptListQueryOptions(paging).queryKey);
+
+  const { trashKeys, trashListParams, trashListQueryOptions } = await import(
+    "../src/lib/queries/trash"
+  );
+  const trashParams = trashListParams({
+    kind: "all",
+    q: "",
+    status: "all",
+    sort: "recent",
+    page: 1,
+  });
+  assert.deepEqual(trashKeys.list(trashParams), trashListQueryOptions(trashParams).queryKey);
+
+  const { analyticsKeys, serializeAnalyticsParams, analyticsQueryOptions } =
+    await import("../src/lib/queries/analytics");
+  const params = serializeAnalyticsParams("all", {});
+  assert.deepEqual(analyticsKeys.request(params), analyticsQueryOptions("all", {}).queryKey);
+});
