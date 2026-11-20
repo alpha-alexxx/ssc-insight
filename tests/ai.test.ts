@@ -898,6 +898,24 @@ test("NDJSON decoding preserves partial lines and multibyte text", () => {
   });
 });
 
+test("wire protocol carries ping and reasoning events and skips unknown types", () => {
+  assert.deepEqual(parseChatEvent(JSON.stringify({ type: "ping" })), {
+    type: "ping",
+  });
+  assert.deepEqual(
+    parseChatEvent(JSON.stringify({ type: "reasoning", text: "hmm" })),
+    { type: "reasoning", text: "hmm" },
+  );
+  // A malformed event (reasoning without text) is skipped, not thrown.
+  assert.equal(
+    parseChatEvent(JSON.stringify({ type: "reasoning" })),
+    null,
+  );
+  // Older clients skip events they do not know — the same parser must stay
+  // forward-compatible when the server gains new event kinds.
+  assert.equal(parseChatEvent(JSON.stringify({ type: "future-thing", x: 1 })), null);
+});
+
 test("AI errors keep specific statuses and cannot become database 503s", async () => {
   const quota = apiError(
     new AiError("AI_QUOTA_EXCEEDED", "Daily limit reached.", 429, 123),

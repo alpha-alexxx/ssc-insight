@@ -301,8 +301,9 @@ test("the extraction and chat contracts keep their pinned strings", () => {
     '"url":"<optional https:// link>"',
     "Never claim the task was saved",
     "You are read-only. Never claim to save",
-    "WHAT I SEE",
-    "WHAT TO DO",
+    // The answer shape contract: markdown rendered by the reading pane.
+    "renders as markdown",
+    "No HTML",
   ]) {
     assert.equal(chat.includes(pinned), true, pinned);
   }

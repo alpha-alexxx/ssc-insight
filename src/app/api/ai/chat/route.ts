@@ -22,9 +22,13 @@ import { consumeRateLimit, requestIdentity } from "@/lib/rate-limit";
 import { aiRateLimited } from "@/lib/ai/errors";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Deep questions on thinking models can run for minutes; the platform clamps
+// this to the deployment plan's ceiling, and the heartbeat below keeps
+// intermediaries from cutting an idle stream before then.
+export const maxDuration = 300;
 
-const MAX_HISTORY_CHARS = 16_000;
+const MAX_HISTORY_CHARS = 48_000;
+const HEARTBEAT_MS = 15_000;
 
 const bodySchema = z
   .object({
@@ -36,7 +40,7 @@ const bodySchema = z
         }),
       )
       .min(1)
-      .max(8),
+      .max(16),
     context: z
       .object({
         // Derived from the shared list: a hand-maintained copy silently
@@ -149,6 +153,16 @@ export async function POST(request: Request) {
         const send = (event: Parameters<typeof encodeNdjson>[0]) => {
           controller.enqueue(encodeNdjson(event));
         };
+        // Written on a timer even when the provider is silent: proxies stop
+        // buffering an idle stream, and the client's "Thinking · Ns" clock
+        // runs on real evidence of a live connection rather than hope.
+        const heartbeat = setInterval(() => {
+          try {
+            send({ type: "ping" });
+          } catch {
+            // The client is already gone; the settle path handles cleanup.
+          }
+        }, HEARTBEAT_MS);
         try {
           send({ type: "start", contextVersion: bundle.context.contextVersion });
           const result = await provider.stream({
@@ -156,6 +170,7 @@ export async function POST(request: Request) {
             maxOutputTokens: config.maxOutputTokens,
             signal,
             onDelta: (text) => send({ type: "delta", text }),
+            onReasoning: (text) => send({ type: "reasoning", text }),
           });
           await settle("success", result);
           send({
@@ -192,6 +207,7 @@ export async function POST(request: Request) {
             // The client is already gone.
           }
         } finally {
+          clearInterval(heartbeat);
           abort.abort();
           try {
             controller.close();

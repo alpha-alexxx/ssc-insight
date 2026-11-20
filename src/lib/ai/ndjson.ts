@@ -8,6 +8,14 @@ export type ChatUsage = {
 
 export type AiChatEvent =
   | { type: "start"; contextVersion: string }
+  /**
+   * Keepalive written on a timer while the provider is silent. Proxies and
+   * the client's own clock both stay honest during a thinking model's long
+   * first stretch. Carries no data; clients that don't know it skip it.
+   */
+  | { type: "ping" }
+  /** Hidden reasoning streamed by thinking models, before any answer text. */
+  | { type: "reasoning"; text: string }
   | { type: "delta"; text: string }
   | { type: "done"; usage: ChatUsage; truncated?: boolean }
   | { type: "error"; code: string; message: string };
@@ -61,6 +69,9 @@ export function parseChatEvent(line: string): AiChatEvent | null {
   const event = value as Record<string, unknown>;
   if (event.type === "start" && typeof event.contextVersion === "string")
     return { type: "start", contextVersion: event.contextVersion };
+  if (event.type === "ping") return { type: "ping" };
+  if (event.type === "reasoning" && typeof event.text === "string")
+    return { type: "reasoning", text: event.text };
   if (event.type === "delta" && typeof event.text === "string")
     return { type: "delta", text: event.text };
   if (event.type === "error" && typeof event.message === "string")
