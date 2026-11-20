@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { AI_VIEWS } from "../src/lib/ai/client-types";
 import { VIEW_META } from "../src/components/app-shell";
@@ -177,4 +177,23 @@ test("every dynamic route has its loading, error and not-found files", () => {
     }
   }
   assert.deepEqual(missing, [], `dynamic routes missing: ${missing.join(", ")}`);
+});
+
+test("no workspace page is a bare placeholder", () => {
+  // A page that authenticates and returns null renders a blank screen with the
+  // chrome around it. That is how /plan silently broke when the client-side
+  // redirect died with the old shell, so it is asserted rather than reviewed.
+  const offenders: string[] = [];
+  const scan = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) scan(full);
+      else if (entry.name === "page.tsx") {
+        const text = readFileSync(full, "utf8");
+        if (/return null;/.test(text)) offenders.push(full);
+      }
+    }
+  };
+  scan(join(process.cwd(), "src", "app", "(workspace)"));
+  assert.deepEqual(offenders, [], `placeholder pages: ${offenders.join(", ")}`);
 });
