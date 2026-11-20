@@ -46,7 +46,6 @@ import { CalendarView } from "./plan/calendar-view";
 import { PlanDayView } from "./plan/plan-day-view";
 import { PlanWeekView } from "./plan/plan-week-view";
 import { SettingsView } from "./settings/settings-view";
-import { TrashView } from "./trash/trash-view";
 import { useToast } from "./toast";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { useThemePrefs, viewTransition } from "./theme-style-provider";
@@ -104,7 +103,7 @@ import { Dialog } from "radix-ui";
  * page, so the shell renders its `children` instead of the legacy `view ===`
  * switch. Each migration adds one entry; Task 20 removes the switch entirely.
  */
-const MIGRATED_VIEWS = new Set<string>();
+const MIGRATED_VIEWS = new Set<string>(["trash"]);
 
 export function WorkspaceShell({
   authEnabled = false,
@@ -910,12 +909,7 @@ function WorkspaceShellInner({
                         description="Target, appearance, account data, and the private workspace."
                       />
                     )}
-                    {view === "trash" && (
-                      <PageHeader
-                        title="Trash"
-                        description="Deleted mocks, tasks, custom exams and groups stay recoverable here for 15 days."
-                      />
-                    )}
+                    {/* Migrated views render their own header inside the page. */}
                     {(error || listError) && (
                       <div
                         role="alert"
@@ -1005,8 +999,6 @@ function WorkspaceShellInner({
                         backup={backup}
                         onOpenReplace={() => backup.setReplaceOpen(true)}
                       />
-                    ) : view === "trash" ? (
-                      <TrashView />
                     ) : view === "dashboard" ? (
                       <DashboardView
                         planApi={planApi}

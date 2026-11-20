@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { Panel } from "../dashboard-panels";
-import { PlainIcon } from "../icon";
-import { Skeleton } from "../ui/skeleton";
-import { Checkbox } from "../ui/checkbox";
-import { useToast } from "../toast";
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/dashboard-panels";
+import { PlainIcon } from "@/components/icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/toast";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   Pagination,
@@ -17,7 +17,7 @@ import {
   PaginationNext,
   PaginationPage,
   PaginationPrevious,
-} from "../ui/pagination";
+} from "@/components/ui/pagination";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -26,14 +26,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { TrashDetailSheet } from "./trash-detail-sheet";
 import {
   TRASH_EXPIRING_DAYS,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -9,9 +9,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "../ui/sheet";
-import { Skeleton } from "../ui/skeleton";
-import { PlainIcon } from "../icon";
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PlainIcon } from "@/components/icon";
 import { TRASH_KIND_META, type TrashKind } from "@/lib/trash-core";
 import { trashDetailQueryOptions } from "@/lib/queries/trash";
 
