@@ -1,15 +1,15 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
 import { loadExamContext } from "@/lib/exam-settings";
 import {
   attemptFiltersFrom,
-  loadAttemptList,
   loadAttemptPage,
+  loadScopedAttemptsOrNull,
   parseAttemptListQuery,
 } from "@/lib/services/attempts";
-import { attemptListQueryOptions, attemptKeys } from "@/lib/queries/attempts";
+import { attemptKeys } from "@/lib/queries/attempts";
 import { HistoryRoute } from "./_history/history-route";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,8 @@ export default async function HistoryPage({
     if (first != null) search.set(key, first);
   }
 
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const list = parseAttemptListQuery(Object.fromEntries(search.entries()));
   const filters = attemptFiltersFrom(list, ctx);
 
@@ -72,16 +73,10 @@ export default async function HistoryPage({
     {
       // The filter row's platform list and the account total.
       key: attemptKeys.full(),
-      load: () =>
-        loadAttemptList(userId, {
-          examId: ctx.activeExamId,
-          tier: ctx.activeTierId,
-          type: "all",
-          subject: "all",
-        }).then((result) => result.items),
+      load: async () =>
+        (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
   ]);
-  void attemptListQueryOptions;
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

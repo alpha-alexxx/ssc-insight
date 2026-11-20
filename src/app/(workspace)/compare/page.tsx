@@ -1,6 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
 import { loadExamContext } from "@/lib/exam-settings";
 import { getAttempt } from "@/lib/repository";
@@ -38,7 +38,8 @@ export default async function ComparePage({
     if (first != null) search.set(key, first);
   }
 
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const list = parseAttemptListQuery(Object.fromEntries(search.entries()));
   const filters = attemptFiltersFrom(list, ctx);
   const rawSearch = filters.search ?? "";

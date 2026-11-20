@@ -1,8 +1,8 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
-import { listAttempts } from "@/lib/repository";
+import { loadScopedAttemptsOrNull } from "@/lib/services/attempts";
 import { getPlanPayload } from "@/lib/plan/progress";
 import { istTodayIso } from "@/lib/plan/view-model";
 import { loadAnalytics } from "@/lib/services/analytics";
@@ -27,7 +27,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function DashboardPage() {
   const { id: userId } = await requireUser();
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const queryClient = getQueryClient();
 
   // The dashboard always reads the combined scope with no record filters.
@@ -47,13 +48,8 @@ export default async function DashboardPage() {
     },
     {
       key: attemptKeys.full(),
-      load: () =>
-        listAttempts(userId, {
-          examId: ctx.activeExamId,
-          tier: ctx.activeTierId,
-          type: "all",
-          subject: "all",
-        }),
+      load: async () =>
+        (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
   ]);
 

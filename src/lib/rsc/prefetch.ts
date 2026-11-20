@@ -35,3 +35,21 @@ export async function prefetchInto(
     queryClient.setQueryData(entries[index].key, result.value);
   });
 }
+
+/**
+ * Load a scope-dependent resource for a page, tolerating a failed exam context.
+ *
+ * `loadExamContext` is the first database read every workspace page makes, and
+ * it throws when the database is unreachable. Called before `prefetchInto`, that
+ * throw would turn a data outage into a 500 page — the exact failure
+ * `prefetchInto` exists to prevent. This wrapper makes the scope optional so a
+ * page can still render, and the client query then surfaces the normal error
+ * banner.
+ */
+export async function safely<T>(load: () => Promise<T>): Promise<T | null> {
+  try {
+    return await load();
+  } catch {
+    return null;
+  }
+}

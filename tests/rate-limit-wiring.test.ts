@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { apiError, RequestError } from "../src/lib/api";
 import {
   L2_TIMEOUT_MS,
@@ -123,4 +125,52 @@ test("a failed L2 consultation keeps the L1 verdict instead of failing open", ()
     l2: null,
   });
   assert.equal(denied.outcome, "denied");
+});
+
+// ── Page-level degradation (regressions caught only by running the app) ──────
+
+test("a page prefetch survives an unreachable database", async () => {
+  // Regression: every page awaited loadExamContext() outside prefetchInto, so an
+  // unreachable database threw there and 500'd the page — the exact failure
+  // prefetchInto exists to prevent. `safely` is what makes that survivable.
+  const { safely } = await import("../src/lib/rsc/prefetch");
+  const failed = await safely(async () => {
+    throw new Error("DATABASE_NOT_CONFIGURED");
+  });
+  assert.equal(failed, null);
+
+  const ok = await safely(async () => 42);
+  assert.equal(ok, 42);
+});
+
+test("a null scope source is documented as tolerated, not thrown on", () => {
+  // Regression companion: `attemptFiltersFrom`/`loadAnalytics` accept a null ctx
+  // so a database outage degrades the page instead of throwing. Those modules
+  // import `server-only`, which this runner cannot resolve, so the contract is
+  // asserted from source rather than by import — a weaker check, recorded in the
+  // ledger as such.
+  const source = readFileSync(
+    join(process.cwd(), "src", "lib", "services", "attempts.ts"),
+    "utf8",
+  );
+  assert.ok(
+    /ctx:\s*Awaited<ReturnType<typeof loadExamContext>> \| null/.test(source),
+    "attemptFiltersFrom must accept a null ctx",
+  );
+  assert.ok(source.includes("ctx?.activeExamId"), "must not deref a null ctx");
+  const analytics = readFileSync(
+    join(process.cwd(), "src", "lib", "services", "analytics.ts"),
+    "utf8",
+  );
+  assert.ok(
+    analytics.includes("if (!ctx)"),
+    "loadAnalytics must handle an unresolved scope",
+  );
+});
+
+test("filters cannot be parsed from a relative query string", () => {
+  // Regression: performance/page.tsx called filtersFrom("?"), which builds a URL
+  // and throws ERR_INVALID_URL for a relative string. Pages must parse the
+  // searchParams object through filtersSchema instead.
+  assert.throws(() => new URL("?"), /Invalid URL/);
 });

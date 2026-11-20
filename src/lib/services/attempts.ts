@@ -24,12 +24,18 @@ import { loadExamContext } from "@/lib/exam-settings";
 export type AttemptQueryInput = Record<string, string | undefined>;
 
 /** Filters for one request, derived from the parsed query plus the live scope. */
+/**
+ * Filters for one request. A null `ctx` means the scope could not be resolved
+ * right now (database unreachable); the exam/tier are then left unset, which
+ * matches the pre-existing behaviour for a scope-less read and lets the page
+ * render while the client query reports the real failure.
+ */
 export function attemptFiltersFrom(
   list: ReturnType<typeof attemptListSchema.parse>,
-  ctx: Awaited<ReturnType<typeof loadExamContext>>,
+  ctx: Awaited<ReturnType<typeof loadExamContext>> | null,
 ): Filters {
   return {
-    examId: ctx.activeExamId,
+    examId: ctx?.activeExamId,
     type: list.type,
     subject: list.subject,
     platform: list.platform,
@@ -37,7 +43,7 @@ export function attemptFiltersFrom(
     to: list.to,
     search: list.search,
     // attemptWhere skips "all", so the combined view stays unfiltered.
-    tier: list.tier ?? ctx.activeTierId,
+    tier: list.tier ?? ctx?.activeTierId,
   };
 }
 
@@ -65,4 +71,25 @@ export function loadAttemptPage(
   paging: ListAttemptsPagedParams,
 ) {
   return listAttemptsPaged(userId, filters, paging);
+}
+
+/**
+ * The unfiltered attempt list for the active scope, or null when the scope
+ * could not be resolved (database unreachable).
+ *
+ * A page prefetches this for its lookup list; returning null means "skip the
+ * prefetch" instead of throwing, so the page still renders and the client query
+ * reports the failure the way it always has.
+ */
+export async function loadScopedAttemptsOrNull(
+  userId: string,
+  ctx: Awaited<ReturnType<typeof loadExamContext>> | null,
+) {
+  if (!ctx) return null;
+  return listAttempts(userId, {
+    examId: ctx.activeExamId,
+    tier: ctx.activeTierId,
+    type: "all",
+    subject: "all",
+  });
 }

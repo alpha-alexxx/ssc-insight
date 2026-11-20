@@ -1,16 +1,16 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { loadScopedAttemptsOrNull } from "@/lib/services/attempts";
 import { loadExamContext } from "@/lib/exam-settings";
-import { listAttempts } from "@/lib/repository";
 import { loadAnalytics, parseScope } from "@/lib/services/analytics";
 import {
   analyticsKeys,
   serializeAnalyticsParams,
 } from "@/lib/queries/analytics";
 import { allAttemptsQueryOptions } from "@/lib/queries/attempts";
-import { filtersFrom } from "@/lib/repository";
+import { filtersSchema } from "@/lib/domain";
 import { PerformanceRoute } from "./_performance/performance-route";
 
 export const dynamic = "force-dynamic";
@@ -33,20 +33,20 @@ export default async function PerformancePage({
   const view = Array.isArray(params.view) ? params.view[0] : params.view;
   const scope = parseScope(view ?? "all");
 
-  // Rebuild the filter object the client would send, from the same URL the
-  // browser is on, so key and request agree.
-  const search = new URLSearchParams();
+  // Rebuild the filter object the client would send, from the same parameters
+  // the browser is on, so the prefetch key and the client's request agree.
+  // Built as a plain object: `filtersFrom` expects an absolute URL, and a
+  // relative "?…" is not one.
+  const flat: Record<string, string> = {};
   for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      if (value[0] != null) search.set(key, value[0]);
-    } else if (value != null) {
-      search.set(key, value);
-    }
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first != null) flat[key] = first;
   }
-  const filters = filtersFrom(`?${search.toString()}`);
+  const filters = filtersSchema.parse(flat);
 
   const queryClient = getQueryClient();
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const analyticsParams = serializeAnalyticsParams(scope, filters);
 
   await prefetchInto(queryClient, [
@@ -57,13 +57,8 @@ export default async function PerformancePage({
     {
       key: allAttemptsQueryOptions.queryKey,
       // The filter row's platform list comes from the account's own attempts.
-      load: () =>
-        listAttempts(userId, {
-          examId: ctx.activeExamId,
-          tier: ctx.activeTierId,
-          type: "all",
-          subject: "all",
-        }),
+      load: async () =>
+        (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
   ]);
 

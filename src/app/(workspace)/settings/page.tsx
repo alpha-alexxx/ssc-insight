@@ -22,10 +22,7 @@ export default async function SettingsPage() {
   }
   return (
     <div className="mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
-      <SettingsRoute
-        userName={user.name ?? ""}
-        userEmail={user.email ?? ""}
-      />
+      <SettingsRoute userName={user.name ?? ""} userEmail={user.email ?? ""} />
     </div>
   );
 }

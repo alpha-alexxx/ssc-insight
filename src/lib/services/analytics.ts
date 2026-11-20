@@ -7,7 +7,11 @@ import {
   type Filters,
 } from "@/lib/domain";
 import { listAttempts } from "@/lib/repository";
-import { activeResolved, loadExamContext, targetForTier } from "@/lib/exam-settings";
+import {
+  activeResolved,
+  loadExamContext,
+  targetForTier,
+} from "@/lib/exam-settings";
 import { ALL_TIERS_ID, resolvePattern } from "@/lib/exams";
 
 /**
@@ -28,44 +32,52 @@ export async function loadAnalytics(
   userId: string,
   scope: DashboardScope,
   filters: Filters,
-  ctx: Awaited<ReturnType<typeof loadExamContext>>,
+  ctx: Awaited<ReturnType<typeof loadExamContext>> | null,
 ) {
-    const attempts = await listAttempts(userId, {
-      ...filters,
-      examId: ctx.activeExamId,
-      type: "all",
-      subject: "all",
-      // The combined "all" view leaves the tier open; a concrete active tier
-      // scopes the projection (attemptWhere skips the literal "all").
-      tier: filters.tier ?? ctx.activeTierId,
-    });
+  // No scope resolved (database unreachable): project over every saved
+  // attempt with no target line instead of throwing. The page still renders
+  // and the client query surfaces the real failure.
+  if (!ctx) {
+    const attempts = await listAttempts(userId, filters);
+    return analyze(attempts as AnalyticsAttempt[], scope, undefined);
+  }
+  const attempts = await listAttempts(userId, {
+    ...filters,
+    examId: ctx.activeExamId,
+    type: "all",
+    subject: "all",
+    // The combined "all" view leaves the tier open; a concrete active tier
+    // scopes the projection (attemptWhere skips the literal "all").
+    tier: filters.tier ?? ctx.activeTierId,
+  });
 
-    // An explicit tier filter wins when choosing the target's paper; otherwise
-    // the active tier anchors it.
-    const explicitTier =
-      filters.tier && filters.tier !== ALL_TIERS_ID ? filters.tier : null;
-    const anchor = explicitTier
-      ? (resolvePattern(ctx.activeExamId, explicitTier, ctx.customExams)?.tier ?? null)
-      : (activeResolved(ctx)?.tier ?? null);
-    const effective = explicitTier
-      ? targetForTier(ctx, ctx.activeExamId, explicitTier)
-      : activeResolved(ctx)
-        ? targetForTier(ctx, ctx.activeExamId, activeResolved(ctx)!.tier.id)
-        : null;
+  // An explicit tier filter wins when choosing the target's paper; otherwise
+  // the active tier anchors it.
+  const explicitTier =
+    filters.tier && filters.tier !== ALL_TIERS_ID ? filters.tier : null;
+  const anchor = explicitTier
+    ? (resolvePattern(ctx.activeExamId, explicitTier, ctx.customExams)?.tier ??
+      null)
+    : (activeResolved(ctx)?.tier ?? null);
+  const effective = explicitTier
+    ? targetForTier(ctx, ctx.activeExamId, explicitTier)
+    : activeResolved(ctx)
+      ? targetForTier(ctx, ctx.activeExamId, activeResolved(ctx)!.tier.id)
+      : null;
 
-    const target: TargetReference | undefined =
-      anchor && effective
-        ? {
-            marks: effective.marks,
-            maxScore: effective.maxScore,
-            percentage:
-              effective.marks == null
-                ? null
-                : (effective.marks / effective.maxScore) * 100,
-            tierLabel: anchor.label,
-            comparable: explicitTier != null || ctx.activeTierId !== ALL_TIERS_ID,
-          }
-        : undefined;
+  const target: TargetReference | undefined =
+    anchor && effective
+      ? {
+          marks: effective.marks,
+          maxScore: effective.maxScore,
+          percentage:
+            effective.marks == null
+              ? null
+              : (effective.marks / effective.maxScore) * 100,
+          tierLabel: anchor.label,
+          comparable: explicitTier != null || ctx.activeTierId !== ALL_TIERS_ID,
+        }
+      : undefined;
 
   return analyze(attempts as AnalyticsAttempt[], scope, target);
 }

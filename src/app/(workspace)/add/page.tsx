@@ -1,7 +1,8 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { loadScopedAttemptsOrNull } from "@/lib/services/attempts";
 import { loadExamContext } from "@/lib/exam-settings";
 import { getAttempt, listAttempts } from "@/lib/repository";
 import { attemptDetailQueryOptions, attemptKeys } from "@/lib/queries/attempts";
@@ -25,19 +26,15 @@ export default async function AddPage({
   const { id: userId } = await requireUser();
   const params = await searchParams;
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const queryClient = getQueryClient();
 
   await prefetchInto(queryClient, [
     {
       key: attemptKeys.full(),
-      load: () =>
-        listAttempts(userId, {
-          examId: ctx.activeExamId,
-          tier: ctx.activeTierId,
-          type: "all",
-          subject: "all",
-        }),
+      load: async () =>
+        (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
     ...(id
       ? [

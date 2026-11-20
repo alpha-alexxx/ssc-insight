@@ -1,9 +1,9 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { prefetchInto } from "@/lib/rsc/prefetch";
+import { prefetchInto, safely } from "@/lib/rsc/prefetch";
 import { requireUser } from "@/lib/auth/require-user";
+import { loadScopedAttemptsOrNull } from "@/lib/services/attempts";
 import { loadExamContext } from "@/lib/exam-settings";
-import { listAttempts } from "@/lib/repository";
 import { getPlanPayload, listPersonalTasks } from "@/lib/plan/progress";
 import { istTodayIso } from "@/lib/plan/view-model";
 import { attemptKeys } from "@/lib/queries/attempts";
@@ -23,7 +23,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function CalendarPage() {
   const { id: userId } = await requireUser();
-  const ctx = await loadExamContext(userId);
+  // Guarded: an unreachable database must degrade the page, not 500 it.
+  const ctx = await safely(() => loadExamContext(userId));
   const queryClient = getQueryClient();
 
   await prefetchInto(queryClient, [
@@ -40,13 +41,8 @@ export default async function CalendarPage() {
     },
     {
       key: attemptKeys.full(),
-      load: () =>
-        listAttempts(userId, {
-          examId: ctx.activeExamId,
-          tier: ctx.activeTierId,
-          type: "all",
-          subject: "all",
-        }),
+      load: async () =>
+        (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
   ]);
 
