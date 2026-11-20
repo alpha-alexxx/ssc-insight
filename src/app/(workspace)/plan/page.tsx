@@ -1,20 +1,22 @@
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/require-user";
+import { istTodayIso } from "@/lib/plan/view-model";
 
-/**
- * Route placeholder: /plan.
- *
- * This file exists to define the address and to authenticate it. The
- * (workspace) layout still renders the daily plan on the client until this route is
- * migrated to its own Server Component; that migration replaces this file with
- * one that prefetches its own data and renders its colocated components.
- *
- * `requireUser()` is required on every page regardless: server components and
- * route handlers are the real security boundary, and the proxy's page guard is
- * only convenience.
- */
 export const dynamic = "force-dynamic";
 
+/**
+ * `/plan` — the bare plan address redirects to today's IST date.
+ *
+ * A redirect rather than a rendered view: `/plan/<date>` is the real address,
+ * so this keeps one canonical URL per day. It used to be a client-side
+ * `history.replaceState` inside the workspace shell; the shell is gone, so the
+ * redirect lives here where it costs no client JavaScript and works with a
+ * hard navigation as well as a client one.
+ *
+ * `requireUser()` runs first: an anonymous visitor must be sent to sign in, not
+ * handed a date.
+ */
 export default async function PlanPage() {
   await requireUser();
-  return null;
+  redirect(`/plan/${istTodayIso()}`);
 }
