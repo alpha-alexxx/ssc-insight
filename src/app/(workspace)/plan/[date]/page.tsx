@@ -10,7 +10,7 @@ import { istTodayIso } from "@/lib/plan/view-model";
 import { isIsoDate } from "@/lib/format";
 import { attemptKeys } from "@/lib/queries/attempts";
 import { planKeys } from "@/lib/queries/plan";
-import { todoKeys, todoTasksQueryOptions } from "@/lib/queries/todos";
+import { todoTasksQueryOptions } from "@/lib/queries/todos";
 import { listPersonalTasks } from "@/lib/plan/progress";
 import { PlanDayRoute } from "./_plan/plan-day-route";
 
@@ -57,7 +57,6 @@ export default async function PlanDayPage({
         (await loadScopedAttemptsOrNull(userId, ctx)) ?? undefined,
     },
   ]);
-  void todoKeys;
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

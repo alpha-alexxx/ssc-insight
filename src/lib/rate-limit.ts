@@ -142,16 +142,6 @@ export const writeRateLimiter = new TokenBucketRateLimiter({
   refillPerSecond: 0.5,
 });
 
-/** Headers a caller can copy onto a 429 response. Does NOT include
- * Cache-Control — the route owns that header (SWR for GETs, no-store for
- * everything else). */
-export function rateLimitHeaders(result: RateLimitResult): RateLimitHeaders {
-  return {
-    "X-RateLimit-Limit": String(result.limit),
-    "X-RateLimit-Remaining": String(result.remaining),
-    "Retry-After": String(Math.max(1, result.retryAfter)),
-  };
-}
 
 // ── Two-layer consumption ───────────────────────────────────────────────────
 

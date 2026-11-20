@@ -5,6 +5,13 @@ the workspace. Purpose: baseline for the TanStack Query + Zustand architecture
 migration. This document records what existed **before** the migration and the
 roadmap that was executed.
 
+> **Superseded 2026-11-20.** The folder-routing shift deleted
+> `workspace-shell.tsx` and `use-workspace-data.ts`, and each route now owns its
+> own page, components and filter state. Every `workspace-shell.tsx` reference
+> below is a *historical* statement about the pre-migration code, not a
+> description of the current tree. For current architecture read `CLAUDE.md`
+> ("Route rendering") instead.
+
 ## Baseline architecture
 
 ```

@@ -11,7 +11,6 @@ import { Swap } from "@/components/motion-swap";
 import { EmptyChart } from "@/components/dashboard-panels";
 import { findings, isSingleResult } from "@/lib/performance-metrics";
 import type { Analytics } from "@/lib/analytics";
-import type { Attempt } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,7 +41,6 @@ export function PerformanceView({
   loading: boolean;
   /** The scope + filter control row, owned by the shell's workspace state. */
   controls: ReactNode;
-  onOpenAttempt?: (attempt: Attempt) => void;
   onAdd: () => void;
 }) {
   const examScope = useExamScope();
