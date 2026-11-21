@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Sparkles, Trash2 } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { History, Shield, Sparkles, Trash2 } from "lucide-react";
 import { aiUsageLabel, useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";
 import { useToast } from "@/components/toast";
@@ -88,33 +87,53 @@ export function AskView() {
   return (
     // The exact height the workspace frame leaves this page: the sticky app
     // header plus the one workspace-content padding (py-4, md:py-5). The
-    // PageHeader takes its natural height; only the transcript scrolls.
+    // compact header takes one row; only the transcript scrolls.
     <div className="flex h-[calc(100dvh-var(--app-header-h,52px)-2rem)] min-h-0 flex-col md:h-[calc(100dvh-var(--app-header-h,52px)-2.5rem)]">
-      <PageHeader
-        title="Ask AI"
-        description="One coach over your whole tracker. Answers read your aggregates and latest 20 full mocks — never notes or identity."
-        icon={<Sparkles size={22} className="text-accent" aria-hidden />}
-        meta={
-          <>
-            {/* Desktop toggles the inline rail; below lg the same content
-                opens as a bottom drawer, so no width ships a dead toggle. */}
-            <button
-              type="button"
-              className="hidden underline underline-offset-4 hover:text-ink lg:inline"
-              onClick={() => setRailOpen((open) => !open)}
-            >
-              {railOpen ? "Hide history" : "Show history"}
-            </button>
-            <button
-              type="button"
-              className="underline underline-offset-4 hover:text-ink lg:hidden"
-              onClick={() => setRailDrawerOpen(true)}
-            >
-              History
-            </button>
-          </>
-        }
-      />
+      {/* A chat header, not a page header: one quiet row, so returning
+          readers land on their conversation instead of re-reading an
+          introduction. The grounding sentence rides the chip's tooltip;
+          the full pledge lives in the empty state and the usage footer. */}
+      <header className="mb-3 flex items-center justify-between gap-3 border-b border-rule-soft pb-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-control bg-accent-soft text-accent"
+          >
+            <Sparkles size={15} />
+          </span>
+          <h1 className="font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.01em] text-ink">
+            Ask AI
+          </h1>
+          <span
+            title="Answers read your aggregates and latest 20 full mocks — never notes or identity."
+            className="hidden items-center gap-1 rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-medium text-muted sm:inline-flex"
+          >
+            <Shield size={10} aria-hidden className="text-accent" />
+            Read-only
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {/* Desktop toggles the inline rail; below lg the same content
+              opens as a bottom drawer, so no width ships a dead toggle. */}
+          <button
+            type="button"
+            aria-expanded={railOpen}
+            className="tap-target hidden items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink lg:inline-flex"
+            onClick={() => setRailOpen((open) => !open)}
+          >
+            <History size={14} aria-hidden />
+            {railOpen ? "Hide history" : "Show history"}
+          </button>
+          <button
+            type="button"
+            aria-label="Conversation history"
+            className="tap-target inline-flex size-9 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink lg:hidden"
+            onClick={() => setRailDrawerOpen(true)}
+          >
+            <History size={15} aria-hidden />
+          </button>
+        </div>
+      </header>
       <div
         className={cn(
           "min-h-0 flex-1",
