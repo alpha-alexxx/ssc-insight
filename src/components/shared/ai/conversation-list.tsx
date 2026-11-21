@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { searchConversations } from "@/lib/ai/conversations";
 import type { StoredConversation } from "@/lib/ai/conversations";
 import type { ChatHistoryApi } from "@/components/use-ai-workspace";
@@ -163,7 +164,7 @@ const ConversationRow = memo(function ConversationRow({
             if (event.key === "Enter") onRenameCommit();
             if (event.key === "Escape") onRenameCancel();
           }}
-          maxLength={80}
+          maxLength={60}
           aria-label="Conversation name"
           className="min-h-9 w-full min-w-0 rounded-control border border-accent bg-paper px-2.5 text-sm text-ink shadow-[inset_0_0_0_1px_var(--accent)]"
         />
@@ -193,81 +194,67 @@ const ConversationRow = memo(function ConversationRow({
           Delete “{conversation.title}” from this device?
         </p>
         <div className="mt-2 flex gap-2">
-          <button
+          <Button
             type="button"
-            className="min-h-8 rounded-control bg-danger px-2.5 text-xs font-medium text-paper"
+            variant="destructive"
+            size="sm"
             onClick={onDeleteConfirm}
           >
             Delete
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="min-h-8 rounded-control border border-rule px-2.5 text-xs font-medium text-muted hover:text-ink"
+            variant="outline"
+            size="sm"
             onClick={onDeleteCancel}
           >
             Keep
-          </button>
+          </Button>
         </div>
       </li>
     );
 
+  // The row is one hover surface; the title button and the action buttons
+  // are siblings, so no clickable element nests inside another.
   return (
-    <li>
-      <div
-        className={cn(
-          "group flex cursor-pointer items-start gap-2 rounded-control px-2.5 py-2 transition-colors hover:bg-canvas",
-          active && "bg-accent-soft hover:bg-accent-soft",
-        )}
+    <li
+      className={cn(
+        "group flex items-start gap-1 rounded-control transition-colors",
+        active ? "bg-accent-soft" : "hover:bg-canvas",
+      )}
+    >
+      <button
+        type="button"
         onClick={onSelect}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onSelect();
-          }
-        }}
-        role="button"
-        tabIndex={0}
         aria-current={active ? "true" : undefined}
+        className="min-w-0 flex-1 rounded-control px-1.5 py-2 text-left"
       >
-        <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              "truncate text-sm font-medium",
-              active ? "text-ink" : "text-ink/90",
-            )}
-          >
-            {conversation.title}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            {relativeLabel(conversation.updatedAt)}
-            {" · "}
-            {questions} question{questions === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:opacity-100">
-          <button
-            type="button"
-            className="tap-target p-1.5 text-muted hover:text-ink"
-            aria-label={`Rename “${conversation.title}”`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRenameStart();
-            }}
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            type="button"
-            className="tap-target p-1.5 text-muted hover:text-danger"
-            aria-label={`Delete “${conversation.title}”`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDeleteAsk();
-            }}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+        <p className="truncate text-sm font-medium text-ink">
+          {conversation.title}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          {relativeLabel(conversation.updatedAt)}
+          {" · "}
+          {questions} question{questions === 1 ? "" : "s"}
+        </p>
+      </button>
+      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:opacity-100">
+        <button
+          type="button"
+          className="tap-target p-1.5 text-muted hover:text-ink"
+          aria-label={`Rename “${conversation.title}”`}
+          onClick={onRenameStart}
+        >
+          <Pencil size={13} />
+        </button>
+        <button
+          type="button"
+          className="tap-target p-1.5 text-muted hover:text-danger"
+          aria-label={`Delete “${conversation.title}”`}
+          onClick={onDeleteAsk}
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </li>
   );

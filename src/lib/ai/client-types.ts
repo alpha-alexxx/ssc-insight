@@ -131,6 +131,12 @@ export type ChatMessage = {
   /** Downscaled data-URL screenshots attached to a user turn (vision).
    * Never re-sent with follow-up history. */
   images?: string[];
+  /** The turn carried screenshots with no typed text (the API still needs a
+   * label on the wire); the transcript renders the images alone. */
+  imageOnly?: boolean;
+  /** The stream was stopped before the answer finished; a partial answer
+   * may remain. Client-side state, not a server stop reason. */
+  stopped?: boolean;
   /** The stream ended on a truncation stop reason; the answer may be cut off. */
   truncated?: boolean;
   /** Client-clock ISO timestamp of the turn; used by the conversation

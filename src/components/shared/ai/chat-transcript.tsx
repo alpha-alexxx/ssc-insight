@@ -10,6 +10,7 @@ import {
 import { ArrowDown, ChevronDown, Pencil } from "lucide-react";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";
+import { Button } from "@/components/ui/button";
 import type { AiSheetTaskApi } from "./task-suggestion-card";
 import { parseTaskSuggestions } from "@/lib/ai/task-suggestion";
 import { Markdown } from "./markdown";
@@ -63,7 +64,9 @@ const TurnActions = memo(function TurnActions({
         ) : null
       ) : (
         <>
-          <CopyButton value={message.content} label="Copy" />
+          {message.content ? (
+            <CopyButton value={message.content} label="Copy" />
+          ) : null}
           {isLast && onRegenerate && !streaming ? (
             <button
               type="button"
@@ -123,19 +126,17 @@ function EditButton({
         className="min-w-0 flex-1 resize-y rounded-control border border-rule bg-paper px-3 py-2 text-sm leading-relaxed focus:border-accent focus:outline-none"
         aria-label="Edit your question"
       />
-      <button
-        type="submit"
-        className="min-h-9 rounded-control bg-ink px-3 text-xs font-medium text-paper"
-      >
+      <Button type="submit" size="sm">
         Resend
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className="min-h-9 rounded-control border border-rule px-3 text-xs font-medium text-muted hover:text-ink"
+        variant="outline"
+        size="sm"
         onClick={() => setEditing(false)}
       >
         Cancel
-      </button>
+      </Button>
     </form>
   );
 }
@@ -298,9 +299,15 @@ export function ChatTranscript({
                           ))}
                         </div>
                       ) : null}
-                      <div className="max-w-[85%] rounded-control border border-rule-soft bg-soft px-3.5 py-2.5 text-[length:var(--type-body)] leading-relaxed whitespace-pre-wrap text-ink">
-                        {message.content}
-                      </div>
+                      {message.imageOnly ? (
+                        // Screenshots with no typed text: the images speak for
+                        // themselves; a quiet caption replaces a fake sentence.
+                        <p className="text-[11px] text-muted">Screenshot</p>
+                      ) : (
+                        <div className="max-w-[85%] rounded-control border border-rule-soft bg-soft px-3.5 py-2.5 text-[length:var(--type-body)] leading-relaxed whitespace-pre-wrap text-ink">
+                          {message.content}
+                        </div>
+                      )}
                       <TurnActions
                         message={message}
                         isLast={isLast}
@@ -329,6 +336,10 @@ export function ChatTranscript({
                           key={phase ?? "thinking"}
                           phase={phase === "connecting" ? "connecting" : "thinking"}
                         />
+                      ) : message.stopped && !streaming ? (
+                        <p className="text-xs text-muted">
+                          Generation stopped before the answer arrived.
+                        </p>
                       ) : (
                         !streaming && (
                           <p className="text-sm text-muted">No response.</p>
@@ -340,7 +351,12 @@ export function ChatTranscript({
                           for a fresh, shorter answer.
                         </p>
                       )}
-                      {message.content && !streaming ? (
+                      {message.stopped && !streaming && message.content ? (
+                        <p className="text-xs text-muted">
+                          Generation stopped — this reply may be incomplete.
+                        </p>
+                      ) : null}
+                      {(message.content || message.stopped) && !streaming ? (
                         <TurnActions
                           message={message}
                           isLast={isLast}
@@ -360,11 +376,31 @@ export function ChatTranscript({
             })}
           </div>
         )}
+        {error ? (
+          // In flow at the end of the log — the failed turn's neighborhood —
+          // instead of a floating card that collides with the jump pill.
+          <div className="mx-1 mb-3 mt-1 rounded-control border border-danger bg-paper p-3">
+            <p role="alert" className="text-xs leading-relaxed text-danger">
+              {error}
+            </p>
+            {onRetry ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={onRetry}
+              >
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {showLatest && (
         <button
           type="button"
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink"
+          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-control border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink shadow-pop"
           onClick={() => {
             follow.current = true;
             setShowLatest(false);
@@ -376,22 +412,6 @@ export function ChatTranscript({
         >
           <ArrowDown size={13} /> Jump to latest
         </button>
-      )}
-      {error && (
-        <div className="absolute inset-x-1 bottom-3 rounded-control border border-danger bg-paper p-3">
-          <p role="alert" className="text-xs leading-relaxed text-danger">
-            {error}
-          </p>
-          {onRetry && (
-            <button
-              type="button"
-              className="mt-2 min-h-8 rounded-control border border-rule px-2.5 text-xs font-medium text-ink hover:border-ink"
-              onClick={onRetry}
-            >
-              Try again
-            </button>
-          )}
-        </div>
       )}
     </div>
   );

@@ -280,24 +280,30 @@ function useAiWorkspaceState() {
       );
     } catch (e) {
       const aborted = abort.signal.aborted;
-      const message = aborted
-        ? "Insight generation was cancelled."
-        : e instanceof Error
-          ? e.message
-          : "Could not generate an insight";
-      if (!aborted) setCoachError(message);
-      applyMessages((current) =>
-        current.map((message) =>
-          message.id === assistantId
-            ? {
-                ...message,
-                content: aborted
-                  ? "Insight generation was cancelled."
-                  : "I could not read your saved mocks just now. The error shows on the dashboard coach card; try again from there.",
-              }
-            : message,
-        ),
-      );
+      if (aborted) {
+        // Same honesty as a stopped chat stream: mark the turn instead of
+        // writing fake prose into the transcript.
+        applyMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId ? { ...message, stopped: true } : message,
+          ),
+        );
+      } else {
+        setCoachError(
+          e instanceof Error ? e.message : "Could not generate an insight",
+        );
+        applyMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId
+              ? {
+                  ...message,
+                  content:
+                    "I could not read your saved mocks just now. The error shows on the dashboard coach card; try again from there.",
+                }
+              : message,
+          ),
+        );
+      }
     } finally {
       setChatStreaming(false);
       setCoachBusy(false);
@@ -404,12 +410,16 @@ function useAiWorkspaceState() {
     ) => {
       if (chatAbort.current) return; // a stream is already in flight
       const base = chatBaseForSend(messagesRef.current, retry);
+      const imageOnly = Boolean(!text.trim() && images?.length);
       const userMessage: ChatMessage = {
         id: newId(),
         role: "user",
-        content: text,
+        // The wire contract needs a label even for image-only turns; the
+        // transcript renders those from the images alone (imageOnly below).
+        content: imageOnly ? "Screenshot" : text,
         at: new Date().toISOString(),
         ...(images?.length ? { images } : {}),
+        ...(imageOnly ? { imageOnly: true } : {}),
       };
       const assistantId = newId();
       // The user's own setting caps the prompt window; the server still
@@ -535,10 +545,19 @@ function useAiWorkspaceState() {
         }
         await reader.cancel().catch(() => undefined);
       } catch (e) {
-        if (!abort.signal.aborted)
+        if (abort.signal.aborted) {
+          // A stop never disappears silently: whatever partial answer exists
+          // stays, with an explicit stopped marker on the turn.
+          applyMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId ? { ...message, stopped: true } : message,
+            ),
+          );
+        } else {
           setChatError(
             e instanceof Error ? e.message : "The coach could not answer.",
           );
+        }
       } finally {
         setChatStreaming(false);
         setChatPhase(null);

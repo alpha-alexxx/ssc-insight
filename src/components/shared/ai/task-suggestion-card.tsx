@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { shortDate } from "@/lib/format";
 import { linkHost } from "@/lib/plan/view-model";
 import { istTodayIso } from "@/lib/plan/view-model";
 import type { TaskSuggestion } from "@/lib/ai/task-suggestion";
@@ -78,7 +79,7 @@ export function TaskSuggestionCard({
       className="mt-3 border-l-2 border-l-accent bg-paper py-2 pl-3"
     >
       <p className="section-label text-accent">Suggested task</p>
-      <p className="mt-1.5 text-[13px] font-medium leading-snug">
+      <p className="mt-1.5 text-sm font-medium leading-snug">
         {suggestion.title}
       </p>
       <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
@@ -87,7 +88,7 @@ export function TaskSuggestionCard({
             ? "Personal"
             : suggestion.category.replace(/_/g, " ")}
         </span>
-        {dueDate && <span className="tabular">Due {dueDate}</span>}
+        {dueDate && <span className="tabular">Due {shortDate(dueDate)}</span>}
         {suggestion.priority !== "normal" && (
           <span
             className={
@@ -129,11 +130,10 @@ export function TaskSuggestionCard({
           </Button>
         </div>
       ) : (
-        <div className="mt-2.5 flex items-center gap-2">
+        <div className="action-row mt-2.5">
           <Button
             type="button"
             size="sm"
-            className="min-h-11 flex-1 sm:min-h-0 sm:flex-none"
             onClick={add}
             disabled={!taskApi || state === "busy"}
           >
@@ -143,7 +143,6 @@ export function TaskSuggestionCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="min-h-11 sm:min-h-0"
             onClick={() => setState("dismissed")}
             disabled={state === "busy"}
           >

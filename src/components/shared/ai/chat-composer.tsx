@@ -79,7 +79,9 @@ export function ChatComposer({
   function submit() {
     const text = value.trim();
     if ((!text && !images.length) || streaming || disabled) return;
-    onSubmit(text || "(screenshot)", images);
+    // Image-only turns arrive as empty text; the workspace hook supplies the
+    // wire label and the transcript renders the images alone.
+    onSubmit(text, images);
     setImages([]);
     if (textareaRef.current) textareaRef.current.style.height = "";
   }
@@ -103,7 +105,7 @@ export function ChatComposer({
                 <button
                   type="button"
                   aria-label={`Remove screenshot ${index + 1}`}
-                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-rule bg-paper text-muted hover:text-ink"
+                  className="tap-target absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-control border border-rule bg-paper text-muted hover:text-ink"
                   onClick={() =>
                     setImages((current) => current.filter((_, at) => at !== index))
                   }
@@ -149,7 +151,7 @@ export function ChatComposer({
         />
       </div>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-muted">
+        <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted">
           {visionEnabled && (
             <label
               className={cn(
@@ -191,7 +193,7 @@ export function ChatComposer({
         ) : (
           <button
             type="button"
-            className="tap-target inline-flex size-11 items-center justify-center rounded-control bg-ink text-paper transition-opacity disabled:opacity-40"
+            className="tap-target inline-flex size-11 items-center justify-center rounded-control bg-accent text-paper transition-colors hover:bg-accent-hover disabled:opacity-40"
             disabled={!canSend}
             onClick={submit}
             aria-label="Send question"
