@@ -314,3 +314,25 @@ Trash is a ledger, not a recycle bin graphic. `/trash` keeps the same editorial 
 - Both irreversible actions (permanent delete, Empty Trash) go through an `AlertDialog` that names the count, and the group case adds the number of live tasks that will become ungrouped. Empty Trash always quotes the all-kinds total, never the currently filtered one.
 - The empty state is a serif line and one sentence — no illustration, no decorative tile.
 - Trash is reached from the sidebar footer beside the account block, reusing the grouped-link treatment (icon, collapsed-rail tooltip, active tint) rather than adding a navigation group for a single destination.
+
+## Ask AI chat grammar (bubbles)
+
+The chat transcript (both the side sheet and `/ask`) uses a mixed bubble grammar — the one sanctioned shadow in the product besides `.elev-pop`:
+
+- The reader's question is a **right-aligned soft bubble** (`bg-soft`, 16px radius with a squared tail corner toward its "you" avatar) that caps at 80% width and wraps with `overflow-wrap: anywhere`.
+- The coach's answer is a **left document card** (`bg-paper`, hairline `--rule-soft` border, the same radius family with the tail corner, and the `.chat-card` paper-lift shadow) capped at 46rem on the page, full width in the sheet. A tiny `tabular` clock stamp sits below the card, right-aligned.
+- Avatars are text glyphs, never images: the coach is an ink circle with serif "ai", the reader a bordered soft circle with "you" (`role-avatar.tsx`).
+- Every assistant card opens with the **read-the-workspace strip**: shield, small-caps label, the four source chips (aggregate analytics / subject profile / target ledger / latest 20 mocks — they mirror `src/lib/ai/context.ts` one-for-one), the measured reasoning seconds, and the model's own reasoning behind the toggle.
+- The pre-first-token **thinking card narrates the read**: three spring dots, rotating status lines ("Reading aggregate analytics…"), and the source chips popping in. Connecting stays honest; seconds tick.
+- The conversation rail groups by **Today / Yesterday / Earlier this week / Earlier**, carries "12m ago · 4 messages" meta, and marks the active row with one shared-layout accent bar that physically slides between rows (`layoutId="conv-active"`).
+- The rail's **usage footer** renders today's request count against the active limit as a hairline meter (accent → danger past budget) plus the read-only pledge. The same footer closes the sheet's history panel.
+- Deleting the conversation that owns an in-flight answer is refused with a toast; stopping a stream announces "Reply stopped — your question is still in the thread".
+- Empty state: a read-only pledge card (what it reads / never writes) over a 2×2 one-tap suggestion grid, staggered in and collapsed under reduced motion.
+
+## Performance evidence panels
+
+`/performance` renders its evidence as hand-rolled SVG (no chart library): a smoothed **area trend** with crosshair + tooltip (single-scope grains) or **one line per subject series** (subject scope, time-scaled, fixed subject colors), a five-axis **radar** over the scoped stacks (missing series drawn as honest blanks, named in a footnote — never zeros), the **outcome donut** with pooled counts and a threshold-derived coach note, the **ten-band score distribution** with the modal band accented, and a **subject deep-dive** accordion (one card per series, sparkline collapsed, hoverable line expanded). All draw-ins (`pathLength`, bar growth, polygon scale) are `motion/react` entrances gated by `useReducedMotion` — charts themselves never animate on data change. Percentages own the axis; raw marks stay in tooltips.
+
+## Landing ambience
+
+The landing adds a **typed terminal** in the hero (CSS `steps()` typing; every figure derived from the plan/scoring fixtures — never hand-typed), **falling petals** from a fixed literal table (no `Math.random()` at render; frozen under reduced motion), **ink-wash art** (`public/landing/ink-*.png`, `mix-blend-multiply` on paper, inverted+screened in dark and inside plates via `tone="ink"`), **CountUp** ledger facts (the static final value is the base state; the count is enhancement only), the **24s product film** (four 6s scenes from the real mockups with Pause/Restart transport; reduced motion renders the overview statically and hides the transport), a numbered **scroll-spy rail** on the right edge, and a floating **Ask AI pill** that starts the Google round trip (the landing is anonymous-only). Mockup captions remain the real content; no fact lives only inside a mockup or a film scene.
