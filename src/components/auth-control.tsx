@@ -26,8 +26,10 @@ export interface AuthControlProps {
  * Header account menu — the workspace's single auth surface. The trigger is
  * the avatar (Google photo when present, otherwise the name's first letter);
  * the menu holds the identity (name + email), Settings, and Sign out.
- * Sign-out routes through the app's custom events so the workspace guard
- * reacts immediately.
+ * Sign-out dispatches `ssc:session-ended` on success — the workspace guard
+ * unmounts private UI and the router lands on the sign-in page. Failures
+ * surface as an alert under the control and stay retryable; the workspace
+ * is never blocked by a user-initiated sign-out attempt.
  */
 export function AuthControl({
   enabled,
@@ -108,9 +110,12 @@ export function AuthControl({
 }
 
 /**
- * Shared sign-in/sign-out actions. Dispatches the workspace-guard's custom
- * events so the header account menu and any other auth surface behave
- * identically.
+ * Shared sign-in/sign-out actions. Sign-out dispatches `ssc:session-ended`
+ * only after the auth client confirms the session is gone, matching the
+ * other dispatch sites (a 401 answer, the settings export, the AI stream) —
+ * the guard and the query cache react to a real session end, never to an
+ * attempt. The Neon auth client rejects on any non-OK sign-out response, so
+ * a failure lands here as a thrown error and must stay visible.
  */
 export function useAuthActions() {
   const [busy, setBusy] = useState(false);
@@ -129,15 +134,18 @@ export function useAuthActions() {
   }
 
   async function signOut() {
-    window.dispatchEvent(new Event("ssc:auth-unavailable"));
     setBusy(true);
     setError("");
     try {
       const result = await authClient.signOut();
       if (result.error) throw new Error("Sign-out failed");
       window.dispatchEvent(new Event("ssc:session-ended"));
-    } catch {
-      setError("Could not sign out. Please retry.");
+    } catch (error) {
+      setError(
+        error instanceof Error && error.message
+          ? `Could not sign out: ${error.message}`
+          : "Could not sign out. Please retry.",
+      );
     } finally {
       setBusy(false);
     }
