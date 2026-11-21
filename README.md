@@ -143,7 +143,9 @@ Use Neon Auth's Google provider with your own Google OAuth **Web application** c
 - [ ] Configure Google consent screen (app name, support email, authorized domain). *Note: "Testing" status requires listed test users.*
 - [ ] Set `GOOGLE_AUTH_ENABLED=true` and rebuild/redeploy.
 
-### Email sign-in, one-time codes, and two-factor
+### Sign-in pages, email sign-in, one-time codes, and two-factor
+
+The sign-in surface is the dedicated pages `/sign-in`, `/sign-up` and `/forgot-password` (the landing links to them; the retired `/login` and `/signin` aliases redirect to `/sign-in`).
 
 The landing can also offer **email + password** (register and sign-in), **email + one-time code** (passwordless), and **TOTP two-factor** with backup codes, managed in Settings → Sign-in & security. All of it is client-side: the app forwards better-auth wire calls (`/sign-up/email`, `/sign-in/email`, `/sign-in/email-otp`, `/two-factor/*`, `/list-sessions`) to the hosted Neon Auth service through the same `/api/auth/*` proxy.
 
