@@ -1030,12 +1030,18 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  /* The coach's ruled field: one hairline container, no card chrome. */
+  /* The coach's composer field: an elevated bubble container — soft card
+     radius, paper lift, accent ring on focus. */
   .ai-composer-field {
     border: 1px solid var(--rule);
-    border-radius: var(--radius-control);
+    border-radius: 1rem;
     background: var(--paper);
-    transition: border-color var(--dur-quick) ease;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 12px -6px rgba(0, 0, 0, 0.08);
+    transition:
+      border-color var(--dur-quick) ease,
+      box-shadow var(--dur-quick) ease;
   }
   /* Focus is shown once, on the field's own border — the older
      `.ai-composer > div:focus-within` ring would double it. */
@@ -1043,8 +1049,10 @@
     outline: none;
   }
   .ai-composer-field:focus-within {
-    border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent);
+    border-color: color-mix(in oklab, var(--accent) 60%, var(--rule));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) 15%, transparent),
+      0 1px 2px rgba(0, 0, 0, 0.04);
   }
   /* A memo is a document, not a bubble: the label sits in a fixed margin
      column beside its body, the way the day ledger lays out a section. */
@@ -1103,9 +1111,16 @@
     }
   }
   /* --- Chat transcript grammar (side sheet + /ask page) ---
-     The user's question is a restrained soft surface; the answer is a
-     full-width markdown document, not a bubble. Turn actions reveal on
-     hover/focus and stay permanently visible on touch and reduced motion. */
+     Mixed bubble grammar: the reader's question is a right-aligned soft
+     bubble with a tail corner toward its avatar; the answer is a bordered
+     document card — an "ai" avatar beside it, a clock stamp below. Turn
+     actions reveal on hover/focus and stay permanently visible on touch and
+     reduced motion. The card's paper lift is the one sanctioned chat shadow. */
+  .chat-card {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 12px -6px rgba(0, 0, 0, 0.08);
+  }
   .chat-turn .turn-actions {
     opacity: 0;
     transition: opacity var(--dur-quick) ease;
@@ -2501,6 +2516,66 @@
   }
   .faq-mark::after {
     transition: none !important;
+  }
+}
+
+/* ---------- Ink art: generated washes assimilate into the paper ----------
+   The source images sit on a flat cream field, so multiply erases the field
+   into the page in light mode. In dark mode the image is inverted and screened
+   (dark field disappears; strokes become light) and re-warmed with sepia. */
+.ink-art {
+  mix-blend-mode: multiply;
+}
+.dark .ink-art {
+  mix-blend-mode: screen;
+  filter: invert(1) sepia(0.32) saturate(0.85) brightness(0.94);
+}
+
+/* ---------- Falling petals (landing ambience) ---------- */
+/* Each petal gets its drift vars (--fall-x, --fall-r, --fall-dur,
+   --fall-delay) inline from a fixed literal table; the keyframes own the
+   motion, so render output never depends on Math.random() and SSR agrees
+   with the client. */
+@keyframes landing-fall {
+  0% {
+    transform: translate3d(0, -4vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: var(--fall-opacity, 0.85);
+  }
+  50% {
+    transform: translate3d(calc(var(--fall-x, 4vw) * 0.6), 52vh, 0)
+      rotate(calc(var(--fall-r, 160deg) * 0.5));
+  }
+  92% {
+    opacity: var(--fall-opacity, 0.85);
+  }
+  100% {
+    transform: translate3d(var(--fall-x, 4vw), 106vh, 0) rotate(var(--fall-r, 160deg));
+    opacity: 0;
+  }
+}
+.petal {
+  position: absolute;
+  top: 0;
+  left: var(--fall-left, 50%);
+  width: var(--fall-size, 14px);
+  height: calc(var(--fall-size, 14px) * 0.72);
+  pointer-events: none;
+  border-radius: 999px 2px 999px 2px;
+  background: var(--petal-color, var(--accent));
+  opacity: 0;
+  animation: landing-fall var(--fall-dur, 14s) linear var(--fall-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+.petal-ink {
+  background: color-mix(in oklab, var(--ink) 22%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .petal {
+    animation: none;
+    opacity: 0;
   }
 }
 

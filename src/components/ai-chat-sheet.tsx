@@ -45,7 +45,9 @@ import { ChatComposer } from "@/components/shared/ai/chat-composer";
 import { ChatEmptyState } from "@/components/shared/ai/chat-empty-state";
 import { prepareImages } from "@/components/shared/ai/image";
 import { ConversationList } from "@/components/shared/ai/conversation-list";
+import { UsageFooter } from "@/components/shared/ai/usage-footer";
 import type { ChatHistoryApi, ChatPhase } from "./use-ai-workspace";
+import { useAiWorkspace } from "./use-ai-workspace";
 
 /** A reviewed mock draft handed to the real form. */
 export type LogMockPayload = {
@@ -357,6 +359,13 @@ export function AiChatSheet({
 
 /* ---------------- Ask tab ---------------- */
 
+/** The sheet's quota footer: reads status from the workspace provider so the
+ * AskChatTab props stay unchanged. */
+function SheetUsageFooter({ className }: { className?: string }) {
+  const ai = useAiWorkspace();
+  return <UsageFooter status={ai.aiStatus ?? null} className={className} />;
+}
+
 function AskChatTab({
   messages,
   streaming,
@@ -426,6 +435,7 @@ function AskChatTab({
           onNewChat={onHistoryClose}
           className="flex-1"
         />
+        <SheetUsageFooter className="-mx-4 mt-3 sm:-mx-5" />
         <button
           type="button"
           className="mt-2 min-h-9 text-xs font-medium text-muted underline underline-offset-4 hover:text-ink"
@@ -449,6 +459,7 @@ function AskChatTab({
         taskApi={taskApi}
         onTaskAdded={onTaskAdded}
         error={error}
+        compact
         className="px-4 sm:px-5"
         emptyState={
           configured ? (

@@ -3,6 +3,8 @@ import { LandingError } from "./landing-error";
 import { LedgerFacts } from "./ledger-facts";
 import { Masthead } from "./masthead";
 import { LANDING_PLAN } from "./plan-data";
+import { FloatingAsk, SectionRail } from "./chrome";
+import { FilmSection } from "./film-section";
 import {
   AiSection,
   CompareSection,
@@ -45,22 +47,38 @@ export function Landing({
       </a>
       <LandingError errorCode={errorCode} />
       <Masthead authEnabled={authEnabled} />
+      <SectionRail />
+      <FloatingAsk />
 
       <main id="main-content">
-        <Hero authEnabled={authEnabled} />
+        <Hero authEnabled={authEnabled} plan={LANDING_PLAN} />
         <LedgerFacts plan={LANDING_PLAN} />
 
-        <Plate id="workspace" label="Plate I · The workspace">
+        <Plate
+          id="workspace"
+          label="Plate I · The workspace"
+          art={{ src: "/landing/ink-compass.png", width: 896, height: 896 }}
+        >
           <div className="pb-20 pt-14 sm:pb-24">
             <Showcase plan={LANDING_PLAN} />
           </div>
         </Plate>
 
+        <FilmSection plan={LANDING_PLAN} />
+
         <ScopesSection />
         <PlanSection plan={LANDING_PLAN} />
         <CompareSection />
 
-        <Plate label="Plate II · Yours alone">
+        <Plate
+          label="Plate II · Yours alone"
+          art={{
+            src: "/landing/ink-compass.png",
+            width: 896,
+            height: 896,
+            placement: "pointer-events-none absolute -left-20 bottom-0 w-64 opacity-90",
+          }}
+        >
           <AiSection />
           <PrivacySection />
         </Plate>

@@ -18,15 +18,25 @@ import { ChatTranscript } from "@/components/shared/ai/chat-transcript";
 import { ChatComposer } from "@/components/shared/ai/chat-composer";
 import { ChatEmptyState } from "@/components/shared/ai/chat-empty-state";
 import { ConversationList } from "@/components/shared/ai/conversation-list";
+import { UsageFooter } from "@/components/shared/ai/usage-footer";
 import { AiActivity } from "./ai-activity";
 import { istTodayIso } from "@/lib/plan/view-model";
+import { cn } from "@/lib/utils";
+
+const FOLLOW_UPS = [
+  "Show my weakest subject",
+  "How is my trend?",
+  "Plan my revision",
+];
 
 /**
- * The full-page chat: history and activity in a left rail, the shared
- * transcript and composer in one measured reading column. One conversation
- * with the sheet — asking here, then opening the side panel, keeps the same
- * turns. Below lg the rail becomes a bottom drawer (the calendar's phone
- * pattern), so history is reachable at every width.
+ * The full-page chat in a measured three-column grid: conversations and the
+ * usage footer in the left rail, the shared transcript and composer in the
+ * middle, and the read ledger in its own right rail from xl up (lg parks a
+ * compact copy under the list). One conversation with the sheet — asking
+ * here, then opening the side panel, keeps the same turns. Below lg the rail
+ * becomes a bottom drawer (the calendar's phone pattern), so history is
+ * reachable at every width.
  */
 export function AskView() {
   const ai = useAiWorkspace();
@@ -58,14 +68,21 @@ export function AskView() {
         <Trash2 size={14} aria-hidden />
       </button>
       {ai.aiStatus?.credential ? (
-        <span className="max-w-[24ch] truncate text-[11px] text-muted">
-          {ai.aiStatus.credential.model}
+        <span className="max-w-[24ch] truncate rounded-pill border border-rule-soft px-2 py-0.5 text-[11px] text-muted">
+          {ai.aiStatus.credential.model} · read-only
         </span>
       ) : null}
       {usage ? (
-        <span className="tabular text-[11px] text-muted">{usage}</span>
+        <span className="tabular-nums text-[11px] text-muted">{usage}</span>
       ) : null}
     </>
+  );
+
+  const conversationList = (
+    <ConversationList
+      history={ai.chat.history}
+      streaming={ai.chat.streaming}
+    />
   );
 
   return (
@@ -99,26 +116,30 @@ export function AskView() {
         }
       />
       <div
-        className={
+        className={cn(
+          "min-h-0 flex-1",
           railOpen
-            ? "grid min-h-0 flex-1 gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]"
-            : "flex min-h-0 flex-1 flex-col"
-        }
+            ? "grid gap-5 lg:grid-cols-[17.5rem_minmax(0,1fr)] xl:grid-cols-[17.5rem_minmax(0,1fr)_15.5rem]"
+            : "flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_15.5rem] xl:gap-5",
+        )}
       >
         {railOpen && (
           <aside
             aria-label="Conversation history and AI activity"
-            className="hidden min-h-0 flex-col gap-5 border-r border-rule-soft pr-4 lg:flex"
+            className="hidden min-h-0 flex-col border-r border-rule-soft pr-4 lg:flex"
           >
             <ConversationList
               history={ai.chat.history}
               streaming={ai.chat.streaming}
-              className="max-h-[55%]"
+              className="min-h-0 flex-1"
             />
+            {/* lg keeps a compact ledger under the list; xl gives it a full
+                rail of its own on the right. */}
             <AiActivity
               refreshKey={ai.chat.messages.length}
-              className="flex-1"
+              className="mt-4 h-52 shrink-0 xl:hidden"
             />
+            <UsageFooter status={ai.aiStatus ?? null} className="mt-3" />
           </aside>
         )}
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -174,11 +195,25 @@ export function AskView() {
                   visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
                   placeholder="Ask about your mocks, targets, or plan…"
                   meta={composerMeta}
+                  followUps={ai.chat.messages.length > 0 ? FOLLOW_UPS : undefined}
+                  onFollowUp={(text) => {
+                    ai.chat.send(text, screenContext, false);
+                    setInput("");
+                  }}
                 />
               </div>
             )}
           </div>
         </section>
+        <aside
+          aria-label="AI read ledger"
+          className="hidden min-h-0 flex-col border-l border-rule-soft pl-4 xl:flex"
+        >
+          <AiActivity
+            refreshKey={ai.chat.messages.length}
+            className="flex-1 pt-1"
+          />
+        </aside>
       </div>
 
       <Drawer open={railDrawerOpen} onOpenChange={setRailDrawerOpen}>
@@ -188,12 +223,7 @@ export function AskView() {
             Conversation history and AI activity
           </DrawerTitle>
           <DrawerBody className="flex flex-col gap-5">
-            <ConversationList
-              history={ai.chat.history}
-              streaming={ai.chat.streaming}
-              onNewChat={() => setRailDrawerOpen(false)}
-              className="max-h-[55%] shrink-0"
-            />
+            {conversationList}
             <AiActivity
               refreshKey={ai.chat.messages.length}
               className="min-h-0 flex-1"

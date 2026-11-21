@@ -29,6 +29,8 @@ export function ChatComposer({
   autoFocus = false,
   meta,
   visionEnabled = false,
+  followUps,
+  onFollowUp,
   className,
 }: {
   value: string;
@@ -44,6 +46,10 @@ export function ChatComposer({
   meta?: React.ReactNode;
   /** Image attach UI; server still gates the actual send. */
   visionEnabled?: boolean;
+  /** One-tap follow-up prompts, shown as a scrollable pill row above the
+   * field. Each chip sends a REAL message — they are shortcuts, not props. */
+  followUps?: string[];
+  onFollowUp?: (text: string) => void;
   className?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -91,6 +97,26 @@ export function ChatComposer({
 
   return (
     <div className={cn("ai-composer space-y-2", className)}>
+      {followUps?.length && onFollowUp ? (
+        <div
+          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="list"
+          aria-label="Follow-up prompts"
+        >
+          {followUps.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              role="listitem"
+              disabled={streaming || disabled}
+              className="tap-target shrink-0 whitespace-nowrap rounded-pill border border-rule-soft bg-paper px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent/40 hover:text-ink disabled:opacity-50"
+              onClick={() => onFollowUp(prompt)}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="ai-composer-field">
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 border-b border-rule-soft px-3 py-2">

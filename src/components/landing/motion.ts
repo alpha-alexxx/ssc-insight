@@ -1,9 +1,8 @@
 /**
- * Shared motion constants for the landing page's JavaScript-driven motion.
+ * Landing-page motion constants.
  *
- * The CSS side reads the app's own `--ease-out-soft` / `--dur-*` tokens; these
- * exist only for the two places that must animate in JS (the accordion is
- * CSS, but the scope diagram draws SVG paths and the showcase swaps panels).
- * One curve for everything, so the page moves as a single system.
+ * The CSS side reads the app's own `--ease-out-soft` / `--dur-*` tokens; JS
+ * motion reads the shared house vocabulary in `src/lib/motion.ts`, of which
+ * this file is a landing-local re-export so existing island imports stay put.
  */
-export const EASE = [0.22, 1, 0.36, 1] as const;
+export { EASE } from "@/lib/motion";

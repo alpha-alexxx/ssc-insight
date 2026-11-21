@@ -7,7 +7,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowDown, ChevronDown, Pencil } from "lucide-react";
+import { EASE } from "@/lib/motion";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { Markdown } from "./markdown";
 import { CopyButton } from "./copy-button";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { TaskSuggestionCard } from "./task-suggestion-card";
+import { RoleAvatar, ShieldMark, SOURCE_CHIPS, timeLabel } from "./role-avatar";
 import { cn } from "@/lib/utils";
 
 export type ChatTranscriptProps = {
@@ -37,6 +40,9 @@ export type ChatTranscriptProps = {
   /** Rendered when there are no messages yet (quick questions, setup). */
   emptyState?: React.ReactNode;
   error?: string;
+  /** Sheet mode: cards go full width and type sizing tightens so the same
+   * grammar reads well in a ~520px column. */
+  compact?: boolean;
   className?: string;
 };
 
@@ -141,37 +147,75 @@ function EditButton({
   );
 }
 
-/** The collapsible "Thought for Ns" disclosure above an assistant answer. */
-function ReasoningDisclosure({
+/**
+ * The collapsible "Read the workspace" strip at the top of an assistant
+ * answer: shield, label, the four source chips the server context actually
+ * reads, and the measured reasoning time. Expanding shows the model's own
+ * hidden reasoning when it streamed any, else the standard read sentence.
+ */
+function ReasoningTrace({
   reasoning,
   seconds,
 }: {
-  reasoning: string;
+  reasoning?: string;
   seconds?: number;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-rule-soft pb-2">
+    <div className="mb-2.5 rounded-control border border-rule-soft bg-canvas/70">
       <button
         type="button"
-        aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="tap-target flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-ink"
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left"
       >
+        <ShieldMark className="shrink-0" />
+        <span className="section-label shrink-0">Read the workspace</span>
+        <span className="hidden min-w-0 flex-1 flex-wrap gap-1 min-[520px]:flex">
+          {SOURCE_CHIPS.map((chip) => (
+            <span
+              key={chip.label}
+              className="inline-flex items-center gap-1 rounded-pill border border-rule-soft bg-paper px-1.5 py-px text-[0.5625rem] font-medium leading-4 text-muted"
+            >
+              <chip.icon size={9} aria-hidden className="text-accent" />
+              {chip.label}
+            </span>
+          ))}
+        </span>
+        <span className="tabular-nums shrink-0 text-[0.625rem] text-muted">
+          {seconds ? `${seconds}s` : ""}
+        </span>
         <ChevronDown
-          size={13}
+          size={12}
+          aria-hidden
           className={cn(
-            "transition-transform duration-[var(--dur-quick)]",
+            "shrink-0 text-muted transition-transform duration-[var(--dur-quick)]",
             open && "rotate-180",
           )}
         />
-        Thought{seconds ? ` for ${seconds}s` : ""}
       </button>
-      {open && (
-        <div className="mt-2 whitespace-pre-wrap border-l-2 border-rule-soft pl-3 text-xs leading-relaxed text-muted">
-          {reasoning}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: EASE }}
+            className="overflow-hidden border-t border-rule-soft px-2.5 text-[0.6875rem] leading-relaxed text-muted"
+          >
+            {reasoning ? (
+              <span className="block whitespace-pre-wrap py-2">{reasoning}</span>
+            ) : (
+              <span className="block py-2">
+                Reviewed aggregate analytics, the subject profile, the target
+                ledger and the latest 20 logged mocks before answering.
+                Read-only — nothing was written.
+                {seconds ? ` Drawn in ${seconds}s.` : ""}
+              </span>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -214,10 +258,11 @@ function AssistantBody({
 
 /**
  * The chat transcript shared by the side sheet and the /ask page: one
- * `role="log"` scroller of turns — the user's question as a restrained soft
- * surface, the answer as full-width markdown — with per-turn actions, the
- * phase indicator before the first token, and a jump-to-latest pill when the
- * reader has scrolled away while a stream runs.
+ * `role="log"` scroller of turns in a mixed bubble grammar — the reader's
+ * question as a right-aligned soft bubble with a "you" avatar, the coach's
+ * answer as a bordered document card with an "ai" avatar and a clock stamp —
+ * with per-turn actions, the phase card before the first token, and a
+ * jump-to-latest pill when the reader has scrolled away while a stream runs.
  */
 export function ChatTranscript({
   messages,
@@ -230,8 +275,10 @@ export function ChatTranscript({
   onTaskAdded,
   emptyState,
   error,
+  compact = false,
   className,
 }: ChatTranscriptProps) {
+  const reduced = useReducedMotion();
   const logRef = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const [showLatest, setShowLatest] = useState(false);
@@ -269,109 +316,135 @@ export function ChatTranscript({
         {messages.length === 0 && emptyState ? (
           <div className="px-1 py-2">{emptyState}</div>
         ) : (
-          <div className="space-y-6 px-1 py-4">
+          <div className="space-y-5 px-1 py-4">
             {messages.map((message) => {
               const isLast = message.id === lastId;
               const live =
                 isLast &&
                 streaming &&
                 (message.role === "assistant" || Boolean(message.content));
+              const turnEnter = reduced
+                ? {}
+                : {
+                    initial: { opacity: 0, y: 8 },
+                    animate: { opacity: 1, y: 0 },
+                    transition: { duration: 0.24, ease: EASE },
+                  };
               return (
-                <article
+                <motion.article
                   key={message.id}
                   className={cn(
                     "chat-turn group min-w-0",
                     message.role === "user" ? "chat-turn-user" : "chat-turn-ai",
                   )}
+                  {...turnEnter}
                 >
                   {message.role === "user" ? (
-                    <div className="flex flex-col items-end gap-1">
-                      {message.images?.length ? (
-                        <div className="flex flex-wrap justify-end gap-2">
-                          {message.images.map((image, index) => (
-                            // eslint-disable-next-line @next/next/no-img-element -- user-attached data URL, not a remote asset
-                            <img
-                              key={index}
-                              src={image}
-                              alt={`Attached screenshot ${index + 1}`}
-                              className="max-h-32 rounded-control border border-rule-soft object-contain"
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                      {message.imageOnly ? (
-                        // Screenshots with no typed text: the images speak for
-                        // themselves; a quiet caption replaces a fake sentence.
-                        <p className="text-[11px] text-muted">Screenshot</p>
-                      ) : (
-                        <div className="max-w-[85%] rounded-control border border-rule-soft bg-soft px-3.5 py-2.5 text-[length:var(--type-body)] leading-relaxed whitespace-pre-wrap text-ink">
-                          {message.content}
-                        </div>
-                      )}
-                      <TurnActions
-                        message={message}
-                        isLast={isLast}
-                        streaming={streaming}
-                        onEditResend={onEditResend}
-                        onRegenerate={onRegenerate}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {message.reasoning ? (
-                        <ReasoningDisclosure
-                          reasoning={message.reasoning}
-                          seconds={message.reasoningSeconds}
-                        />
-                      ) : null}
-                      {message.content ? (
-                        <AssistantBody
-                          message={message}
-                          live={live || (isLast && streaming)}
-                          taskApi={taskApi}
-                          onTaskAdded={onTaskAdded}
-                        />
-                      ) : isLast && streaming ? (
-                        <ThinkingIndicator
-                          key={phase ?? "thinking"}
-                          phase={phase === "connecting" ? "connecting" : "thinking"}
-                        />
-                      ) : message.stopped && !streaming ? (
-                        <p className="text-xs text-muted">
-                          Generation stopped before the answer arrived.
-                        </p>
-                      ) : (
-                        !streaming && (
-                          <p className="text-sm text-muted">No response.</p>
-                        )
-                      )}
-                      {message.truncated && (
-                        <p className="text-xs text-muted">
-                          The reply ran out of room and may be cut off. Regenerate
-                          for a fresh, shorter answer.
-                        </p>
-                      )}
-                      {message.stopped && !streaming && message.content ? (
-                        <p className="text-xs text-muted">
-                          Generation stopped — this reply may be incomplete.
-                        </p>
-                      ) : null}
-                      {(message.content || message.stopped) && !streaming ? (
+                    <div className="flex flex-row-reverse items-start gap-2.5">
+                      <RoleAvatar role="user" />
+                      <div className="flex min-w-0 flex-col items-end gap-1 [max-width:80%]">
+                        {message.images?.length ? (
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {message.images.map((image, index) => (
+                              // eslint-disable-next-line @next/next/no-img-element -- user-attached data URL, not a remote asset
+                              <img
+                                key={index}
+                                src={image}
+                                alt={`Attached screenshot ${index + 1}`}
+                                className="max-h-32 rounded-control border border-rule-soft object-contain"
+                              />
+                            ))}
+                          </div>
+                        ) : null}
+                        {message.imageOnly ? (
+                          // Screenshots with no typed text: the images speak for
+                          // themselves; a quiet caption replaces a fake sentence.
+                          <p className="text-[11px] text-muted">Screenshot</p>
+                        ) : (
+                          <div className="whitespace-pre-line rounded-2xl rounded-br-sm bg-soft px-4 py-2.5 text-[length:var(--type-body)] leading-relaxed text-ink [overflow-wrap:anywhere]">
+                            {message.content}
+                          </div>
+                        )}
                         <TurnActions
                           message={message}
                           isLast={isLast}
                           streaming={streaming}
                           onEditResend={onEditResend}
-                          onRegenerate={
-                            isLast || message.id === lastAssistantId
-                              ? onRegenerate
-                              : undefined
-                          }
+                          onRegenerate={onRegenerate}
                         />
-                      ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2.5">
+                      <RoleAvatar role="ai" />
+                      <div className="min-w-0 flex-1">
+                        {message.content || message.reasoning ? (
+                          <div
+                            className={cn(
+                              "chat-card rounded-2xl rounded-tl-sm border border-rule-soft bg-paper px-4 py-3",
+                              compact ? "w-full" : "max-w-[46rem]",
+                            )}
+                          >
+                            {message.reasoning || message.reasoningSeconds ? (
+                              <ReasoningTrace
+                                reasoning={message.reasoning}
+                                seconds={message.reasoningSeconds}
+                              />
+                            ) : null}
+                            <AssistantBody
+                              message={message}
+                              live={live || (isLast && streaming)}
+                              taskApi={taskApi}
+                              onTaskAdded={onTaskAdded}
+                            />
+                          </div>
+                        ) : isLast && streaming ? (
+                          <ThinkingIndicator
+                            key={phase ?? "thinking"}
+                            phase={phase === "connecting" ? "connecting" : "thinking"}
+                          />
+                        ) : message.stopped && !streaming ? (
+                          <p className="text-xs text-muted">
+                            Generation stopped before the answer arrived.
+                          </p>
+                        ) : (
+                          !streaming && (
+                            <p className="text-sm text-muted">No response.</p>
+                          )
+                        )}
+                        {message.truncated && (
+                          <p className="mt-1.5 text-xs text-muted">
+                            The reply ran out of room and may be cut off. Regenerate
+                            for a fresh, shorter answer.
+                          </p>
+                        )}
+                        {message.stopped && !streaming && message.content ? (
+                          <p className="mt-1.5 text-xs text-muted">
+                            Generation stopped — this reply may be incomplete.
+                          </p>
+                        ) : null}
+                        {(message.content || message.stopped) && !streaming ? (
+                          <div className="flex items-center justify-between gap-2 pr-1">
+                            <TurnActions
+                              message={message}
+                              isLast={isLast}
+                              streaming={streaming}
+                              onEditResend={onEditResend}
+                              onRegenerate={
+                                isLast || message.id === lastAssistantId
+                                  ? onRegenerate
+                                  : undefined
+                              }
+                            />
+                            <span className="tabular-nums text-[0.5625rem] text-muted/80">
+                              {timeLabel(message.at)}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   )}
-                </article>
+                </motion.article>
               );
             })}
           </div>
@@ -400,7 +473,7 @@ export function ChatTranscript({
       {showLatest && (
         <button
           type="button"
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-control border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink shadow-pop"
+          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill border border-rule bg-ink px-3.5 py-1.5 text-xs font-medium text-paper shadow-pop"
           onClick={() => {
             follow.current = true;
             setShowLatest(false);
@@ -410,7 +483,7 @@ export function ChatTranscript({
             });
           }}
         >
-          <ArrowDown size={13} /> Jump to latest
+          <ArrowDown size={13} aria-hidden /> New replies
         </button>
       )}
     </div>

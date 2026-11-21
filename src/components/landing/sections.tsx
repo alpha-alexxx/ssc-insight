@@ -9,6 +9,7 @@ import { PlanGrid, PlanLegend } from "./planner-section";
 import { Reveal } from "./reveal";
 import { ScopeDiagram } from "./scope-diagram";
 import { Section, SectionHead } from "./section";
+import { Petals } from "./atoms";
 import { AiPanel } from "./mockups/ai-panel";
 import { BrowserFrame, MockupCaption } from "./mockups/browser-frame";
 import { CompareScreen } from "./mockups/compare-screen";
@@ -346,6 +347,7 @@ export function FinalCta({ authEnabled }: { authEnabled: boolean }) {
             aria-hidden="true"
             className="landing-blob absolute -right-24 -top-24 size-[22rem] bg-accent-soft opacity-70"
           />
+          <Petals count={24} />
           <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
               <p className="section-label">Start here</p>

@@ -20,6 +20,7 @@ import { api } from "@/lib/api-client";
 import { aiKeys, aiStatusQueryOptions } from "@/lib/queries/ai";
 import { useUiStore } from "@/stores/ui-store";
 import { NdjsonDecoder, parseChatEvent } from "@/lib/ai/ndjson";
+import { useToast } from "@/components/toast";
 import type {
   AiScreenContext,
   AiStatus,
@@ -155,6 +156,9 @@ export function AiWorkspaceProvider({
 
 function useAiWorkspaceState() {
   const queryClient = useQueryClient();
+  // Toasts live one provider up (ToastProvider wraps this one in the layout);
+  // the context api is stable, so callbacks can list it as a plain dep.
+  const toastApi = useToast();
   // Availability status is the only cacheable AI resource; it lives in the
   // query cache (lib/queries/ai.ts). A status failure must never block the
   // dashboard — the query error simply keeps aiStatus null, which every
@@ -337,8 +341,14 @@ function useAiWorkspaceState() {
   }, []);
 
   const stopChat = useCallback(() => {
-    chatAbort.current?.abort();
-  }, []);
+    // A deliberate stop is honest feedback, not a failure: the question and
+    // any partial answer stay in the thread, marked `stopped`. The toast api
+    // from context is stable, so it lists as a plain dependency.
+    if (chatAbort.current) {
+      chatAbort.current.abort();
+      toastApi.info("Reply stopped", "Your question is still in the thread.");
+    }
+  }, [toastApi]);
 
   const startFreshConversation = useCallback(() => {
     chatAbort.current?.abort();

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { InkArt } from "./atoms";
 
 /**
  * The landing page's editorial grammar.
@@ -99,6 +100,7 @@ export function Plate({
   label,
   children,
   className,
+  art,
   dim = false,
 }: {
   id?: string;
@@ -106,6 +108,8 @@ export function Plate({
   label?: string;
   children: ReactNode;
   className?: string;
+  /** An ink-wash asset rendered into the plate's corner, tone-inverted. */
+  art?: { src: string; width: number; height: number; placement?: string };
   /** A secondary plate: no top rule, so it reads as continuous with the one above. */
   dim?: boolean;
 }) {
@@ -113,12 +117,27 @@ export function Plate({
     <div
       id={id}
       className={cn(
-        "plate landing-section",
+        "plate landing-section relative overflow-hidden",
         dim && "border-t-0",
         className,
       )}
     >
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      {art ? (
+        <div
+          className={
+            art.placement ??
+            "pointer-events-none absolute -right-16 -top-16 w-64 opacity-90"
+          }
+        >
+          <InkArt
+            src={art.src}
+            width={art.width}
+            height={art.height}
+            tone="ink"
+          />
+        </div>
+      ) : null}
+      <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
         {label ? (
           <p className="plate-label mb-6 flex items-center gap-3">
             <span aria-hidden="true" className="h-px w-8 bg-[var(--plate-rule)]" />
