@@ -315,15 +315,15 @@ Trash is a ledger, not a recycle bin graphic. `/trash` keeps the same editorial 
 - The empty state is a serif line and one sentence — no illustration, no decorative tile.
 - Trash is reached from the sidebar footer beside the account block, reusing the grouped-link treatment (icon, collapsed-rail tooltip, active tint) rather than adding a navigation group for a single destination.
 
-## Ask AI chat grammar (bubbles)
+## Ask AI chat grammar (legacy chat)
 
 The chat transcript (both the side sheet and `/ask`) uses a mixed bubble grammar — the one sanctioned shadow in the product besides `.elev-pop`:
 
-- The reader's question is a **right-aligned soft bubble** (`bg-soft`, 16px radius with a squared tail corner toward its "you" avatar) that caps at 80% width and wraps with `overflow-wrap: anywhere`.
-- The coach's answer is a **left document card** (`bg-paper`, hairline `--rule-soft` border, the same radius family with the tail corner, and the `.chat-card` paper-lift shadow) capped at 46rem on the page, full width in the sheet. A tiny `tabular` clock stamp sits below the card, right-aligned.
-- Avatars are text glyphs, never images: the coach is an ink circle with serif "ai", the reader a bordered soft circle with "you" (`role-avatar.tsx`).
-- Every assistant card opens with the **read-the-workspace strip**: shield, small-caps label, the four source chips (aggregate analytics / subject profile / target ledger / latest 20 mocks — they mirror `src/lib/ai/context.ts` one-for-one), the measured reasoning seconds, and the model's own reasoning behind the toggle.
-- The pre-first-token **thinking card narrates the read**: three spring dots, rotating status lines ("Reading aggregate analytics…"), and the source chips popping in. Connecting stays honest; seconds tick.
+- **No avatars anywhere** — the legacy chat grammar (Claude/ChatGPT/z.ai), deliberately chosen over the earlier bubble-plus-avatar treatment.
+- The reader's question is the **only bubble**: a right-aligned soft surface (`bg-soft`, fully rounded) capped at 85% width, wrapping with `overflow-wrap: anywhere`; attached screenshots sit above it.
+- The coach's answer is **plain typeset prose flush with the column edge** — no card, no border, no shadow, no clock stamp. Per-turn actions (Copy / Regenerate / Edit) reveal on hover beneath the block, matching the platforms this grammar follows.
+- Every assistant answer opens with the flat **read-the-workspace line**: shield, small-caps label, the measured reasoning seconds, and the model's own reasoning behind the toggle (the four sources are named in the expanded text).
+- The pre-first-token **thinking line** is flat: three spring dots and the rotating status narration ("Reading aggregate analytics…") — no card, no chips; seconds tick.
 - The conversation rail groups by **Today / Yesterday / Earlier this week / Earlier**, carries "12m ago · 4 messages" meta, and marks the active row with one shared-layout accent bar that physically slides between rows (`layoutId="conv-active"`).
 - The rail's **usage footer** renders today's request count against the active limit as a hairline meter (accent → danger past budget) plus the read-only pledge. The same footer closes the sheet's history panel.
 - Deleting the conversation that owns an in-flight answer is refused with a toast; stopping a stream announces "Reply stopped — your question is still in the thread".
