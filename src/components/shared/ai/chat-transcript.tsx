@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, BrainCircuit, ChevronDown, Pencil, Shield, Sparkles } from "lucide-react";
+import { ArrowDown, BrainCircuit, ChevronDown, Pencil, RotateCcw, Shield, Sparkles } from "lucide-react";
 import { EASE } from "@/lib/motion";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";
@@ -40,6 +40,9 @@ export type ChatTranscriptProps = {
   error?: string;
   /** The resolved model name, shown on each assistant turn's header row. */
   model?: string;
+  /** Tool-outcome notes ("5 todos created") rendered as quiet centered
+   * lines at the tail of the log. Per-visit state owned by the host. */
+  systemLines?: React.ReactNode;
   /** Sheet mode: cards go full width and type sizing tightens so the same
    * grammar reads well in a ~520px column. */
   compact?: boolean;
@@ -54,7 +57,34 @@ type TurnActionsProps = {
   onRegenerate?: () => void;
 };
 
-/** Per-turn actions, revealed on hover/focus (always visible on touch). */
+/** The per-turn action bar: muted ICON buttons in an always-visible row,
+ * with a divider between the pairs — the reference's action-bar grammar.
+ * Labels ride `title` and `aria-label`, so nothing is icon-only-meaning. */
+function ActionIconButton({
+  label,
+  onClick,
+  children,
+  disabled,
+}: {
+  label: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
 const TurnActions = memo(function TurnActions({
   message,
   isLast,
@@ -63,7 +93,7 @@ const TurnActions = memo(function TurnActions({
   onRegenerate,
 }: TurnActionsProps) {
   return (
-    <div className="turn-actions flex items-center gap-1">
+    <div className="turn-actions flex items-center gap-0.5">
       {message.role === "user" ? (
         onEditResend && !streaming ? (
           <EditButton message={message} onEditResend={onEditResend} />
@@ -71,16 +101,18 @@ const TurnActions = memo(function TurnActions({
       ) : (
         <>
           {message.content ? (
-            <CopyButton value={message.content} label="Copy" />
+            <CopyButton value={message.content} label="Copy" iconOnly />
+          ) : null}
+          {message.content && isLast && onRegenerate && !streaming ? (
+            <span aria-hidden="true" className="mx-0.5 h-3.5 w-px bg-rule-soft" />
           ) : null}
           {isLast && onRegenerate && !streaming ? (
-            <button
-              type="button"
-              className="tap-target inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+            <ActionIconButton
+              label="Regenerate"
               onClick={onRegenerate}
             >
-              Regenerate
-            </button>
+              <RotateCcw size={14} aria-hidden />
+            </ActionIconButton>
           ) : null}
         </>
       )}
@@ -101,13 +133,15 @@ function EditButton({
     return (
       <button
         type="button"
-        className="tap-target inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+        title="Edit and resend"
+        aria-label="Edit and resend"
+        className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink"
         onClick={() => {
           setDraft(message.content);
           setEditing(true);
         }}
       >
-        <Pencil size={13} /> Edit
+        <Pencil size={14} aria-hidden />
       </button>
     );
   return (
@@ -359,6 +393,7 @@ export function ChatTranscript({
   emptyState,
   error,
   model,
+  systemLines,
   compact = false,
   className,
 }: ChatTranscriptProps) {
@@ -400,7 +435,7 @@ export function ChatTranscript({
         {messages.length === 0 && emptyState ? (
           <div className="px-1 py-2">{emptyState}</div>
         ) : (
-          <div className="space-y-5 px-1 py-4">
+          <div className="space-y-8 px-1 py-4">
             {messages.map((message) => {
               const isLast = message.id === lastId;
               const live =
@@ -535,6 +570,7 @@ export function ChatTranscript({
                 </motion.article>
               );
             })}
+            {systemLines ? <div className="pb-1">{systemLines}</div> : null}
           </div>
         )}
         {error ? (

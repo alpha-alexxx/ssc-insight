@@ -1,23 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
   BarChart3,
   BookOpen,
   GitCompare,
-  Shield,
   Sparkles,
   Target,
 } from "lucide-react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-/**
- * Suggestion tones come from the app's own color identity — the accent for
- * planning, the fixed Reasoning blue for subject diagnosis, the semantic
- * warning/positive pair for comparison and revision. No hardcoded hues.
- */
 const SUGGESTIONS = [
   {
     text: "What should I focus on this week?",
@@ -31,7 +26,10 @@ const SUGGESTIONS = [
     label: "Find the weak subject",
     hint: "Spot topics that need more work",
     icon: BarChart3,
-    tone: { bg: "color-mix(in oklab, var(--chart-reasoning) 14%, transparent)", fg: "var(--chart-reasoning)" },
+    tone: {
+      bg: "color-mix(in oklab, var(--chart-reasoning) 14%, transparent)",
+      fg: "var(--chart-reasoning)",
+    },
   },
   {
     text: "Compare my last five mocks",
@@ -49,47 +47,74 @@ const SUGGESTIONS = [
   },
 ];
 
+function greetingFor(hour: number): string {
+  if (hour < 5) return "Burning the midnight oil";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 /**
  * The invitation over an empty conversation — identical on the sheet and
- * the /ask page (one state, two surfaces). The reference composition: a
- * soft medallion beside the serif question, then tinted suggestion cards
- * with chevrons, and a centered shield footnote — all compact, so a
- * returning reader lands on actions, not an introduction.
+ * the /ask page (one state, two surfaces), composed like the reference's
+ * centered greeting: medallion, time-of-day hello with the reader's first
+ * name, one sentence carrying the read-only + grounding story, then the
+ * tinted suggestion cards and the device footnote.
+ *
+ * The greeting computes after mount — the server renders a plain "Welcome
+ * back" so the clock can never disagree between renders.
  */
 export function ChatEmptyState({
   onSend,
+  firstName,
   className,
 }: {
   onSend: (text: string) => void;
+  /** First name for the greeting; omit for a nameless hello (the sheet). */
+  firstName?: string;
   className?: string;
 }) {
   const reduced = useReducedMotion();
+  const [greeting, setGreeting] = useState("Welcome back");
+  const [greeted, setGreeted] = useState(false);
+  // The clock only exists on the client, so the greeting adjusts once on the
+  // first client render (render-phase, guarded) — the server always renders
+  // the plain "Welcome back", and there is never a hydration mismatch.
+  if (!greeted && typeof window !== "undefined") {
+    setGreeted(true);
+    const hour = new Date().getHours();
+    setGreeting(
+      firstName ? `${greetingFor(hour)}, ${firstName}` : greetingFor(hour),
+    );
+  }
+
   return (
     <motion.div
       variants={reduced ? undefined : staggerContainer(0.07)}
       initial={reduced ? undefined : "hidden"}
       animate={reduced ? undefined : "show"}
-      className={cn("flex flex-col gap-5 pt-1", className)}
+      className={cn("flex flex-col items-center gap-5 pt-6 text-center", className)}
     >
-      <motion.div variants={reduced ? undefined : staggerItem} className="flex items-start gap-3">
+      <motion.div
+        variants={reduced ? undefined : staggerItem}
+        className="flex flex-col items-center gap-3"
+      >
         <span
           aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"
+          className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent"
         >
-          <Sparkles size={17} />
+          <Sparkles size={20} />
         </span>
-        <div className="min-w-0">
-          <h3 className="font-serif text-[1.375rem] font-medium leading-tight tracking-[-0.01em] text-ink">
-            What would help you study today?
-          </h3>
-          <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted">
-            Answers read your aggregates and latest 20 full mocks — never
-            your notes or identity.
-          </p>
-        </div>
+        <h3 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+          {greeting}
+        </h3>
+        <p className="max-w-sm text-[0.8125rem] leading-relaxed text-muted">
+          Answers read your aggregates and latest 20 full mocks — never your
+          notes or identity.
+        </p>
       </motion.div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid w-full gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map((suggestion) => (
           <motion.button
             key={suggestion.text}
@@ -124,9 +149,8 @@ export function ChatEmptyState({
 
       <motion.p
         variants={reduced ? undefined : staggerItem}
-        className="flex items-center justify-center gap-1.5 text-[0.6875rem] text-muted"
+        className="text-[0.6875rem] text-muted"
       >
-        <Shield size={11} aria-hidden className="text-accent" />
         Chats stay on this device; the server stores no conversations.
       </motion.p>
     </motion.div>

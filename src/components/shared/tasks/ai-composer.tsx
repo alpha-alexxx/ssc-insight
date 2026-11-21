@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   CalendarClock,
   Info,
@@ -48,16 +48,28 @@ type DraftResponse = {
 export function TodoAiComposer({
   onChanged,
   compact = false,
+  variant = "compact",
   configured,
   onAiConfigured,
+  onTakeoverChange,
+  onApplied,
 }: {
   onChanged?: () => void;
   compact?: boolean;
+  /** "page" renders the slim prompt + the takeover ledger for the /ask
+   * composer (the host hides the transcript while the draft is open);
+   * "compact" is the sheet/planner behavior, unchanged. */
+  variant?: "compact" | "page";
   /** The sheet passes the live AI status; the planner host leaves it unset
    * and keeps its always-available behavior. */
   configured?: boolean;
   /** Notifies the host so AI status can be refetched after setup. */
   onAiConfigured?: (credential: AiCredentialSummary | null) => void;
+  /** Fires whenever the takeover state flips (a parsed draft opens or
+   * closes) so the host can hide the transcript and chips. */
+  onTakeoverChange?: (active: boolean) => void;
+  /** Fires after Apply succeeds with the number of applied changes. */
+  onApplied?: (count: number) => void;
 }) {
   // The Todos tab says AI is off instead of failing at submit time.
   if (compact && configured === false) {
@@ -83,15 +95,29 @@ export function TodoAiComposer({
       </section>
     );
   }
-  return <TodoAiComposerInner onChanged={onChanged} compact={compact} />;
+  return (
+    <TodoAiComposerInner
+      onChanged={onChanged}
+      compact={compact}
+      variant={variant}
+      onTakeoverChange={onTakeoverChange}
+      onApplied={onApplied}
+    />
+  );
 }
 
 function TodoAiComposerInner({
   onChanged,
   compact = false,
+  variant = "compact",
+  onTakeoverChange,
+  onApplied,
 }: {
   onChanged?: () => void;
   compact?: boolean;
+  variant?: "compact" | "page";
+  onTakeoverChange?: (active: boolean) => void;
+  onApplied?: (count: number) => void;
 }) {
   const [open, setOpen] = useState(compact),
     [prompt, setPrompt] = useState(""),
@@ -106,6 +132,15 @@ function TodoAiComposerInner({
    * change by default; editing is opt-in so five proposals stay scannable. */
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const token = useRef(crypto.randomUUID());
+  const page = variant === "page";
+  const slim = compact || page;
+  const takeover = page && draft != null && !draft.needsDates;
+  // The host hides the transcript/chips while the ledger owns the column.
+  // useLayoutEffect (not useEffect): the transcript must be gone before the
+  // first paint of the takeover, or it flashes for a frame.
+  useLayoutEffect(() => {
+    onTakeoverChange?.(takeover);
+  }, [takeover, onTakeoverChange]);
   const reference = useTodoList<TaskListResponse>("limit=100&view=all");
   const invalidateTodos = useInvalidateTodos();
   const groups = reference.data?.groups ?? [];
@@ -215,8 +250,10 @@ function TodoAiComposerInner({
       });
       await invalidateTodos();
       onChanged?.();
+      onApplied?.(selected.length);
       setDraft(null);
       setSelected([]);
+      setExpanded({});
       setSuccess("Your selected changes were applied.");
     } catch (cause) {
       setError(
@@ -233,15 +270,14 @@ function TodoAiComposerInner({
       className={cn("flex flex-col gap-5", !compact && "panel p-4")}
       aria-label="AI todo assistant"
     >
-      {compact && (
+      {slim && (
         <>
           <div>
             <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
               Plan your study todos
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              Create revision todos, add new tasks, or reschedule unfinished
-              work based on your plan and progress.
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">
+              Describe the week — the draft appears here for your review.
             </p>
           </div>
           <div className="flex items-start gap-2.5 border-l-2 border-l-accent pl-3">
@@ -285,7 +321,7 @@ function TodoAiComposerInner({
               <textarea
                 required
                 maxLength={MAX_TODO_PROMPT_CHARS}
-                rows={compact ? 5 : 3}
+                rows={slim ? 2 : 3}
                 className={
                   compact
                     ? "mt-2 resize-y text-sm leading-relaxed"
@@ -296,7 +332,7 @@ function TodoAiComposerInner({
                 placeholder="Create revision todos for my weaker subjects, or reschedule unfinished work…"
                 disabled={busy}
               />
-              {compact && (
+              {slim && (
                 <span className="mt-1 block text-right text-xs font-normal tabular-nums text-muted">
                   {prompt.length.toLocaleString("en-IN")} /{" "}
                   {MAX_TODO_PROMPT_CHARS.toLocaleString("en-IN")}
@@ -324,7 +360,7 @@ function TodoAiComposerInner({
                 />
               </label>
             </div>
-            {compact && (
+            {slim && (
               <div className="border-t border-rule-soft pt-3">
                 <p className="flex items-center gap-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
                   <Zap size={12} className="shrink-0 text-accent" />
@@ -381,17 +417,17 @@ function TodoAiComposerInner({
               are excluded.
             </p>
             <Button
-              className={compact ? "w-full justify-center" : undefined}
+              className={slim ? "w-full justify-center" : undefined}
               disabled={busy || !prompt.trim()}
             >
-              {compact && <Sparkles size={18} />}
+              {slim && <Sparkles size={18} />}
               {busy
                 ? "Working…"
                 : draft
                   ? "Generate new draft"
                   : "Prepare draft"}
             </Button>
-            <p className="flex items-start gap-2 text-xs leading-relaxed text-muted">
+            <p className={cn("flex items-start gap-2 text-xs leading-relaxed text-muted", page && "hidden")}>
               {compact && <Info size={16} className="mt-0.5 shrink-0" />}
               <span>
                 Generating does not save anything. Manual todo entry works

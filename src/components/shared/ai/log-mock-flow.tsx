@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
+  ArrowLeft,
   ChevronRight,
   ClipboardPaste,
   Info,
@@ -239,11 +240,21 @@ export function LogMockFlow({
   visionEnabled,
   onAiConfigured,
   onLogMock,
+  variant = "compact",
+  onTakeoverChange,
+  onHandoff,
 }: {
   configured: boolean;
   visionEnabled: boolean;
   onAiConfigured?: (credential: AiCredentialSummary | null) => void;
   onLogMock: (draft: LogMockPayload) => void;
+  /** "page" renders the roster/details review as a column takeover with a
+   * header row (the /ask composer); "compact" is the sheet behavior. */
+  variant?: "compact" | "page";
+  /** Fires when the takeover state flips (parsed draft opens or closes). */
+  onTakeoverChange?: (active: boolean) => void;
+  /** Fires after a successful hand-off to the real form. */
+  onHandoff?: () => void;
 }) {
   const { activeShape } = useExamScope();
   // The tab opens only inside the workspace; the exam scope resolves in the
@@ -274,6 +285,12 @@ export function LogMockFlow({
   const [error, setError] = useState("");
   const [statusChecked, setStatusChecked] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const page = variant === "page";
+  const takeover = page && reviewing !== false && draft != null;
+  // The host hides the transcript/chips while the roster owns the column.
+  useLayoutEffect(() => {
+    onTakeoverChange?.(takeover);
+  }, [takeover, onTakeoverChange]);
 
   // Re-check AI availability when the tab opens (cheap status call).
   useEffect(() => {
@@ -327,6 +344,8 @@ export function LogMockFlow({
         values: parsed.values,
         date: "",
       });
+      onHandoff?.();
+      setPaste("");
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Could not read this report.",
@@ -339,6 +358,13 @@ export function LogMockFlow({
     try {
       const reviewed = extractionToAttempt(shape, draft, "");
       onLogMock(reviewed);
+      onHandoff?.();
+      if (page) {
+        // A fresh parse for the next scorecard; the sheet keeps its state.
+        setPaste("");
+        setDraft(null);
+        setReviewing(false);
+      }
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -352,7 +378,27 @@ export function LogMockFlow({
   // `reviewing &&` branch above it would make "Edit details" unreachable.
   if (reviewing === "details" && draft) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+      <div className="flex min-h-0 flex-1 flex-col">
+        {page ? (
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-rule-soft px-4 pb-3 pt-4 sm:px-5">
+            <button
+              type="button"
+              aria-label="Back to the roster"
+              title="Back to the roster"
+              className="tap-target inline-flex size-8 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink"
+              onClick={() => setReviewing("roster")}
+            >
+              <ArrowLeft size={14} aria-hidden />
+            </button>
+            <div className="min-w-0">
+              <p className="font-serif text-[1.125rem] font-medium leading-tight text-ink">
+                Edit details
+              </p>
+              <p className="section-label">Every field of the parsed draft</p>
+            </div>
+          </header>
+        ) : null}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
         <ExtractionReview
           draft={draft}
           shape={shape}
@@ -365,6 +411,7 @@ export function LogMockFlow({
             setError("");
           }}
         />
+        </div>
       </div>
     );
   }
@@ -372,6 +419,28 @@ export function LogMockFlow({
   if (reviewing && draft) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
+        {page ? (
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-rule-soft px-4 pb-3 pt-4 sm:px-5">
+            <button
+              type="button"
+              aria-label="Back to the paste step"
+              title="Back to the paste step"
+              className="tap-target inline-flex size-8 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink"
+              onClick={() => {
+                setReviewing(false);
+                setError("");
+              }}
+            >
+              <ArrowLeft size={14} aria-hidden />
+            </button>
+            <div className="min-w-0">
+              <p className="truncate font-serif text-[1.125rem] font-medium leading-tight text-ink">
+                {draft.name?.trim() || "Parsed result"}
+              </p>
+              <p className="section-label">Review the parsed subjects</p>
+            </div>
+          </header>
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <SubjectRoster
             draft={draft}

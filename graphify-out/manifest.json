@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "src/components/ai-chat-sheet.tsx": {
-    "mtime": 1795283094.7267668,
-    "seen": 1795283522.322331,
-    "ast_hash": "a37e1c880fd2722d6a3227cbbdc4a814",
+    "mtime": 1795288866.2793927,
+    "seen": 1795289569.3352704,
+    "ast_hash": "42ce68771712f2d031370fd02e05f21a",
     "semantic_hash": ""
   },
   "src/components/ai-coach-card.tsx": {
@@ -948,20 +948,20 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1795283487.0953672,
-    "seen": 1795283522.3762167,
-    "ast_hash": "7c00ea6f5dbbe586896cdfa552f969ec",
+    "mtime": 1795289540.0436995,
+    "seen": 1795289569.3827674,
+    "ast_hash": "27c7aac9f77715465b7a01fdc3326b16",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1795283487.1080265,
-    "seen": 1795283522.376219,
-    "ast_hash": "c94e5e6c8bbf894f8d20ddd1a3cee174",
+    "mtime": 1795289540.0527005,
+    "seen": 1795289569.3827698,
+    "ast_hash": "40a7f3f66e582562d0464dffa3f5738f",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1795283487.0483172,
-    "seen": 1795283522.376221,
+    "mtime": 1795289540.0357027,
+    "seen": 1795289569.382772,
     "ast_hash": "665011731c9578e470548c0789b845a9",
     "semantic_hash": ""
   },
@@ -2592,9 +2592,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/tasks/ai-composer.tsx": {
-    "mtime": 1795242055.3001726,
-    "seen": 1795243018.2803483,
-    "ast_hash": "dea8b02a78ded9256b71aaf3d3b7cc40",
+    "mtime": 1795289332.246504,
+    "seen": 1795289569.3479064,
+    "ast_hash": "a70a859f0225c4f5896b01aa59c6f717",
     "semantic_hash": ""
   },
   "src/components/shared/tasks/groups-manager.tsx": {
@@ -2766,15 +2766,15 @@
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/_ask/ask-route.tsx": {
-    "mtime": 1795199512.5510025,
-    "seen": 1795243018.2790003,
-    "ast_hash": "133d5496e3976c18ce2806c7d20c5078",
+    "mtime": 1795289030.4471939,
+    "seen": 1795289569.3109062,
+    "ast_hash": "083d5e5eac2da22ebd303e287de1c0d8",
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/_ask/ask-view.tsx": {
-    "mtime": 1795283294.9898648,
-    "seen": 1795283522.2926106,
-    "ast_hash": "650c8d9cb3f838d2d6106824cd5cffe7",
+    "mtime": 1795289071.641486,
+    "seen": 1795289569.31091,
+    "ast_hash": "12e993ac0f3320b750dd832965828ab6",
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/error.tsx": {
@@ -2790,9 +2790,9 @@
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/page.tsx": {
-    "mtime": 1795199512.6137526,
-    "seen": 1795243018.2790253,
-    "ast_hash": "eedc046f427421ab2bea40bdfb03860f",
+    "mtime": 1795289014.0495086,
+    "seen": 1795289569.3112147,
+    "ast_hash": "59a99998dbaadf093da0e802b8d1a573",
     "semantic_hash": ""
   },
   "src/app/api/ai/usage/route.ts": {
@@ -2802,15 +2802,15 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/chat-composer.tsx": {
-    "mtime": 1795249347.7095754,
-    "seen": 1795252222.3020716,
-    "ast_hash": "42f54d12976becc3f94de11dc5e1a35a",
+    "mtime": 1795289332.234503,
+    "seen": 1795289569.3455174,
+    "ast_hash": "2403170e84e55187309e791e1118ce9d",
     "semantic_hash": ""
   },
   "src/components/shared/ai/chat-transcript.tsx": {
-    "mtime": 1795282226.001611,
-    "seen": 1795283522.3330135,
-    "ast_hash": "cb6509b4eb08b69354ed8971359d2e20",
+    "mtime": 1795288284.5996614,
+    "seen": 1795289569.3455224,
+    "ast_hash": "5c1b6c23ba266952cf65057672064bf1",
     "semantic_hash": ""
   },
   "src/components/shared/ai/conversation-list.tsx": {
@@ -2820,9 +2820,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/copy-button.tsx": {
-    "mtime": 1795199513.8495343,
-    "seen": 1795243018.2802591,
-    "ast_hash": "85250c8ef14d85a7cb644a49d114f83b",
+    "mtime": 1795287157.4494846,
+    "seen": 1795289569.345694,
+    "ast_hash": "5d188b10a1e7ba6307aeec37df23d321",
     "semantic_hash": ""
   },
   "src/components/shared/ai/image.ts": {
@@ -2832,9 +2832,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/markdown.tsx": {
-    "mtime": 1795199513.941771,
-    "seen": 1795243018.2802718,
-    "ast_hash": "ad2da9e65d847ad4036f2e410acc98e1",
+    "mtime": 1795287114.102496,
+    "seen": 1795289569.3458872,
+    "ast_hash": "84230509688d9a5bc0b3f434aaad7908",
     "semantic_hash": ""
   },
   "src/components/shared/ai/task-suggestion-card.tsx": {
@@ -2850,9 +2850,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/chat-empty-state.tsx": {
-    "mtime": 1795279559.0213916,
-    "seen": 1795283522.333008,
-    "ast_hash": "520d93861d884a03654f449d72988a91",
+    "mtime": 1795289332.2265315,
+    "seen": 1795289569.3455205,
+    "ast_hash": "be69ac1e9fe0802c942310578f791f37",
     "semantic_hash": ""
   },
   "src/app/(workspace)/performance/_performance/attempt-breakdown-panel.tsx": {
@@ -3096,9 +3096,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/log-mock-flow.tsx": {
-    "mtime": 1795282786.6261332,
-    "seen": 1795283522.3335881,
-    "ast_hash": "d40da7672bb381eb3910f19f7a43eed0",
+    "mtime": 1795288158.8308606,
+    "seen": 1795289569.3458846,
+    "ast_hash": "8e549a4d14b5b0835e1e154a5f0139a3",
     "semantic_hash": ""
   },
   "package-lock.json": {

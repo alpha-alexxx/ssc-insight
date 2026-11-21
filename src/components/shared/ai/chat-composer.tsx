@@ -5,19 +5,34 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowUp, ImagePlus, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  ImagePlus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { MAX_ATTACHED_IMAGES, prepareImages } from "./image";
 import { cn } from "@/lib/utils";
 
 /**
- * The ruled ask field shared by the sheet and the /ask page: one hairline
- * container that grows with its content, Enter sends, Shift+Enter breaks,
- * and the send square becomes stop while a stream runs. Stays in normal
- * flex flow so the mobile keyboard never covers it (DESIGN.md composer rule).
- * With vision on, screenshots attach from file, paste, or drop — downscaled
- * before they are ever stored in the message.
+ * The elevated composer card shared by the sheet and the /ask page — the
+ * Claude/DeepSeek toolbar grammar: textarea on top, a toolbar INSIDE the
+ * card (mode chips · divider · paperclip · usage · clear on the left,
+ * send ⇄ stop morph on the right), and the disclaimer rendered by the host
+ * below the card.
+ *
+ * The card is one container for every mode: chat keeps the textarea; the
+ * Todos/Mock flows embed their own bodies below the chip row. The sheet
+ * passes no `modes`, so its tabs keep control and no chips render.
  */
-export function ChatComposer({
+
+export type ComposerModeOption<T extends string> = {
+  id: T;
+  label: string;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+};
+
+export function ChatComposer<T extends string>({
   value,
   onChange,
   onSubmit,
@@ -27,10 +42,13 @@ export function ChatComposer({
   maxLength = 4_000,
   placeholder = "Ask about your mocks, targets, or plan…",
   autoFocus = false,
-  meta,
   visionEnabled = false,
-  followUps,
-  onFollowUp,
+  usage,
+  modes,
+  mode,
+  onModeChange,
+  onClear,
+  composerBody,
   className,
 }: {
   value: string;
@@ -42,14 +60,19 @@ export function ChatComposer({
   maxLength?: number;
   placeholder?: string;
   autoFocus?: boolean;
-  /** Quiet provenance chips under the field (model, context view). */
-  meta?: React.ReactNode;
   /** Image attach UI; server still gates the actual send. */
   visionEnabled?: boolean;
-  /** One-tap follow-up prompts, shown as a scrollable pill row above the
-   * field. Each chip sends a REAL message — they are shortcuts, not props. */
-  followUps?: string[];
-  onFollowUp?: (text: string) => void;
+  /** Daily usage label ("Today 16/50"), rendered as a quiet toolbar chip. */
+  usage?: string;
+  /** When given, the toolbar renders mode chips and the card hosts the
+   * other modes' bodies via `composerBody`. */
+  modes?: readonly ComposerModeOption<T>[];
+  mode?: T;
+  onModeChange?: (mode: T) => void;
+  /** Clear-conversation action: trash icon button in the toolbar. */
+  onClear?: () => void;
+  /** For non-chat modes: the flow's own body rendered inside the card. */
+  composerBody?: React.ReactNode;
   className?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -96,30 +119,10 @@ export function ChatComposer({
     (Boolean(value.trim()) || images.length > 0) && !streaming && !disabled;
 
   return (
-    <div className={cn("ai-composer space-y-2", className)}>
-      {followUps?.length && onFollowUp ? (
-        <div
-          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="list"
-          aria-label="Follow-up prompts"
-        >
-          {followUps.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              role="listitem"
-              disabled={streaming || disabled}
-              className="tap-target shrink-0 whitespace-nowrap rounded-pill border border-rule-soft bg-paper px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent/40 hover:text-ink disabled:opacity-50"
-              onClick={() => onFollowUp(prompt)}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className="ai-composer-field">
+    <div className={cn("ai-composer space-y-1.5", className)}>
+      <div className="ai-composer-card">
         {images.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-b border-rule-soft px-3 py-2">
+          <div className="flex flex-wrap gap-2 border-b border-rule-soft px-3.5 pb-2.5 pt-3">
             {images.map((image, index) => (
               <span key={index} className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element -- user-attached data URL, not a remote asset */}
@@ -142,97 +145,147 @@ export function ChatComposer({
             ))}
           </div>
         )}
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={value}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          aria-label="Ask the study coach"
-          className="block max-h-[200px] min-h-11 w-full resize-none bg-transparent px-3.5 py-2.5 text-[length:var(--type-body)] leading-relaxed text-ink placeholder:text-muted focus:outline-none"
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              submit();
-            }
-          }}
-          onPaste={(event) => {
-            if (!visionEnabled || !event.clipboardData.files.length) return;
-            event.preventDefault();
-            void attach(event.clipboardData.files);
-          }}
-          onDragOver={(event) => {
-            if (!visionEnabled) return;
-            event.preventDefault();
-            setDropActive(true);
-          }}
-          onDragLeave={() => setDropActive(false)}
-          onDrop={(event) => {
-            if (!visionEnabled || !event.dataTransfer.files.length) return;
-            event.preventDefault();
-            setDropActive(false);
-            void attach(event.dataTransfer.files);
-          }}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted">
-          {visionEnabled && (
-            <label
-              className={cn(
-                "tap-target inline-flex size-8 cursor-pointer items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink",
-                dropActive && "bg-accent-soft text-accent",
-              )}
-              title="Attach a screenshot"
-            >
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                multiple
-                className="sr-only"
-                aria-label="Attach screenshots"
-                onChange={(event) => {
-                  if (event.target.files) void attach(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-              <ImagePlus size={15} aria-hidden />
-            </label>
-          )}
-          {meta}
-          <span className="tabular-nums">
-            {value.length > maxLength * 0.9
-              ? `${value.length}/${maxLength}`
-              : null}
-          </span>
-        </div>
-        {streaming ? (
-          <button
-            type="button"
-            className="tap-target inline-flex items-center gap-2 rounded-control border border-rule px-3.5 text-xs font-medium text-ink transition-colors hover:border-ink"
-            onClick={onStop}
-            aria-label="Stop generating"
-          >
-            <Square size={12} aria-hidden /> Stop
-          </button>
+
+        {/* The non-chat flows embed their own bodies inside the same card. */}
+        {composerBody ? (
+          <div className="max-h-[46dvh] overflow-y-auto overscroll-contain px-1 pb-1">
+            {composerBody}
+          </div>
         ) : (
-          <button
-            type="button"
-            className="tap-target inline-flex size-11 items-center justify-center rounded-control bg-accent text-paper transition-colors hover:bg-accent-hover disabled:opacity-40"
-            disabled={!canSend}
-            onClick={submit}
-            aria-label="Send question"
-          >
-            <ArrowUp size={16} aria-hidden />
-          </button>
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            aria-label="Ask the study coach"
+            className="block max-h-[200px] min-h-14 w-full resize-none bg-transparent px-4 pt-3.5 text-[length:var(--type-body)] leading-relaxed text-ink placeholder:text-muted focus:outline-none"
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            onPaste={(event) => {
+              if (!visionEnabled || !event.clipboardData.files.length) return;
+              event.preventDefault();
+              void attach(event.clipboardData.files);
+            }}
+            onDragOver={(event) => {
+              if (!visionEnabled) return;
+              event.preventDefault();
+              setDropActive(true);
+            }}
+            onDragLeave={() => setDropActive(false)}
+            onDrop={(event) => {
+              if (!visionEnabled || !event.dataTransfer.files.length) return;
+              event.preventDefault();
+              setDropActive(false);
+              void attach(event.dataTransfer.files);
+            }}
+          />
         )}
+
+        {/* The toolbar lives INSIDE the card — chips and tools left, the
+            send ⇄ stop morph bottom-right, like the reference. */}
+        <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {modes && mode && onModeChange
+              ? modes.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={mode === item.id}
+                    onClick={() => onModeChange(item.id)}
+                    className={cn(
+                      "tap-target inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
+                      mode === item.id
+                        ? "border-accent/30 bg-accent-soft text-accent"
+                        : "border-transparent text-muted hover:bg-soft hover:text-ink",
+                    )}
+                  >
+                    <item.icon size={12} aria-hidden />
+                    {item.label}
+                  </button>
+                ))
+              : null}
+            {modes && mode ? (
+              <span aria-hidden="true" className="h-4 w-px bg-rule-soft" />
+            ) : null}
+            {visionEnabled && (
+              <label
+                className={cn(
+                  "tap-target inline-flex size-8 cursor-pointer items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink",
+                  dropActive && "bg-accent-soft text-accent",
+                )}
+                title="Attach a screenshot"
+              >
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  className="sr-only"
+                  aria-label="Attach screenshots"
+                  onChange={(event) => {
+                    if (event.target.files) void attach(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                <ImagePlus size={15} aria-hidden />
+              </label>
+            )}
+            {usage ? (
+              <span className="tabular-nums rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] text-muted">
+                {usage}
+              </span>
+            ) : null}
+            {onClear ? (
+              <button
+                type="button"
+                aria-label="Clear conversation"
+                title="Clear conversation"
+                className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+                disabled={streaming}
+                onClick={onClear}
+              >
+                <Trash2 size={14} aria-hidden />
+              </button>
+            ) : null}
+            {preparing ? (
+              <span className="text-[0.625rem] text-muted" role="status" aria-busy="true">
+                Preparing…
+              </span>
+            ) : null}
+          </div>
+
+          {streaming ? (
+            <button
+              type="button"
+              onClick={onStop}
+              aria-label="Stop generating"
+              title="Stop generating"
+              className="tap-target inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-ink text-paper transition-colors hover:bg-ink/85"
+            >
+              <span
+                aria-hidden="true"
+                className="block size-3 rounded-[2px] bg-current"
+              />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSend}
+              aria-label="Send question"
+              title="Send (Enter)"
+              className="tap-target inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-paper transition-colors hover:bg-accent-hover disabled:bg-soft disabled:text-muted"
+            >
+              <ArrowUp size={17} aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
-      {preparing && (
-        <p className="text-xs text-muted" role="status" aria-busy="true">
-          Preparing screenshot…
-        </p>
-      )}
     </div>
   );
 }

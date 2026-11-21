@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
+  Check,
   History,
   ListChecks,
   MessageSquare,
@@ -61,7 +63,7 @@ type ComposerMode = (typeof MODES)[number]["id"];
  * becomes a bottom drawer (the calendar's phone pattern), so history is
  * reachable at every width.
  */
-export function AskView() {
+export function AskView({ firstName }: { firstName?: string }) {
   const ai = useAiWorkspace();
   const planApi = usePlanData();
   const toast = useToast();
@@ -70,7 +72,47 @@ export function AskView() {
   const [mode, setMode] = useState<ComposerMode>("chat");
   const [railOpen, setRailOpen] = useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = useState(false);
+  // Tool takeovers: a parsed/ledger view owning the middle column.
+  const [todosTakeover, setTodosTakeover] = useState(false);
+  const [mockTakeover, setMockTakeover] = useState(false);
   const enabled = Boolean(ai.aiStatus?.enabled);
+
+  // Tool outcomes surface as quiet system lines at the transcript tail.
+  // Per-visit state: they are conversation-adjacent, not conversation.
+  type ToolNote = { id: number; icon: "check" | "arrow"; text: string; time: string };
+  const [toolNotes, setToolNotes] = useState<ToolNote[]>([]);
+  const noteId = useRef(0);
+  function addToolNote(icon: "check" | "arrow", text: string) {
+    noteId.current += 1;
+    const time = new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    setToolNotes((notes) => [
+      ...notes,
+      { id: noteId.current, icon, text, time },
+    ]);
+  }
+  const systemLineNodes = toolNotes.length ? (
+    <div className="flex flex-col items-center gap-1.5 py-2">
+      {toolNotes.map((note) => (
+        <p
+          key={note.id}
+          className="flex items-center gap-1.5 text-[0.6875rem] text-muted"
+        >
+          {note.icon === "check" ? (
+            <Check size={11} aria-hidden className="text-positive" />
+          ) : (
+            <ArrowRight size={11} aria-hidden className="text-accent" />
+          )}
+          {note.text}
+          <span aria-hidden="true">·</span>
+          <span className="tabular-nums">{note.time}</span>
+        </p>
+      ))}
+    </div>
+  ) : undefined;
 
   // Same context contract as the sheet: orientation only, never content.
   const screenContext = useMemo(
@@ -239,12 +281,17 @@ export function AskView() {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* The measured column keeps answers and the composer at a readable
               line length on wide screens instead of running edge to edge. */}
-          <div className="mx-auto flex min-h-0 w-full max-w-[44rem] flex-1 flex-col">
+          <div className="mx-auto flex min-h-0 w-full max-w-[46rem] flex-1 flex-col">
+            {/* In Chat mode the transcript leads; the Todos/Mock tools own
+                the whole column (their takeover views included), so the
+                transcript only renders when it is the active surface. */}
+            {mode === "chat" && !todosTakeover && !mockTakeover ? (
             <ChatTranscript
               messages={ai.chat.messages}
               streaming={ai.chat.streaming}
               phase={ai.chat.phase}
               model={ai.aiStatus?.credential?.model ?? undefined}
+              systemLines={systemLineNodes}
               onRetry={() => ai.chat.retryLast()}
               onEditResend={(id, text) => ai.chat.editResend(id, text)}
               onRegenerate={() => ai.chat.regenerateLast()}
@@ -276,79 +323,166 @@ export function AskView() {
                 )
               }
             />
+            ) : null}
             {enabled && (
-              <div className="shrink-0 pt-3">
-                {/* Mode chips — the DeepSeek/Claude toolbar grammar. The
-                    active mode owns the composer body below; switching keeps
-                    the transcript (and any running stream) untouched. */}
-                <div
-                  role="tablist"
-                  aria-label="Assistant mode"
-                  className="mb-2 flex items-center gap-1.5"
-                >
-                  {MODES.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={mode === item.id}
-                      onClick={() => setMode(item.id)}
-                      className={cn(
-                        "tap-target inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
-                        mode === item.id
-                          ? "border-accent/30 bg-accent-soft text-accent"
-                          : "border-transparent text-muted hover:bg-soft hover:text-ink",
-                      )}
-                    >
-                      <item.icon size={12} aria-hidden />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+              <div
+                className={cn(
+                  "pt-3",
+                  todosTakeover || mockTakeover
+                    ? "flex min-h-0 flex-1 flex-col"
+                    : "shrink-0",
+                )}
+              >
+                {/* Mode chips — visible in every non-takeover state; they
+                    hide while a ledger/roster owns the column (its back
+                    arrow is the way out). A pending draft in a background
+                    mode marks its chip with an accent dot. */}
+                {!todosTakeover && !mockTakeover ? (
+                  <div
+                    role="tablist"
+                    aria-label="Assistant mode"
+                    className="mb-2 flex items-center gap-1.5"
+                  >
+                    {MODES.map((item) => {
+                      const pending =
+                        (item.id === "todos" && todosTakeover) ||
+                        (item.id === "mock" && mockTakeover);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={mode === item.id}
+                          onClick={() => setMode(item.id)}
+                          className={cn(
+                            "tap-target relative inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
+                            mode === item.id
+                              ? "border-accent/30 bg-accent-soft text-accent"
+                              : "border-transparent text-muted hover:bg-soft hover:text-ink",
+                          )}
+                        >
+                          <item.icon size={12} aria-hidden />
+                          {item.label}
+                          {pending && mode !== item.id ? (
+                            <span
+                              aria-hidden="true"
+                              className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-accent"
+                            />
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
 
                 {mode === "chat" ? (
-                  <ChatComposer
-                    value={input}
-                    onChange={setInput}
-                    onSubmit={(text, images) => {
-                      ai.chat.send(text, screenContext, false, images);
-                      setInput("");
-                    }}
-                    onStop={ai.chat.stop}
-                    streaming={ai.chat.streaming}
-                    visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
-                    placeholder="Ask about your mocks, targets, or plan…"
-                    meta={composerMeta}
-                    followUps={ai.chat.messages.length > 0 ? FOLLOW_UPS : undefined}
-                    onFollowUp={(text) => {
-                      ai.chat.send(text, screenContext, false);
-                      setInput("");
-                    }}
-                  />
-                ) : (
-                  <div className="max-h-[46dvh] overflow-y-auto overscroll-contain rounded-2xl border border-rule-soft bg-paper shadow-input">
-                    {mode === "todos" ? (
-                      <TodoAiComposer
-                        compact
-                        configured={enabled}
-                        onAiConfigured={() => void ai.refreshAiStatus()}
-                      />
-                    ) : (
-                      <LogMockFlow
-                        configured={enabled}
-                        visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
-                        onAiConfigured={() => void ai.refreshAiStatus()}
-                        onLogMock={(draft) => {
-                          // The form stays the sole save path: the reviewed
-                          // draft crosses to /add through the UI store, never
-                          // the URL.
-                          useUiStore.getState().requestMockPrefill(draft);
-                          router.push("/add");
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
+                  <>
+                    <ChatComposer
+                      value={input}
+                      onChange={setInput}
+                      onSubmit={(text, images) => {
+                        ai.chat.send(text, screenContext, false, images);
+                        setInput("");
+                      }}
+                      onStop={ai.chat.stop}
+                      streaming={ai.chat.streaming}
+                      visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                      placeholder="Ask about your mocks, targets, or plan…"
+                      usage={usage}
+                      modes={MODES}
+                      mode={mode}
+                      onModeChange={setMode}
+                      onClear={ai.chat.clear}
+                    />
+                    <p className="mt-2 text-center text-[0.6875rem] text-muted">
+                      Answers are generated from your tracker snapshot and can
+                      be wrong.
+                    </p>
+                  </>
+                ) : null}
+
+                {/* Todos tool — owns the column in Todos mode; its draft
+                    ledger takes over via the takeover flag. Always mounted so
+                    a draft survives switching chips. */}
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-1 flex-col",
+                    mode !== "todos" && "hidden",
+                  )}
+                >
+                  {enabled ? (
+                    <TodoAiComposer
+                      variant="page"
+                      configured={enabled}
+                      onAiConfigured={() => void ai.refreshAiStatus()}
+                      onTakeoverChange={setTodosTakeover}
+                      onApplied={(count) =>
+                        addToolNote(
+                          "check",
+                          count + (count === 1 ? " todo created" : " todos created"),
+                        )
+                      }
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-rule-soft bg-paper p-4 shadow-input">
+                      <p className="text-sm leading-relaxed text-muted">
+                        Todo planning runs on AI. Set up a provider below to
+                        draft revision todos here.
+                      </p>
+                      <div className="mt-3">
+                        <AiSettingsForm
+                          variant="panel"
+                          showHeading={false}
+                          onChanged={() => void ai.refreshAiStatus()}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mock tool — same ownership grammar; a parsed draft's
+                    roster takes over, and the hand-off resets the flow. */}
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-1 flex-col",
+                    mode !== "mock" && "hidden",
+                  )}
+                >
+                  {enabled ? (
+                    <LogMockFlow
+                      variant="page"
+                      configured={enabled}
+                      visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                      onAiConfigured={() => void ai.refreshAiStatus()}
+                      onTakeoverChange={setMockTakeover}
+                      onHandoff={() =>
+                        addToolNote("arrow", "Mock draft sent to the form")
+                      }
+                      onLogMock={(draft) => {
+                        // The form stays the sole save path: the reviewed
+                        // draft crosses to /add through the UI store, never
+                        // the URL.
+                        useUiStore.getState().requestMockPrefill(draft);
+                        router.push("/add");
+                      }}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-rule-soft bg-paper p-4 shadow-input">
+                      <p className="text-sm leading-relaxed text-muted">
+                        Mock parsing works without AI for standard scorecards.
+                        Set up a provider below to parse with AI and attach
+                        screenshots.
+                      </p>
+                      <div className="mt-3">
+                        <AiSettingsForm
+                          variant="panel"
+                          showHeading={false}
+                          onChanged={() => void ai.refreshAiStatus()}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -44,7 +44,7 @@ export const Markdown = memo(function Markdown({
   return (
     <div
       className={cn(
-        "ai-answer min-w-0 text-[length:var(--type-body)] leading-relaxed text-ink",
+        "ai-answer min-w-0 font-[var(--font-heading)] text-[0.9375rem] leading-[1.7] text-ink",
         streaming && "is-streaming",
         className,
       )}

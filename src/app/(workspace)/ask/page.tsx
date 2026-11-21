@@ -16,10 +16,11 @@ export const dynamic = "force-dynamic";
  * The usage ledger — the "what did the AI do" history — is the one server-read
  * resource here; it prefetches into the same cache key the rail's query uses,
  * so first paint carries real rows without a second fetch. Status stays with
- * the client query: it is already deduplicated across every surface.
+ * the client query: it is already deduplicated across every surface. The
+ * account's first name rides down for the empty-state greeting.
  */
 export default async function AskPage() {
-  const { id: userId } = await requireUser();
+  const { id: userId, name } = await requireUser();
   const queryClient = getQueryClient();
 
   await prefetchInto(queryClient, [
@@ -31,7 +32,7 @@ export default async function AskPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <AskRoute />
+      <AskRoute firstName={name ? name.split(/\s+/)[0] : undefined} />
     </HydrationBoundary>
   );
 }

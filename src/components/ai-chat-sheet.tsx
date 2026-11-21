@@ -287,6 +287,7 @@ export function AiChatSheet({
               onAiConfigured={onAiConfigured}
               taskApi={taskApi}
               onTaskAdded={onTaskAdded}
+              usageLabel={usageLabel}
             />
           </div>
         )}
@@ -363,6 +364,7 @@ function AskChatTab({
   onAiConfigured,
   taskApi,
   onTaskAdded,
+  usageLabel,
 }: {
   messages: ChatMessage[];
   streaming: boolean;
@@ -370,6 +372,7 @@ function AskChatTab({
   error: string;
   configured: boolean;
   visionEnabled: boolean;
+  usageLabel?: string;
   history?: ChatHistoryApi;
   historyOpen: boolean;
   onHistoryClose: () => void;
@@ -385,25 +388,6 @@ function AskChatTab({
 }) {
   const [input, setInput] = useState("");
   const { aiStatus } = useAiWorkspace();
-  // The composer's clear affordance keeps the one-shot trash action next to
-  // the field it clears; edit-last lives on the user turn itself.
-  const composerMeta = (
-    <>
-      <button
-        type="button"
-        aria-label="Clear conversation"
-        title="Clear conversation"
-        className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
-        disabled={streaming || !messages.length}
-        onClick={onClear}
-      >
-        <Trash2 size={14} />
-      </button>
-      <span className="text-[11px] text-muted">
-        Answers read your aggregates and latest 20 full mocks — never notes.
-      </span>
-    </>
-  );
 
   if (historyOpen && history) {
     return (
@@ -475,7 +459,8 @@ function AskChatTab({
             disabled={false}
             visionEnabled={visionEnabled}
             placeholder="Ask about a mock, a weak subject, or what to do next…"
-            meta={composerMeta}
+            usage={usageLabel}
+            onClear={onClear}
           />
         </div>
       )}

@@ -1026,33 +1026,26 @@
   .ai-composer {
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
-  .ai-composer > div:focus-within {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-  /* The coach's composer field: an elevated bubble container — soft card
-     radius, paper lift, accent ring on focus. */
-  .ai-composer-field {
-    border: 1px solid var(--rule);
+  /* The coach's composer card: an elevated container that holds the
+     textarea and the toolbar (mode chips, paperclip, usage, send ⇄ stop)
+     together — the floating-pill grammar from the reference. */
+  .ai-composer-card {
+    border: 1px solid var(--rule-soft);
     border-radius: 1rem;
     background: var(--paper);
     box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      0 4px 12px -6px rgba(0, 0, 0, 0.08);
+      0 4px 20px -2px rgba(0, 0, 0, 0.06),
+      0 0 1px 1px rgba(0, 0, 0, 0.08);
     transition:
       border-color var(--dur-quick) ease,
       box-shadow var(--dur-quick) ease;
   }
-  /* Focus is shown once, on the field's own border — the older
-     `.ai-composer > div:focus-within` ring would double it. */
-  .ai-composer > .ai-composer-field:focus-within {
-    outline: none;
-  }
-  .ai-composer-field:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 60%, var(--rule));
+  .ai-composer-card:focus-within {
+    border-color: color-mix(in oklab, var(--accent) 55%, var(--rule-soft));
     box-shadow:
-      inset 0 0 0 1px color-mix(in oklab, var(--accent) 15%, transparent),
-      0 1px 2px rgba(0, 0, 0, 0.04);
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent),
+      0 4px 20px -2px rgba(0, 0, 0, 0.06),
+      0 0 1px 1px rgba(0, 0, 0, 0.08);
   }
   /* A memo is a document, not a bubble: the label sits in a fixed margin
      column beside its body, the way the day ledger lays out a section. */
@@ -1146,23 +1139,11 @@
   /* --- Chat transcript grammar (side sheet + /ask page) ---
      Legacy chat grammar (Claude/ChatGPT/z.ai): NO avatars anywhere. The
      reader's question is the only bubble — right-aligned, soft, fully
-     rounded; the coach's answer is plain typeset prose flush with the
-     column edge (no card, no border, no shadow — the flat document look).
-     Turn actions reveal on hover/focus and stay permanently visible on
-     touch and reduced motion. */
-  .chat-turn .turn-actions {
-    opacity: 0;
-    transition: opacity var(--dur-quick) ease;
-  }
-  .chat-turn:hover .turn-actions,
-  .chat-turn:focus-within .turn-actions {
-    opacity: 1;
-  }
-  @media (hover: none) {
-    .chat-turn .turn-actions {
-      opacity: 1;
-    }
-  }
+     rounded, hugging the column's right edge; the coach's answer is plain
+     typeset prose flush with the column edge, set in the serif face (the
+     one place body serif ships) with tables/code keeping their faces.
+     Turn actions are muted ICON buttons in an always-visible bar under
+     each turn — no hover reveal on any width. */
   /* The running answer's caret lives at the end of the last rendered block,
      so it hugs the text the way a typed line does. */
   .ai-answer.is-streaming > :last-child::after {
