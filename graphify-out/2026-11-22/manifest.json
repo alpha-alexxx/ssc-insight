@@ -222,10 +222,10 @@
     "semantic_hash": ""
   },
   "src/app/api/auth/[...path]/route.ts": {
-    "mtime": 1793031553.4710662,
-    "seen": 1795243018.2796664,
-    "ast_hash": "e735588a6a7deaa7a73c13ac136d0980",
-    "semantic_hash": "e735588a6a7deaa7a73c13ac136d0980"
+    "mtime": 1795294253.7559931,
+    "seen": 1795295199.864262,
+    "ast_hash": "7a7169281239327c49e62e69639927bc",
+    "semantic_hash": ""
   },
   "src/app/api/backup/route.ts": {
     "mtime": 1793474108.1557953,
@@ -3099,36 +3099,6 @@
     "mtime": 1795288158.8308606,
     "seen": 1795289569.3458846,
     "ast_hash": "8e549a4d14b5b0835e1e154a5f0139a3",
-    "semantic_hash": ""
-  },
-  "gui-test-screenshots/t1_dashboard_before.png": {
-    "mtime": 1795292991.8368835,
-    "seen": 1795293229.7311397,
-    "ast_hash": "1cfd0aaa743451a7c0c118b72fccbd54",
-    "semantic_hash": ""
-  },
-  "gui-test-screenshots/t2_account_menu.png": {
-    "mtime": 1795293007.1285715,
-    "seen": 1795293229.7311487,
-    "ast_hash": "e4aa59c673d7ac46c9219c5a53552c18",
-    "semantic_hash": ""
-  },
-  "gui-test-screenshots/t2_account_menu_open.png": {
-    "mtime": 1795293019.4648488,
-    "seen": 1795293229.7311566,
-    "ast_hash": "b3cb0243a7c6858b038243d943c5e1c0",
-    "semantic_hash": ""
-  },
-  "gui-test-screenshots/t3_after_signout.png": {
-    "mtime": 1795293036.9022648,
-    "seen": 1795293229.7311647,
-    "ast_hash": "1124724d8c286252104253602b174ad8",
-    "semantic_hash": ""
-  },
-  "gui-test-screenshots/t4_current_state.png": {
-    "mtime": 1795293104.9885182,
-    "seen": 1795293229.7311726,
-    "ast_hash": "673a8fa873eaad58198359226844daec",
     "semantic_hash": ""
   },
   "package-lock.json": {
