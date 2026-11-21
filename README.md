@@ -97,10 +97,10 @@ Copy `.env.example` or use Neon's environment pull. **Never commit real values t
 | `AI_API_KEY` | Server-only provider key. Blank disables AI. |
 | `AI_MODEL` | Provider model ID. Required to enable AI. |
 | `AI_JSON_MODE` | `true` by default. Set `false` if the provider rejects `response_format`. |
-| `AI_DAILY_REQUEST_LIMIT` | AI requests per user per IST day (default: `30`). |
-| `AI_DAILY_TOKEN_LIMIT` | Charged tokens per user per IST day (default: `300000`). |
-| `AI_MAX_OUTPUT_TOKENS` | Per-call output cap (default: `1200`; example sets `8000`). Thinking models spend this budget on hidden reasoning before the answer, so keep it generous. |
-| `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `45000`). Whole-call wall clock for non-streaming completions; the inter-chunk stall limit for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
+| `AI_DAILY_REQUEST_LIMIT` | AI requests per user per IST day (default: `50`). |
+| `AI_DAILY_TOKEN_LIMIT` | Charged tokens per user per IST day (default: `800000`). |
+| `AI_MAX_OUTPUT_TOKENS` | Per-call output cap for the env-configured provider, clamped 64–32000 (default: `16400`). Thinking models spend this budget on hidden reasoning before the answer, so keep it generous. A user's saved credential ignores this variable entirely and defaults to the 32,000 ceiling unless they set their own value in Settings. |
+| `AI_TIMEOUT_MS` | Provider timeout, clamped to 5s–180s (default: `120000`). Whole-call wall clock for non-streaming completions; the inter-chunk stall limit for streams. Keep within your platform function limit or raise `maxDuration` on the AI routes. |
 | `AI_FIRST_TOKEN_TIMEOUT_MS` | Grace before the first stream byte, clamped to 5s–300s (default: `120000`). Thinking models can stay silent far past the stall window while reasoning; this is what keeps a deep question from dying as a 504. Streams only — non-streaming completions keep the `AI_TIMEOUT_MS` wall clock. |
 | `AI_THINKING` | Default reasoning request for env-configured providers: `default` (send nothing), `off`, `low`, `medium`, `high`. Per-user choices in Settings override this. |
 | `AI_VISION` | `true` to allow image input for env-configured providers (default `false`). Users with a saved credential control their own toggle in Settings. |
@@ -194,7 +194,8 @@ AI is **optional** and **read-only** for coaching/extraction. It cannot save, ed
 - **Endpoint Safety**: The server refuses loopback, private (RFC1918), link-local, cloud-metadata (`169.254.169.254`), CGNAT, multicast, and reserved addresses, and re-resolves the hostname immediately before every provider call. Every resolved address must be public. **Residual risk**: DNS rebinding between our check and the provider's own resolution is not fully closed without IP pinning. HTTP is refused except for explicitly opted-in local providers.
 - **Data Sent**: Aggregate analytics, subject/section profile, target progress, and latest 20 full mocks. **Mock notes, email, user ID, auth data, and per-attempt detail outside the latest 20 are NEVER sent.**
 - **Key Storage**: User-entered keys are encrypted with AES-256-GCM under `AI_CREDENTIAL_SECRET`. Plaintext is never returned to the browser, logged, or exported.
-- **Usage Limits**: Enforced via `AiUsage` table per IST day. Over-limit responses return `429 AI_QUOTA_EXCEEDED`. A personal key uses its own generous safety ceiling (400 requests / 2M tokens per IST day), never the deployment's shared-key caps; usage stays visible either way. Definitive pre-generation provider failures (auth, endpoint, model, rate limit) settle at zero tokens.
+- **Usage Limits**: Enforced via `AiUsage` table per IST day. Over-limit responses return `429 AI_QUOTA_EXCEEDED`. A personal key uses its own generous safety ceiling (400 requests / 2M tokens per IST day, 32,000-token reply cap), never the deployment's shared-key caps; usage stays visible either way. Definitive pre-generation provider failures (auth, endpoint, model, rate limit) settle at zero tokens.
+- **Per-Minute AI Limiter**: AI generations run against a dedicated 20-per-minute budget in both limiter layers (in-memory bucket + a dedicated Upstash window), separate from reads and writes. Consecutive denials escalate `Retry-After` exponentially per instance up to 120s, resetting on any allowed request.
 
 ### Supported API formats
 The provider layer speaks four wire protocols. Choose one per connection:
@@ -236,7 +237,7 @@ Server environment variables: `AI_PROTOCOL`, `AI_AUTH_MODE` (`bearer` \| `anthro
 ---
 
 ## 🌐 API Reference
-Routes retain `{data}` / `{error: {code, message}}` response envelopes, validation, same-origin writes, and request-size limits.
+Routes retain `{data}` / `{error: {code, message}}` response envelopes, validation, request-size limits, and strict same-origin enforcement: any request carrying a cross-origin `Origin` header is refused with 403 at the proxy or the route layer — for every method, not only writes — and every API response carries `Vary: Origin`. No CORS Allow headers are issued; nothing outside the app can call the API.
 
 | Endpoint | Methods | Purpose |
 | :--- | :---: | :--- |

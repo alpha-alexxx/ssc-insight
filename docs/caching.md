@@ -99,11 +99,15 @@ Decision table (`decideRateLimit`):
 | Situation | L2 consulted? |
 | --- | --- |
 | read, L1 allows | **no** — the common path costs nothing |
-| write (cost 5), L1 allows | yes |
-| AI (cost 25), L1 allows | yes |
+| write (cost 5 in the shared 300/min window), L1 allows | yes |
+| AI, L1 allows | yes — in AI's dedicated 20/min window (`ssc:rl:ai`, cost 1) |
 | any class, L1 denies | yes — L1 is per-instance, so its denial is not proof of abuse |
 | daily budget ≥ soft cap (8000) | reads/writes no (degrade to L1); AI still yes |
 | daily budget ≥ hard cap (9500), no credentials, or open breaker | no — L1 only |
+
+Consecutive denials escalate `Retry-After` exponentially per instance (cap
+120 s, reset on any allow): repeated hammering backs off instead of polling
+at the bucket's refill rate.
 
 **Degrading never means allowing.** When L2 is skipped the L1 verdict still
 stands, so a Redis outage cannot grant unlimited writes.
