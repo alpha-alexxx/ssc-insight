@@ -6,7 +6,6 @@ import { publicOrigin } from "@/lib/public-url";
 import {
   bypassesMaintenance,
   classifyPath,
-  isAuthPage,
   isCronPath,
   maintenanceActive,
   maintenanceRetryAfter,
@@ -241,16 +240,16 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     }
   }
 
-  // ── 6. Auth pages (also the login URL): always reachable ──────────────
-  // Each page verifies the session server-side (requireUser), bounces
-  // signed-in visitors to "/dashboard", and renders its sign-in affordances
-  // for everyone else. So the proxy never needs to probe here. Neon Auth's
-  // middleware always ALLOWS the login path (it special-cases the loginUrl),
-  // so probing it can never distinguish anonymous from signed-in visitors —
-  // doing so previously bounced every login-path request back to itself, an
-  // infinite loop. Keep this pass-through ABOVE the private-page gate.
-  if (pathname === LOGIN_URL || isAuthPage(pathname))
-    return passThrough("auth-pages");
+  // ── 6. Public pages: always reachable ──────────────────────────────────
+  // The landing, /maintenance, and the three auth pages (/sign-in, /sign-up,
+  // /forgot-password — one of which IS the login URL). Each page verifies
+  // the session server-side (requireUser) and bounces signed-in visitors to
+  // "/dashboard" itself, so the proxy never needs to probe here. Neon Auth's
+  // middleware special-cases only the login path, so probing a public page
+  // through the gate below would redirect anonymous visitors to /sign-in —
+  // the landing must render for them instead. Keep this pass-through ABOVE
+  // the private-page gate.
+  if (cls.route === "public") return passThrough("public-page");
 
   // ── 7. Private pages: session guard ───────────────────────────────────
   try {
