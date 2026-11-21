@@ -1110,6 +1110,39 @@
       opacity: 1;
     }
   }
+  /* The live "Thinking… · Ns" label inside the thinking block: a gradient
+     that sweeps muted → accent → muted across the text. Reduced motion
+     renders it static muted (the label itself still ticks every second). */
+  .thinking-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--muted) 25%,
+      var(--accent) 50%,
+      var(--muted) 75%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: thinking-shimmer 2.2s linear infinite;
+  }
+  @keyframes thinking-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .thinking-shimmer {
+      animation: none;
+      background: none;
+      -webkit-text-fill-color: currentColor;
+      color: var(--muted);
+    }
+  }
   /* --- Chat transcript grammar (side sheet + /ask page) ---
      Legacy chat grammar (Claude/ChatGPT/z.ai): NO avatars anywhere. The
      reader's question is the only bubble — right-aligned, soft, fully

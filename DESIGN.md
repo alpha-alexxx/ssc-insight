@@ -322,7 +322,12 @@ The chat transcript (both the side sheet and `/ask`) uses a mixed bubble grammar
 - **No avatars anywhere** — the legacy chat grammar (Claude/ChatGPT/z.ai), deliberately chosen over the earlier bubble-plus-avatar treatment.
 - The reader's question is the **only bubble**: a right-aligned soft surface (`bg-soft`, fully rounded) capped at 85% width, wrapping with `overflow-wrap: anywhere`; attached screenshots sit above it.
 - The coach's answer is **plain typeset prose flush with the column edge** — no card, no border, no shadow, no clock stamp. Per-turn actions (Copy / Regenerate / Edit) reveal on hover beneath the block, matching the platforms this grammar follows.
-- Every assistant answer opens with the flat **read-the-workspace line**: shield, small-caps label, the measured reasoning seconds, and the model's own reasoning behind the toggle (the four sources are named in the expanded text).
+- The pre-answer reasoning lives in a **bordered, tinted thinking block** (`rounded-xl`, `--rule-soft` border, `--canvas/70` background) that states the three phases honestly:
+  - *connecting*: open, static "Connecting…", the spring dots in the body;
+  - *reasoning streaming*: auto-open with a **shimmering "Thinking… · Ns"** label (a muted→accent→muted gradient sweep; reduced motion renders it static muted) and the reasoning streaming into an accent-ruled body, auto-scrolled to its tail;
+  - *content started*: collapsed to **"Thought for Ns"** (Show/Hide + chevron).
+  Auto-open fires on the transition into live thinking and auto-collapse on the way out — a manual toggle during the stream is respected. No block renders at all for models that stream no reasoning.
+- Each assistant answer opens with the **AI turn header row** from the reference: a small accent sparkles circle, serif "Coach", and the resolved model name in muted text.
 - The pre-first-token **thinking line** is flat: three spring dots and the rotating status narration ("Reading aggregate analytics…") — no card, no chips; seconds tick.
 - The conversation rail groups by **Today / Yesterday / Earlier this week / Earlier**, carries "12m ago · 4 messages" meta, and marks the active row with one shared-layout accent bar that physically slides between rows (`layoutId="conv-active"`).
 - The rail's **usage footer** renders today's request count against the active limit as a hairline meter (accent → danger past budget) plus the read-only pledge. The same footer closes the sheet's history panel.

@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, ChevronDown, Pencil, Shield } from "lucide-react";
+import { ArrowDown, BrainCircuit, ChevronDown, Pencil, Shield, Sparkles } from "lucide-react";
 import { EASE } from "@/lib/motion";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";
@@ -17,7 +17,6 @@ import type { AiSheetTaskApi } from "./task-suggestion-card";
 import { parseTaskSuggestions } from "@/lib/ai/task-suggestion";
 import { Markdown } from "./markdown";
 import { CopyButton } from "./copy-button";
-import { ThinkingIndicator } from "./thinking-indicator";
 import { TaskSuggestionCard } from "./task-suggestion-card";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +38,8 @@ export type ChatTranscriptProps = {
   /** Rendered when there are no messages yet (quick questions, setup). */
   emptyState?: React.ReactNode;
   error?: string;
+  /** The resolved model name, shown on each assistant turn's header row. */
+  model?: string;
   /** Sheet mode: cards go full width and type sizing tightens so the same
    * grammar reads well in a ~520px column. */
   compact?: boolean;
@@ -147,62 +148,153 @@ function EditButton({
 }
 
 /**
- * The collapsible "Read the workspace" line at the top of an assistant
- * answer — flat, like the rest of the legacy grammar: shield, label, the
- * measured reasoning time, chevron. Expanding shows the model's own hidden
- * reasoning when it streamed any, else the standard read sentence.
+ * The Claude-style collapsible thinking block. One component for every
+ * pre-answer and answer state:
+ *
+ *  - live, connecting: open, static "Connecting…", the spring dots in the
+ *    body (the honest wait before any evidence arrives).
+ *  - live, reasoning streaming: open, a shimmering "Thinking… · Ns" label
+ *    with a local seconds clock, and the reasoning text streaming into the
+ *    body — auto-scrolled to the tail.
+ *  - content started / finished: collapsed to "Thought for Ns" (the old
+ *    commit-751d0c0 wording); the reader expands to inspect the reasoning.
+ *
+ * Auto-open on the transition INTO live thinking and auto-collapse on the
+ * transition OUT — a manual collapse while live stays respected, because
+ * the effects only fire on state transitions.
  */
-function ReasoningTrace({
+function ThinkingBlock({
   reasoning,
   seconds,
+  live,
+  phase,
+  hasContent,
 }: {
   reasoning?: string;
   seconds?: number;
+  live: boolean;
+  phase: ChatPhase | null;
+  hasContent: boolean;
 }) {
+  const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  const livePreAnswer = live && !hasContent;
+  const liveThinking = livePreAnswer && (Boolean(reasoning) || phase === "thinking");
+  const connecting = livePreAnswer && phase === "connecting" && !reasoning;
+
+  // Auto-open when live thinking begins; auto-collapse when the answer
+  // starts (liveThinking flips false). Transition-only, so a manual toggle
+  // during the stream is respected afterwards.
+  const wasLiveThinking = useRef(false);
+  useEffect(() => {
+    if (liveThinking && !wasLiveThinking.current) setOpen(true);
+    if (!liveThinking && wasLiveThinking.current) setOpen(false);
+    wasLiveThinking.current = liveThinking;
+  }, [liveThinking]);
+
+  // The live label's seconds clock — owned here, because reasoningSeconds
+  // is only stamped by the hook once the first answer token lands.
+  useEffect(() => {
+    if (!liveThinking) return;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [liveThinking]);
+
+  // Keep the streaming reasoning's tail visible while the block is open.
+  useEffect(() => {
+    if (liveThinking && open && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [reasoning, liveThinking, open]);
+
+  const label = livePreAnswer
+    ? connecting
+      ? "Connecting…"
+      : `Thinking… · ${elapsed}s`
+    : seconds
+      ? `Thought for ${seconds}s`
+      : "Thought";
+
+  const showBody = connecting ? true : open;
+
   return (
-    <div className="mb-2">
+    <div className="mb-3 max-w-2xl overflow-hidden rounded-xl border border-rule-soft bg-canvas/70">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-1.5 py-0.5 text-left"
+        aria-expanded={showBody}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-soft/60"
       >
-        <Shield size={11} aria-hidden className="shrink-0 text-accent" />
-        <span className="section-label shrink-0">Read the workspace</span>
-        <span className="tabular-nums shrink-0 text-[0.625rem] text-muted">
-          {seconds ? `· ${seconds}s` : ""}
+        <span className="flex min-w-0 items-center gap-2">
+          <BrainCircuit
+            size={14}
+            aria-hidden
+            className={cn(
+              "shrink-0 text-accent",
+              liveThinking && "motion-safe:animate-pulse",
+            )}
+          />
+          <span
+            className={cn(
+              "truncate text-xs font-medium",
+              liveThinking ? "thinking-shimmer" : "text-muted",
+            )}
+          >
+            {label}
+          </span>
         </span>
-        <ChevronDown
-          size={12}
-          aria-hidden
-          className={cn(
-            "shrink-0 text-muted transition-transform duration-[var(--dur-quick)]",
-            open && "rotate-180",
-          )}
-        />
+        <span className="flex shrink-0 items-center gap-1.5 text-[0.625rem] text-muted">
+          {showBody ? "Hide" : "Show"}
+          <ChevronDown
+            size={12}
+            aria-hidden
+            className={cn(
+              "transition-transform duration-[var(--dur-quick)]",
+              showBody && "rotate-90",
+            )}
+          />
+        </span>
       </button>
       <AnimatePresence initial={false}>
-        {open ? (
+        {showBody ? (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.18, ease: EASE }}
-            className="overflow-hidden pl-6 text-[0.6875rem] leading-relaxed text-muted"
+            className="overflow-hidden border-t border-rule-soft"
           >
-            {reasoning ? (
-              <span className="block whitespace-pre-wrap border-l-2 border-rule-soft py-1.5 pl-2.5">
-                {reasoning}
-              </span>
-            ) : (
-              <span className="block py-1.5">
-                Reviewed aggregate analytics, the subject profile, the target
-                ledger and the latest 20 logged mocks before answering.
-                Read-only — nothing was written.
-                {seconds ? ` Drawn in ${seconds}s.` : ""}
-              </span>
-            )}
+            <div
+              ref={bodyRef}
+              className={cn(
+                "max-h-56 overflow-y-auto px-3.5 py-2.5",
+                liveThinking && reasoning ? "" : "overflow-hidden",
+              )}
+            >
+              {connecting ? (
+                <span className="thinking-dots py-0.5" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : reasoning ? (
+                <span className="block whitespace-pre-wrap border-l-2 border-accent/40 pl-3 text-[0.6875rem] leading-relaxed text-muted">
+                  {reasoning}
+                </span>
+              ) : (
+                <span className="block text-[0.6875rem] leading-relaxed text-muted">
+                  Reviewed aggregate analytics, the subject profile, the target
+                  ledger and the latest 20 logged mocks before answering.
+                  Read-only — nothing was written.
+                </span>
+              )}
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -266,6 +358,7 @@ export function ChatTranscript({
   onTaskAdded,
   emptyState,
   error,
+  model,
   compact = false,
   className,
 }: ChatTranscriptProps) {
@@ -364,26 +457,70 @@ export function ChatTranscript({
                       </div>
                   ) : (
                     <div className="min-w-0 flex-1">
-                      {message.content || message.reasoning ? (
-                        <div className={cn(compact ? "w-full" : "max-w-[46rem]")}>
-                          {message.reasoning || message.reasoningSeconds ? (
-                            <ReasoningTrace
-                              reasoning={message.reasoning}
-                              seconds={message.reasoningSeconds}
-                            />
-                          ) : null}
-                          <AssistantBody
-                            message={message}
-                            live={live || (isLast && streaming)}
-                            taskApi={taskApi}
-                            onTaskAdded={onTaskAdded}
-                          />
-                        </div>
-                      ) : isLast && streaming ? (
-                        <ThinkingIndicator
-                          key={phase ?? "thinking"}
-                          phase={phase === "connecting" ? "connecting" : "thinking"}
+                      {/* The reference's AI turn header: who answered and on
+                          which model, above the thinking block and prose. */}
+                      <div className="mb-2 flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="grid size-6 place-items-center rounded-full bg-accent text-paper"
+                        >
+                          <Sparkles size={12} />
+                        </span>
+                        <span className="font-serif text-sm font-medium text-ink">
+                          Coach
+                        </span>
+                        {model ? (
+                          <span className="text-xs text-muted">{model}</span>
+                        ) : null}
+                      </div>
+                      {message.reasoning ||
+                      message.reasoningSeconds ||
+                      (isLast && streaming) ? (
+                        <ThinkingBlock
+                          reasoning={message.reasoning}
+                          seconds={message.reasoningSeconds}
+                          live={isLast && streaming}
+                          phase={phase}
+                          hasContent={Boolean(message.content)}
                         />
+                      ) : null}
+                      {message.content ? (
+                        <>
+                          <div className={cn(compact ? "w-full" : "max-w-[46rem]")}>
+                            <AssistantBody
+                              message={message}
+                              live={live || (isLast && streaming)}
+                              taskApi={taskApi}
+                              onTaskAdded={onTaskAdded}
+                            />
+                          </div>
+                          {message.truncated && (
+                            <p className="mt-1.5 text-xs text-muted">
+                              The reply ran out of room and may be cut off.
+                              Regenerate for a fresh, shorter answer.
+                            </p>
+                          )}
+                          {message.stopped && (
+                            <p className="mt-1.5 text-xs text-muted">
+                              Generation stopped — this reply may be incomplete.
+                            </p>
+                          )}
+                          {!streaming ? (
+                            <div className="pr-1">
+                              <TurnActions
+                                message={message}
+                                isLast={isLast}
+                                streaming={streaming}
+                                onEditResend={onEditResend}
+                                onRegenerate={
+                                  isLast || message.id === lastAssistantId
+                                    ? onRegenerate
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          ) : null}
+                        </>
                       ) : message.stopped && !streaming ? (
                         <p className="text-xs text-muted">
                           Generation stopped before the answer arrived.
@@ -393,32 +530,6 @@ export function ChatTranscript({
                           <p className="text-sm text-muted">No response.</p>
                         )
                       )}
-                      {message.truncated && (
-                        <p className="mt-1.5 text-xs text-muted">
-                          The reply ran out of room and may be cut off. Regenerate
-                          for a fresh, shorter answer.
-                        </p>
-                      )}
-                      {message.stopped && !streaming && message.content ? (
-                        <p className="mt-1.5 text-xs text-muted">
-                          Generation stopped — this reply may be incomplete.
-                        </p>
-                      ) : null}
-                      {(message.content || message.stopped) && !streaming ? (
-                        <div className="pr-1">
-                          <TurnActions
-                            message={message}
-                            isLast={isLast}
-                            streaming={streaming}
-                            onEditResend={onEditResend}
-                            onRegenerate={
-                              isLast || message.id === lastAssistantId
-                                ? onRegenerate
-                                : undefined
-                            }
-                          />
-                        </div>
-                      ) : null}
                     </div>
                   )}
                 </motion.article>

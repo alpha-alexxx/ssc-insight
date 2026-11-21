@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "src/components/ai-chat-sheet.tsx": {
-    "mtime": 1795249704.9912074,
-    "seen": 1795252222.287209,
-    "ast_hash": "0471416663f283ca9da3c6c3d15670de",
+    "mtime": 1795283094.7267668,
+    "seen": 1795283522.322331,
+    "ast_hash": "a37e1c880fd2722d6a3227cbbdc4a814",
     "semantic_hash": ""
   },
   "src/components/ai-coach-card.tsx": {
@@ -816,9 +816,9 @@
     "semantic_hash": "94f28f4fe6651b06b336d5811b0f7085"
   },
   "src/proxy.ts": {
-    "mtime": 1795275687.1086104,
-    "seen": 1795277101.1558497,
-    "ast_hash": "30438d34d959f2cdf73be2ec264073ea",
+    "mtime": 1795277401.5220098,
+    "seen": 1795283522.3635974,
+    "ast_hash": "000228cc7bf3977bb5840b78d57de340",
     "semantic_hash": ""
   },
   "tests/ai-credential-safety.test.ts": {
@@ -948,27 +948,27 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1795277066.0075283,
-    "seen": 1795277101.1659284,
-    "ast_hash": "9ce4dd464691775d58b727092c457749",
+    "mtime": 1795283487.0953672,
+    "seen": 1795283522.3762167,
+    "ast_hash": "7c00ea6f5dbbe586896cdfa552f969ec",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1795277066.0075283,
-    "seen": 1795277101.1659307,
-    "ast_hash": "f5ec56c20e1d5abb35b0a8afcaf0aa71",
+    "mtime": 1795283487.1080265,
+    "seen": 1795283522.376219,
+    "ast_hash": "c94e5e6c8bbf894f8d20ddd1a3cee174",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1795277066.0085285,
-    "seen": 1795277101.1659327,
-    "ast_hash": "ffc60f20d9df881ee71cd608af9a0ca2",
+    "mtime": 1795283487.0483172,
+    "seen": 1795283522.376221,
+    "ast_hash": "665011731c9578e470548c0789b845a9",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1795277066.0085285,
-    "seen": 1795277101.1659343,
-    "ast_hash": "68272bed8564cf5ba72dc8fe84aed0da",
+    "mtime": 1795283487.0643592,
+    "seen": 1795283522.3762226,
+    "ast_hash": "5803bb2effff99fdded30400d07509ae",
     "semantic_hash": ""
   },
   "README.md": {
@@ -2772,9 +2772,9 @@
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/_ask/ask-view.tsx": {
-    "mtime": 1795249598.7140665,
-    "seen": 1795252222.2499251,
-    "ast_hash": "f7496ed8b9646e3067961ce8e5da40b2",
+    "mtime": 1795283294.9898648,
+    "seen": 1795283522.2926106,
+    "ast_hash": "650c8d9cb3f838d2d6106824cd5cffe7",
     "semantic_hash": ""
   },
   "src/app/(workspace)/ask/error.tsx": {
@@ -2808,9 +2808,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/chat-transcript.tsx": {
-    "mtime": 1795249275.8577054,
-    "seen": 1795252222.3020804,
-    "ast_hash": "a9d93a0ea68566deb8416c3125adea11",
+    "mtime": 1795282226.001611,
+    "seen": 1795283522.3330135,
+    "ast_hash": "cb6509b4eb08b69354ed8971359d2e20",
     "semantic_hash": ""
   },
   "src/components/shared/ai/conversation-list.tsx": {
@@ -2843,12 +2843,6 @@
     "ast_hash": "b1d2f0f4270a6bb706aacf24f6d84cd1",
     "semantic_hash": ""
   },
-  "src/components/shared/ai/thinking-indicator.tsx": {
-    "mtime": 1795249236.3276274,
-    "seen": 1795252222.3030117,
-    "ast_hash": "691f0b5ab3eb205fe8455568f51d8cc2",
-    "semantic_hash": ""
-  },
   "tests/ai-vision.test.ts": {
     "mtime": 1795199517.553323,
     "seen": 1795243018.2814083,
@@ -2856,9 +2850,9 @@
     "semantic_hash": ""
   },
   "src/components/shared/ai/chat-empty-state.tsx": {
-    "mtime": 1795249361.85945,
-    "seen": 1795252222.3020768,
-    "ast_hash": "4b968a84325fa84d132c81e61e97a278",
+    "mtime": 1795279559.0213916,
+    "seen": 1795283522.333008,
+    "ast_hash": "520d93861d884a03654f449d72988a91",
     "semantic_hash": ""
   },
   "src/app/(workspace)/performance/_performance/attempt-breakdown-panel.tsx": {
@@ -2919,12 +2913,6 @@
     "mtime": 1795250507.7505102,
     "seen": 1795252222.2909842,
     "ast_hash": "f68e3b12c8c3a5e66cf2b7d7a1d5d884",
-    "semantic_hash": ""
-  },
-  "src/components/shared/ai/role-avatar.tsx": {
-    "mtime": 1795249221.25659,
-    "seen": 1795252222.30277,
-    "ast_hash": "909e177adea08aaac0734c76319da416",
     "semantic_hash": ""
   },
   "src/components/shared/ai/usage-footer.tsx": {
@@ -3030,9 +3018,9 @@
     "semantic_hash": ""
   },
   "src/app/forgot-password/loading.tsx": {
-    "mtime": 1795275595.5649078,
-    "seen": 1795277101.115122,
-    "ast_hash": "ee6bf4ca52be37564bd69437103ec559",
+    "mtime": 1795278229.812085,
+    "seen": 1795283522.321038,
+    "ast_hash": "4fba5eadb1a3b9b9ffc870217fda1577",
     "semantic_hash": ""
   },
   "src/app/forgot-password/page.tsx": {
@@ -3048,9 +3036,9 @@
     "semantic_hash": ""
   },
   "src/app/sign-in/loading.tsx": {
-    "mtime": 1795275576.311196,
-    "seen": 1795277101.1157775,
-    "ast_hash": "ee6bf4ca52be37564bd69437103ec559",
+    "mtime": 1795278215.3239746,
+    "seen": 1795283522.3218968,
+    "ast_hash": "4fba5eadb1a3b9b9ffc870217fda1577",
     "semantic_hash": ""
   },
   "src/app/sign-in/page.tsx": {
@@ -3066,9 +3054,9 @@
     "semantic_hash": ""
   },
   "src/app/sign-up/loading.tsx": {
-    "mtime": 1795275595.4982605,
-    "seen": 1795277101.1157844,
-    "ast_hash": "ee6bf4ca52be37564bd69437103ec559",
+    "mtime": 1795278229.7650692,
+    "seen": 1795283522.3221858,
+    "ast_hash": "4fba5eadb1a3b9b9ffc870217fda1577",
     "semantic_hash": ""
   },
   "src/app/sign-up/page.tsx": {
@@ -3084,9 +3072,9 @@
     "semantic_hash": ""
   },
   "src/components/auth/auth-shell.tsx": {
-    "mtime": 1795275363.2122254,
-    "seen": 1795277101.117212,
-    "ast_hash": "3a5e6340c88e26c5a07cb6ff95eb0e17",
+    "mtime": 1795278206.2942238,
+    "seen": 1795283522.323622,
+    "ast_hash": "3d77a800b587c397070fb1f100488bda",
     "semantic_hash": ""
   },
   "src/components/auth/forgot-form.tsx": {
@@ -3105,6 +3093,12 @@
     "mtime": 1795275510.4769583,
     "seen": 1795277101.1172192,
     "ast_hash": "6fe8b12a88d0b00638c54db74541894e",
+    "semantic_hash": ""
+  },
+  "src/components/shared/ai/log-mock-flow.tsx": {
+    "mtime": 1795282786.6261332,
+    "seen": 1795283522.3335881,
+    "ast_hash": "d40da7672bb381eb3910f19f7a43eed0",
     "semantic_hash": ""
   },
   "package-lock.json": {

@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   History,
+  ListChecks,
+  MessageSquare,
+  ScanLine,
   Shield,
   Sparkles,
   SquarePen,
@@ -13,6 +17,9 @@ import { aiUsageLabel, useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";
 import { useToast } from "@/components/toast";
 import { AiSettingsForm } from "@/components/ai-settings-form";
+import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
+import { LogMockFlow } from "@/components/shared/ai/log-mock-flow";
+import { useUiStore } from "@/stores/ui-store";
 import {
   Drawer,
   DrawerBody,
@@ -35,6 +42,16 @@ const FOLLOW_UPS = [
   "Plan my revision",
 ];
 
+/** The composer's modes, surfaced as chips: Chat, Todos (AI task drafts),
+ * Mock (AI report parsing that hands off to /add). */
+const MODES = [
+  { id: "chat", label: "Chat", icon: MessageSquare },
+  { id: "todos", label: "Todos", icon: ListChecks },
+  { id: "mock", label: "Mock", icon: ScanLine },
+] as const;
+
+type ComposerMode = (typeof MODES)[number]["id"];
+
 /**
  * The full-page chat in a measured three-column grid: conversations and the
  * usage footer in the left rail, the shared transcript and composer in the
@@ -48,7 +65,9 @@ export function AskView() {
   const ai = useAiWorkspace();
   const planApi = usePlanData();
   const toast = useToast();
+  const router = useRouter();
   const [input, setInput] = useState("");
+  const [mode, setMode] = useState<ComposerMode>("chat");
   const [railOpen, setRailOpen] = useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = useState(false);
   const enabled = Boolean(ai.aiStatus?.enabled);
@@ -225,6 +244,7 @@ export function AskView() {
               messages={ai.chat.messages}
               streaming={ai.chat.streaming}
               phase={ai.chat.phase}
+              model={ai.aiStatus?.credential?.model ?? undefined}
               onRetry={() => ai.chat.retryLast()}
               onEditResend={(id, text) => ai.chat.editResend(id, text)}
               onRegenerate={() => ai.chat.regenerateLast()}
@@ -258,24 +278,77 @@ export function AskView() {
             />
             {enabled && (
               <div className="shrink-0 pt-3">
-                <ChatComposer
-                  value={input}
-                  onChange={setInput}
-                  onSubmit={(text, images) => {
-                    ai.chat.send(text, screenContext, false, images);
-                    setInput("");
-                  }}
-                  onStop={ai.chat.stop}
-                  streaming={ai.chat.streaming}
-                  visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
-                  placeholder="Ask about your mocks, targets, or plan…"
-                  meta={composerMeta}
-                  followUps={ai.chat.messages.length > 0 ? FOLLOW_UPS : undefined}
-                  onFollowUp={(text) => {
-                    ai.chat.send(text, screenContext, false);
-                    setInput("");
-                  }}
-                />
+                {/* Mode chips — the DeepSeek/Claude toolbar grammar. The
+                    active mode owns the composer body below; switching keeps
+                    the transcript (and any running stream) untouched. */}
+                <div
+                  role="tablist"
+                  aria-label="Assistant mode"
+                  className="mb-2 flex items-center gap-1.5"
+                >
+                  {MODES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={mode === item.id}
+                      onClick={() => setMode(item.id)}
+                      className={cn(
+                        "tap-target inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
+                        mode === item.id
+                          ? "border-accent/30 bg-accent-soft text-accent"
+                          : "border-transparent text-muted hover:bg-soft hover:text-ink",
+                      )}
+                    >
+                      <item.icon size={12} aria-hidden />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                {mode === "chat" ? (
+                  <ChatComposer
+                    value={input}
+                    onChange={setInput}
+                    onSubmit={(text, images) => {
+                      ai.chat.send(text, screenContext, false, images);
+                      setInput("");
+                    }}
+                    onStop={ai.chat.stop}
+                    streaming={ai.chat.streaming}
+                    visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                    placeholder="Ask about your mocks, targets, or plan…"
+                    meta={composerMeta}
+                    followUps={ai.chat.messages.length > 0 ? FOLLOW_UPS : undefined}
+                    onFollowUp={(text) => {
+                      ai.chat.send(text, screenContext, false);
+                      setInput("");
+                    }}
+                  />
+                ) : (
+                  <div className="max-h-[46dvh] overflow-y-auto overscroll-contain rounded-2xl border border-rule-soft bg-paper shadow-input">
+                    {mode === "todos" ? (
+                      <TodoAiComposer
+                        compact
+                        configured={enabled}
+                        onAiConfigured={() => void ai.refreshAiStatus()}
+                      />
+                    ) : (
+                      <LogMockFlow
+                        configured={enabled}
+                        visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                        onAiConfigured={() => void ai.refreshAiStatus()}
+                        onLogMock={(draft) => {
+                          // The form stays the sole save path: the reviewed
+                          // draft crosses to /add through the UI store, never
+                          // the URL.
+                          useUiStore.getState().requestMockPrefill(draft);
+                          router.push("/add");
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
