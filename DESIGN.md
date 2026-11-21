@@ -336,3 +336,12 @@ The chat transcript (both the side sheet and `/ask`) uses a mixed bubble grammar
 ## Landing ambience
 
 The landing adds a **typed terminal** in the hero (CSS `steps()` typing; every figure derived from the plan/scoring fixtures — never hand-typed), **falling petals** from a fixed literal table (no `Math.random()` at render; frozen under reduced motion), **ink-wash art** (`public/landing/ink-*.png`, `mix-blend-multiply` on paper, inverted+screened in dark and inside plates via `tone="ink"`), **CountUp** ledger facts (the static final value is the base state; the count is enhancement only), the **24s product film** (four 6s scenes from the real mockups with Pause/Restart transport; reduced motion renders the overview statically and hides the transport), a numbered **scroll-spy rail** on the right edge, and a floating **Ask AI pill** that starts the Google round trip (the landing is anonymous-only). Mockup captions remain the real content; no fact lives only inside a mockup or a film scene.
+
+## Sign-in & security
+
+The email auth surfaces extend the paper grammar rather than introducing a new one:
+
+- The landing's **auth dialog** (opened from "Continue with email") is a max-w-md paper card: a `.segment` tab pair (Sign in / Create account), the Google button, a hairline "or with email" divider, and the same field grammar as every form (hairline bordered inputs, accent focus ring, inline `role="alert"` errors — never toasts for field errors). The emailed-code and TOTP steps replace the form in place; the 6-digit inputs render `tabular-nums`, centered, letter-spaced.
+- **Settings → Sign-in & security** keeps the panel grammar (one `Panel` per concern: identity, password, two-factor, sessions) with instant actions and dialogs — deliberately NOT a staged draft, so no save-bar registration. Destructive turns (disable 2FA, sign out other sessions) go through `AlertDialog` with the destructive variant; enrollment is a four-step ladder inside one Dialog (password → QR + secret key → verify a code → backup codes shown once, copy-all + explicit "I saved the codes").
+- The TOTP QR renders as a locally generated data-URL image on white, beside the raw `otpauth` secret key for manual entry — the secret is never rendered smaller than readable, and no third-party QR service is contacted.
+- Capability is told, never faked: when the hosted auth provider lacks a method (two-factor, email delivery), the card says "isn't available on this project's auth provider" instead of showing an Off state the app cannot verify.

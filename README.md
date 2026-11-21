@@ -92,6 +92,7 @@ Copy `.env.example` or use Neon's environment pull. **Never commit real values t
 | `NEON_AUTH_BASE_URL` | Managed Auth URL ending in `/auth`. |
 | `NEON_AUTH_COOKIE_SECRET` | Cryptographically random secret (≥32 characters). |
 | `GOOGLE_AUTH_ENABLED` | Set to `true` after configuring a production Google OAuth client. |
+| `EMAIL_AUTH_ENABLED` | `true` shows the landing's email sign-in/register affordances and the Sign-in & security settings section. |
 | `AI_BASE_URL` | Optional OpenAI-compatible base URL (defaults to `https://api.openai.com/v1`). |
 | `AI_API_KEY` | Server-only provider key. Blank disables AI. |
 | `AI_MODEL` | Provider model ID. Required to enable AI. |
@@ -141,6 +142,16 @@ Use Neon Auth's Google provider with your own Google OAuth **Web application** c
   ```
 - [ ] Configure Google consent screen (app name, support email, authorized domain). *Note: "Testing" status requires listed test users.*
 - [ ] Set `GOOGLE_AUTH_ENABLED=true` and rebuild/redeploy.
+
+### Email sign-in, one-time codes, and two-factor
+
+The landing can also offer **email + password** (register and sign-in), **email + one-time code** (passwordless), and **TOTP two-factor** with backup codes, managed in Settings → Sign-in & security. All of it is client-side: the app forwards better-auth wire calls (`/sign-up/email`, `/sign-in/email`, `/sign-in/email-otp`, `/two-factor/*`, `/list-sessions`) to the hosted Neon Auth service through the same `/api/auth/*` proxy.
+
+These flows **only succeed when the Neon Auth project has them enabled service-side** (email + password on, OTP email delivery working, two-factor plugin on — configure in the Neon console). When a method is not enabled, the service answers `404` and every surface says so honestly: *"Email sign-in isn't enabled for this project's auth provider."* Nothing in this repo sends email or stores credentials.
+
+- [ ] Enable email/password and email delivery for the Neon Auth project in the Neon console.
+- [ ] Enable the two-factor plugin if TOTP enrollment should work.
+- [ ] Set `EMAIL_AUTH_ENABLED=true` to show the affordances.
 
 ---
 
