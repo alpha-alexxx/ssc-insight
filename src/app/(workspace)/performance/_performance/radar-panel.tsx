@@ -1,0 +1,242 @@
+"use client";
+
+import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
+import { formatNumber as n } from "@/lib/domain";
+import type { Analytics } from "@/lib/analytics";
+import { Panel } from "@/components/dashboard-panels";
+import { InsightCallout } from "./insight-callout";
+
+/**
+ * The subject shape: one five-axis radar of the scoped profile, drawn by
+ * hand so the polygon can grow from the centre under reduced-motion-aware
+ * springs and honest blanks.
+ *
+ * Reads `analytics.radial` (the scoped stacks) via `subjectRanking()`'s
+ * population rule: a stack with no results sits at radius 0 — an honest
+ * blank, never a zero — and gets named in the footnote rather than drawn
+ * as if it were attempted and failed.
+ *
+ * Note: this radar is the SCOPE's shape. The dashboard's `whereYouStand`
+ * radar stays global; here the scope switcher is the point.
+ */
+
+const SUBJECT_TOKENS: Record<string, string> = {
+  quant: "var(--chart-quant)",
+  reasoning: "var(--chart-reasoning)",
+  english: "var(--chart-english)",
+  ga: "var(--chart-ga)",
+  computer: "var(--chart-computer)",
+};
+
+const CX = 170;
+const CY = 178;
+const R = 108;
+
+type Axis = {
+  id: string;
+  short: string;
+  percentage: number | null;
+  attemptCount: number;
+};
+
+export function RadarPanel({ analytics }: { analytics: Analytics }) {
+  const reduced = useReducedMotion();
+  const [active, setActive] = useState<string | null>(null);
+
+  const axes: Axis[] = analytics.radial.map((stack) => ({
+    id: stack.id,
+    short: stack.label,
+    percentage:
+      stack.total > 0 ? stack.scorePercentage : null,
+    attemptCount: stack.count,
+  }));
+
+  const populated = axes.filter(
+    (axis): axis is Axis & { percentage: number } => axis.percentage != null,
+  );
+  const ranked = [...populated].sort((a, b) => b.percentage - a.percentage);
+  const top = ranked[0];
+  const bottom = ranked[ranked.length - 1];
+  const spread =
+    top && bottom && populated.length >= 2 ? top.percentage - bottom.percentage : 0;
+  const empty = axes.filter((axis) => axis.percentage == null);
+
+  const angle = (index: number) =>
+    (Math.PI * 2 * index) / Math.max(1, axes.length) - Math.PI / 2;
+  const pointAt = (index: number, radius: number) => [
+    CX + Math.cos(angle(index)) * radius,
+    CY + Math.sin(angle(index)) * radius,
+  ];
+  const radiusOf = (axis: Axis) =>
+    axis.percentage == null ? 0 : Math.max(4, (axis.percentage / 100) * R);
+  const polygon = axes
+    .map((axis, i) => pointAt(i, radiusOf(axis)).join(","))
+    .join(" ");
+
+  return (
+    <Panel
+      icon="target"
+      title="The shape"
+      description="Score percentage per series in this scope."
+    >
+      <div className="flex flex-col items-center gap-4 lg:flex-row">
+        <svg
+          viewBox="0 0 340 340"
+          className="h-auto w-full max-w-[19rem] shrink-0"
+          role="img"
+          aria-label={`Subject shape across ${populated.length} populated series`}
+        >
+          {/* rings */}
+          {[25, 50, 75].map((ring) => (
+            <circle
+              key={ring}
+              cx={CX}
+              cy={CY}
+              r={(ring / 100) * R}
+              fill="none"
+              stroke="var(--rule-soft)"
+              strokeWidth="0.75"
+              strokeDasharray="3 4"
+            />
+          ))}
+          <circle
+            cx={CX}
+            cy={CY}
+            r={R}
+            fill="none"
+            stroke="var(--rule)"
+            strokeWidth="1"
+          />
+          {/* scale labels on the top axis */}
+          <text
+            x={CX + 4}
+            y={CY - R + 12}
+            className="tabular-nums fill-[var(--muted)] text-[9px]"
+          >
+            100
+          </text>
+          <text
+            x={CX + 4}
+            y={CY - R / 2 + 4}
+            className="tabular-nums fill-[var(--muted)] text-[9px]"
+          >
+            50
+          </text>
+
+          {/* axes */}
+          {axes.map((axis, i) => {
+            const [x, y] = pointAt(i, R);
+            return (
+              <line
+                key={axis.id}
+                x1={CX}
+                y1={CY}
+                x2={x}
+                y2={y}
+                stroke="var(--rule-soft)"
+                strokeWidth="0.75"
+              />
+            );
+          })}
+
+          {/* the polygon */}
+          {populated.length > 0 ? (
+            <motion.polygon
+              points={polygon}
+              fill="var(--accent)"
+              fillOpacity={0.14}
+              stroke="var(--accent)"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              initial={
+                reduced
+                  ? undefined
+                  : { scale: 0.4, opacity: 0, transformOrigin: "170px 178px" }
+              }
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: EASE, delay: 0.15 }}
+            />
+          ) : null}
+
+          {/* vertices + labels */}
+          {axes.map((axis, i) => {
+            const [vx, vy] = pointAt(i, radiusOf(axis));
+            const [lx, ly] = pointAt(i, R + 18);
+            const cos = Math.cos(angle(i));
+            return (
+              <g key={axis.id}>
+                {axis.percentage != null ? (
+                  <motion.circle
+                    cx={vx}
+                    cy={vy}
+                    r={active === axis.id ? 4.5 : 3}
+                    fill={SUBJECT_TOKENS[axis.id] ?? "var(--chart-score)"}
+                    stroke="var(--paper)"
+                    strokeWidth="1.5"
+                    initial={reduced ? undefined : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.75 + i * 0.06, ease: EASE }}
+                  />
+                ) : (
+                  <circle
+                    cx={pointAt(i, 3)[0]}
+                    cy={pointAt(i, 3)[1]}
+                    r="2"
+                    fill="none"
+                    stroke="var(--rule)"
+                    strokeWidth="1"
+                  />
+                )}
+                <text
+                  x={lx}
+                  y={ly + 3}
+                  textAnchor={Math.abs(cos) < 0.3 ? "middle" : cos > 0 ? "start" : "end"}
+                  className="fill-[var(--muted)] text-[10px] font-medium"
+                >
+                  {axis.short}
+                  {axis.percentage != null ? (
+                    <tspan className="tabular-nums">
+                      {" "}
+                      {Math.round(axis.percentage)}%
+                    </tspan>
+                  ) : null}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <InsightCallout title="Reading the shape">
+            {populated.length === 0 ? (
+              <>Nothing has been attempted in this scope yet, so there is no
+              shape to read — the radar fills as results arrive.</>
+            ) : populated.length === 1 || spread <= 0.5 ? (
+              <>
+                {top ? (
+                  <>
+                    {top.short} holds the profile at {n(top.percentage)}% —
+                    one level, no spread worth acting on yet.
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {top?.short} leads {bottom?.short} by {n(spread)} points. The
+                low vertex is where the next sectional pays most.
+              </>
+            )}
+          </InsightCallout>
+          {empty.length > 0 ? (
+            <p className="text-[0.6875rem] leading-relaxed text-muted">
+              No results yet for {empty.map((axis) => axis.short).join(", ")} —
+              drawn as an honest blank, never a zero.
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </Panel>
+  );
+}

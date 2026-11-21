@@ -17,7 +17,7 @@ export function PerformanceRoute() {
   const router = useRouter();
   const filtersState = useFiltersState();
   // /performance owns the selectable scope; the dashboard always asks "all".
-  const { analytics, target, loading, allAttempts } = useAnalyticsData({
+  const { analytics, loading, allAttempts } = useAnalyticsData({
     scope: filtersState.scope,
     filters: filtersState.filters,
   });
@@ -26,7 +26,6 @@ export function PerformanceRoute() {
     <div className="mx-auto w-full max-w-[1560px]">
       <PerformanceView
         analytics={analytics}
-        target={target}
         loading={loading}
         controls={
           <ScopeFilters

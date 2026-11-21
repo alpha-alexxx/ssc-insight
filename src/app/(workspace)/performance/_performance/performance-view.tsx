@@ -3,9 +3,13 @@ import type { ReactNode } from "react";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
-import { PerformanceOverview } from "@/components/performance-overview";
 import { ScoreBand } from "@/components/shared/charts/score-band";
 import { FindingsPanel } from "./findings-panel";
+import { TrendPanel } from "./trend-panel";
+import { RadarPanel } from "./radar-panel";
+import { AttemptBreakdownPanel } from "./attempt-breakdown-panel";
+import { DistributionPanel } from "./distribution-panel";
+import { SubjectDeepDive } from "./subject-deep-dive";
 import { useExamScope } from "@/components/exam-context";
 import { Swap } from "@/components/motion-swap";
 import { EmptyChart } from "@/components/dashboard-panels";
@@ -23,21 +27,19 @@ import { cn } from "@/lib/utils";
  *
  * Order is deliberate: the KPI band states where you are, the findings name
  * what the numbers show, and the charts below are the evidence a reader can
- * check them against.
- *
- * Every figure reads the one analytics payload the shell already holds; the
- * shared derivations live in `@/lib/performance-metrics` so a number shown
- * here and on the dashboard preview cannot diverge.
+ * check them against — trend, subject shape, outcome mix, distribution, then
+ * the per-subject drill-down. Every figure reads the one analytics payload
+ * the shell already holds; the shared derivations live in
+ * `@/lib/performance-metrics` so a number shown here and on the dashboard
+ * preview cannot diverge.
  */
 export function PerformanceView({
   analytics,
-  target,
   loading,
   controls,
   onAdd,
 }: {
   analytics: Analytics | null;
-  target: number | null;
   loading: boolean;
   /** The scope + filter control row, owned by the shell's workspace state. */
   controls: ReactNode;
@@ -105,7 +107,7 @@ export function PerformanceView({
             </div>
           ) : analytics ? (
             <>
-              <ScoreBand analytics={analytics} target={target} />
+              <ScoreBand analytics={analytics} target={analytics.target.percentage} />
               <FindingsPanel
                 findings={findings(analytics)}
                 className="mt-4"
@@ -117,8 +119,18 @@ export function PerformanceView({
                   a second attempt before they can say anything honest.
                 </p>
               )}
-              <div className="mt-6">
-                <PerformanceOverview analytics={analytics} target={target} />
+              <div className="mt-4">
+                <TrendPanel analytics={analytics} />
+              </div>
+              <div className="mt-4">
+                <RadarPanel analytics={analytics} />
+              </div>
+              <div className="mt-4 grid items-start gap-4 xl:grid-cols-2">
+                <AttemptBreakdownPanel analytics={analytics} />
+                <DistributionPanel analytics={analytics} />
+              </div>
+              <div className="mt-4">
+                <SubjectDeepDive analytics={analytics} />
               </div>
             </>
           ) : (
