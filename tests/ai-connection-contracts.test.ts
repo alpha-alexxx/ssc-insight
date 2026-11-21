@@ -13,6 +13,7 @@ import { chargedForAiFailure } from "../src/lib/ai/quota";
 import {
   quotaLimitsForSource,
   resolveSourcePolicy,
+  userReplyCaps,
 } from "../src/lib/ai/resolve-core";
 
 const root = join(import.meta.dirname, "..");
@@ -198,6 +199,29 @@ test("personal keys use independent safety limits and definitive pre-generation 
   });
   assert.equal(chargedForAiFailure(aiEndpointError(), 500), 0);
   assert.equal(chargedForAiFailure(aiTimeout(), 500), 500);
+});
+
+test("personal reply caps default to the ceiling and ignore deployment env tuning", () => {
+  // No stored value, no env tuning: the form ceiling and the thinking-model
+  // wall-clock windows.
+  assert.deepEqual(userReplyCaps(null, undefined, undefined), {
+    maxOutputTokens: 32_000,
+    timeoutMs: 120_000,
+    firstTokenTimeoutMs: 120_000,
+  });
+
+  // Regression (2026-11): an unset AI_MAX_OUTPUT_TOKENS let the env config's
+  // generic 1,200 default leak onto personal keys, and every thinking-model
+  // chat was truncated by finish_reason "length". Env tuning must never
+  // narrow a user's own key.
+  assert.equal(userReplyCaps(null, 45_000, 120_000).maxOutputTokens, 32_000);
+
+  // The user's explicit setting always wins; env still tunes the timers.
+  assert.deepEqual(userReplyCaps(4_096, 30_000, 60_000), {
+    maxOutputTokens: 4_096,
+    timeoutMs: 30_000,
+    firstTokenTimeoutMs: 60_000,
+  });
 });
 
 test("Prisma schema and additive migration carry protocol metadata without exposing credentials to backups", () => {

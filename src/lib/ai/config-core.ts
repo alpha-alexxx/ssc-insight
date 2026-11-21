@@ -157,20 +157,20 @@ export function readAiConfig(env: Env): AiConfig | null {
     jsonMode: env.AI_JSON_MODE?.trim().toLowerCase() !== "false",
     allowHttp: local && new URL(baseUrl).protocol === "http:",
     allowPrivate: local,
-    dailyRequestLimit: integerEnv(env, "AI_DAILY_REQUEST_LIMIT", 30, 1, 10_000),
+    dailyRequestLimit: integerEnv(env, "AI_DAILY_REQUEST_LIMIT", 50, 1, 10_000),
     dailyTokenLimit: integerEnv(
       env,
       "AI_DAILY_TOKEN_LIMIT",
-      300_000,
+      800_000,
       1_000,
       100_000_000,
     ),
-    maxOutputTokens: integerEnv(env, "AI_MAX_OUTPUT_TOKENS", 1_200, 64, 16_000),
+    maxOutputTokens: integerEnv(env, "AI_MAX_OUTPUT_TOKENS", 16_400, 64, 32_000),
     // The ceiling leaves room for thinking models, whose hidden reasoning
     // consumes wall-clock time before the answer arrives. Keep the configured
     // value within the deployment platform's function limit (60s on Vercel)
     // or raise maxDuration on the AI routes to match.
-    timeoutMs: integerEnv(env, "AI_TIMEOUT_MS", 45_000, 5_000, 180_000),
+    timeoutMs: integerEnv(env, "AI_TIMEOUT_MS", 120_000, 5_000, 180_000),
     // Deliberately more generous than the stall window: the whole point is a
     // model that produces nothing visible for a long first stretch.
     firstTokenTimeoutMs: integerEnv(

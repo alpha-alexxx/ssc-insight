@@ -1,7 +1,11 @@
 import "server-only";
 import { readAiConfig, type AiConfig, type AiThinking } from "./config-core";
 import { getAiCredential } from "./credentials";
-import { resolveSourcePolicy, type AiConfigSource } from "./resolve-core";
+import {
+  resolveSourcePolicy,
+  userReplyCaps,
+  type AiConfigSource,
+} from "./resolve-core";
 import {
   generationPathFor,
   modelsPathFor,
@@ -125,14 +129,16 @@ export async function resolveAiConfig(
         jsonMode: stored.jsonMode,
         allowHttp: stored.allowHttp,
         allowPrivate: stored.allowPrivate,
-        // Thinking models spend output tokens on hidden reasoning before the
-        // answer, so a small cap guarantees empty replies (finish_reason
-        // "length", no content). 8,000 gives such models room while capping
-        // the worst case. The user's own setting wins, then the deployment's
-        // AI_MAX_OUTPUT_TOKENS, then this floor.
-        maxOutputTokens: stored.maxOutputTokens ?? envConfig?.maxOutputTokens ?? 8_000,
-        timeoutMs: envConfig?.timeoutMs ?? 45_000,
-        firstTokenTimeoutMs: envConfig?.firstTokenTimeoutMs ?? 120_000,
+        // Reply caps come from the pure policy in resolve-core: the user's
+        // own setting wins, otherwise the 32,000 ceiling. The deployment's
+        // AI_MAX_OUTPUT_TOKENS is deliberately NOT consulted here — its
+        // generic default once leaked onto personal keys and truncated every
+        // thinking-model reply. Env still tunes the wall-clock windows.
+        ...userReplyCaps(
+          stored.maxOutputTokens,
+          envConfig?.timeoutMs,
+          envConfig?.firstTokenTimeoutMs,
+        ),
         thinking: stored.thinking,
         visionEnabled: stored.visionEnabled,
         dailyRequestLimit: 400,

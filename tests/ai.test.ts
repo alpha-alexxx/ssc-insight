@@ -172,11 +172,11 @@ test("AI config fails closed and validates the provider URL", () => {
 
   const defaults = readAiConfig({ AI_API_KEY: "key", AI_MODEL: "model" });
   assert.equal(defaults?.baseUrl, "https://api.openai.com/v1");
-  assert.equal(defaults?.dailyRequestLimit, 30);
-  assert.equal(defaults?.dailyTokenLimit, 300_000);
+  assert.equal(defaults?.dailyRequestLimit, 50);
+  assert.equal(defaults?.dailyTokenLimit, 800_000);
   assert.equal(defaults?.jsonMode, true);
-  assert.equal(defaults?.timeoutMs, 45_000);
-  assert.equal(defaults?.maxOutputTokens, 1_200);
+  assert.equal(defaults?.timeoutMs, 120_000);
+  assert.equal(defaults?.maxOutputTokens, 16_400);
   assert.equal(defaults?.firstTokenTimeoutMs, 120_000);
   assert.equal(defaults?.thinking, "default");
 
