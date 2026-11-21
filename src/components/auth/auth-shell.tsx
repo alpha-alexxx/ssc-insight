@@ -1,62 +1,26 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BrowserFrame } from "@/components/landing/mockups/browser-frame";
-import { DashboardScreen } from "@/components/landing/mockups/dashboard-screen";
-import { LANDING_PLAN } from "@/components/landing/plan-data";
 
 /**
  * The split-ledger chrome for the auth pages: a full-height ink plate
- * carrying a real product miniature (the same token-driven mockups the
- * landing shows — never a screenshot) beside the task's form on paper.
+ * beside the task's form on paper.
  *
- * The plate is the page's one signature element; the form side stays quiet
- * and left-aligned. On phones the plate is hidden and the form leads, so
- * the task is never behind a scroll. Facts on the plate come from the same
- * plan/scoring data the landing uses — nothing here is hand-typed.
+ * The plate's content is a deliberate PLACEHOLDER — the showcase miniature
+ * that lived here was removed at the product's request; future plate
+ * content (art, a product moment, copy) replaces the marked slot below.
+ * On phones the plate is hidden and the form leads, so the task is never
+ * behind a scroll.
  */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
-      {/* The plate — hidden on phones, the signature on desktop */}
+      {/* The plate — hidden on phones. Content pending: keep this slot. */}
       <div
         aria-hidden="true"
-        className="plate relative hidden flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14"
+        className="plate relative hidden flex-col justify-center overflow-hidden p-10 lg:flex xl:p-14"
       >
-        <p className="plate-label">Your preparation, in perspective.</p>
-
-        <div className="relative mx-auto w-full max-w-[34rem] py-8">
-          <BrowserFrame url="ssc insight · dashboard">
-            <DashboardScreen />
-          </BrowserFrame>
-          <p className="mt-4 text-[0.8125rem] leading-relaxed text-[var(--plate-muted)]">
-            One saved mock, four readings — trend, subjects, target gap and the
-            next test. The dashed line is your target.
-          </p>
-        </div>
-
-        <div>
-          <dl className="grid grid-cols-4 gap-6 border-t border-[var(--plate-rule-soft)] pt-6">
-            {[
-              { value: "390", label: "marks in a paper" },
-              { value: "4", label: "readings per mock" },
-              { value: String(LANDING_PLAN.days.length), label: "days on the plan" },
-              { value: "1", label: "file to move everything" },
-            ].map((fact) => (
-              <div key={fact.label}>
-                <dd className="tabular-nums font-serif text-2xl leading-none tracking-[-0.02em] text-[var(--plate-fg)]">
-                  {fact.value}
-                </dd>
-                <dt className="mt-1.5 text-[0.6875rem] leading-snug text-[var(--plate-muted)]">
-                  {fact.label}
-                </dt>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-6 flex items-center gap-2 text-[0.6875rem] text-[var(--plate-muted)]">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--accent)]" />
-            It reads your mocks. It writes nothing.
-          </p>
-        </div>
+        {/* Placeholder: future plate content replaces this reserved block. */}
+        <div className="mx-auto aspect-[4/5] w-full max-w-[26rem] rounded-[var(--radius-panel)] border border-dashed border-[var(--plate-rule)]" />
       </div>
 
       {/* The task */}
