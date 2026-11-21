@@ -256,6 +256,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/x-ndjson; charset=utf-8",
         "Cache-Control": "private, no-store",
         "X-Accel-Buffering": "no",
+        Vary: "Origin",
       },
     });
   } catch (error) {

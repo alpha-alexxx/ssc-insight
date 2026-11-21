@@ -10,6 +10,7 @@ import {
 } from "@/lib/rate-limit";
 import { describeDecision, type LimitDecision } from "@/lib/rate-limit-core";
 import { accessLog } from "@/lib/access-log";
+import { isSameOrigin, VARY_ORIGIN } from "@/lib/origin-core";
 import { newRequestId } from "@/lib/middleware-utils";
 
 /**
@@ -87,6 +88,7 @@ export function defineRoute<P = Record<string, never>>(
 
     const decorate = (response: Response, rl?: LimitDecision): Response => {
       response.headers.set("x-request-id", requestId);
+      response.headers.set("Vary", VARY_ORIGIN);
       if (rl) {
         for (const [key, value] of new Headers(rateLimitHeadersForDecision(rl)).entries()) {
           response.headers.set(key, value);
@@ -115,6 +117,22 @@ export function defineRoute<P = Record<string, never>>(
     };
 
     try {
+      // 0. Same-origin: any request that carries an Origin must match the
+      //    host, whatever the method. Unsafe methods were always checked in
+      //    readBody; GETs are now too, so a cross-site fetch never reaches
+      //    the handler at all (CORS would have stopped the browser from
+      //    reading the response, but the handler should never even run).
+      //    Non-browser clients — no Origin header — pass.
+      const origin = request.headers.get("origin");
+      const host = request.headers.get("host") ?? request.nextUrl.host;
+      if (!isSameOrigin(origin, host)) {
+        const response = apiError(
+          new RequestError("Cross-origin changes are not allowed", 403),
+        );
+        log(403, "csrf");
+        return decorate(response);
+      }
+
       // 1. Session (route handlers are the real security boundary — the
       //    proxy guard is convenience, this is enforcement).
       const user =

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AiError } from "./ai/errors";
 import { SessionError } from "./auth/session-policy";
+import { isSameOrigin, VARY_ORIGIN } from "./origin-core";
 export const privateHeaders = { "Cache-Control": "private, no-store" };
 
 function privateJson(
@@ -10,6 +11,7 @@ function privateJson(
 ) {
   const headers = new Headers(init.headers);
   headers.set("Cache-Control", "private, no-store");
+  headers.set("Vary", VARY_ORIGIN);
   return NextResponse.json(body, { ...init, headers });
 }
 
@@ -35,6 +37,7 @@ export function okCached(
     "Cache-Control",
     `private, max-age=${opts.maxAgeSec}, stale-while-revalidate=${opts.swrSec}`,
   );
+  headers.set("Vary", VARY_ORIGIN);
   return NextResponse.json({ data }, { status, headers });
 }
 export function apiError(error: unknown) {
@@ -129,23 +132,11 @@ export class RequestError extends Error {
   }
 }
 export async function readBody(request: Request, maxBytes = 64 * 1024) {
-  const origin = request.headers.get("origin");
-  if (origin) {
-    let originUrl: URL;
-    try {
-      originUrl = new URL(origin);
-    } catch {
-      throw new RequestError("Invalid request origin", 403);
-    }
-    // Next's internal URL may use the bind address (0.0.0.0), while Host
-    // retains the browser's public address. Do not trust forwarded headers.
-    const host = request.headers.get("host") ?? new URL(request.url).host;
-    if (
-      originUrl.host !== host ||
-      !["http:", "https:"].includes(originUrl.protocol)
-    )
-      throw new RequestError("Cross-origin changes are not allowed", 403);
-  }
+  // Next's internal URL may use the bind address (0.0.0.0), while Host
+  // retains the browser's public address. Do not trust forwarded headers.
+  const host = request.headers.get("host") ?? new URL(request.url).host;
+  if (!isSameOrigin(request.headers.get("origin"), host))
+    throw new RequestError("Cross-origin changes are not allowed", 403);
   if (!request.headers.get("content-type")?.includes("application/json"))
     throw new RequestError("Use application/json", 415);
   if (Number(request.headers.get("content-length")) > maxBytes)

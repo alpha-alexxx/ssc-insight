@@ -23,19 +23,12 @@ export function newRequestId(): string {
  * an exact host match (when the header is present) blocks cross-origin form
  * posts and fetches from other sites while leaving first-party traffic and
  * non-browser clients (curl, LB probes — no Origin header) untouched.
+ *
+ * The comparison itself lives in `origin-core.ts` so the proxy (edge) and the
+ * route layer (Node) can never disagree; this re-export keeps the proxy's
+ * historical import path stable.
  */
-export function sameOrigin(origin: string | null, host: string | null): boolean {
-  if (!origin) return true; // Non-browser clients may omit Origin entirely.
-  if (!host) return false;
-  let originUrl: URL;
-  try {
-    originUrl = new URL(origin);
-  } catch {
-    return false;
-  }
-  if (!["http:", "https:"].includes(originUrl.protocol)) return false;
-  return originUrl.host === host;
-}
+export { isSameOrigin as sameOrigin } from "./origin-core";
 
 export type RouteArea = "page" | "api";
 export type RouteAccess = "private" | "public" | "auth" | "health";

@@ -19,8 +19,9 @@ export const GET = defineRoute<{ path: string[] }>(
   },
 );
 
-// State-changing methods get the same answer (the write limiter applies,
-// so unknown-endpoint probing costs the attacker the same budget as before).
+// State-changing methods get the same answer (kind is "read", so the generous
+// read limiter applies — the shared JSON envelope, rate limiting and the
+// same-origin guard still run for every unknown endpoint).
 export const POST = GET;
 export const PUT = GET;
 export const PATCH = GET;

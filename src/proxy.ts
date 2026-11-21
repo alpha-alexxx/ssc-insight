@@ -4,7 +4,6 @@ import { devAuthBypassActive } from "@/lib/auth/dev-bypass";
 import { accessLog } from "@/lib/access-log";
 import { publicOrigin } from "@/lib/public-url";
 import {
-  UNSAFE_METHODS,
   bypassesMaintenance,
   classifyPath,
   isCronPath,
@@ -27,8 +26,9 @@ import {
  *  2. Maintenance mode — MAINTENANCE_MODE=1 answers API calls with 503 and
  *     sends browsers to /maintenance, while keeping /api/health, the auth
  *     flow and the landing (the only sign-in surface) reachable.
- *  3. CSRF defense in depth — cross-origin state-changing API calls are
- *     rejected at the edge (route handlers re-check when they read bodies).
+ *  3. CSRF defense in depth — any API call carrying a cross-origin Origin
+ *     header is rejected at the edge, whatever the method (route handlers
+ *     re-check in defineRoute and when they read bodies).
  *  4. Authentication — private pages go through the Neon Auth middleware;
  *     anonymous visitors are sent to the landing (the only sign-in surface).
  *  5. Structured access logging — gate decisions are logged via waitUntil
@@ -104,7 +104,14 @@ function jsonError(
 ): NextResponse {
   return NextResponse.json(
     { error: { code, message } },
-    { status, headers: { "Cache-Control": "private, no-store", ...extraHeaders } },
+    {
+      status,
+      headers: {
+        "Cache-Control": "private, no-store",
+        Vary: "Origin",
+        ...extraHeaders,
+      },
+    },
   );
 }
 
@@ -171,15 +178,15 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     return gate(NextResponse.redirect(target, 307), "maintenance");
   }
 
-  // ── 2. CSRF defense in depth for state-changing API calls ─────────────
-  // Auth endpoints are excluded: the Neon Auth handler validates its own
-  // requests, and blocking it at the edge could break callback flows.
-  if (
-    cls.area === "api" &&
-    cls.route !== "auth" &&
-    cls.route !== "health" &&
-    UNSAFE_METHODS.has(method)
-  ) {
+  // ── 2. Same-origin enforcement for every API call ──────────────────────
+  // Any /api/* request carrying an Origin header must match the host,
+  // whatever the method. State-changing verbs were always checked; GET/HEAD
+  // are now too, so a cross-site fetch never reaches a handler at all
+  // (CORS already kept the browser from reading such a response — this
+  // closes the reach). Auth endpoints are excluded: the Neon Auth handler
+  // validates its own requests, and blocking it at the edge could break
+  // callback flows. Non-browser clients (no Origin header) pass.
+  if (cls.area === "api" && cls.route !== "auth" && cls.route !== "health") {
     const origin = forwarded.headers.get("origin");
     const host = forwarded.headers.get("host") ?? forwarded.nextUrl.host;
     if (!sameOrigin(origin, host)) {
