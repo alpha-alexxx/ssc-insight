@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import {
   authFailureCopy,
   EmailAuthError,
+  requestPasswordResetOtp,
+  resetPasswordWithOtp,
   sendSignInOtp,
   signInEmail,
   signInWithOtp,
@@ -15,10 +17,12 @@ import {
 } from "@/lib/auth/email-client";
 import {
   otpRequestSchema,
+  otpResetSchema,
   registerEmailSchema,
   signInEmailSchema,
   totpVerifySchema,
   type OtpRequestValues,
+  type OtpResetValues,
   type RegisterEmailValues,
   type SignInEmailValues,
 } from "@/lib/auth/email-schemas";
@@ -50,6 +54,7 @@ import { cn } from "@/lib/utils";
 type PanelStep =
   | { step: "credentials" }
   | { step: "otp"; stage: "request" | "verify"; email: string }
+  | { step: "forgot"; stage: "request" | "verify"; email: string }
   | { step: "totp"; email: string };
 
 export function AuthPanelDialog({
@@ -66,6 +71,9 @@ export function AuthPanelDialog({
   const [view, setView] = useState<PanelStep>({ step: "credentials" });
   const [tab, setTab] = useState<"signin" | "register">("signin");
   const [formError, setFormError] = useState("");
+  // A completed reset lands back here — the note tells the reader why the
+  // password they just set is now the sign-in one.
+  const [notice, setNotice] = useState("");
 
   // Reset to the entry state whenever the dialog reopens, so a shared
   // device never shows the previous reader's half-typed email.
@@ -75,6 +83,7 @@ export function AuthPanelDialog({
     setView({ step: "credentials" });
     setTab("signin");
     setFormError("");
+    setNotice("");
   } else if (!open && wasOpen) {
     setWasOpen(false);
   }
@@ -159,20 +168,19 @@ export function AuthPanelDialog({
                       setFormError("");
                       setView({ step: "totp", email });
                     }}
+                    onOtp={() => {
+                      setFormError("");
+                      setNotice("");
+                      setView({ step: "otp", stage: "request", email: "" });
+                    }}
+                    onForgot={(email) => {
+                      setFormError("");
+                      setNotice("");
+                      setView({ step: "forgot", stage: "request", email });
+                    }}
+                    notice={notice}
                     formError={formError}
                     setFormError={setFormError}
-                    footerSlot={
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
-                        onClick={() => {
-                          setFormError("");
-                          setView({ step: "otp", stage: "request", email: "" });
-                        }}
-                      >
-                        Email me a one-time code instead
-                      </button>
-                    }
                   />
                 ) : (
                   <RegisterForm
@@ -192,6 +200,17 @@ export function AuthPanelDialog({
             setView={setView}
             setFormError={setFormError}
             onDone={finish}
+          />
+        ) : null}
+
+        {view.step === "forgot" ? (
+          <ForgotFlow
+            view={view}
+            setView={setView}
+            onDone={() => {
+              setNotice("Password updated — sign in with your new password.");
+              setView({ step: "credentials" });
+            }}
           />
         ) : null}
 
@@ -221,15 +240,19 @@ function fieldClass() {
 function SignInCredentialsForm({
   onDone,
   onTwoFactor,
+  onOtp,
+  onForgot,
+  notice,
   formError,
   setFormError,
-  footerSlot,
 }: {
   onDone: () => void;
   onTwoFactor: (email: string) => void;
+  onOtp: () => void;
+  onForgot: (email: string) => void;
+  notice: string;
   formError: string;
   setFormError: (value: string) => void;
-  footerSlot?: React.ReactNode;
 }) {
   const form = useForm<SignInEmailValues>({
     resolver: zodResolver(signInEmailSchema),
@@ -255,6 +278,11 @@ function SignInCredentialsForm({
         }
       })}
     >
+      {notice ? (
+        <p role="status" className="text-xs leading-relaxed text-positive">
+          {notice}
+        </p>
+      ) : null}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="auth-signin-email">Email</Label>
         <Input
@@ -293,7 +321,28 @@ function SignInCredentialsForm({
           "Sign in"
         )}
       </Button>
-      {footerSlot}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+          onClick={() => {
+            setFormError("");
+            onOtp();
+          }}
+        >
+          Email me a one-time code instead
+        </button>
+        <button
+          type="button"
+          className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+          onClick={() => {
+            setFormError("");
+            onForgot(form.getValues("email"));
+          }}
+        >
+          Forgot password?
+        </button>
+      </div>
     </form>
   );
 }
@@ -621,6 +670,205 @@ function TotpStep({
             "Verify and sign in"
           )}
         </Button>
+      </form>
+    </>
+  );
+}
+
+/* ------------------------------------------------------ forgot password */
+
+/**
+ * The logged-out password reset: request a code for the typed email, then
+ * set a new password against it. Enumeration-safe — the service answers
+ * success even for an unknown email, so the copy never confirms whether an
+ * account exists. On success the reader returns to Sign in with a note;
+ * the session that (may) have been created by the reset is not auto-used,
+ * because "reset" implies the next step is signing in fresh.
+ */
+function ForgotFlow({
+  view,
+  setView,
+  onDone,
+}: {
+  view: Extract<PanelStep, { step: "forgot" }>;
+  setView: (view: PanelStep) => void;
+  onDone: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const requestForm = useForm<OtpRequestValues>({
+    resolver: zodResolver(otpRequestSchema),
+    defaultValues: { email: view.email },
+  });
+  const resetForm = useForm<OtpResetValues>({
+    resolver: zodResolver(otpResetSchema),
+    defaultValues: { email: view.email, code: "", newPassword: "", confirmPassword: "" },
+  });
+
+  if (view.stage === "request") {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl tracking-[-0.01em]">
+            Reset your password
+          </DialogTitle>
+          <DialogDescription>
+            We email a 6-digit code to confirm it&apos;s you. If the email has
+            an account, the code is on its way.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={requestForm.handleSubmit(async (values) => {
+            setError("");
+            setBusy(true);
+            try {
+              await requestPasswordResetOtp(values.email);
+              setView({ step: "forgot", stage: "verify", email: values.email });
+            } catch (e) {
+              setError(
+                e instanceof EmailAuthError
+                  ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                  : "Could not send the code.",
+              );
+            } finally {
+              setBusy(false);
+            }
+          })}
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="auth-forgot-email">Email</Label>
+            <Input
+              id="auth-forgot-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              autoFocus
+              {...requestForm.register("email")}
+            />
+            {requestForm.formState.errors.email ? (
+              <p className="text-xs text-danger">
+                {requestForm.formState.errors.email.message}
+              </p>
+            ) : null}
+          </div>
+          <FormError message={error} />
+          <Button type="submit" disabled={busy} className="w-full justify-center">
+            {busy ? (
+              <>
+                <Loader2 size={14} className="animate-spin" aria-hidden /> Sending…
+              </>
+            ) : (
+              "Email me a reset code"
+            )}
+          </Button>
+          <button
+            type="button"
+            className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+            onClick={() => setView({ step: "credentials" })}
+          >
+            Back to sign-in options
+          </button>
+        </form>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className="font-serif text-xl tracking-[-0.01em]">
+          Check your email
+        </DialogTitle>
+        <DialogDescription>
+          A reset code was sent to {view.email}. It sets a new password; on a
+          Google-only account it sets the first one.
+        </DialogDescription>
+      </DialogHeader>
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={resetForm.handleSubmit(async (values) => {
+          setError("");
+          setBusy(true);
+          try {
+            await resetPasswordWithOtp({
+              email: values.email,
+              code: values.code,
+              password: values.newPassword,
+            });
+            onDone();
+          } catch (e) {
+            setError(
+              e instanceof EmailAuthError
+                ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                : "Could not reset the password.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        })}
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="auth-forgot-code">Code</Label>
+          <Input
+            id="auth-forgot-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="000000"
+            className="tabular-nums text-center text-lg tracking-[0.4em]"
+            autoFocus
+            {...resetForm.register("code")}
+          />
+          {resetForm.formState.errors.code ? (
+            <p className="text-xs text-danger">{resetForm.formState.errors.code.message}</p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="auth-forgot-new">New password</Label>
+          <Input
+            id="auth-forgot-new"
+            type="password"
+            autoComplete="new-password"
+            {...resetForm.register("newPassword")}
+          />
+          {resetForm.formState.errors.newPassword ? (
+            <p className="text-xs text-danger">
+              {resetForm.formState.errors.newPassword.message}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="auth-forgot-confirm">Confirm new password</Label>
+          <Input
+            id="auth-forgot-confirm"
+            type="password"
+            autoComplete="new-password"
+            {...resetForm.register("confirmPassword")}
+          />
+          {resetForm.formState.errors.confirmPassword ? (
+            <p className="text-xs text-danger">
+              {resetForm.formState.errors.confirmPassword.message}
+            </p>
+          ) : null}
+        </div>
+        <FormError message={error} />
+        <Button type="submit" disabled={busy} className="w-full justify-center">
+          {busy ? (
+            <>
+              <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
+            </>
+          ) : (
+            "Set new password"
+          )}
+        </Button>
+        <button
+          type="button"
+          className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+          onClick={() => setView({ step: "forgot", stage: "request", email: view.email })}
+        >
+          Use a different email
+        </button>
       </form>
     </>
   );

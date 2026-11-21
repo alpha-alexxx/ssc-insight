@@ -257,6 +257,38 @@ export async function signInWithOtp(input: {
   }
 }
 
+/* --------------------------------------------------- password reset by OTP */
+
+/**
+ * Email a 6-digit password-reset code. Requires no session, so it serves
+ * both the signed-out "Forgot password?" flow and the Settings dialog. The
+ * endpoint answers success even for an unknown email (no account
+ * enumeration) — callers should phrase the confirmation accordingly.
+ */
+export async function requestPasswordResetOtp(email: string): Promise<void> {
+  await authPost("/email-otp/request-password-reset", { email });
+}
+
+/**
+ * Confirm a password reset with the emailed code. Beyond changing an
+ * existing password, the endpoint CREATES a credential account when the
+ * user has none — this is how a Google-only account sets a first password.
+ * It also marks the email verified. Whether the provider revokes the
+ * account's sessions afterwards is its own managed config (`revokeSessions
+ * OnPasswordReset`); callers must tolerate both outcomes.
+ */
+export async function resetPasswordWithOtp(input: {
+  email: string;
+  code: string;
+  password: string;
+}): Promise<void> {
+  await authPost("/email-otp/reset-password", {
+    email: input.email,
+    otp: input.code,
+    password: input.password,
+  });
+}
+
 /** Complete a two-factor-intercepted password sign-in with a TOTP code. */
 export async function verifyTotpSignIn(code: string): Promise<void> {
   await authPost("/two-factor/verify-totp", { code });

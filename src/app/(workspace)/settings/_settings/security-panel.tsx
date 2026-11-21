@@ -13,8 +13,19 @@ import {
   MonitorSmartphone,
   ShieldOff,
 } from "lucide-react";
-import { authFailureCopy, EmailAuthError } from "@/lib/auth/email-client";
-import { changePasswordSchema, type ChangePasswordValues } from "@/lib/auth/email-schemas";
+import {
+  authFailureCopy,
+  EmailAuthError,
+  requestPasswordResetOtp,
+  resetPasswordWithOtp,
+} from "@/lib/auth/email-client";
+import { authClient } from "@/lib/auth/client";
+import {
+  changePasswordSchema,
+  otpResetSchema,
+  type ChangePasswordValues,
+  type OtpResetValues,
+} from "@/lib/auth/email-schemas";
 import { useAuthSecurity } from "./use-auth-security";
 import { Panel } from "@/components/dashboard-panels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -105,8 +116,10 @@ export function SecurityPanel({
       <Panel icon="shield" title="Password" description="For accounts that sign in with email.">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-1 sm:px-5">
           <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted">
-            A Google-only account has no password. Adding one doesn&apos;t replace
-            Google sign-in — it adds an email + password way in.
+            Confirm a change with your current password, or with a code emailed
+            to your account address — the emailed code also sets a{" "}
+            <span className="text-ink">first</span> password on a Google-only
+            account. It adds an email way in; Google sign-in stays.
           </p>
           <Button variant="outline" size="sm" onClick={() => setPasswordOpen(true)}>
             Set or change password
@@ -165,7 +178,7 @@ export function SecurityPanel({
       <ChangePasswordDialog
         open={passwordOpen}
         onOpenChange={setPasswordOpen}
-        hasEmail={Boolean(email)}
+        email={email ?? ""}
         submit={(values) =>
           actions.changePassword({
             currentPassword: values.currentPassword ?? "",
@@ -319,19 +332,29 @@ function describeDevice(userAgent: string | null): string {
 
 /* -------------------------------------------------------------- password */
 
+/**
+ * The password dialog with two confirmation methods: the account's current
+ * password, or a 6-digit code emailed to the account address. The code path
+ * rides better-auth's email-otp reset endpoints and CREATES a credential
+ * account when none exists — it is how a Google-only account sets a first
+ * password. After a code-path change the session may have been revoked by
+ * the provider's managed config, so the dialog re-checks the session and
+ * bounces to the landing sign-in when it died.
+ */
 function ChangePasswordDialog({
   open,
   onOpenChange,
-  hasEmail,
+  email,
   submit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  hasEmail: boolean;
+  /** The signed-in account's email — the reset code goes here, locked. */
+  email: string;
   submit: (values: ChangePasswordValues & { revokeOtherSessions: boolean }) => Promise<{ ok: boolean; failure?: string }>;
 }) {
   const toast = useToast();
-  const [noPasswordYet, setNoPasswordYet] = useState(false);
+  const [method, setMethod] = useState<"password" | "code">("password");
   const [revokeOtherSessions, setRevokeOtherSessions] = useState(false);
   const [error, setError] = useState("");
   const form = useForm<ChangePasswordValues>({
@@ -342,7 +365,33 @@ function ChangePasswordDialog({
   function close() {
     onOpenChange(false);
     setError("");
+    setMethod("password");
+    setCodeStage("request");
+    setResetCode("");
     form.reset({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  }
+
+  /* ---- emailed-code state (kept at the dialog level so both stages share close()) ---- */
+  const [codeStage, setCodeStage] = useState<"request" | "verify">("request");
+  const [resetCode, setResetCode] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const resetForm = useForm<OtpResetValues>({
+    resolver: zodResolver(otpResetSchema),
+    defaultValues: { email: email, code: "", newPassword: "", confirmPassword: "" },
+  });
+
+  // Re-sync the locked email whenever the dialog reopens with a fresh user.
+  if (open && resetForm.getValues("email") !== email) {
+    resetForm.setValue("email", email);
+  }
+
+  async function checkSessionOrExit() {
+    // The provider may revoke every session on a reset (its managed config
+    // decides). If ours died, get out of the dead workspace immediately.
+    const session = await authClient.getSession({
+      query: { disableCookieCache: true },
+    });
+    if (!session.data?.user) window.location.assign("/");
   }
 
   return (
@@ -350,30 +399,63 @@ function ChangePasswordDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl tracking-[-0.01em]">
-            {noPasswordYet ? "Set a password" : "Change password"}
+            Change password
           </DialogTitle>
           <DialogDescription>
-            {noPasswordYet
-              ? hasEmail
-                ? "Adds an email + password way into this account, beside Google."
-                : "Adds an email + password way into this account."
-              : "The new password takes effect on the next sign-in."}
+            {method === "password"
+              ? "Confirm with your current password; the new one takes effect on the next sign-in."
+              : email
+                ? `We email a 6-digit code to ${email} to confirm the change.`
+                : "We email a 6-digit code to your account address to confirm the change."}
           </DialogDescription>
         </DialogHeader>
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={form.handleSubmit(async (values) => {
-            setError("");
-            const result = await submit({ ...values, revokeOtherSessions });
-            if (result.ok) {
-              toast.success("Password updated");
-              close();
-            } else {
-              setError(result.failure ?? "Could not update the password.");
-            }
-          })}
+
+        <div
+          className="segment-group"
+          role="tablist"
+          aria-label="Password confirmation method"
         >
-          {!noPasswordYet ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={method === "password"}
+            className="segment flex-1 justify-center"
+            onClick={() => {
+              setMethod("password");
+              setError("");
+            }}
+          >
+            Current password
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={method === "code"}
+            className="segment flex-1 justify-center"
+            onClick={() => {
+              setMethod("code");
+              setCodeStage("request");
+              setError("");
+            }}
+          >
+            Emailed code
+          </button>
+        </div>
+
+        {method === "password" ? (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={form.handleSubmit(async (values) => {
+              setError("");
+              const result = await submit({ ...values, revokeOtherSessions });
+              if (result.ok) {
+                toast.success("Password updated");
+                close();
+              } else {
+                setError(result.failure ?? "Could not update the password.");
+              }
+            })}
+          >
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="auth-current-password">Current password</Label>
               <Input
@@ -383,70 +465,207 @@ function ChangePasswordDialog({
                 {...form.register("currentPassword")}
               />
             </div>
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="auth-new-password">New password</Label>
-            <Input
-              id="auth-new-password"
-              type="password"
-              autoComplete="new-password"
-              {...form.register("newPassword")}
-            />
-            {form.formState.errors.newPassword ? (
-              <p className="text-xs text-danger">{form.formState.errors.newPassword.message}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="auth-confirm-password">Confirm new password</Label>
-            <Input
-              id="auth-confirm-password"
-              type="password"
-              autoComplete="new-password"
-              {...form.register("confirmPassword")}
-            />
-            {form.formState.errors.confirmPassword ? (
-              <p className="text-xs text-danger">
-                {form.formState.errors.confirmPassword.message}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="auth-new-password">New password</Label>
+              <Input
+                id="auth-new-password"
+                type="password"
+                autoComplete="new-password"
+                {...form.register("newPassword")}
+              />
+              {form.formState.errors.newPassword ? (
+                <p className="text-xs text-danger">{form.formState.errors.newPassword.message}</p>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="auth-confirm-password">Confirm new password</Label>
+              <Input
+                id="auth-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                {...form.register("confirmPassword")}
+              />
+              {form.formState.errors.confirmPassword ? (
+                <p className="text-xs text-danger">
+                  {form.formState.errors.confirmPassword.message}
+                </p>
+              ) : null}
+            </div>
+            <label className="flex items-center gap-2 text-xs text-muted">
+              <Switch
+                checked={revokeOtherSessions}
+                onCheckedChange={setRevokeOtherSessions}
+                aria-label="Sign out other devices after changing the password"
+              />
+              Sign out other devices
+            </label>
+            {error ? (
+              <p role="alert" className="text-xs leading-relaxed text-danger">
+                {error}
               </p>
             ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={close}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
+                  </>
+                ) : (
+                  "Save password"
+                )}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {codeStage === "request" ? (
+              <>
+                <div className="rounded-control border border-rule-soft bg-canvas px-3 py-2.5">
+                  <p className="section-label mb-0.5">Code goes to</p>
+                  <p className="truncate text-sm text-ink">
+                    {email || "your account address"}
+                  </p>
+                </div>
+                {error ? (
+                  <p role="alert" className="text-xs leading-relaxed text-danger">
+                    {error}
+                  </p>
+                ) : null}
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    disabled={codeBusy || !email}
+                    onClick={() =>
+                      void (async () => {
+                        setCodeBusy(true);
+                        setError("");
+                        try {
+                          await requestPasswordResetOtp(email);
+                          setCodeStage("verify");
+                        } catch (e) {
+                          setError(
+                            e instanceof EmailAuthError
+                              ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                              : "Could not send the code.",
+                          );
+                        } finally {
+                          setCodeBusy(false);
+                        }
+                      })()
+                    }
+                    className="w-full justify-center"
+                  >
+                    {codeBusy ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" aria-hidden /> Sending…
+                      </>
+                    ) : (
+                      "Email me a code"
+                    )}
+                  </Button>
+                  <p className="text-[0.6875rem] leading-relaxed text-muted">
+                    No password yet (Google-only account)? This same code sets
+                    your first password.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={resetForm.handleSubmit(async (values) => {
+                  setError("");
+                  try {
+                    await resetPasswordWithOtp({
+                      email: values.email,
+                      code: values.code,
+                      password: values.newPassword,
+                    });
+                    toast.success("Password updated");
+                    await checkSessionOrExit();
+                    close();
+                  } catch (e) {
+                    setError(
+                      e instanceof EmailAuthError
+                        ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                        : "Could not reset the password.",
+                    );
+                  }
+                })}
+              >
+                <p className="text-xs text-muted">
+                  Code sent to <span className="text-ink">{email}</span>.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="auth-reset-code">Code</Label>
+                  <Input
+                    id="auth-reset-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="000000"
+                    className="tabular-nums text-center text-lg tracking-[0.4em]"
+                    {...resetForm.register("code")}
+                  />
+                  {resetForm.formState.errors.code ? (
+                    <p className="text-xs text-danger">
+                      {resetForm.formState.errors.code.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="auth-reset-new">New password</Label>
+                  <Input
+                    id="auth-reset-new"
+                    type="password"
+                    autoComplete="new-password"
+                    {...resetForm.register("newPassword")}
+                  />
+                  {resetForm.formState.errors.newPassword ? (
+                    <p className="text-xs text-danger">
+                      {resetForm.formState.errors.newPassword.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="auth-reset-confirm">Confirm new password</Label>
+                  <Input
+                    id="auth-reset-confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    {...resetForm.register("confirmPassword")}
+                  />
+                  {resetForm.formState.errors.confirmPassword ? (
+                    <p className="text-xs text-danger">
+                      {resetForm.formState.errors.confirmPassword.message}
+                    </p>
+                  ) : null}
+                </div>
+                {error ? (
+                  <p role="alert" className="text-xs leading-relaxed text-danger">
+                    {error}
+                  </p>
+                ) : null}
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={close}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={resetForm.formState.isSubmitting}>
+                    {resetForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
+                      </>
+                    ) : (
+                      "Save password"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
-          <label className="flex items-center gap-2 text-xs text-muted">
-            <Switch
-              checked={revokeOtherSessions}
-              onCheckedChange={setRevokeOtherSessions}
-              aria-label="Sign out other devices after changing the password"
-            />
-            Sign out other devices
-          </label>
-          <button
-            type="button"
-            className="text-left text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
-            onClick={() => setNoPasswordYet((value) => !value)}
-          >
-            {noPasswordYet
-              ? "I do have a password — ask for it"
-              : "I don't have a password yet (Google-only account)"}
-          </button>
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-danger">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
-                </>
-              ) : (
-                "Save password"
-              )}
-            </Button>
-          </div>
-        </form>
+        )}
       </DialogContent>
     </Dialog>
   );

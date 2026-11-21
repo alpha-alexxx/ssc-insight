@@ -10,6 +10,7 @@ import {
   authPasswordSchema,
   authTotpSchema,
   changePasswordSchema,
+  otpResetSchema,
   registerEmailSchema,
 } from "../src/lib/auth/email-schemas";
 
@@ -132,5 +133,42 @@ describe("email auth schemas", () => {
   it("keeps the minimum password length aligned with the wire contract", () => {
     assert.equal(authPasswordSchema.safeParse("1234567").success, false);
     assert.equal(authPasswordSchema.safeParse("12345678").success, true);
+  });
+});
+
+describe("otpResetSchema", () => {
+  const base = {
+    email: "a@b.in",
+    code: "123456",
+    newPassword: "newenough12",
+    confirmPassword: "newenough12",
+  };
+
+  it("accepts a complete reset", () => {
+    assert.equal(otpResetSchema.safeParse(base).success, true);
+  });
+
+  it("rejects a confirmation mismatch", () => {
+    assert.equal(
+      otpResetSchema.safeParse({ ...base, confirmPassword: "different1" }).success,
+      false,
+    );
+  });
+
+  it("demands the 6-digit code", () => {
+    assert.equal(otpResetSchema.safeParse({ ...base, code: "12345" }).success, false);
+    assert.equal(otpResetSchema.safeParse({ ...base, code: "12x456" }).success, false);
+  });
+
+  it("enforces the minimum password length", () => {
+    assert.equal(
+      otpResetSchema.safeParse({ ...base, newPassword: "short", confirmPassword: "short" })
+        .success,
+      false,
+    );
+  });
+
+  it("requires a valid email — the reset must target the account address", () => {
+    assert.equal(otpResetSchema.safeParse({ ...base, email: "nope" }).success, false);
   });
 });

@@ -56,6 +56,19 @@ export const otpVerifySchema = z.object({
   code: authOtpSchema,
 });
 
+/** Password reset confirmed by the emailed code (Settings + landing). */
+export const otpResetSchema = z
+  .object({
+    email: authEmailSchema,
+    code: authOtpSchema,
+    newPassword: authPasswordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: "The two passwords don't match.",
+    path: ["confirmPassword"],
+  });
+
 export const totpVerifySchema = z.object({
   code: authTotpSchema,
 });
@@ -84,6 +97,7 @@ export const changePasswordSchema = z
   );
 
 export type OtpRequestValues = z.infer<typeof otpRequestSchema>;
+export type OtpResetValues = z.infer<typeof otpResetSchema>;
 export type SignInEmailValues = z.infer<typeof signInEmailSchema>;
 export type RegisterEmailValues = z.infer<typeof registerEmailSchema>;
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
