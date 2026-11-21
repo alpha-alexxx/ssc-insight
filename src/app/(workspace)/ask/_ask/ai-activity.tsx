@@ -79,7 +79,7 @@ export const AiActivity = memo(function AiActivity({
               <span className="min-w-0 flex-1 truncate text-xs text-ink">
                 {FEATURE_LABELS[entry.feature] ?? entry.feature}
               </span>
-              <span className="shrink-0 text-[10px] text-muted">
+              <span className="shrink-0 text-[11px] text-muted">
                 {relative(entry.createdAt)}
               </span>
             </li>
