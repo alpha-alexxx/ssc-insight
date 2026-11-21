@@ -1,5 +1,5 @@
-import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { EmailAuthButton } from "./email-auth";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { HeroArt } from "./hero-art";
 import { Petals, TypedLine } from "./atoms";
 import { LANDING_SUMMARY, LANDING_TARGET } from "./fixtures";
@@ -17,12 +17,10 @@ import type { LandingPlanData } from "./plan-facts";
  * are a fixed literal table; reduced motion freezes them in globals.css.
  */
 export function Hero({
-  authEnabled,
-  emailEnabled,
+  authAvailable,
   plan,
 }: {
-  authEnabled: boolean;
-  emailEnabled: boolean;
+  authAvailable: boolean;
   plan: LandingPlanData;
 }) {
   const sample = plan.sampleDay;
@@ -83,11 +81,24 @@ export function Hero({
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <GoogleSignInButton
-              enabled={authEnabled}
-              label="Sign in with Google"
-              className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
-            />
+            {authAvailable ? (
+              <>
+                <Button asChild className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]">
+                  <Link href="/sign-in">Sign in</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                >
+                  <Link href="/sign-up">Create account</Link>
+                </Button>
+              </>
+            ) : (
+              <Button className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]" disabled>
+                Sign-in unavailable
+              </Button>
+            )}
             <a
               href="#workspace"
               className="inline-flex items-center gap-2 rounded-control border border-rule px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -95,7 +106,6 @@ export function Hero({
               See the workspace
               <span aria-hidden="true">↓</span>
             </a>
-            <EmailAuthButton enabled={emailEnabled} googleEnabled={authEnabled} />
           </div>
 
           <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">

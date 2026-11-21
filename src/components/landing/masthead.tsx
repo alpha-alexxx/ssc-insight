@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { EmailAuthButton } from "./email-auth";
-import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { GoogleGlyph } from "@/components/google-glyph";
 import {
   Sheet,
   SheetClose,
@@ -33,13 +34,7 @@ export const NAV: { href: string; label: string }[] = [
  * not re-render on every frame; the progress rule is a transform driven by
  * the same scroll position at no layout cost.
  */
-export function Masthead({
-  authEnabled,
-  emailEnabled,
-}: {
-  authEnabled: boolean;
-  emailEnabled: boolean;
-}) {
+export function Masthead({ authAvailable }: { authAvailable: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -100,20 +95,18 @@ export function Masthead({
 
         <div className="flex items-center gap-1 sm:gap-3">
           <ThemeToggle />
-          <EmailAuthButton
-            enabled={emailEnabled}
-            googleEnabled={authEnabled}
-            label="Email"
-            className="hidden text-[0.8125rem] sm:inline"
-          />
-          <GoogleSignInButton
-            enabled={authEnabled}
-            variant="outline"
-            size="sm"
-            label="Sign in with Google"
-            compactLabel="Sign in"
-            ariaLabel="Sign in with Google"
-          />
+          {authAvailable ? (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/sign-in" aria-label="Sign in">
+                <GoogleGlyph />
+                Sign in
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" disabled>
+              Sign-in unavailable
+            </Button>
+          )}
           <Sheet>
             <SheetTrigger asChild>
               <button

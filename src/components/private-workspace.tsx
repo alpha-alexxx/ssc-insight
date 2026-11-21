@@ -39,7 +39,7 @@ export function PrivateWorkspace({ userId, children }: PrivateWorkspaceProps) {
       }
       if (!result.data?.user) {
         setBlocked(true);
-        router.replace("/?error=session");
+        router.replace("/sign-in?error=session");
         return;
       }
       if (result.data.user.id !== userId) {
@@ -60,7 +60,7 @@ export function PrivateWorkspace({ userId, children }: PrivateWorkspaceProps) {
   useEffect(() => {
     const invalidate = () => {
       setBlocked(true);
-      router.replace("/?error=session");
+      router.replace("/sign-in?error=session");
       router.refresh();
     };
     const unavailable = () => setBlocked(true);
@@ -91,7 +91,7 @@ export function PrivateWorkspace({ userId, children }: PrivateWorkspaceProps) {
   useEffect(() => {
     if (isPending || error) return;
     if (!sessionUserId) {
-      router.replace("/?error=session");
+      router.replace("/sign-in?error=session");
       router.refresh();
     } else if (sessionUserId !== userId) {
       router.refresh();

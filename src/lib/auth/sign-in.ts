@@ -2,16 +2,17 @@
 import { authClient } from "./client";
 
 /**
- * Where a failed Google round trip lands. The landing page is the only
- * sign-in surface, so `/` owns the error query and raises the toast; the
- * proxy and `/auth/complete` redirect here too.
+ * Where a failed Google round trip lands. The auth pages (/sign-in,
+ * /sign-up, /forgot-password) are the sign-in surface, so errors return to
+ * the page the reader was on — /sign-in owns the error query and raises the
+ * toast; the proxy and `/auth/complete` redirect there too.
  *
  * Deliberately bare: better-auth APPENDS its own `error=<provider-code>` to
  * this URL, so pre-setting `?error=oauth` would produce a duplicate key that
- * Next hands to the page as an array. The landing treats any unknown code as
- * a failed OAuth round trip instead.
+ * Next hands to the page as an array. The sign-in page treats any unknown
+ * code as a failed OAuth round trip instead.
  */
-export const OAUTH_ERROR_PATH = "/";
+export const OAUTH_ERROR_PATH = "/sign-in";
 
 /**
  * Start the Google OAuth redirect. Shared by the landing masthead/CTAs and

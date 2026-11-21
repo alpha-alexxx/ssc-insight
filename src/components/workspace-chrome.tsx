@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MotionConfig } from "motion/react";
 import { AppFrame } from "./app-shell";
@@ -57,6 +57,25 @@ export function WorkspaceChrome({
   const router = useRouter();
   const toast = useToast();
   const view = viewForPathname(pathname);
+
+  // The one-shot sign-in greeting: the auth pages and /auth/complete land
+  // on /dashboard?welcome=1. Toast once, then strip the param so a reload
+  // (or a shared link) never greets again — the same contract the auth
+  // pages' ?error announcer uses.
+  useEffect(() => {
+    if (!pathname.startsWith("/dashboard")) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") !== "1") return;
+    params.delete("welcome");
+    const rest = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard${rest ? `?${rest}` : ""}`,
+    );
+    toast.success("Signed in", "Your workspace is ready.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on the dashboard arrival only; toast is stable
+  }, [pathname]);
 
   const searchOpen = useUiStore((s) => s.searchOpen);
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);

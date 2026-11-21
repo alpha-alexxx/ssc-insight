@@ -25,11 +25,18 @@ test("classifyPath separates pages from APIs and assigns access levels", () => {
     area: "page",
     route: "private",
   });
-  // The retired /sign-in route is a next.config redirect; it classifies as
-  // private like any other unmatched path.
+  // The dedicated auth pages are the sign-in surface now — public like "/".
   assert.deepEqual(classifyPath("/sign-in"), {
     area: "page",
-    route: "private",
+    route: "public",
+  });
+  assert.deepEqual(classifyPath("/sign-up"), {
+    area: "page",
+    route: "public",
+  });
+  assert.deepEqual(classifyPath("/forgot-password"), {
+    area: "page",
+    route: "public",
   });
 
   // Auth flow: API handler and completion page are never gated
@@ -118,13 +125,16 @@ test("maintenance Retry-After honors config and falls back to one hour", () => {
   assert.equal(maintenanceRetryAfter({ MAINTENANCE_RETRY_AFTER: "1.9" }), 1);
 });
 
-test("maintenance bypass keeps health, auth flow, landing and the page itself reachable", () => {
+test("maintenance bypass keeps health, auth flow, auth pages, landing and the page itself reachable", () => {
   for (const path of [
     "/maintenance",
     "/maintenance/",
     "/api/health",
     "/api/auth/get-session",
     "/auth/complete",
+    "/sign-in",
+    "/sign-up",
+    "/forgot-password",
     "/",
   ]) {
     assert.equal(bypassesMaintenance(path), true, `${path} should bypass`);

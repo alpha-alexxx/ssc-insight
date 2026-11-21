@@ -9,8 +9,9 @@ import { PlanGrid, PlanLegend } from "./planner-section";
 import { Reveal } from "./reveal";
 import { ScopeDiagram } from "./scope-diagram";
 import { Section, SectionHead } from "./section";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Petals } from "./atoms";
-import { EmailAuthButton } from "./email-auth";
 import { AiPanel } from "./mockups/ai-panel";
 import { BrowserFrame, MockupCaption } from "./mockups/browser-frame";
 import { CompareScreen } from "./mockups/compare-screen";
@@ -338,13 +339,7 @@ export function FaqSection() {
 
 /* ---------- 07 · Final CTA + footer ---------- */
 
-export function FinalCta({
-  authEnabled,
-  emailEnabled,
-}: {
-  authEnabled: boolean;
-  emailEnabled: boolean;
-}) {
+export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
   const summary = LANDING_SUMMARY;
   return (
     <Section id="start" number="07" bordered={false} className="py-20 sm:py-28">
@@ -366,12 +361,30 @@ export function FinalCta({
                 gap and plan position from a single attempt.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <GoogleSignInButton
-                  enabled={authEnabled}
-                  label="Sign in with Google"
-                  className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
-                />
-                <EmailAuthButton enabled={emailEnabled} googleEnabled={authEnabled} />
+                {authAvailable ? (
+                  <>
+                    <Button
+                      asChild
+                      className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                    >
+                      <Link href="/sign-in">Sign in</Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                    >
+                      <Link href="/sign-up">Create account</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                    disabled
+                  >
+                    Sign-in unavailable
+                  </Button>
+                )}
               </div>
               <p className="mt-4 text-xs text-muted">
                 No card, no test series, nothing shared.

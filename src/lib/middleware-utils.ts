@@ -63,16 +63,25 @@ export function classifyPath(pathname: string): RouteClass {
   if (pathname === "/auth/complete" || pathname.startsWith("/auth/complete/"))
     return { area: "page", route: "auth" };
 
-  // Public pages. "/" is the landing and the only sign-in surface, so it is
-  // public even though every other unmatched page is a private workspace
-  // route. (The retired "/sign-in" path is a next.config redirect and falls
-  // through to the private class on its way out.)
+  // Public pages. The auth pages are the sign-in surface; "/" is the landing
+  // that links to them. Everything else unmatched is a private workspace
+  // route.
+  if (isAuthPage(pathname)) return { area: "page", route: "public" };
   if (pathname === "/") return { area: "page", route: "public" };
   if (pathname === "/maintenance" || pathname.startsWith("/maintenance/"))
     return { area: "page", route: "public" };
 
   // Everything else is the private workspace
   return { area: "page", route: "private" };
+}
+
+/** The dedicated sign-in surface: the pages a reader can start auth from. */
+export function isAuthPage(pathname: string): boolean {
+  return (
+    pathname === "/sign-in" ||
+    pathname === "/sign-up" ||
+    pathname === "/forgot-password"
+  );
 }
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
@@ -111,11 +120,11 @@ export function isCronPath(pathname: string): boolean {
 /**
  * Paths that stay reachable during maintenance: the maintenance page itself,
  * the health probe (LBs must be able to see the app is in maintenance),
- * the auth flow (a user mid sign-in must not be trapped), the landing — which
- * is the only place to start sign-in, so gating it would leave no way back in
- * — and the scheduled jobs, which have no session to fall back on and whose
- * whole purpose is to run while nobody is looking. The workspace itself stays
- * gated.
+ * the auth flow (a user mid sign-in must not be trapped), the auth pages and
+ * the landing — the ways to start or return to sign-in, so gating them would
+ * leave no way back in — and the scheduled jobs, which have no session to
+ * fall back on and whose whole purpose is to run while nobody is looking.
+ * The workspace itself stays gated.
  */
 export function bypassesMaintenance(pathname: string): boolean {
   return (
@@ -127,6 +136,7 @@ export function bypassesMaintenance(pathname: string): boolean {
     isCronPath(pathname) ||
     pathname === "/auth/complete" ||
     pathname.startsWith("/auth/complete/") ||
+    isAuthPage(pathname) ||
     pathname === "/"
   );
 }

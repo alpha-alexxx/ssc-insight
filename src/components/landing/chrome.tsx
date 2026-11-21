@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { startGoogleSignIn } from "@/lib/auth/sign-in";
 import { cn } from "@/lib/utils";
 
 /**
@@ -129,18 +129,11 @@ export function SectionRail() {
 }
 
 export function FloatingAsk() {
-  const [starting, setStarting] = useState(false);
-
   return (
-    <button
-      type="button"
-      disabled={starting}
-      onClick={() => {
-        setStarting(true);
-        startGoogleSignIn().catch(() => setStarting(false));
-      }}
-      aria-label="Ask AI — signs in and opens the workspace"
-      className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2.5 rounded-full bg-ink py-3.5 pr-5 pl-4 text-paper transition-transform duration-150 hover:scale-[1.03] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent print:hidden"
+    <Link
+      href="/sign-in"
+      aria-label="Ask AI — sign in to open the workspace"
+      className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2.5 rounded-full bg-ink py-3.5 pr-5 pl-4 text-paper transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent print:hidden"
     >
       <span aria-hidden="true" className="relative flex size-2">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-75 motion-reduce:animate-none" />
@@ -149,6 +142,6 @@ export function FloatingAsk() {
       <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em]">
         Ask AI
       </span>
-    </button>
+    </Link>
   );
 }

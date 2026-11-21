@@ -6,6 +6,7 @@ import { publicOrigin } from "@/lib/public-url";
 import {
   bypassesMaintenance,
   classifyPath,
+  isAuthPage,
   isCronPath,
   maintenanceActive,
   maintenanceRetryAfter,
@@ -45,11 +46,12 @@ import {
  */
 
 /**
- * The landing is the only sign-in surface, so it is also the Neon Auth login
- * URL. The SDK matches the login path exactly (not as a prefix), so private
- * routes stay protected while "/" passes through.
+ * The dedicated auth pages (/sign-in, /sign-up, /forgot-password) are the
+ * sign-in surface, so /sign-in is also the Neon Auth login URL. The SDK
+ * matches the login path exactly (not as a prefix), so private routes stay
+ * protected while the auth pages pass through.
  */
-const LOGIN_URL = "/";
+const LOGIN_URL = "/sign-in";
 
 /**
  * Next dev binds to 0.0.0.0, so the middleware's request URL and OAuth
@@ -239,15 +241,16 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     }
   }
 
-  // ── 6. Public landing page (also the login URL): always reachable ─────
-  // The page itself verifies the session (requireUser), bounces signed-in
-  // visitors to "/dashboard", and renders the Google sign-in affordance for
-  // everyone else. So the proxy never needs to probe here. Neon Auth's
+  // ── 6. Auth pages (also the login URL): always reachable ──────────────
+  // Each page verifies the session server-side (requireUser), bounces
+  // signed-in visitors to "/dashboard", and renders its sign-in affordances
+  // for everyone else. So the proxy never needs to probe here. Neon Auth's
   // middleware always ALLOWS the login path (it special-cases the loginUrl),
   // so probing it can never distinguish anonymous from signed-in visitors —
   // doing so previously bounced every login-path request back to itself, an
   // infinite loop. Keep this pass-through ABOVE the private-page gate.
-  if (pathname === LOGIN_URL) return passThrough("landing");
+  if (pathname === LOGIN_URL || isAuthPage(pathname))
+    return passThrough("auth-pages");
 
   // ── 7. Private pages: session guard ───────────────────────────────────
   try {

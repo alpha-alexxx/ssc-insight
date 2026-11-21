@@ -42,18 +42,19 @@ export function Landing({
   emailEnabled: boolean;
   errorCode?: string;
 }) {
+  const authAvailable = authEnabled || emailEnabled;
   return (
     <div id="top" className="min-h-screen overflow-x-clip bg-canvas text-ink">
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
       <LandingError errorCode={errorCode} />
-      <Masthead authEnabled={authEnabled} emailEnabled={emailEnabled} />
+      <Masthead authAvailable={authAvailable} />
       <SectionRail />
       <FloatingAsk />
 
       <main id="main-content">
-        <Hero authEnabled={authEnabled} emailEnabled={emailEnabled} plan={LANDING_PLAN} />
+        <Hero authAvailable={authAvailable} plan={LANDING_PLAN} />
         <LedgerFacts plan={LANDING_PLAN} />
 
         <Plate
@@ -86,7 +87,7 @@ export function Landing({
         </Plate>
 
         <FaqSection />
-        <FinalCta authEnabled={authEnabled} emailEnabled={emailEnabled} />
+        <FinalCta authAvailable={authAvailable} />
       </main>
 
       <LandingFooter />
