@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { EmailAuthButton } from "./email-auth";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -32,7 +33,13 @@ export const NAV: { href: string; label: string }[] = [
  * not re-render on every frame; the progress rule is a transform driven by
  * the same scroll position at no layout cost.
  */
-export function Masthead({ authEnabled }: { authEnabled: boolean }) {
+export function Masthead({
+  authEnabled,
+  emailEnabled,
+}: {
+  authEnabled: boolean;
+  emailEnabled: boolean;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -93,6 +100,12 @@ export function Masthead({ authEnabled }: { authEnabled: boolean }) {
 
         <div className="flex items-center gap-1 sm:gap-3">
           <ThemeToggle />
+          <EmailAuthButton
+            enabled={emailEnabled}
+            googleEnabled={authEnabled}
+            label="Email"
+            className="hidden text-[0.8125rem] sm:inline"
+          />
           <GoogleSignInButton
             enabled={authEnabled}
             variant="outline"

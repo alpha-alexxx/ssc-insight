@@ -35,9 +35,11 @@ import { Showcase } from "./showcase";
  */
 export function Landing({
   authEnabled,
+  emailEnabled,
   errorCode,
 }: {
   authEnabled: boolean;
+  emailEnabled: boolean;
   errorCode?: string;
 }) {
   return (
@@ -46,12 +48,12 @@ export function Landing({
         Skip to main content
       </a>
       <LandingError errorCode={errorCode} />
-      <Masthead authEnabled={authEnabled} />
+      <Masthead authEnabled={authEnabled} emailEnabled={emailEnabled} />
       <SectionRail />
       <FloatingAsk />
 
       <main id="main-content">
-        <Hero authEnabled={authEnabled} plan={LANDING_PLAN} />
+        <Hero authEnabled={authEnabled} emailEnabled={emailEnabled} plan={LANDING_PLAN} />
         <LedgerFacts plan={LANDING_PLAN} />
 
         <Plate
@@ -84,7 +86,7 @@ export function Landing({
         </Plate>
 
         <FaqSection />
-        <FinalCta authEnabled={authEnabled} />
+        <FinalCta authEnabled={authEnabled} emailEnabled={emailEnabled} />
       </main>
 
       <LandingFooter />

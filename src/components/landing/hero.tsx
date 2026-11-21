@@ -1,4 +1,5 @@
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { EmailAuthButton } from "./email-auth";
 import { HeroArt } from "./hero-art";
 import { Petals, TypedLine } from "./atoms";
 import { LANDING_SUMMARY, LANDING_TARGET } from "./fixtures";
@@ -17,9 +18,11 @@ import type { LandingPlanData } from "./plan-facts";
  */
 export function Hero({
   authEnabled,
+  emailEnabled,
   plan,
 }: {
   authEnabled: boolean;
+  emailEnabled: boolean;
   plan: LandingPlanData;
 }) {
   const sample = plan.sampleDay;
@@ -92,6 +95,7 @@ export function Hero({
               See the workspace
               <span aria-hidden="true">↓</span>
             </a>
+            <EmailAuthButton enabled={emailEnabled} googleEnabled={authEnabled} />
           </div>
 
           <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">

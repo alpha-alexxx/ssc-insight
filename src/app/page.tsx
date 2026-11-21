@@ -58,6 +58,7 @@ export default async function LandingPage({
   return (
     <Landing
       authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
+      emailEnabled={process.env.EMAIL_AUTH_ENABLED === "true"}
       errorCode={error}
     />
   );

@@ -25,6 +25,7 @@ import { TargetsPanel } from "./targets-panel";
 import { RemindersPanel } from "./reminders-panel";
 import { DataPanel } from "./data-panel";
 import { AboutPanel } from "./about-panel";
+import { SecurityPanel } from "./security-panel";
 import { AppearancePanel } from "@/components/appearance-panel";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 import { Panel } from "@/components/dashboard-panels";
@@ -49,6 +50,7 @@ export const SETTINGS_SECTIONS = [
   { id: "reminders", label: "Reminders", hint: "In-app nudges only" },
   { id: "appearance", label: "Appearance", hint: "Palette and visual style" },
   { id: "ai", label: "AI provider", hint: "Model, endpoint and key" },
+  { id: "security", label: "Sign-in & security", hint: "Password, 2FA and sessions" },
   { id: "data", label: "Data & backup", hint: "Export, import and transfer" },
   { id: "about", label: "About & account", hint: "What this workspace is" },
 ] as const;
@@ -188,6 +190,9 @@ function SettingsBody({
                   <AiSettingsForm showHeading={false} />
                 </div>
               </Panel>
+            )}
+            {section === "security" && (
+              <SecurityPanel userName={userName} userEmail={userEmail} />
             )}
             {section === "data" && (
               <DataPanel
