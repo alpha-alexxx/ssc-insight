@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { History, Shield, Sparkles, Trash2 } from "lucide-react";
+import {
+  History,
+  Shield,
+  Sparkles,
+  SquarePen,
+  Trash2,
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { aiUsageLabel, useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";
 import { useToast } from "@/components/toast";
@@ -84,56 +91,105 @@ export function AskView() {
     />
   );
 
+  // The header names WHERE you are: the active conversation's title, or the
+  // fresh-conversation state until the first message lands.
+  const conversationTitle = useMemo(() => {
+    if (ai.chat.messages.length === 0) return "New conversation";
+    const active = ai.chat.history.conversations.find(
+      (conversation) => conversation.id === ai.chat.history.activeId,
+    );
+    return active?.title ?? "Conversation";
+  }, [ai.chat.messages.length, ai.chat.history]);
+
   return (
     // The exact height the workspace frame leaves this page: the sticky app
     // header plus the one workspace-content padding (py-4, md:py-5). The
     // compact header takes one row; only the transcript scrolls.
     <div className="flex h-[calc(100dvh-var(--app-header-h,52px)-2rem)] min-h-0 flex-col md:h-[calc(100dvh-var(--app-header-h,52px)-2.5rem)]">
-      {/* A chat header, not a page header: one quiet row, so returning
-          readers land on their conversation instead of re-reading an
-          introduction. The grounding sentence rides the chip's tooltip;
-          the full pledge lives in the empty state and the usage footer. */}
-      <header className="mb-3 flex items-center justify-between gap-3 border-b border-rule-soft pb-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-control bg-accent-soft text-accent"
-          >
-            <Sparkles size={15} />
-          </span>
-          <h1 className="font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.01em] text-ink">
-            Ask AI
-          </h1>
-          <span
-            title="Answers read your aggregates and latest 20 full mocks — never notes or identity."
-            className="hidden items-center gap-1 rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-medium text-muted sm:inline-flex"
-          >
-            <Shield size={10} aria-hidden className="text-accent" />
-            Read-only
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {/* Desktop toggles the inline rail; below lg the same content
-              opens as a bottom drawer, so no width ships a dead toggle. */}
-          <button
-            type="button"
-            aria-expanded={railOpen}
-            className="tap-target hidden items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink lg:inline-flex"
-            onClick={() => setRailOpen((open) => !open)}
-          >
-            <History size={14} aria-hidden />
-            {railOpen ? "Hide history" : "Show history"}
-          </button>
-          <button
-            type="button"
-            aria-label="Conversation history"
-            className="tap-target inline-flex size-9 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink lg:hidden"
-            onClick={() => setRailDrawerOpen(true)}
-          >
-            <History size={15} aria-hidden />
-          </button>
-        </div>
-      </header>
+      {/* A chat header, not a page header: one row that says WHERE you are —
+          the current conversation's title — and offers the two chat actions
+          (new chat, history) without leaving the keyboard. The grounding
+          sentence rides a styled tooltip on the Read-only chip; the full
+          pledge lives in the empty state and the usage footer. */}
+      <TooltipProvider delayDuration={250}>
+        <header className="mb-3 flex items-center justify-between gap-3 border-b border-rule-soft pb-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="grid size-8 shrink-0 place-items-center rounded-control bg-accent-soft text-accent"
+            >
+              <Sparkles size={15} />
+            </span>
+            <h1 className="shrink-0 font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.01em] text-ink">
+              Ask AI
+            </h1>
+            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-rule-soft" />
+            {/* The title opens history: the inline rail on desktop, the
+                drawer below lg — two buttons, no viewport guessing. */}
+            <button
+              type="button"
+              onClick={() => setRailOpen(true)}
+              className="hidden min-w-0 truncate rounded-control px-1.5 py-0.5 text-sm text-muted transition-colors hover:bg-soft hover:text-ink lg:block"
+              title={`${conversationTitle} — open history`}
+            >
+              {conversationTitle}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRailDrawerOpen(true)}
+              className="min-w-0 truncate rounded-control px-1.5 py-0.5 text-sm text-muted transition-colors hover:bg-soft hover:text-ink lg:hidden"
+              title={`${conversationTitle} — open history`}
+            >
+              {conversationTitle}
+            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  tabIndex={0}
+                  className="hidden shrink-0 items-center gap-1 rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
+                >
+                  <Shield size={10} aria-hidden className="text-accent" />
+                  Read-only
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64">
+                Answers read your aggregates and latest 20 full mocks — never
+                notes or identity.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => ai.chat.history.newChat()}
+              className="tap-target inline-flex items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink"
+              title="Start a new conversation"
+            >
+              <SquarePen size={14} aria-hidden />
+              <span className="hidden md:inline">New chat</span>
+            </button>
+            {/* Desktop toggles the inline rail; below lg the same content
+                opens as a bottom drawer, so no width ships a dead toggle. */}
+            <button
+              type="button"
+              aria-expanded={railOpen}
+              className="tap-target hidden items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink lg:inline-flex"
+              onClick={() => setRailOpen((open) => !open)}
+            >
+              <History size={14} aria-hidden />
+              {railOpen ? "Hide history" : "Show history"}
+            </button>
+            <button
+              type="button"
+              aria-label="Conversation history"
+              className="tap-target inline-flex size-9 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink lg:hidden"
+              onClick={() => setRailDrawerOpen(true)}
+            >
+              <History size={15} aria-hidden />
+            </button>
+          </div>
+        </header>
+      </TooltipProvider>
       <div
         className={cn(
           "min-h-0 flex-1",
