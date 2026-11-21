@@ -22,15 +22,24 @@
 export type RateClass = "read" | "write" | "ai";
 
 /**
- * Cost of one request in L2 units. A weighted limiter with a single 300-unit
- * window per minute means: ~300 reads, ~60 writes, or ~12 AI calls per minute.
- * That is generous for one person and stops scripted abuse.
+ * Cost of one request in the SHARED L2 window's units. Reads pay nothing —
+ * `decideRateLimit` skips their consultation entirely when L1 allows; a write
+ * costs 5, so the 300-unit window admits ~60 writes per minute. AI no longer
+ * shares this window: coupling the most expensive class to the shared 300
+ * units made writes and AI contend for the same allowance, so AI has its own
+ * 20-per-minute window (AI_RATE_LIMIT) where every generation costs 1.
  */
-export const RATE_COST: Record<RateClass, number> = {
+export const RATE_COST: Record<Exclude<RateClass, "ai">, number> = {
   read: 1,
   write: 5,
-  ai: 25,
 };
+
+/** The AI class's own cross-instance budget: 20 generations per 60 seconds. */
+export const AI_RATE_LIMIT = 20;
+export const AI_WINDOW_SECONDS = 60;
+
+/** AI's cost inside its dedicated window: every generation counts as one. */
+export const AI_L2_COST = 1;
 
 /** L2 window: 300 units per 60 seconds, per identity. */
 export const L2_WINDOW = { limit: 300, windowSeconds: 60 } as const;
@@ -44,6 +53,28 @@ export const L2_TIMEOUT_MS = 250;
 
 /** Command budget against the provider's daily allowance (10k/day free tier). */
 export const BUDGET_CAPS = { softCap: 8000, hardCap: 9500 } as const;
+
+/**
+ * Per-instance abuse escalation for repeat offenders. A client that keeps
+ * hammering a drained bucket gets a doubled wait per consecutive denial, so
+ * scripted abuse backs off exponentially instead of polling at the bucket's
+ * base refill rate. Per-instance only — L2 remains the cross-instance
+ * authority — and the cap keeps one bad client from being told to wait
+ * forever. Reset on any allowed verdict.
+ */
+export const ESCALATION_CAP_SECONDS = 120;
+
+export function escalatedRetryAfter(
+  baseRetryAfterSeconds: number,
+  deniedStreak: number,
+): number {
+  if (deniedStreak <= 1) return Math.max(1, Math.ceil(baseRetryAfterSeconds));
+  // Clamp the exponent so a huge streak cannot overflow the multiplication
+  // before the cap applies.
+  const escalated =
+    baseRetryAfterSeconds * 2 ** Math.min(deniedStreak - 1, 10);
+  return Math.min(ESCALATION_CAP_SECONDS, Math.ceil(escalated));
+}
 
 export type BudgetState = {
   /** Redis commands already spent today, as far as this instance knows. */

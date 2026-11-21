@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { budgetState, checkBudget, spendCommand } from "./rate-limit-budget";
 import {
   decideRateLimit,
+  escalatedRetryAfter,
   resolveLimiterOutcome,
+  AI_RATE_LIMIT,
+  AI_WINDOW_SECONDS,
   type LimitDecision,
   type RateClass,
   type RateLimitHeaders,
@@ -24,7 +27,7 @@ import { istDateKey } from "./format";
  * the caller can attach as headers and use to decide 429 vs continue.
  */
 
-type Bucket = { tokens: number; lastRefill: number };
+type Bucket = { tokens: number; lastRefill: number; deniedStreak: number };
 
 export type RateLimitResult = {
   allowed: boolean;
@@ -54,7 +57,7 @@ export class TokenBucketRateLimiter {
     const bucket = this.buckets.get(key);
     if (!bucket) {
       const tokens = Math.max(0, this.capacity - cost);
-      this.buckets.set(key, { tokens, lastRefill: now });
+      this.buckets.set(key, { tokens, lastRefill: now, deniedStreak: 0 });
       return {
         allowed: tokens >= 0,
         remaining: Math.max(0, tokens),
@@ -70,15 +73,23 @@ export class TokenBucketRateLimiter {
     if (refilled < cost) {
       bucket.tokens = refilled;
       bucket.lastRefill = now;
+      // Repeat offenders back off exponentially per instance; any allow
+      // resets the streak.
+      const streak = bucket.deniedStreak + 1;
+      bucket.deniedStreak = streak;
       return {
         allowed: false,
         remaining: Math.floor(refilled),
-        retryAfter: Math.ceil((cost - refilled) / this.refillPerSecond),
+        retryAfter: escalatedRetryAfter(
+          Math.ceil((cost - refilled) / this.refillPerSecond),
+          streak,
+        ),
         limit: this.capacity,
       };
     }
     bucket.tokens = refilled - cost;
     bucket.lastRefill = now;
+    bucket.deniedStreak = 0;
     return {
       allowed: true,
       remaining: Math.floor(bucket.tokens),
@@ -142,6 +153,17 @@ export const writeRateLimiter = new TokenBucketRateLimiter({
   refillPerSecond: 0.5,
 });
 
+/**
+ * The AI class has its own per-minute budget — 20 generations / 60s burst,
+ * 20/min sustained — because one generation is by far the most expensive
+ * thing a user can ask of the deployment (provider tokens plus the daily
+ * ledger). Far tighter than the read envelope; denials escalate.
+ */
+export const aiRateLimiter = new TokenBucketRateLimiter({
+  capacity: AI_RATE_LIMIT,
+  refillPerSecond: AI_RATE_LIMIT / AI_WINDOW_SECONDS,
+});
+
 
 // ── Two-layer consumption ───────────────────────────────────────────────────
 
@@ -162,7 +184,12 @@ export async function consumeRateLimit(
   rateClass: RateClass,
   identity: string,
 ): Promise<LimitDecision> {
-  const limiter = rateClass === "write" ? writeRateLimiter : apiRateLimiter;
+  const limiter =
+    rateClass === "write"
+      ? writeRateLimiter
+      : rateClass === "ai"
+        ? aiRateLimiter
+        : apiRateLimiter;
   const bucket = limiter.consume(identity);
   const day = istDateKey(new Date());
   const budget = budgetState(day);

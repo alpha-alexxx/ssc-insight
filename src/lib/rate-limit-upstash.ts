@@ -9,15 +9,23 @@ import {
   tickBreaker,
   type BreakerState,
 } from "./rate-limit-breaker";
-import { L2_WINDOW, RATE_COST, type RateClass } from "./rate-limit-core";
+import {
+  AI_L2_COST,
+  AI_RATE_LIMIT,
+  AI_WINDOW_SECONDS,
+  L2_WINDOW,
+  RATE_COST,
+  type RateClass,
+} from "./rate-limit-core";
 
 /**
  * Upstash L2 limiter — the cross-instance authority.
  *
  * Shaped deliberately for the free tier:
- * - One weighted sliding window per identity. The class picks the cost, so one
- *   Redis key serves reads, writes and AI calls instead of three keys and three
- *   commands.
+ * - Two sliding windows per identity: the shared one (reads/writes, weighted
+ *   by RATE_COST) and a dedicated AI window (20/min, cost 1) so the most
+ *   expensive class never contends with writes for the same allowance. Each
+ *   window is one Redis key instead of one per request.
  * - `analytics: false` (the SDK default). Analytics adds a command per check and
  *   is billed on the free plan.
  * - `dynamicLimits: false` (the default) — that would add a GET to every check.
@@ -46,6 +54,7 @@ export type UpstashResult = {
 
 let breaker: BreakerState = initialBreaker();
 let limiter: Ratelimit | null | undefined;
+let aiLimiter: Ratelimit | null | undefined;
 
 /** True when both Upstash env vars are present. */
 export function redisConfigured(): boolean {
@@ -81,6 +90,36 @@ function getLimiter(): Ratelimit | null {
   return limiter;
 }
 
+/**
+ * The AI class's dedicated window: AI_RATE_LIMIT generations per
+ * AI_WINDOW_SECONDS, one unit per call. Built with the same lazily-constructed,
+ * never-throw-at-import rules as the shared limiter.
+ */
+function getAiLimiter(): Ratelimit | null {
+  if (aiLimiter !== undefined) return aiLimiter;
+  if (!redisConfigured()) {
+    aiLimiter = null;
+    return aiLimiter;
+  }
+  try {
+    aiLimiter = new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(
+        AI_RATE_LIMIT,
+        `${AI_WINDOW_SECONDS} s`,
+      ),
+      prefix: "ssc:rl:ai",
+      timeout: L2_TIMEOUT_MS,
+      analytics: false,
+      ephemeralCache: new Map<string, number>(),
+    });
+  } catch {
+    // A malformed URL must not crash the request path.
+    aiLimiter = null;
+  }
+  return aiLimiter;
+}
+
 /** True while the circuit is open — callers then run L1-only. */
 export function breakerOpen(now = Date.now()): boolean {
   breaker = tickBreaker(breaker, now);
@@ -102,10 +141,11 @@ export async function consumeUpstash(
   const now = Date.now();
   if (breakerOpen(now)) return null;
 
-  const active = getLimiter();
+  const active = rateClass === "ai" ? getAiLimiter() : getLimiter();
   if (!active) return null;
 
-  const cost = RATE_COST[rateClass];
+  // The shared window is weighted per class; the AI window always costs one.
+  const cost = rateClass === "ai" ? AI_L2_COST : RATE_COST[rateClass];
   try {
     // One weighted command: `rate` consumes `cost` units of the window.
     const response = await active.limit(identity, { rate: cost });
@@ -127,9 +167,10 @@ export async function consumeUpstash(
   }
 }
 
-/** Test seam: reset the limiter and the breaker between cases. */
+/** Test seam: reset the limiters and the breaker between cases. */
 export function resetUpstashForTests(): void {
   limiter = undefined;
+  aiLimiter = undefined;
   breaker = initialBreaker();
 }
 

@@ -1,8 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  AI_L2_COST,
+  AI_RATE_LIMIT,
+  AI_WINDOW_SECONDS,
+  ESCALATION_CAP_SECONDS,
   RATE_COST,
   decideRateLimit,
+  escalatedRetryAfter,
   rateLimitHeadersFor,
   describeDecision,
   type BudgetState,
@@ -72,8 +77,25 @@ test("an L1 denial consults Upstash instead of denying outright", () => {
   }
 });
 
-test("each class carries a distinct cost", () => {
-  assert.deepEqual(RATE_COST, { read: 1, write: 5, ai: 25 });
+test("shared-window costs exclude AI, which carries its own per-minute budget", () => {
+  assert.deepEqual(RATE_COST, { read: 1, write: 5 });
+  assert.equal(AI_L2_COST, 1);
+  assert.equal(AI_RATE_LIMIT, 20);
+  assert.equal(AI_WINDOW_SECONDS, 60);
+});
+
+test("repeat denials escalate the wait until the cap", () => {
+  // First denial waits the bucket's own estimate.
+  assert.equal(escalatedRetryAfter(3, 1), 3);
+  // Each consecutive denial doubles it...
+  assert.equal(escalatedRetryAfter(3, 2), 6);
+  assert.equal(escalatedRetryAfter(3, 3), 12);
+  assert.equal(escalatedRetryAfter(3, 4), 24);
+  // ...but never beyond the cap, whatever the streak.
+  assert.equal(escalatedRetryAfter(3, 10), ESCALATION_CAP_SECONDS);
+  assert.equal(escalatedRetryAfter(3, 5000), ESCALATION_CAP_SECONDS);
+  // A small base still reaches the cap through the exponent.
+  assert.equal(escalatedRetryAfter(1, 8), ESCALATION_CAP_SECONDS);
 });
 
 test("crossing the soft cap degrades reads and writes but keeps AI protected", () => {

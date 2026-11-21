@@ -4,7 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { apiError, RequestError } from "../src/lib/api";
 import {
+  AI_L2_COST,
+  AI_RATE_LIMIT,
+  AI_WINDOW_SECONDS,
   L2_TIMEOUT_MS,
+  L2_WINDOW,
   RATE_COST,
   decideRateLimit,
   rateLimitHeadersFor,
@@ -61,9 +65,14 @@ test("the L2 timeout is small enough that Upstash cannot become the bottleneck",
   assert.ok(L2_TIMEOUT_MS <= 500, `L2 timeout was ${L2_TIMEOUT_MS}ms`);
 });
 
-test("write and AI costs exceed a read, so one window budgets correctly", () => {
+test("write cost exceeds a read in the shared window; AI has its own tighter budget", () => {
   assert.ok(RATE_COST.write > RATE_COST.read);
-  assert.ok(RATE_COST.ai > RATE_COST.write);
+  assert.equal(AI_L2_COST, 1);
+  assert.ok(
+    AI_RATE_LIMIT < L2_WINDOW.limit,
+    "the AI window must be tighter than the shared one",
+  );
+  assert.equal(AI_WINDOW_SECONDS, 60);
 });
 
 test("an L2 allow overrides an L1 denial and is labelled as such", () => {
