@@ -39,7 +39,10 @@ async function handle(request: Request, context: Context) {
     }
     const method = request.method as
       "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-    const response = await auth().handler()[method](request, context);
+    const response = await auth().handler()[method](
+      method === "GET" ? request : withServiceOrigin(request),
+      context,
+    );
     response.headers.set("Cache-Control", "private, no-store");
     return response;
   } catch (error) {
@@ -54,6 +57,36 @@ async function handle(request: Request, context: Context) {
       { status: 503, headers: { "Cache-Control": "private, no-store" } },
     );
   }
+}
+
+/**
+ * Present the proxied auth request to the managed Neon Auth service as
+ * coming from the service itself, not from the browser.
+ *
+ * The service runs better-auth's origin check on every cookie-bearing
+ * unsafe request against ITS trustedOrigins — a list that cannot know this
+ * deployment's origins, let alone per-branch preview URLs, so any cookieed
+ * POST (sign-out, change-password, TOTP enrollment, update-user) fails with
+ * 403 INVALID_ORIGIN while cookie-less sign-ins and GET session reads sail
+ * through. The browser hop into /api/auth is already same-origin-validated
+ * here (readBody above), which is where the CSRF decision belongs; the
+ * service keeps its own cookie-signature and session validation. The Neon
+ * SDK offers no override for the forwarded Origin (it echoes the browser's
+ * via getOrigin), so the header is rewritten on a reconstructed request.
+ * GETs skip the check upstream and pass through untouched.
+ */
+function withServiceOrigin(request: Request): Request {
+  const baseUrl = process.env.NEON_AUTH_BASE_URL;
+  if (!baseUrl) return request;
+  const headers = new Headers(request.headers);
+  headers.set("Origin", new URL(baseUrl).origin);
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: request.body,
+    duplex: "half",
+    signal: request.signal,
+  } as RequestInit);
 }
 
 export {
