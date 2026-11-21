@@ -22,6 +22,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { NdjsonDecoder, parseChatEvent } from "@/lib/ai/ndjson";
 import type {
   AiScreenContext,
+  AiStatus,
   ChatMessage,
   CoachMeta,
   CoachResponse,
@@ -54,6 +55,15 @@ export function trimChatHistory(messages: ChatMessage[], lastN: number) {
  * so the sheet's retry can route back to the coach endpoint instead of the
  * chat endpoint. */
 export const INSIGHT_REQUEST_TEXT = "Generate an insight from my recent mocks.";
+
+/** "Today 12/400" — the one usage label shared by the sheet header and the
+ * /ask composer meta. Null when the status carries no usage or the deployment
+ * runs without a request limit. */
+export function aiUsageLabel(status: AiStatus | null): string | undefined {
+  const usage = status?.usage;
+  if (!usage || usage.limits.requests <= 0) return undefined;
+  return `Today ${usage.requests}/${usage.limits.requests}`;
+}
 
 /** Render the structured coach insight as chat markdown — the sheet's
  * MessageContent supports ### headings, "-" bullets and **bold**, so the

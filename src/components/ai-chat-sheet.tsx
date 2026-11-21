@@ -1,20 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  BarChart3,
-  BookOpen,
-  Calendar,
   ChevronRight,
   ClipboardPaste,
   History,
   Info,
-  Lightbulb,
   ListTodo,
   MessageSquare,
   Sparkles,
   SquarePen,
   Trash2,
-  TrendingUp,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
@@ -46,36 +42,10 @@ import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
 import type { AiSheetTaskApi } from "@/components/shared/ai/task-suggestion-card";
 import { ChatTranscript } from "@/components/shared/ai/chat-transcript";
 import { ChatComposer } from "@/components/shared/ai/chat-composer";
+import { ChatEmptyState } from "@/components/shared/ai/chat-empty-state";
 import { prepareImages } from "@/components/shared/ai/image";
 import { ConversationList } from "@/components/shared/ai/conversation-list";
 import type { ChatHistoryApi, ChatPhase } from "./use-ai-workspace";
-
-const QUICK_QUESTIONS = [
-  {
-    text: "What should I focus on this week?",
-    icon: BarChart3,
-  },
-  {
-    text: "Why did my last full mock score change?",
-    icon: TrendingUp,
-  },
-  {
-    text: "Which subject has the weakest accuracy?",
-    icon: Calendar,
-  },
-  {
-    text: "Suggest a study plan based on my weak topics",
-    icon: BookOpen,
-  },
-  {
-    text: "Compare my last 5 mocks performance",
-    icon: ListTodo,
-  },
-  {
-    text: "Important topics to revise next?",
-    icon: Lightbulb,
-  },
-];
 
 /** A reviewed mock draft handed to the real form. */
 export type LogMockPayload = {
@@ -103,6 +73,8 @@ export function AiChatSheet({
   configured = true,
   /** Image attach enabled for this user (server still gates the send). */
   visionEnabled = false,
+  /** "Today 12/400" request budget for the header meta row. */
+  usageLabel,
   /** Tab to land on when the sheet opens; callers can deep-link a flow. */
   initialTab = "chat",
   onSend,
@@ -129,6 +101,8 @@ export function AiChatSheet({
   configured?: boolean;
   /** Image attach enabled for this user (server still gates the send). */
   visionEnabled?: boolean;
+  /** "Today 12/400" request budget for the header meta row. */
+  usageLabel?: string;
   initialTab?: "chat" | "log" | "todos";
   onSend: (text: string, images?: string[]) => void;
   onStop: () => void;
@@ -153,15 +127,27 @@ export function AiChatSheet({
   // Reset to chat whenever the sheet reopens; the tab is not persistent state.
   const [lastOpen, setLastOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Visited tabs stay mounted (hidden, not unmounted): switching away from
+  // Todos must not wipe a generated draft, nor Log its pasted report.
+  const [mountedTabs, setMountedTabs] = useState({
+    chat: true,
+    todos: false,
+    log: false,
+  });
   if (open !== lastOpen) {
     setLastOpen(open);
-    if (open) setTab(initialTab);
-    else setHistoryOpen(false);
+    if (open) {
+      setTab(initialTab);
+      setMountedTabs((current) => ({ ...current, [initialTab]: true }));
+    } else {
+      setHistoryOpen(false);
+    }
   }
   /** Tab switch that also closes the history overlay. */
   const switchTab = (next: "chat" | "log" | "todos") => {
     onStop();
     setHistoryOpen(false);
+    setMountedTabs((current) => ({ ...current, [next]: true }));
     setTab(next);
   };
   const viewport = useOverlayViewport(open);
@@ -182,7 +168,7 @@ export function AiChatSheet({
         aria-describedby="ai-sheet-description"
       >
         <SheetHeader className="shrink-0 gap-1.5 border-b border-rule-soft px-4 pb-3 pt-4 pr-14 sm:px-5">
-          <SheetTitle className="font-serif text-xl font-medium leading-tight text-ink sm:text-[22px]">
+          <SheetTitle className="font-serif text-xl font-medium leading-tight text-ink">
             Study coach
           </SheetTitle>
           <SheetDescription
@@ -190,10 +176,11 @@ export function AiChatSheet({
             className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-muted"
           >
             {contextLabel && (
-              <span className="rounded-[2px] border border-rule-soft px-1.5 py-px text-[0.625rem] font-semibold uppercase tracking-[0.12em]">
+              <span className="section-label rounded-control border border-rule-soft px-1.5 py-0.5">
                 {contextLabel}
               </span>
             )}
+            {usageLabel && <span className="tabular">{usageLabel}</span>}
             <span>Chats are saved on this device.</span>
           </SheetDescription>
         </SheetHeader>
@@ -206,7 +193,7 @@ export function AiChatSheet({
             aria-label="AI mode"
           >
             {/* The app's one segmented-control grammar, not a bespoke tab bar. */}
-            <div className="segment-group !flex w-full">
+            <div className="segment-group is-block w-full">
               {(
                 [
                   { id: "chat", label: "Ask", icon: MessageSquare },
@@ -257,7 +244,7 @@ export function AiChatSheet({
                 type="button"
                 aria-label="New chat"
                 title="New chat"
-                className="inline-flex size-11 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink sm:size-10"
+                className="tap-target inline-flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink"
                 onClick={() => {
                   onStop();
                   setHistoryOpen(false);
@@ -273,7 +260,7 @@ export function AiChatSheet({
                 aria-expanded={historyOpen}
                 aria-pressed={historyOpen}
                 className={cn(
-                  "inline-flex size-11 items-center justify-center rounded-control transition-colors sm:size-10",
+                  "tap-target inline-flex size-10 items-center justify-center rounded-control transition-colors",
                   historyOpen
                     ? "bg-soft text-ink"
                     : "text-muted hover:bg-soft hover:text-ink",
@@ -288,13 +275,19 @@ export function AiChatSheet({
             </div>
           )}
         </div>
-        <div
-          role="tabpanel"
-          id={`ai-panel-${tab}`}
-          aria-labelledby={`ai-tab-${tab}`}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          {tab === "chat" && (
+        {/* Visited panels stay mounted and are hidden rather than unmounted,
+            so a Todos draft or a pasted report survives switching tabs. */}
+        {mountedTabs.chat && (
+          <div
+            role="tabpanel"
+            id="ai-panel-chat"
+            aria-labelledby="ai-tab-chat"
+            hidden={tab !== "chat"}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              tab !== "chat" && "hidden",
+            )}
+          >
             <AskChatTab
               messages={messages}
               streaming={streaming}
@@ -315,13 +308,37 @@ export function AiChatSheet({
               taskApi={taskApi}
               onTaskAdded={onTaskAdded}
             />
-          )}
-          {tab === "todos" && (
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
-              <TodoAiComposer compact />
-            </div>
-          )}
-          {tab === "log" && (
+          </div>
+        )}
+        {mountedTabs.todos && (
+          <div
+            role="tabpanel"
+            id="ai-panel-todos"
+            aria-labelledby="ai-tab-todos"
+            hidden={tab !== "todos"}
+            className={cn(
+              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5",
+              tab !== "todos" && "hidden",
+            )}
+          >
+            <TodoAiComposer
+              compact
+              configured={configured}
+              onAiConfigured={onAiConfigured}
+            />
+          </div>
+        )}
+        {mountedTabs.log && (
+          <div
+            role="tabpanel"
+            id="ai-panel-log"
+            aria-labelledby="ai-tab-log"
+            hidden={tab !== "log"}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              tab !== "log" && "hidden",
+            )}
+          >
             <LogMockTab
               configured={configured}
               visionEnabled={visionEnabled}
@@ -331,8 +348,8 @@ export function AiChatSheet({
                 onOpenChange(false);
               }}
             />
-          )}
-        </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
@@ -388,13 +405,13 @@ function AskChatTab({
         type="button"
         aria-label="Clear conversation"
         title="Clear conversation"
-        className="inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+        className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
         disabled={streaming || !messages.length}
         onClick={onClear}
       >
         <Trash2 size={14} />
       </button>
-      <span className="text-[10px] text-muted">
+      <span className="text-[11px] text-muted">
         Answers read your aggregates and latest 20 full mocks — never notes.
       </span>
     </>
@@ -402,7 +419,7 @@ function AskChatTab({
 
   if (historyOpen && history) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4">
+      <div className="flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-5">
         <ConversationList
           history={history}
           streaming={streaming}
@@ -432,40 +449,10 @@ function AskChatTab({
         taskApi={taskApi}
         onTaskAdded={onTaskAdded}
         error={error}
-        className="px-3 sm:px-5"
+        className="px-4 sm:px-5"
         emptyState={
           configured ? (
-            <div className="flex flex-col gap-5 pt-2">
-              <div>
-                <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
-                  What would help you study today?
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Ask anything about your mocks, targets, or plan. Earlier
-                  chats stay on this device.
-                </p>
-              </div>
-              <div className="border-t border-rule-soft">
-                {QUICK_QUESTIONS.map((question) => (
-                  <button
-                    key={question.text}
-                    type="button"
-                    onClick={() => onSend(question.text)}
-                    className="group flex min-h-12 w-full items-center gap-3 border-b border-rule-soft px-1 py-3 text-left text-sm leading-snug text-ink transition-colors hover:bg-soft"
-                  >
-                    <question.icon
-                      size={15}
-                      className="shrink-0 text-muted group-hover:text-accent"
-                    />
-                    <span className="min-w-0 flex-1">{question.text}</span>
-                    <ChevronRight
-                      size={15}
-                      className="shrink-0 text-muted group-hover:text-accent"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ChatEmptyState onSend={(text) => onSend(text)} />
           ) : (
             <div className="rounded-control border border-rule bg-canvas p-4">
               <p className="text-xs leading-relaxed text-muted">
@@ -484,7 +471,7 @@ function AskChatTab({
         }
       />
       {configured && (
-        <div className="shrink-0 bg-paper px-3 pb-3 sm:px-5 sm:pb-4">
+        <div className="shrink-0 bg-paper px-4 pb-3 sm:px-5 sm:pb-4">
           <ChatComposer
             value={input}
             onChange={setInput}
@@ -617,10 +604,7 @@ function SubjectRoster({
                         ["incorrect", "Wrong"],
                       ] as const
                     ).map(([field, label]) => (
-                      <label
-                        key={field}
-                        className="text-[10px] font-medium text-muted"
-                      >
+                      <label key={field} className="section-label">
                         {label}
                         <input
                           type="number"
@@ -678,22 +662,15 @@ function SubjectRoster({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-rule-soft px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="min-h-11 sm:min-h-0"
-            onClick={onBack}
-          >
+      <div className="shrink-0 border-t border-rule-soft bg-paper px-4 py-3 sm:px-5">
+        <div className="action-row">
+          <Button type="button" variant="ghost" size="sm" onClick={onBack}>
             Back
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11 sm:min-h-0"
             onClick={onOpenDetails}
           >
             Edit details
@@ -701,7 +678,7 @@ function SubjectRoster({
           <Button
             type="button"
             size="sm"
-            className="ml-auto min-h-11 sm:min-h-0"
+            className="ml-auto"
             onClick={onContinue}
             disabled={!ready}
           >
@@ -883,10 +860,7 @@ function LogMockTab({
         Paste the scorecard. You review the parsed subjects here, then continue
         to the mock form — the only place that saves.
       </p>
-      <label
-        htmlFor="ai-log-mock-paste"
-        className="mt-4 block text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted"
-      >
+      <label htmlFor="ai-log-mock-paste" className="section-label mt-4 block">
         Scorecard text
       </label>
       <textarea
@@ -951,14 +925,14 @@ function LogMockTab({
                   <button
                     type="button"
                     aria-label={`Remove screenshot ${index + 1}`}
-                    className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-rule bg-paper text-muted hover:text-ink"
+                    className="tap-target absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-control border border-rule bg-paper text-muted hover:text-ink"
                     onClick={() =>
                       setImages((current) =>
                         current.filter((_, at) => at !== index),
                       )
                     }
                   >
-                    ✕
+                    <X size={11} aria-hidden />
                   </button>
                 </span>
               ))}
@@ -976,11 +950,10 @@ function LogMockTab({
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="action-row mt-4">
         {aiEnabled ? (
           <Button
             type="button"
-            className="min-h-11 w-full sm:min-h-0 sm:w-auto"
             onClick={() => void importWithAi()}
             disabled={!paste.trim() || busy}
           >
@@ -989,7 +962,6 @@ function LogMockTab({
         ) : (
           <Button
             type="button"
-            className="min-h-11 w-full sm:min-h-0 sm:w-auto"
             onClick={importStandard}
             disabled={!paste.trim()}
           >
@@ -1007,7 +979,16 @@ function LogMockTab({
       </p>
 
       {!statusChecked && (
-        <p className="mt-3 text-[10px] text-muted" aria-busy="true">
+        <p
+          className="mt-3 flex items-center gap-2.5 text-xs text-muted"
+          role="status"
+          aria-busy="true"
+        >
+          <span className="thinking-dots" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
           Checking AI availability…
         </p>
       )}

@@ -3,15 +3,18 @@
 import { useRef, useState } from "react";
 import {
   CalendarClock,
-  ChevronRight,
   Info,
   Sparkles,
   X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AiSettingsForm } from "@/components/ai-settings-form";
 import { api } from "@/lib/api-client";
-import { MAX_TODO_PROMPT_CHARS } from "@/lib/ai/client-types";
+import {
+  MAX_TODO_PROMPT_CHARS,
+  type AiCredentialSummary,
+} from "@/lib/ai/client-types";
 import { addIsoDays, istTodayIso } from "@/lib/plan/view-model";
 import { weekdayDate, shortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -43,6 +46,47 @@ type DraftResponse = {
  * Extracted from plan/personal-todos.tsx so the My Tasks workspace, the AI
  * sheet tab, and any future host share one implementation. */
 export function TodoAiComposer({
+  onChanged,
+  compact = false,
+  configured,
+  onAiConfigured,
+}: {
+  onChanged?: () => void;
+  compact?: boolean;
+  /** The sheet passes the live AI status; the planner host leaves it unset
+   * and keeps its always-available behavior. */
+  configured?: boolean;
+  /** Notifies the host so AI status can be refetched after setup. */
+  onAiConfigured?: (credential: AiCredentialSummary | null) => void;
+}) {
+  // The Todos tab says AI is off instead of failing at submit time.
+  if (compact && configured === false) {
+    return (
+      <section className="flex flex-col gap-5" aria-label="AI todo assistant">
+        <div>
+          <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
+            Plan your study todos
+          </h3>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Todo planning runs on AI. Set up a provider to draft revision
+            todos and reschedules here — manual entry stays available in My
+            Tasks.
+          </p>
+        </div>
+        <div className="rounded-control border border-rule bg-canvas p-4">
+          <AiSettingsForm
+            variant="panel"
+            showHeading={false}
+            onChanged={onAiConfigured}
+          />
+        </div>
+      </section>
+    );
+  }
+  return <TodoAiComposerInner onChanged={onChanged} compact={compact} />;
+}
+
+function TodoAiComposerInner({
   onChanged,
   compact = false,
 }: {
@@ -192,7 +236,7 @@ export function TodoAiComposer({
       {compact && (
         <>
           <div>
-            <h3 className="font-serif text-2xl font-medium leading-tight">
+            <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
               Plan your study todos
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -237,7 +281,7 @@ export function TodoAiComposer({
             }}
           >
             <label>
-              <span className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">What would you like to plan?</span>
+              <span className="section-label">What would you like to plan?</span>
               <textarea
                 required
                 maxLength={MAX_TODO_PROMPT_CHARS}
@@ -337,9 +381,7 @@ export function TodoAiComposer({
               are excluded.
             </p>
             <Button
-              className={
-                compact ? "relative min-h-11 w-full justify-center gap-2 px-10" : undefined
-              }
+              className={compact ? "w-full justify-center" : undefined}
               disabled={busy || !prompt.trim()}
             >
               {compact && <Sparkles size={18} />}
@@ -348,7 +390,6 @@ export function TodoAiComposer({
                 : draft
                   ? "Generate new draft"
                   : "Prepare draft"}
-              {compact && <ChevronRight size={17} className="absolute right-3" />}
             </Button>
             <p className="flex items-start gap-2 text-xs leading-relaxed text-muted">
               {compact && <Info size={16} className="mt-0.5 shrink-0" />}
@@ -358,6 +399,20 @@ export function TodoAiComposer({
               </span>
             </p>
           </form>
+          {busy && (
+            <p
+              className="flex items-center gap-2.5 text-xs text-muted"
+              role="status"
+              aria-busy="true"
+            >
+              <span className="thinking-dots" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+              Reading your request and preparing a draft…
+            </p>
+          )}
           {draft?.needsDates && (
             <p
               role="status"
@@ -375,7 +430,7 @@ export function TodoAiComposer({
                   Review · {draft.operations.length}{" "}
                   {draft.operations.length === 1 ? "change" : "changes"}
                 </h4>
-                <span className="text-[10px] text-muted">
+                <span className="text-[11px] text-muted">
                   Only checked rows are applied
                 </span>
               </div>
@@ -668,7 +723,7 @@ export function TodoAiComposer({
                   todos.
                 </p>
               )}
-              <div className="sticky bottom-0 -mx-1 mt-3 flex items-center justify-between gap-3 border-t border-rule-soft bg-paper/95 px-1 py-2.5 backdrop-blur-sm">
+              <div className="sticky bottom-0 -mx-1 mt-3 flex items-center justify-between gap-3 border-t border-rule-soft bg-paper px-1 py-2.5">
                 <span className="text-[11px] tabular text-muted">
                   {selected.length} of {draft.operations.length} selected
                 </span>
@@ -711,12 +766,18 @@ export function TodoAiComposer({
           )}
 
           {error && (
-            <p role="alert" className="text-sm leading-relaxed text-danger">
+            <p
+              role="alert"
+              className="border-l-2 border-l-danger bg-danger-soft px-3 py-2 text-xs leading-relaxed text-danger"
+            >
               {error}
             </p>
           )}
           {success && (
-            <p role="status" className="text-sm text-positive">
+            <p
+              role="status"
+              className="border-l-2 border-l-positive bg-positive-soft px-3 py-2 text-xs leading-relaxed text-positive"
+            >
               {success}
             </p>
           )}

@@ -170,7 +170,7 @@ export function ExtractionReview({
       <div className="border-y border-rule-soft bg-canvas px-3 py-3 sm:px-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-serif text-lg">Draft status</h3>
-          <span className="text-[11px] uppercase tracking-wide text-muted">
+          <span className="section-label">
             {draft.confidence} AI confidence
           </span>
         </div>
@@ -438,7 +438,9 @@ export function ExtractionReview({
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center gap-2 border-t border-ink bg-paper/95 px-4 py-3 backdrop-blur-sm sm:-mx-5 sm:px-5">
+      {/* The one ruled sticky bar: solid paper over the scrolling fields, no
+          blur or z-index elevation. */}
+      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-rule-soft bg-paper px-4 py-3 sm:-mx-5 sm:px-5">
         <Button disabled={blockers.length > 0} onClick={onUse}>
           {blockers.length > 0
             ? `Complete ${blockers.length} required field${blockers.length === 1 ? "" : "s"}`

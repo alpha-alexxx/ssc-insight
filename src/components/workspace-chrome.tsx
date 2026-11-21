@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import { AppFrame } from "./app-shell";
 import { CommandPalette } from "./command-palette";
 import { AiChatSheet } from "./ai-chat-sheet";
-import { useAiWorkspace } from "./use-ai-workspace";
+import { aiUsageLabel, useAiWorkspace } from "./use-ai-workspace";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { MockDetailDialog } from "./mock-detail-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -197,6 +197,7 @@ export function WorkspaceChrome({
           }
           configured={!!ai.aiStatus?.enabled}
           visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+          usageLabel={aiUsageLabel(ai.aiStatus ?? null)}
           onSend={(text, images) =>
             void ai.chat.send(text, aiScreenContext, false, images)
           }
