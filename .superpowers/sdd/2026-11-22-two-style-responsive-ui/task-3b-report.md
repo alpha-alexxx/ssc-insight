@@ -131,3 +131,48 @@ Conventional commit subject: `feat(ui): refine choice and navigation primitives`
 - Graphify remains unavailable because its uv-managed Python launcher points at a missing interpreter; the required query could not return project context.
 - Per ruling R8, verification used the existing coherent dependency tree without changing manifests. Dependency state outside this worktree remains a baseline environmental dependency.
 - Consumer and browser-level visual QA were outside this slice. The adaptive overflow API is covered by source contracts, TypeScript, scoped lint, and the full test suite; rendered consumer validation remains for the later responsive surface work.
+
+## Fix round 1 — Sidebar contract region isolation
+
+### Reviewer finding and root cause
+
+The original fixed-geometry assertion searched for `h-7`, `h-8`, or `size-10` before a later `data-sidebar="menu-…"` marker. In the JSX, `data-sidebar` precedes `className`, and the assertion's quoted-class boundary prevented it from reaching a later marker. A fixed geometry regression inside a target class string could therefore remain green.
+
+Reproduced against a synthetic `h-7` mutation before changing the test:
+
+```text
+old assertion catches injected h-7: False
+```
+
+### Test fix
+
+`tests/ui-style-contract.test.ts` now extracts three independent source regions:
+
+1. `sidebarMenuButtonVariants` through the collapsed icon constants.
+2. `SidebarMenuAction`.
+3. `SidebarMenuSubButton`.
+
+Each region must exist and independently satisfy its required token geometry, radius/touch treatment, semantic disabled and aria-disabled classes, and global-focus contract. Each region independently rejects `h-7`, `h-8`, `size-10`/`size-10!`, disabled opacity, and local outline/ring/focus overrides.
+
+A post-fix mutation probe confirmed the new region guard catches each prohibited regression:
+
+```text
+new region guard catches variants h-7: True
+new region guard catches action size-10: True
+new region guard catches subbutton h-8: True
+```
+
+No production source changed in this fix round.
+
+### Fix-round verification
+
+| Check | Result |
+| --- | --- |
+| `npx tsx --test tests/ui-style-contract.test.ts` | PASS — 13/13 |
+| `npm run typecheck` | PASS — `tsc --noEmit` |
+| `npx eslint tests/ui-style-contract.test.ts` | PASS — no findings |
+| `git diff --check` | PASS — no output |
+
+### Fix-round commit
+
+Conventional commit subject: `test(ui): harden sidebar style contracts` (the review-fix commit containing this report update; final hash is reported after commit creation).

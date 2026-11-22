@@ -17,6 +17,14 @@ function source(path: string) {
   return existsSync(url) ? readFileSync(url, "utf8") : "";
 }
 
+function sourceRegion(componentSource: string, startMarker: string, endMarker: string) {
+  const startIndex = componentSource.indexOf(startMarker);
+  if (startIndex === -1) return "";
+
+  const endIndex = componentSource.indexOf(endMarker, startIndex + startMarker.length);
+  return endIndex === -1 ? "" : componentSource.slice(startIndex, endIndex);
+}
+
 const buttonSource = source("src/components/ui/button.tsx");
 const spinnerSource = source("src/components/ui/spinner.tsx");
 const inputSource = source("src/components/ui/input.tsx");
@@ -30,6 +38,21 @@ const tabsSource = source("src/components/ui/tabs.tsx");
 const toggleGroupSource = source("src/components/ui/toggle-group.tsx");
 const paginationSource = source("src/components/ui/pagination.tsx");
 const sidebarSource = source("src/components/ui/sidebar.tsx");
+const sidebarMenuButtonVariantsSource = sourceRegion(
+  sidebarSource,
+  "const sidebarMenuButtonVariants",
+  "const SidebarMenuButton",
+);
+const sidebarMenuActionSource = sourceRegion(
+  sidebarSource,
+  "const SidebarMenuAction",
+  "const SidebarMenuBadge",
+);
+const sidebarMenuSubButtonSource = sourceRegion(
+  sidebarSource,
+  "const SidebarMenuSubButton",
+  "SidebarMenuSubButton.displayName",
+);
 
 function assertClasses(actual: string, expected: readonly string[]) {
   const classes = new Set(actual.split(/\s+/));
@@ -342,13 +365,7 @@ test("Pagination uses token boxes, readable type, and semantic disabled states",
 });
 
 test("Sidebar menu controls use shared geometry and semantic interaction states", () => {
-  for (const className of [
-    "h-[var(--sidebar-row-h)]",
-    "h-[var(--sidebar-row-h-lg)]",
-    "h-[var(--control-height-sm)]",
-    "group-data-[collapsible=icon]:size-[var(--sidebar-row-h-lg)]!",
-    "rounded-control",
-    "tap-target",
+  const disabledClasses = [
     "disabled:pointer-events-none",
     "disabled:cursor-not-allowed",
     "disabled:border-sidebar-border",
@@ -359,12 +376,52 @@ test("Sidebar menu controls use shared geometry and semantic interaction states"
     "aria-disabled:border-sidebar-border",
     "aria-disabled:bg-sidebar-accent",
     "aria-disabled:text-sidebar-foreground/60",
-  ]) {
-    assert.ok(sidebarSource.includes(className), `Sidebar: ${className}`);
+  ] as const;
+  const regions = [
+    {
+      name: "sidebarMenuButtonVariants",
+      source: sidebarMenuButtonVariantsSource,
+      expected: [
+        "h-[var(--sidebar-row-h)]",
+        "h-[var(--sidebar-row-h-lg)]",
+        "h-[var(--control-height-sm)]",
+        "group-data-[collapsible=icon]:size-[var(--sidebar-row-h-lg)]!",
+        "rounded-control",
+      ],
+    },
+    {
+      name: "SidebarMenuAction",
+      source: sidebarMenuActionSource,
+      expected: ["size-5", "rounded-control", "tap-target"],
+    },
+    {
+      name: "SidebarMenuSubButton",
+      source: sidebarMenuSubButtonSource,
+      expected: ["h-[var(--control-height-sm)]", "rounded-control"],
+    },
+  ] as const;
+
+  for (const region of regions) {
+    assert.notEqual(region.source, "", `${region.name}: source region`);
+    for (const className of [...region.expected, ...disabledClasses]) {
+      assert.ok(region.source.includes(className), `${region.name}: ${className}`);
+    }
+    assert.doesNotMatch(
+      region.source,
+      /\b(?:h-7|h-8|size-10)(?:!|\b)/,
+      `${region.name}: fixed geometry`,
+    );
+    assert.doesNotMatch(
+      region.source,
+      /(?:disabled|aria-disabled):opacity-/,
+      `${region.name}: disabled opacity`,
+    );
+    assert.doesNotMatch(
+      region.source,
+      /(?:outline-none|ring-sidebar-ring|focus-visible:)/,
+      `${region.name}: local focus override`,
+    );
   }
-  assert.doesNotMatch(sidebarSource, /\b(?:h-7|h-8|size-10)\b[^"']*data-sidebar=["'](?:menu-button|menu-action|menu-sub-button)/);
-  assert.doesNotMatch(sidebarSource, /(?:disabled|aria-disabled):opacity-/);
-  assert.doesNotMatch(sidebarSource, /focus-visible:(?:outline|ring)-accent/);
 });
 
 test("Task 3B primitives contain no legacy disabled opacity or accent focus overrides", () => {
