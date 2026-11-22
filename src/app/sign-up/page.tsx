@@ -27,7 +27,7 @@ export default async function SignUpPage() {
   if (signedIn) redirect("/dashboard");
 
   return (
-    <AuthShell>
+    <AuthShell task="sign-up">
       <AuthErrorAnnouncer />
       <SignUpForm
         googleEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}

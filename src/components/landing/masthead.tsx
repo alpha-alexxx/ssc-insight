@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { GoogleGlyph } from "@/components/google-glyph";
 import {
   Sheet,
   SheetClose,
@@ -96,12 +95,19 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
         <div className="flex items-center gap-1 sm:gap-3">
           <ThemeToggle />
           {authAvailable ? (
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/sign-in" aria-label="Sign in">
-                <GoogleGlyph />
-                Sign in
-              </Link>
-            </Button>
+            <>
+              {/* The nav pair: ghost for the known, filled for the new. */}
+              <Button asChild variant="ghost" size="sm" className="gap-2">
+                <Link href="/sign-in" aria-label="Log in">
+                  Log in
+                </Link>
+              </Button>
+              <Button asChild size="sm" className="gap-2">
+                <Link href="/sign-up" aria-label="Sign up">
+                  Sign up
+                </Link>
+              </Button>
+            </>
           ) : (
             <Button variant="outline" size="sm" disabled>
               Sign-in unavailable

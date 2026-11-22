@@ -36,7 +36,7 @@ export default async function SignInPage({
   if (signedIn) redirect("/dashboard");
 
   return (
-    <AuthShell>
+    <AuthShell task="sign-in">
       <AuthErrorAnnouncer errorCode={error} />
       <SignInForm
         googleEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}

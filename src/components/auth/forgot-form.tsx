@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import {
   authFailureCopy,
@@ -18,19 +19,43 @@ import {
   type OtpRequestValues,
   type OtpResetValues,
 } from "@/lib/auth/email-schemas";
+import { OtpInput } from "@/components/auth/otp-input";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { EASE, DUR } from "@/lib/motion";
 
 type Stage = "request" | "verify" | "done";
 
+/** A one-shot rise used by every stage swap — the house 4px/enter fade. */
+function StepPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: DUR.enter, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /**
- * The forgot-password page's working part: request a code, then set a new
- * password against it. Enumeration-safe — the service answers success even
- * for an unknown email, so the copy never confirms whether an account
- * exists. On success the reader goes to /sign-in; the reset endpoint
- * creates a credential account when none exists, so this is also how a
- * Google-only account sets a first password from the outside.
+ * The forgot-password page's working part, on the login-04 grammar: request
+ * a code, then set a new password against it (boxed code input, see-password
+ * fields). Enumeration-safe — the service answers success even for an
+ * unknown email, so the copy never confirms whether an account exists. On
+ * success the reader goes to /sign-in; the reset endpoint creates a
+ * credential account when none exists, so this is also how a Google-only
+ * account sets a first password from the outside.
  */
 export function ForgotForm() {
   const searchParams = useSearchParams();
@@ -39,6 +64,8 @@ export function ForgotForm() {
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeInvalid, setCodeInvalid] = useState(false);
   const requestForm = useForm<OtpRequestValues>({
     resolver: zodResolver(otpRequestSchema),
     defaultValues: { email: searchParams.get("email") ?? "" },
@@ -48,65 +75,127 @@ export function ForgotForm() {
     defaultValues: { email: sentEmail, code: "", newPassword: "", confirmPassword: "" },
   });
 
-  if (stage === "request") {
-    return (
-      <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
-            Reset your password
-          </h1>
-          <p className="text-sm leading-relaxed text-muted">
-            We email a 6-digit code to confirm it&apos;s you. If the email has
-            an account, the code is on its way.
-          </p>
-        </header>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={requestForm.handleSubmit(async (values) => {
-            setError("");
-            setBusy(true);
-            try {
-              await requestPasswordResetOtp(values.email);
-              setSentEmail(values.email);
-              resetForm.setValue("email", values.email);
+  const stepKey = stage;
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <StepPanel key={stepKey}>
+        {stage === "request" ? (
+          <RequestStage
+            form={requestForm}
+            busy={busy}
+            error={error}
+            clearError={() => setError("")}
+            onSent={(email) => {
+              setSentEmail(email);
+              resetForm.setValue("email", email);
               setStage("verify");
-            } catch (e) {
-              setError(
-                e instanceof EmailAuthError
-                  ? authFailureCopy(e.reason, e.retryAfterSeconds)
-                  : "Could not send the code.",
-              );
-            } finally {
-              setBusy(false);
-            }
-          })}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="forgot-email">Email</Label>
+            }}
+            onFail={(message) => setError(message)}
+            setBusy={setBusy}
+          />
+        ) : null}
+
+        {stage === "verify" ? (
+          <VerifyStage
+            sentEmail={sentEmail}
+            code={code}
+            setCode={(next) => {
+              setCodeInvalid(false);
+              setCode(next);
+              resetForm.setValue("code", next, {
+                shouldValidate: next.length === 6,
+              });
+            }}
+            codeInvalid={codeInvalid}
+            markCodeInvalid={() => setCodeInvalid(true)}
+            form={resetForm}
+            busy={busy}
+            error={error}
+            clearError={() => setError("")}
+            onDone={() => setStage("done")}
+            onFail={(message) => setError(message)}
+            onBack={() => {
+              setError("");
+              setStage("request");
+            }}
+            setBusy={setBusy}
+          />
+        ) : null}
+
+        {stage === "done" ? <DoneStage sentEmail={sentEmail} /> : null}
+      </StepPanel>
+    </AnimatePresence>
+  );
+}
+
+/* ------------------------------------------------------------ request stage */
+
+function RequestStage({
+  form,
+  busy,
+  error,
+  clearError,
+  onSent,
+  onFail,
+  setBusy,
+}: {
+  form: ReturnType<typeof useForm<OtpRequestValues>>;
+  busy: boolean;
+  error: string;
+  clearError: () => void;
+  onSent: (email: string) => void;
+  onFail: (message: string) => void;
+  setBusy: (busy: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+          Reset your password
+        </h1>
+        <p className="text-sm leading-relaxed text-muted">
+          We email a 6-digit code to confirm it&apos;s you. If the email has an
+          account, the code is on its way.
+        </p>
+      </header>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={form.handleSubmit(async (values) => {
+          clearError();
+          setBusy(true);
+          try {
+            await requestPasswordResetOtp(values.email);
+            onSent(values.email);
+          } catch (e) {
+            onFail(
+              e instanceof EmailAuthError
+                ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                : "Could not send the code.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        })}
+      >
+        <FieldGroup className="gap-4">
+          <Field data-invalid={!!form.formState.errors.email || undefined}>
+            <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
             <Input
               id="forgot-email"
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
               autoFocus
-              {...requestForm.register("email")}
+              aria-invalid={!!form.formState.errors.email || undefined}
+              {...form.register("email")}
             />
-            {requestForm.formState.errors.email ? (
-              <p className="text-xs text-danger">
-                {requestForm.formState.errors.email.message}
-              </p>
+            {form.formState.errors.email ? (
+              <FieldError>{form.formState.errors.email.message}</FieldError>
             ) : null}
-          </div>
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-danger">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="h-11 w-full justify-center"
-          >
+          </Field>
+          <FieldError>{error}</FieldError>
+          <Button type="submit" disabled={busy} className="h-11 w-full justify-center">
             {busy ? (
               <>
                 <Loader2 size={14} className="animate-spin" aria-hidden /> Sending…
@@ -115,7 +204,7 @@ export function ForgotForm() {
               "Email me a reset code"
             )}
           </Button>
-          <p className="text-sm text-muted">
+          <FieldDescription>
             Remembered it?{" "}
             <Link
               href="/sign-in"
@@ -123,101 +212,122 @@ export function ForgotForm() {
             >
               Sign in
             </Link>
-          </p>
-        </form>
-      </div>
-    );
-  }
+          </FieldDescription>
+        </FieldGroup>
+      </form>
+    </div>
+  );
+}
 
-  if (stage === "verify") {
-    return (
-      <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
-            Check your email
-          </h1>
-          <p className="text-sm leading-relaxed text-muted">
-            A reset code was sent to {sentEmail}. It sets a new password; on a
-            Google-only account it sets the first one.
-          </p>
-        </header>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={resetForm.handleSubmit(async (values) => {
-            setError("");
-            setBusy(true);
-            try {
-              await resetPasswordWithOtp({
-                email: values.email,
-                code: values.code,
-                password: values.newPassword,
-              });
-              setStage("done");
-            } catch (e) {
-              setError(
-                e instanceof EmailAuthError
-                  ? authFailureCopy(e.reason, e.retryAfterSeconds)
-                  : "Could not reset the password.",
-              );
-            } finally {
-              setBusy(false);
-            }
-          })}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="forgot-code">Code</Label>
-            <Input
-              id="forgot-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="000000"
-              className="tabular-nums text-center text-lg tracking-[0.4em]"
+/* ------------------------------------------------------------- verify stage */
+
+function VerifyStage({
+  sentEmail,
+  code,
+  setCode,
+  codeInvalid,
+  markCodeInvalid,
+  form,
+  busy,
+  error,
+  clearError,
+  onDone,
+  onFail,
+  onBack,
+  setBusy,
+}: {
+  sentEmail: string;
+  code: string;
+  setCode: (code: string) => void;
+  codeInvalid: boolean;
+  markCodeInvalid: () => void;
+  form: ReturnType<typeof useForm<OtpResetValues>>;
+  busy: boolean;
+  error: string;
+  clearError: () => void;
+  onDone: () => void;
+  onFail: (message: string) => void;
+  onBack: () => void;
+  setBusy: (busy: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+          Check your email
+        </h1>
+        <p className="text-sm leading-relaxed text-muted">
+          A reset code was sent to {sentEmail}. It sets a new password; on a
+          Google-only account it sets the first one.
+        </p>
+      </header>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={form.handleSubmit(async (values) => {
+          clearError();
+          setBusy(true);
+          try {
+            await resetPasswordWithOtp({
+              email: values.email,
+              code: values.code,
+              password: values.newPassword,
+            });
+            onDone();
+          } catch (e) {
+            markCodeInvalid();
+            onFail(
+              e instanceof EmailAuthError
+                ? authFailureCopy(e.reason, e.retryAfterSeconds)
+                : "Could not reset the password.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        })}
+      >
+        <FieldGroup className="gap-4">
+          <Field data-invalid={codeInvalid || undefined}>
+            <FieldLabel htmlFor="forgot-code">Code</FieldLabel>
+            <OtpInput
+              value={code}
+              onChange={setCode}
+              label="Reset code"
+              invalid={codeInvalid}
               autoFocus
-              {...resetForm.register("code")}
             />
-            {resetForm.formState.errors.code ? (
-              <p className="text-xs text-danger">{resetForm.formState.errors.code.message}</p>
+            {form.formState.errors.code ? (
+              <FieldError>{form.formState.errors.code.message}</FieldError>
             ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="forgot-new">New password</Label>
-            <Input
+          </Field>
+          <Field data-invalid={!!form.formState.errors.newPassword || undefined}>
+            <FieldLabel htmlFor="forgot-new">New password</FieldLabel>
+            <PasswordInput
               id="forgot-new"
-              type="password"
               autoComplete="new-password"
-              {...resetForm.register("newPassword")}
+              placeholder="At least 8 characters"
+              aria-invalid={!!form.formState.errors.newPassword || undefined}
+              {...form.register("newPassword")}
             />
-            {resetForm.formState.errors.newPassword ? (
-              <p className="text-xs text-danger">
-                {resetForm.formState.errors.newPassword.message}
-              </p>
+            {form.formState.errors.newPassword ? (
+              <FieldError>{form.formState.errors.newPassword.message}</FieldError>
             ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="forgot-confirm">Confirm new password</Label>
-            <Input
+          </Field>
+          <Field data-invalid={!!form.formState.errors.confirmPassword || undefined}>
+            <FieldLabel htmlFor="forgot-confirm">Confirm new password</FieldLabel>
+            <PasswordInput
               id="forgot-confirm"
-              type="password"
               autoComplete="new-password"
-              {...resetForm.register("confirmPassword")}
+              aria-invalid={!!form.formState.errors.confirmPassword || undefined}
+              {...form.register("confirmPassword")}
             />
-            {resetForm.formState.errors.confirmPassword ? (
-              <p className="text-xs text-danger">
-                {resetForm.formState.errors.confirmPassword.message}
-              </p>
+            {form.formState.errors.confirmPassword ? (
+              <FieldError>
+                {form.formState.errors.confirmPassword.message}
+              </FieldError>
             ) : null}
-          </div>
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-danger">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="h-11 w-full justify-center"
-          >
+          </Field>
+          <FieldError>{error}</FieldError>
+          <Button type="submit" disabled={busy} className="h-11 w-full justify-center">
             {busy ? (
               <>
                 <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
@@ -229,18 +339,19 @@ export function ForgotForm() {
           <button
             type="button"
             className="text-left text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
-            onClick={() => {
-              setError("");
-              setStage("request");
-            }}
+            onClick={onBack}
           >
             Use a different email
           </button>
-        </form>
-      </div>
-    );
-  }
+        </FieldGroup>
+      </form>
+    </div>
+  );
+}
 
+/* --------------------------------------------------------------- done stage */
+
+function DoneStage({ sentEmail }: { sentEmail: string }) {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
@@ -253,12 +364,9 @@ export function ForgotForm() {
           authenticator still works.
         </p>
       </header>
-      <Link
-        href="/sign-in"
-        className="inline-flex h-11 w-full items-center justify-center rounded-control bg-accent text-[0.9375rem] font-medium text-paper transition-colors hover:bg-accent-hover"
-      >
-        Go to sign in
-      </Link>
+      <Button asChild className="h-11 w-full justify-center">
+        <Link href="/sign-in">Go to sign in</Link>
+      </Button>
     </div>
   );
 }

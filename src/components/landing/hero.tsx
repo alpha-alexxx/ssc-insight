@@ -84,14 +84,14 @@ export function Hero({
             {authAvailable ? (
               <>
                 <Button asChild className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]">
-                  <Link href="/sign-in">Sign in</Link>
+                  <Link href="/sign-up">Start For Free</Link>
                 </Button>
                 <Button
                   asChild
-                  variant="outline"
-                  className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                  variant="ghost"
+                  className="h-auto gap-2.5 px-4 py-3 text-[0.9375rem]"
                 >
-                  <Link href="/sign-up">Create account</Link>
+                  <Link href="/sign-in">I already have an account</Link>
                 </Button>
               </>
             ) : (
@@ -111,7 +111,7 @@ export function Hero({
           <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             <span>Private account</span>
             <span aria-hidden="true">·</span>
-            <span>Google sign-in</span>
+            <span>Google or email sign-in</span>
             <span aria-hidden="true">·</span>
             <span>Export everything, anytime</span>
           </p>

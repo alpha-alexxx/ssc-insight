@@ -12,9 +12,8 @@ import { cn } from "@/lib/utils";
  *    with an accent fill, then the section index; the active number turns
  *    accent, its dash grows, and labels surface on hover. Scroll-spy runs on
  *    one IntersectionObserver reading the middle band of the viewport.
- *  - <FloatingAsk/>: the black pill. `/` is the only sign-in surface, so for
- *    an anonymous visitor "Ask AI" starts exactly what the hero CTA starts —
- *    the Google round trip that leads to the workspace.
+ *  - <FloatingAsk/>: the black pill. For an anonymous visitor "Ask AI" leads
+ *    to the sign-in page — the one gate in front of the workspace.
  */
 
 const RAIL_ITEMS: { id: string; no: string; label: string }[] = [

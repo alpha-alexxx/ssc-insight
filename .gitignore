@@ -43,3 +43,4 @@ videos/*
 /playwright-report
 /test-results
 /.zcode
+/.dsh-plugin

@@ -49,5 +49,7 @@ export default defineConfig([
     // assistant skill scripts.
     "output/**",
     ".claude/**",
+    // The installed DSH plugin package (design-skill kits), not app source.
+    ".dsh-plugin/**",
   ]),
 ]);

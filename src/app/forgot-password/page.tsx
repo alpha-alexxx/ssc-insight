@@ -29,7 +29,7 @@ export default async function ForgotPasswordPage() {
   if (signedIn) redirect("/dashboard");
 
   return (
-    <AuthShell>
+    <AuthShell task="forgot">
       <AuthErrorAnnouncer />
       {/* ForgotForm reads ?email= from the sign-in hand-off; Suspense is the
           useSearchParams boundary. */}

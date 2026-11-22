@@ -1,5 +1,4 @@
 import { DuotoneIcon, DuotoneTile } from "@/components/icon";
-import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { shortDate } from "@/lib/format";
 import { totals } from "@/lib/domain";
 import { LANDING_ATTEMPTS, LANDING_FULL_MOCKS, LANDING_SUMMARY } from "./fixtures";
@@ -357,8 +356,8 @@ export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
                 Start with the mock you already took.
               </h2>
               <p className="mt-4 max-w-lg text-[0.9375rem] leading-relaxed text-muted">
-                Sign in, log one result, and the ledger begins — trend, target
-                gap and plan position from a single attempt.
+                Create a free account, log one result, and the ledger begins —
+                trend, target gap and plan position from a single attempt.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 {authAvailable ? (
@@ -367,14 +366,14 @@ export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
                       asChild
                       className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
                     >
-                      <Link href="/sign-in">Sign in</Link>
+                      <Link href="/sign-up">Start For Free</Link>
                     </Button>
                     <Button
                       asChild
-                      variant="outline"
-                      className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                      variant="ghost"
+                      className="h-auto gap-2.5 px-4 py-3 text-[0.9375rem]"
                     >
-                      <Link href="/sign-up">Create account</Link>
+                      <Link href="/sign-in">I already have an account</Link>
                     </Button>
                   </>
                 ) : (
@@ -387,7 +386,7 @@ export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
                 )}
               </div>
               <p className="mt-4 text-xs text-muted">
-                No card, no test series, nothing shared.
+                Google or email · no card, no test series, nothing shared.
               </p>
             </div>
 
