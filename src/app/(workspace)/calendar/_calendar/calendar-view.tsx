@@ -553,8 +553,9 @@ export function CalendarView({
         </div>
 
         {/* The desktop rail: month and week only; day/agenda carry the ledger
-            themselves. Below xl it stacks directly under the surface rather
-            than sitting below the fold of the whole page. */}
+            themselves. Below the wide cal-page threshold it stacks directly
+            under the surface rather than sitting below the fold of the whole
+            page. */}
         {(mode === "month" || mode === "week") && (
           <aside className="hidden min-w-0 @3xl/cal-page:block @5xl/cal-page:sticky @5xl/cal-page:top-[4.25rem] @5xl/cal-page:self-start">
             <Swap swapKey={requested}>

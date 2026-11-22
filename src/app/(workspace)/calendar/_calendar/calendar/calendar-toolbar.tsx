@@ -12,9 +12,9 @@ import { PeriodNav } from "./period-nav";
  * at**, the arrows and date jump say **how do I move**, the mode segments say
  * **which shape**, and the layer toggles say **what is included**.
  *
- * The period title is the page's single live region. On phones the cluster
- * stacks into three rows (title, movement, mode + layers); from `sm` it folds
- * to two.
+ * The period title is the page's single live region. In a narrow toolbar the
+ * cluster stacks into three rows (title, movement, mode + layers); at the
+ * `@lg/cal-toolbar` threshold it folds to two.
  */
 export function CalendarToolbar({
   title,
@@ -66,9 +66,9 @@ export function CalendarToolbar({
         </div>
       </div>
 
-      {/* Mode and layers share one row from sm, but the pair wraps as a unit:
-          at 768 with the sidebar open a single row cannot hold both, and a
-          half-wrapped control group reads as two broken controls. */}
+      {/* Mode and layers share one row at the wide toolbar threshold, but the
+          pair wraps as a unit: when the toolbar is constrained by the open
+          sidebar, a half-wrapped group reads as two broken controls. */}
       <div className="mt-2 flex flex-col gap-2 @lg/cal-toolbar:flex-row @lg/cal-toolbar:flex-wrap @lg/cal-toolbar:items-center @lg/cal-toolbar:justify-between">
         <div
           role="group"

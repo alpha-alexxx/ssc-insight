@@ -46,3 +46,14 @@ No retry or graph update was performed.
 ## Concerns
 
 - None in Task 5C2 scope. The pre-existing untracked `docs/` directory was not modified or staged.
+
+## Review fix — round 1/5
+
+- Finding: the Task 5C2 contract searched named-query fragments across whole toolbar/layer files and rejected `sm:` globally, so a query in the wrong class region could satisfy the test and an unrelated viewport utility could fail it.
+- Fix: sliced the title/navigation classes, mode/layers classes, and `LayerToggles` group class independently; each slice now asserts its own named-query fragments and rejects legacy viewport folds only inside that audited region.
+- Updated stale source comments from viewport `sm`/`xl` language to named-container-width language. Production classes and behavior were unchanged.
+- `npx tsx --test --test-name-pattern "Task 5C2" tests/responsive-ui-contract.test.ts` — 1 passed, 0 failed.
+- `npx tsx --test tests/responsive-ui-contract.test.ts` — 19 passed, 0 failed.
+- Scoped ESLint over the three changed source/test files — passed with no findings.
+- `git diff --check` — passed with no output.
+- Commit: separate round-one follow-up; hash reported with delivery.

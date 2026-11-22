@@ -601,29 +601,65 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
     calendarToolbarSource,
     /className="cal-toolbar [^"]*@container\/cal-toolbar/,
   );
+  const titleNavStart = calendarToolbarSource.indexOf(
+    '<div className="flex flex-col gap-2',
+  );
+  const titleNavEnd = calendarToolbarSource.indexOf("<PeriodNav", titleNavStart);
+  assert.notEqual(titleNavStart, -1, "missing toolbar title/navigation region");
+  assert.notEqual(titleNavEnd, -1, "missing toolbar period navigation");
+  const titleNavigation = calendarToolbarSource.slice(titleNavStart, titleNavEnd);
   for (const fragment of [
     "@lg/cal-toolbar:flex-row",
+    "@lg/cal-toolbar:items-center",
+    "@lg/cal-toolbar:justify-between",
+    "@lg/cal-toolbar:text-[1.25rem]",
+    "@lg/cal-toolbar:justify-end",
+  ]) {
+    assert.ok(titleNavigation.includes(fragment), `Title/navigation fold missing: ${fragment}`);
+  }
+  assert.doesNotMatch(titleNavigation, /\bsm:/);
+  assert.ok(titleNavigation.includes('aria-live="polite"'));
+
+  const modeLayersStart = calendarToolbarSource.indexOf(
+    '<div className="mt-2 flex flex-col gap-2',
+  );
+  const modeLayersEnd = calendarToolbarSource.indexOf(
+    "<LayerToggles",
+    modeLayersStart,
+  );
+  assert.notEqual(modeLayersStart, -1, "missing toolbar mode/layers region");
+  assert.notEqual(modeLayersEnd, -1, "missing toolbar layer controls");
+  const modeLayers = calendarToolbarSource.slice(modeLayersStart, modeLayersEnd);
+  for (const fragment of [
+    "@lg/cal-toolbar:flex-row",
+    "@lg/cal-toolbar:flex-wrap",
     "@lg/cal-toolbar:items-center",
     "@lg/cal-toolbar:justify-between",
     "@lg/cal-toolbar:inline-flex",
     "@lg/cal-toolbar:w-auto",
     "@lg/cal-toolbar:flex-none",
   ]) {
-    assert.ok(calendarToolbarSource.includes(fragment), `Toolbar fold missing: ${fragment}`);
+    assert.ok(modeLayers.includes(fragment), `Mode/layers fold missing: ${fragment}`);
   }
-  assert.doesNotMatch(calendarToolbarSource, /\bsm:/);
-  assert.ok(calendarToolbarSource.includes("max-[359px]:hidden"));
-  assert.ok(calendarToolbarSource.includes('aria-live="polite"'));
-  assert.ok(calendarToolbarSource.includes('aria-label="Calendar view"'));
+  assert.doesNotMatch(modeLayers, /\bsm:/);
+  assert.ok(modeLayers.includes("max-[359px]:hidden"));
+  assert.ok(modeLayers.includes('aria-label="Calendar view"'));
 
+  const layerGroupStart = calendarLayersSource.indexOf(
+    'className="segment-group grid w-full grid-cols-3',
+  );
+  const layerGroupEnd = calendarLayersSource.indexOf('"\n    >', layerGroupStart);
+  assert.notEqual(layerGroupStart, -1, "missing LayerToggles group class");
+  assert.notEqual(layerGroupEnd, -1, "missing LayerToggles group class end");
+  const layerGroupClass = calendarLayersSource.slice(layerGroupStart, layerGroupEnd);
   for (const fragment of [
     "@lg/cal-toolbar:inline-flex",
     "@lg/cal-toolbar:w-auto",
     "@lg/cal-toolbar:[&_.segment]:flex-none",
   ]) {
-    assert.ok(calendarLayersSource.includes(fragment), `Layer fold missing: ${fragment}`);
+    assert.ok(layerGroupClass.includes(fragment), `Layer fold missing: ${fragment}`);
   }
-  assert.doesNotMatch(calendarLayersSource, /\bsm:/);
+  assert.doesNotMatch(layerGroupClass, /\bsm:/);
 
   assert.match(
     calendarEventSource,
