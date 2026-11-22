@@ -22,6 +22,29 @@ const mastheadSource = source("src/components/landing/masthead.tsx");
 const signInSource = source("src/components/auth/sign-in-form.tsx");
 const signUpSource = source("src/components/auth/sign-up-form.tsx");
 const forgotSource = source("src/components/auth/forgot-form.tsx");
+const examsSource = source("src/app/(workspace)/settings/_settings/exams-panel.tsx");
+const dataPanelSource = source("src/app/(workspace)/settings/_settings/data-panel.tsx");
+const securitySource = source("src/app/(workspace)/settings/_settings/security-panel.tsx");
+const targetsSource = source("src/app/(workspace)/settings/_settings/targets-panel.tsx");
+const remindersSource = source("src/app/(workspace)/settings/_settings/reminders-panel.tsx");
+const mockFormSource = source("src/app/(workspace)/add/_add/mock-form.tsx");
+
+const task5bSources = [
+  ["exams", examsSource],
+  ["data", dataPanelSource],
+  ["security", securitySource],
+  ["targets", targetsSource],
+  ["reminders", remindersSource],
+  ["add mock", mockFormSource],
+] as const;
+
+function classTokenCount(component: string, token: string) {
+  let count = 0;
+  for (const match of component.matchAll(/className="([^"]*)"/g)) {
+    count += match[1].split(/\s+/).filter((entry) => entry === token).length;
+  }
+  return count;
+}
 
 function assertDeclarations(block: string, declarations: readonly RegExp[]) {
   for (const declaration of declarations) assert.match(block, declaration);
@@ -220,4 +243,145 @@ test("decorative plates and OTP/password compound control exceptions stay intact
   assert.ok(forgotPlate.includes("auth-plate-fact-label"));
   assert.ok(signInPlate.includes("text-[0.6875rem]"));
   assert.ok(signInPlate.includes("auth-plate-fact-label"));
+});
+
+test("Task 5B consumers use readable typography tokens", () => {
+  const banned = /text-(?:\[10px\]|\[11px\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
+  for (const [name, component] of task5bSources) {
+    assert.doesNotMatch(component, banned, `${name} retains sub-floor visible type`);
+  }
+
+  for (const component of task5bSources.map(([, sourceText]) => sourceText)) {
+    assert.match(
+      component,
+      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
+      "Task 5B consumer is missing its role-based typography token",
+    );
+  }
+});
+
+test("Task 5B Buttons inherit shared control sizing and the exam target action uses Button semantics", () => {
+  for (const [name, component] of task5bSources) {
+    assert.doesNotMatch(component, /\bh-(?:7|9)\b/, `${name} retains a fixed Button height`);
+  }
+
+  const targetAction = examsSource.slice(
+    examsSource.lastIndexOf("<", examsSource.indexOf("aria-pressed={isTargeted}")),
+    examsSource.indexOf("</", examsSource.indexOf("aria-pressed={isTargeted}")) + 80,
+  );
+  assert.match(targetAction, /^<Button/);
+  assert.match(targetAction, /type="button"/);
+  assert.match(targetAction, /size="sm"/);
+  assert.match(targetAction, /variant=\{isTargeted \? "secondary" : "outline"\}/);
+  assert.match(targetAction, /aria-pressed=\{isTargeted\}/);
+  assert.match(targetAction, /disabled=\{busy \|\| enabledKeys\.length === 0 \|\| isTargeted\}/);
+  assert.match(targetAction, /onClick=\{onTargeted\}/);
+  assert.match(targetAction, /isTargeted[\s\S]*?disabled:opacity-100/);
+  assert.match(targetAction, /enabledKeys\.length === 0[\s\S]*?text-muted/);
+  assert.match(targetAction, /Enable a tier first/);
+  assert.match(targetAction, /This is the exam the workspace follows/);
+  assert.match(targetAction, /Make this the exam the workspace follows/);
+  assert.doesNotMatch(targetAction, /px-\d|py-\d|text-\[0\./);
+});
+
+test("Task 5B action clusters and stacked footers use their audited roles", () => {
+  assert.equal(classTokenCount(examsSource, "action-row-stack"), 1);
+  assert.equal(classTokenCount(dataPanelSource, "action-row-stack"), 1);
+  const explicitSecurityFooters = classTokenCount(securitySource, "action-row-stack");
+  const alertDialogFooters = securitySource.match(/<AlertDialogFooter>/g)?.length ?? 0;
+  assert.equal(explicitSecurityFooters, 9);
+  assert.equal(explicitSecurityFooters + alertDialogFooters, 10);
+  assert.equal(classTokenCount(mockFormSource, "action-row-stack"), 1);
+
+  assert.equal(classTokenCount(securitySource, "action-row"), 1);
+  assert.equal(classTokenCount(mockFormSource, "action-row"), 1);
+  assert.equal(classTokenCount(examsSource, "action-row"), 0);
+  assert.equal(classTokenCount(dataPanelSource, "action-row"), 0);
+  assert.match(dataPanelSource, /action-row-stack mt-4 sm:justify-start/);
+  assert.equal(
+    securitySource.match(/action-row-stack sm:justify-between/g)?.length,
+    2,
+  );
+});
+
+test("Task 5B mixed input, slider, time, and score rows stay role-appropriate", () => {
+  const targetMarks = targetsSource.indexOf("Target marks");
+  const tierTargetControls = targetsSource.slice(
+    targetsSource.lastIndexOf("<div", targetMarks),
+    targetsSource.indexOf("</li>", targetMarks),
+  );
+  const goalPercentile = targetsSource.indexOf("Goal percentile");
+  const percentileControls = targetsSource.slice(
+    targetsSource.lastIndexOf("<div", goalPercentile),
+    targetsSource.indexOf("</li>", goalPercentile),
+  );
+  const quietHoursStart = remindersSource.indexOf('name="quietHours.start"');
+  const quietHours = remindersSource.slice(
+    remindersSource.lastIndexOf("<RevealItem", quietHoursStart),
+    remindersSource.indexOf("{formState.errors.quietHours"),
+  );
+  const scoreSummary = mockFormSource.slice(
+    mockFormSource.indexOf('className="panel sticky'),
+    mockFormSource.indexOf(
+      'className="action-row-stack',
+      mockFormSource.indexOf('className="panel sticky'),
+    ),
+  );
+
+  assert.match(tierTargetControls, /flex flex-wrap items-end/);
+  assert.match(percentileControls, /flex flex-wrap items-center/);
+  assert.match(quietHours, /flex flex-wrap items-end/);
+  assert.match(scoreSummary, /flex flex-wrap items-center justify-between/);
+  for (const mixedRow of [tierTargetControls, percentileControls, quietHours, scoreSummary]) {
+    assert.doesNotMatch(mixedRow, /action-row(?:-stack)?/);
+  }
+});
+
+test("Task 5B presentation edits preserve audited handlers, conditions, and labels", () => {
+  for (const fragment of [
+    "onClick={onTargeted}",
+    "disabled={busy || enabledKeys.length === 0 || isTargeted}",
+    '{isTargeted ? "Your exam" : "Set as your exam"}',
+  ]) {
+    assert.ok(examsSource.includes(fragment), `exam contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "onClick={onDownloadSafety}",
+    "onClick={onOpenReplace}",
+    "onClick={onReset}",
+    "disabled={busy || !safetyDownloaded}",
+  ]) {
+    assert.ok(dataPanelSource.includes(fragment), `data contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "onClick={() => setRegenerateOpen(true)}",
+    "onClick={() => setDisableOpen(true)}",
+    "onClick={() => setEnrollOpen(true)}",
+    "onSubmit={resetForm.handleSubmit",
+  ]) {
+    assert.ok(securitySource.includes(fragment), `security contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "onValueChange={([next]) => onChange(String(next))}",
+    "disabled={pending || invalid}",
+    `title="Remove this tier's own target and use the structure default"`,
+  ]) {
+    assert.ok(targetsSource.includes(fragment), `target contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    'name="quietHours.start"',
+    'name="quietHours.end"',
+    "onCheckedChange={field.onChange}",
+  ]) {
+    assert.ok(remindersSource.includes(fragment), `reminder contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "onClick={importPaste}",
+    "onClick={() => void importWithAi()}",
+    "onSubmit={save}",
+    "disabled={busy}",
+    '"Saving…"',
+  ]) {
+    assert.ok(mockFormSource.includes(fragment), `mock form contract lost: ${fragment}`);
+  }
 });

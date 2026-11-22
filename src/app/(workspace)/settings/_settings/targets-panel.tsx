@@ -398,7 +398,7 @@ export function TargetsPanel({
             </TabsContent>
 
             {error && (
-              <p role="alert" className="mt-3 text-[11px] text-danger">
+              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
                 {error}
               </p>
             )}
@@ -476,7 +476,7 @@ function TierTargetRow({
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <p className="text-sm font-medium text-ink">{label}</p>
-        <p className="text-[0.6875rem] text-muted">
+        <p className="text-[length:var(--type-secondary)] text-muted">
           <span
             className={cn(
               target.source === "override" && "text-ink",
@@ -490,14 +490,14 @@ function TierTargetRow({
         </p>
       </div>
       {target.outOfRange && (
-        <p className="mt-1 text-[0.6875rem] leading-relaxed text-warning">
+        <p className="mt-1 text-[length:var(--type-secondary)] leading-relaxed text-warning">
           Your saved {n(target.marks)} is above this paper&apos;s current
           maximum of {target.maxScore}. The paper changed after you set it —
           adjust it or reset to the default.
         </p>
       )}
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-[0.6875rem] text-muted">
+        <label className="text-[length:var(--type-label)] text-muted">
           Target marks
           <Input
             type="number"
@@ -517,7 +517,6 @@ function TierTargetRow({
         <Button
           size="sm"
           variant="outline"
-          className="h-9"
           disabled={pending || invalid}
           onClick={onSave}
         >
@@ -527,7 +526,6 @@ function TierTargetRow({
           <Button
             size="sm"
             variant="ghost"
-            className="h-9"
             disabled={pending}
             onClick={onInherit}
             title="Remove this tier's own target and use the structure default"
@@ -536,7 +534,7 @@ function TierTargetRow({
           </Button>
         )}
         {invalid && error && (
-          <p role="alert" className="text-[0.6875rem] text-danger">
+          <p role="alert" className="text-[length:var(--type-label)] text-danger">
             {error}
           </p>
         )}
@@ -548,7 +546,7 @@ function TierTargetRow({
             label={`${label} target`}
             className="max-w-56"
           />
-          <span className="text-[0.6875rem] tabular text-muted">
+          <span className="text-[length:var(--type-secondary)] tabular text-muted">
             {n((target.marks / target.maxScore) * 100)}% of the paper
           </span>
         </div>
@@ -589,18 +587,18 @@ function DefaultRow({
         <p className="text-sm font-medium text-ink">
           {describeSignature(signature)}
         </p>
-        <p className="text-[0.6875rem] text-muted">
+        <p className="text-[length:var(--type-secondary)] text-muted">
           Applies to {peers.length} tier{peers.length === 1 ? "" : "s"} · out of{" "}
           {maxScore}
         </p>
       </div>
-      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[0.6875rem] text-muted">
+      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[length:var(--type-secondary)] text-muted">
         {peers.map((key) => (
           <li key={key}>{labelFor(key)}</li>
         ))}
       </ul>
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-[0.6875rem] text-muted">
+        <label className="text-[length:var(--type-label)] text-muted">
           Default target marks
           <Input
             type="number"
@@ -619,7 +617,6 @@ function DefaultRow({
         <Button
           size="sm"
           variant="outline"
-          className="h-9"
           disabled={pending || invalid}
           onClick={onSave}
         >
@@ -629,7 +626,6 @@ function DefaultRow({
           <Button
             size="sm"
             variant="ghost"
-            className="h-9"
             disabled={pending}
             onClick={onClear}
           >
@@ -637,7 +633,7 @@ function DefaultRow({
           </Button>
         )}
         {invalid && error && (
-          <p role="alert" className="text-[0.6875rem] text-danger">
+          <p role="alert" className="text-[length:var(--type-label)] text-danger">
             {error}
           </p>
         )}
@@ -689,12 +685,12 @@ function PercentileRow({
         <p className="text-sm font-medium text-ink">
           {name}
           {!enabled && (
-            <span className="ml-2 text-[0.625rem] uppercase tracking-wide text-muted">
+            <span className="ml-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
               not enabled
             </span>
           )}
         </p>
-        <p className="text-[0.6875rem] text-muted">Goal percentile</p>
+        <p className="text-[length:var(--type-secondary)] text-muted">Goal percentile</p>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <Slider
@@ -730,7 +726,7 @@ function PercentileRow({
           Save
         </Button>
         {invalid && error && (
-          <p role="alert" className="text-[0.6875rem] text-danger">
+          <p role="alert" className="text-[length:var(--type-label)] text-danger">
             {error}
           </p>
         )}
@@ -742,16 +738,16 @@ function PercentileRow({
 function PercentileExplainer() {
   return (
     <div className="mt-3 rounded-control border border-rule-soft bg-canvas p-3">
-      <p className="text-[0.6875rem] font-medium text-ink">
+      <p className="text-[length:var(--type-label)] font-medium text-ink">
         A percentile goal is not any of these
       </p>
-      <ul className="mt-1 grid gap-0.5 text-[0.6875rem] leading-relaxed text-muted sm:grid-cols-2">
+      <ul className="mt-1 grid gap-0.5 text-[length:var(--type-secondary)] leading-relaxed text-muted sm:grid-cols-2">
         <li>Not a percentage of a paper.</li>
         <li>Not a raw-marks equivalent.</li>
         <li>Not a normalized score.</li>
         <li>Not an official cutoff or a chance of selection.</li>
       </ul>
-      <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-muted">
+      <p className="mt-1.5 text-[length:var(--type-secondary)] leading-relaxed text-muted">
         The app never estimates a percentile for you — it only records what a
         platform or result sheet reported.
       </p>
@@ -796,7 +792,7 @@ function ActiveTargetCard({
             </span>
           )}
         </div>
-        <p className="mt-1 text-[0.6875rem] text-muted">
+        <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
           The dashboard draws this as a reference line on the charts for this tier.
         </p>
         <Button

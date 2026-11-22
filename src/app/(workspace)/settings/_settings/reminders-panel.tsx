@@ -146,12 +146,12 @@ export function RemindersPanel() {
         <Reveal>
           <div className="rounded-control border border-rule-soft bg-canvas p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[0.6875rem] font-medium text-ink">
+              <p className="text-[length:var(--type-label)] font-medium text-ink">
                 These are in-app signals, not notifications.
               </p>
               <Badge variant="secondary">In-app only · no email</Badge>
             </div>
-            <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted">
+            <p className="mt-1 text-[length:var(--type-secondary)] leading-relaxed text-muted">
               SSC Insight runs entirely in your browser session. It cannot send a
               push notification, an email, or a reminder while it is closed —
               there is no background delivery of any kind. Everything below
@@ -248,7 +248,7 @@ export function RemindersPanel() {
                 control={control}
                 name="quietHours.start"
                 render={({ field }) => (
-                  <label className="text-[0.6875rem] text-muted">
+                  <label className="text-[length:var(--type-label)] text-muted">
                     From
                     <Input
                       type="time"
@@ -263,7 +263,7 @@ export function RemindersPanel() {
                 control={control}
                 name="quietHours.end"
                 render={({ field }) => (
-                  <label className="text-[0.6875rem] text-muted">
+                  <label className="text-[length:var(--type-label)] text-muted">
                     Until
                     <Input
                       type="time"
@@ -274,21 +274,21 @@ export function RemindersPanel() {
                   </label>
                 )}
               />
-              <p className="text-[0.6875rem] text-muted">
+              <p className="text-[length:var(--type-secondary)] text-muted">
                 All times are India Standard Time.
               </p>
             </RevealItem>
           )}
 
           {formState.errors.quietHours && (
-            <p role="alert" className="mt-3 text-[11px] text-danger">
+            <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
               {formState.errors.quietHours.start?.message ??
                 formState.errors.quietHours.end?.message ??
                 "Check the quiet-hours window."}
             </p>
           )}
           {error && (
-            <p role="alert" className="mt-3 text-[11px] text-danger">
+            <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
               {error}
             </p>
           )}

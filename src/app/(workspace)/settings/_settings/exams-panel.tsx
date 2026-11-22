@@ -331,12 +331,12 @@ export function ExamsPanel() {
               </ul>
             </RevealItem>
             {formState.errors.enabledTiers && (
-              <p role="alert" className="mt-3 text-[11px] text-danger">
+              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
                 {formState.errors.enabledTiers.message}
               </p>
             )}
             {error && (
-              <p role="alert" className="mt-3 text-[11px] text-danger">
+              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
                 {error}
               </p>
             )}
@@ -497,25 +497,27 @@ function ExamRow({
         <span className="min-w-36 flex-1 text-sm font-medium text-ink">
           {name}
           {custom ? (
-            <span className="ml-1.5 text-[0.625rem] uppercase tracking-wide text-muted">
+            <span className="ml-1.5 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
               custom
             </span>
           ) : null}
         </span>
         {cycle && (
-          <span className="text-[0.6875rem] text-muted">Pattern: {cycle}</span>
+          <span className="text-[length:var(--type-secondary)] text-muted">
+            Pattern: {cycle}
+          </span>
         )}
-        <button
+        <Button
           type="button"
+          size="sm"
+          variant={isTargeted ? "secondary" : "outline"}
           aria-pressed={isTargeted}
           disabled={busy || enabledKeys.length === 0 || isTargeted}
           onClick={onTargeted}
           className={cn(
-            "rounded-control border px-2.5 py-1 text-[0.6875rem] font-medium transition-colors",
-            isTargeted
-              ? "border-accent bg-accent-soft text-accent"
-              : "border-rule-soft text-muted hover:border-rule hover:text-ink",
-            enabledKeys.length === 0 && "opacity-50",
+            isTargeted &&
+              "border-accent bg-accent-soft text-accent hover:bg-accent-soft disabled:border-accent disabled:bg-accent-soft disabled:text-accent disabled:opacity-100",
+            enabledKeys.length === 0 && "text-muted",
           )}
           title={
             enabledKeys.length === 0
@@ -526,9 +528,9 @@ function ExamRow({
           }
         >
           {isTargeted ? "Your exam" : "Set as your exam"}
-        </button>
+        </Button>
         {custom && onEdit && (
-          <Button variant="ghost" size="sm" className="h-7 px-2" disabled={busy} onClick={onEdit}>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onEdit}>
             Edit
           </Button>
         )}
@@ -536,7 +538,7 @@ function ExamRow({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-danger hover:text-danger"
+            className="text-danger hover:text-danger"
             disabled={busy}
             onClick={onDelete}
           >
@@ -565,7 +567,7 @@ function ExamRow({
                 <span className="font-medium text-ink">{tier.label}</span>
                 <span className="ml-2 text-muted">{describeTier(tier)}</span>
                 {tier.role && (
-                  <span className="ml-2 text-[0.625rem] uppercase tracking-wide text-muted">
+                  <span className="ml-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
                     {tier.role}
                   </span>
                 )}
@@ -578,11 +580,11 @@ function ExamRow({
       {(stages.length > 0 || sources.length > 0) && (
         <Accordion type="single" collapsible className="mt-1 pl-1">
           <AccordionItem value="detail" className="border-b-0">
-            <AccordionTrigger className="py-1.5 text-[0.6875rem] font-normal text-muted">
+            <AccordionTrigger className="py-1.5 text-[length:var(--type-secondary)] font-normal text-muted">
               Stages and source
             </AccordionTrigger>
             <AccordionContent>
-              <ul className="space-y-1 text-[0.6875rem] leading-relaxed text-muted">
+              <ul className="space-y-1 text-[length:var(--type-secondary)] leading-relaxed text-muted">
                 {stages.map((stage) => (
                   <li key={stage.id}>
                     <span className="font-medium text-ink">{stage.label}</span>
@@ -750,12 +752,12 @@ function CustomExamDialog({
                   key={tier.id ?? `new-${index}`}
                   className="rounded-control border border-rule-soft p-3"
                 >
-                  <legend className="flex items-center gap-2 px-1 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                  <legend className="flex items-center gap-2 px-1 text-[length:var(--type-label)] font-semibold uppercase tracking-[0.1em] text-muted">
                     Tier {index + 1}
                     {draft.tiers.length > 1 && (
                       <button
                         type="button"
-                        className="text-[0.6875rem] font-normal normal-case text-danger hover:underline"
+                        className="text-[length:var(--type-label)] font-normal normal-case text-danger hover:underline"
                         disabled={busy}
                         onClick={() =>
                           setDraft((prev) => ({
@@ -818,7 +820,7 @@ function CustomExamDialog({
                             </label>
                             {row && (
                               <>
-                                <label className="text-[0.6875rem] text-muted">
+                                <label className="text-[length:var(--type-label)] text-muted">
                                   Questions
                                   <Input
                                     type="number"
@@ -842,7 +844,7 @@ function CustomExamDialog({
                                     }
                                   />
                                 </label>
-                                <label className="flex items-center gap-1.5 text-[0.6875rem] text-muted">
+                                <label className="flex items-center gap-1.5 text-[length:var(--type-label)] text-muted">
                                   <Checkbox
                                     checked={row.qualifying}
                                     disabled={busy}
@@ -868,7 +870,7 @@ function CustomExamDialog({
                       })}
                     </div>
                     <div className="flex flex-wrap items-end gap-3">
-                      <label className="text-[0.6875rem] text-muted">
+                      <label className="text-[length:var(--type-label)] text-muted">
                         Marks per correct
                         <Input
                           type="number"
@@ -889,7 +891,7 @@ function CustomExamDialog({
                           }
                         />
                       </label>
-                      <label className="text-[0.6875rem] text-muted">
+                      <label className="text-[length:var(--type-label)] text-muted">
                         Penalty per incorrect
                         <Input
                           type="number"
@@ -910,7 +912,7 @@ function CustomExamDialog({
                           }
                         />
                       </label>
-                      <p className="text-[0.6875rem] text-muted">
+                      <p className="text-[length:var(--type-secondary)] text-muted">
                         Maximum: {meritQuestions * tier.marking.correct} marks
                       </p>
                     </div>
@@ -948,11 +950,11 @@ function CustomExamDialog({
               </Button>
             )}
             {error && (
-              <p role="alert" className="text-[11px] text-danger">
+              <p role="alert" className="text-[length:var(--type-label)] text-danger">
                 {error}
               </p>
             )}
-            <div className="action-row">
+            <div className="action-row-stack">
               <Button disabled={busy || !valid} onClick={() => void save()}>
                 {busy ? "Saving…" : isNew ? "Create exam" : "Save changes"}
               </Button>
