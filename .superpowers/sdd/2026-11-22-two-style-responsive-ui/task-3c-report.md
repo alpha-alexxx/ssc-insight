@@ -120,3 +120,30 @@ Conventional commit subject: `feat(ui): refine overlay primitives` (the Task 3C 
 
 - The required Graphify query remains blocked by the known stale uv Python launcher path above. This did not affect source/test verification.
 - The pre-existing untracked `docs/` directory remains outside this task and was intentionally not staged.
+
+## Review fix round 1 — R12 Sheet safe-area ownership
+
+Reviewer finding: the initial Task 3C test retained Sheet behavior but did not explicitly evidence the safe-area ownership boundary.
+
+R12 was covered in `tests/ui-style-contract.test.ts` without changing production or `src/app/globals.css`:
+
+- `SheetContent` must continue passing its caller-supplied `className` through the `cn(...)` composition after `sideClasses[side]`.
+- `.ai-workspace-sheet` must retain the exact top ownership contract `padding-top: env(safe-area-inset-top, 0px);`.
+- `.ai-composer` must retain the exact bottom ownership contract `padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));`.
+
+This preserves safe-area padding for the AI workspace while avoiding generic Sheet padding that would double-pad unrelated callers.
+
+### Fix-round verification
+
+| Check | Result |
+|---|---|
+| `npx tsx --test tests/ui-style-contract.test.ts` | PASS — `19/19` |
+| `npm run typecheck` | PASS — `tsc --noEmit` |
+| `npx eslint tests/ui-style-contract.test.ts` | PASS — no findings |
+| `git diff --check` | PASS — no output |
+
+### Fix-round commit
+
+Task 3C implementation commit reviewed: `63d651b` (`feat(ui): refine overlay primitives`).
+
+Conventional review-fix subject: `test(ui): assert Sheet safe-area ownership` (the commit containing this report update; its final hash is reported after creation because a commit cannot embed its own content-derived hash).

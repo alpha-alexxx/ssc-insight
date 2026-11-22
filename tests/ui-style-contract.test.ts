@@ -42,6 +42,17 @@ const dialogSource = source("src/components/ui/dialog.tsx");
 const alertDialogSource = source("src/components/ui/alert-dialog.tsx");
 const sheetSource = source("src/components/ui/sheet.tsx");
 const drawerSource = source("src/components/ui/drawer.tsx");
+const globalsSource = source("src/app/globals.css");
+const aiWorkspaceSheetSource = sourceRegion(
+  globalsSource,
+  ".ai-workspace-sheet {",
+  ".ai-composer {",
+);
+const aiComposerSafeAreaSource = sourceRegion(
+  globalsSource,
+  ".ai-composer {",
+  "/* The coach's composer card",
+);
 const dialogContentSource = sourceRegion(
   dialogSource,
   "const DialogContent",
@@ -681,6 +692,24 @@ test("Overlay primitives preserve Radix and Vaul composition and exports", () =>
 
   assert.match(alertDialogSource, /<Button variant=["']destructive["'] asChild>/);
   assert.match(alertDialogSource, /<Button variant=["']outline["'] asChild>/);
+});
+
+test("Sheet delegates safe-area padding to its caller-owned workspace classes", () => {
+  assert.match(
+    sheetContentSource,
+    /className=\{cn\([\s\S]*?sideClasses\[side\],\s*className,\s*\)\}/,
+    "SheetContent must preserve its caller className",
+  );
+  assert.ok(
+    aiWorkspaceSheetSource.includes("padding-top: env(safe-area-inset-top, 0px);"),
+    "AI workspace sheet owns the top safe area",
+  );
+  assert.ok(
+    aiComposerSafeAreaSource.includes(
+      "padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));",
+    ),
+    "AI composer owns the bottom safe area",
+  );
 });
 
 test("Sheet and Drawer retain their public behavior and mobile layout contracts", () => {
