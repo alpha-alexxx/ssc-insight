@@ -35,10 +35,12 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 type SheetSide = "top" | "right" | "bottom" | "left";
 
 const sideClasses: Record<SheetSide, string> = {
-  top: "inset-x-0 top-0 max-h-[90dvh] border-b",
-  bottom: "inset-x-0 bottom-0 max-h-[90dvh] border-t",
-  left: "inset-y-0 left-0 h-dvh w-[86vw] border-r sm:max-w-[460px]",
-  right: "inset-y-0 right-0 h-dvh w-[86vw] border-l sm:max-w-[460px]",
+  top: "inset-x-0 top-0 max-h-[90dvh] rounded-b-[var(--radius-floating)] border-b",
+  bottom:
+    "inset-x-0 bottom-0 max-h-[90dvh] rounded-t-[var(--radius-floating)] border-t",
+  left: "inset-y-0 left-0 h-dvh w-[86vw] rounded-r-[var(--radius-floating)] border-r sm:max-w-[28.75rem]",
+  right:
+    "inset-y-0 right-0 h-dvh w-[86vw] rounded-l-[var(--radius-floating)] border-l sm:max-w-[28.75rem]",
 };
 
 interface SheetContentProps extends React.ComponentPropsWithoutRef<
@@ -78,8 +80,8 @@ const SheetContent = React.forwardRef<
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute right-2 top-2 z-10 inline-flex size-10 touch-manipulation items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none">
-            <X className="size-4" />
+          <SheetPrimitive.Close className="tap-target absolute right-2 top-2 z-10 inline-flex size-[var(--control-height-sm)] touch-manipulation items-center justify-center rounded-control text-muted transition-[color,background-color] duration-[var(--dur-quick)] hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted [&_svg[data-icon]]:size-4">
+            <X data-icon="inline-start" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}
@@ -118,7 +120,7 @@ const SheetTitle = React.forwardRef<
   <SheetPrimitive.Title
     ref={ref}
     className={cn(
-      "font-serif text-xl font-semibold text-foreground",
+      "font-serif text-[length:var(--type-section-title)] font-medium leading-snug text-foreground",
       className,
     )}
     {...props}
@@ -132,7 +134,10 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}
-    className={cn("text-xs text-muted-foreground", className)}
+    className={cn(
+      "text-pretty text-[length:var(--type-secondary)] leading-relaxed text-muted-foreground",
+      className,
+    )}
     {...props}
   />
 ));

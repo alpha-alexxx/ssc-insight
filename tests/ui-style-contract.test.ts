@@ -38,6 +38,72 @@ const tabsSource = source("src/components/ui/tabs.tsx");
 const toggleGroupSource = source("src/components/ui/toggle-group.tsx");
 const paginationSource = source("src/components/ui/pagination.tsx");
 const sidebarSource = source("src/components/ui/sidebar.tsx");
+const dialogSource = source("src/components/ui/dialog.tsx");
+const alertDialogSource = source("src/components/ui/alert-dialog.tsx");
+const sheetSource = source("src/components/ui/sheet.tsx");
+const drawerSource = source("src/components/ui/drawer.tsx");
+const dialogContentSource = sourceRegion(
+  dialogSource,
+  "const DialogContent",
+  "DialogContent.displayName",
+);
+const dialogTitleSource = sourceRegion(
+  dialogSource,
+  "const DialogTitle",
+  "DialogTitle.displayName",
+);
+const dialogDescriptionSource = sourceRegion(
+  dialogSource,
+  "const DialogDescription",
+  "DialogDescription.displayName",
+);
+const alertDialogContentSource = sourceRegion(
+  alertDialogSource,
+  "const AlertDialogContent",
+  "AlertDialogContent.displayName",
+);
+const alertDialogTitleSource = sourceRegion(
+  alertDialogSource,
+  "const AlertDialogTitle",
+  "AlertDialogTitle.displayName",
+);
+const alertDialogDescriptionSource = sourceRegion(
+  alertDialogSource,
+  "const AlertDialogDescription",
+  "AlertDialogDescription.displayName",
+);
+const sheetSideClassesSource = sourceRegion(sheetSource, "const sideClasses", "interface SheetContentProps");
+const sheetContentSource = sourceRegion(
+  sheetSource,
+  "const SheetContent",
+  "SheetContent.displayName",
+);
+const sheetTitleSource = sourceRegion(
+  sheetSource,
+  "const SheetTitle",
+  "SheetTitle.displayName",
+);
+const sheetDescriptionSource = sourceRegion(
+  sheetSource,
+  "const SheetDescription",
+  "SheetDescription.displayName",
+);
+const drawerContentSource = sourceRegion(
+  drawerSource,
+  "const DrawerContent",
+  "DrawerContent.displayName",
+);
+const drawerTitleSource = sourceRegion(
+  drawerSource,
+  "const DrawerTitle",
+  "DrawerTitle.displayName",
+);
+const drawerDescriptionSource = sourceRegion(
+  drawerSource,
+  "const DrawerDescription",
+  "DrawerDescription.displayName",
+);
+const drawerBodySource = sourceRegion(drawerSource, "const DrawerBody", "export {");
 const sidebarMenuButtonVariantsSource = sourceRegion(
   sidebarSource,
   "const sidebarMenuButtonVariants",
@@ -437,5 +503,216 @@ test("Task 3B primitives contain no legacy disabled opacity or accent focus over
     assert.doesNotMatch(componentSource, /disabled:opacity-/, name);
     assert.doesNotMatch(componentSource, /aria-disabled:opacity-/, name);
     assert.doesNotMatch(componentSource, /focus-visible:outline-accent/, name);
+  }
+});
+
+test("Task 3C floating overlay surfaces use floating geometry and elevation tokens", () => {
+  const surfaces = [
+    {
+      name: "DialogContent",
+      region: dialogContentSource,
+      expected: ["rounded-floating", "border-rule", "bg-background", "shadow-pop"],
+    },
+    {
+      name: "AlertDialogContent",
+      region: alertDialogContentSource,
+      expected: [
+        "rounded-floating",
+        "border-rule",
+        "bg-paper",
+        "shadow-pop",
+        "w-[calc(100%-2rem)]",
+      ],
+    },
+    {
+      name: "SheetContent",
+      region: sheetContentSource,
+      expected: ["border-rule", "bg-background", "shadow-pop"],
+    },
+    {
+      name: "DrawerContent",
+      region: drawerContentSource,
+      expected: [
+        "rounded-t-[var(--radius-floating)]",
+        "border-rule",
+        "bg-paper",
+        "shadow-pop",
+        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+      ],
+    },
+  ] as const;
+
+  for (const surface of surfaces) {
+    assert.notEqual(surface.region, "", `${surface.name}: source region`);
+    for (const className of surface.expected) {
+      assert.ok(surface.region.includes(className), `${surface.name}: ${className}`);
+    }
+    assert.doesNotMatch(surface.region, /rounded-panel/, surface.name);
+  }
+
+  for (const [side, contract] of [
+    [
+      "top",
+      /top:\s*"inset-x-0 top-0 max-h-\[90dvh\] rounded-b-\[var\(--radius-floating\)\] border-b"/,
+    ],
+    [
+      "bottom",
+      /bottom:\s*"inset-x-0 bottom-0 max-h-\[90dvh\] rounded-t-\[var\(--radius-floating\)\] border-t"/,
+    ],
+    [
+      "left",
+      /left:\s*"inset-y-0 left-0 h-dvh w-\[86vw\] rounded-r-\[var\(--radius-floating\)\] border-r sm:max-w-\[28\.75rem\]"/,
+    ],
+    [
+      "right",
+      /right:\s*"inset-y-0 right-0 h-dvh w-\[86vw\] rounded-l-\[var\(--radius-floating\)\] border-l sm:max-w-\[28\.75rem\]"/,
+    ],
+  ] as const) {
+    assert.match(sheetSideClassesSource, contract, `Sheet side contract: ${side}`);
+  }
+});
+
+test("Dialog and Sheet close controls use touch-safe token states and global focus", () => {
+  for (const [name, region] of [
+    ["DialogClose", dialogContentSource],
+    ["SheetClose", sheetContentSource],
+  ] as const) {
+    for (const className of [
+      "size-[var(--control-height-sm)]",
+      "tap-target",
+      "rounded-control",
+      "transition-[color,background-color]",
+      "duration-[var(--dur-quick)]",
+      "hover:bg-soft",
+      "hover:text-ink",
+      "disabled:pointer-events-none",
+      "disabled:cursor-not-allowed",
+      "disabled:bg-soft",
+      "disabled:text-muted",
+      "[&_svg[data-icon]]:size-4",
+    ]) {
+      assert.ok(region.includes(className), `${name}: ${className}`);
+    }
+    assert.match(region, /<X\s+data-icon=["']inline-start["']/);
+    assert.doesNotMatch(region, /<X[^>]*\bclassName=/);
+    assert.doesNotMatch(region, /focus-visible:|outline-none/);
+    assert.doesNotMatch(region, /disabled:opacity-/);
+  }
+});
+
+test("Overlay titles and descriptions keep house type floors", () => {
+  for (const [name, region] of [
+    ["DialogTitle", dialogTitleSource],
+    ["AlertDialogTitle", alertDialogTitleSource],
+  ] as const) {
+    for (const className of [
+      "font-serif",
+      "text-[length:var(--type-panel-title)]",
+      "font-medium",
+      "leading-snug",
+    ]) {
+      assert.ok(region.includes(className), `${name}: ${className}`);
+    }
+  }
+
+  for (const [name, region] of [
+    ["SheetTitle", sheetTitleSource],
+    ["DrawerTitle", drawerTitleSource],
+  ] as const) {
+    for (const className of [
+      "font-serif",
+      "text-[length:var(--type-section-title)]",
+      "font-medium",
+      "leading-snug",
+    ]) {
+      assert.ok(region.includes(className), `${name}: ${className}`);
+    }
+  }
+
+  for (const [name, region] of [
+    ["DialogDescription", dialogDescriptionSource],
+    ["AlertDialogDescription", alertDialogDescriptionSource],
+    ["SheetDescription", sheetDescriptionSource],
+    ["DrawerDescription", drawerDescriptionSource],
+  ] as const) {
+    assert.ok(region.includes("text-[length:var(--type-secondary)]"), `${name}: type floor`);
+    assert.match(region, /\btext-muted(?:-foreground)?\b/, `${name}: muted color`);
+    assert.ok(region.includes("text-pretty"), `${name}: pretty wrapping`);
+    assert.ok(region.includes("leading-relaxed"), `${name}: relaxed leading`);
+    assert.doesNotMatch(region, /\btext-xs\b|text-\[0\.8125rem\]/, name);
+  }
+});
+
+test("Overlay primitives preserve Radix and Vaul composition and exports", () => {
+  assert.match(dialogSource, /const Dialog = DialogPrimitive\.Root/);
+  assert.match(dialogContentSource, /<DialogPortal>[\s\S]*<DialogPrimitive\.Content/);
+  assert.match(alertDialogSource, /const AlertDialog = AlertDialogPrimitive\.Root/);
+  assert.match(
+    alertDialogContentSource,
+    /<AlertDialogPrimitive\.Portal>[\s\S]*<AlertDialogPrimitive\.Content/,
+  );
+  assert.match(sheetSource, /const Sheet = SheetPrimitive\.Root/);
+  assert.match(sheetContentSource, /<SheetPortal>[\s\S]*<SheetPrimitive\.Content/);
+  assert.match(drawerSource, /<DrawerPrimitive\.Root[\s\S]*shouldScaleBackground=/);
+  assert.match(drawerContentSource, /<DrawerPortal>[\s\S]*<DrawerPrimitive\.Content/);
+
+  const requiredSymbols = [
+    [dialogSource, ["DialogPortal", "DialogOverlay", "DialogTrigger", "DialogClose", "DialogTitle", "DialogDescription"]],
+    [
+      alertDialogSource,
+      [
+        "AlertDialogOverlay",
+        "AlertDialogTrigger",
+        "AlertDialogAction",
+        "AlertDialogCancel",
+        "AlertDialogTitle",
+        "AlertDialogDescription",
+      ],
+    ],
+    [sheetSource, ["SheetPortal", "SheetOverlay", "SheetTrigger", "SheetClose", "SheetTitle", "SheetDescription"]],
+    [drawerSource, ["DrawerPortal", "DrawerOverlay", "DrawerTrigger", "DrawerClose", "DrawerTitle", "DrawerDescription"]],
+  ] as const;
+
+  for (const [componentSource, symbols] of requiredSymbols) {
+    for (const symbol of symbols) {
+      assert.match(componentSource, new RegExp(`export \\{[\\s\\S]*?\\b${symbol}\\b`), symbol);
+    }
+  }
+
+  assert.match(alertDialogSource, /<Button variant=["']destructive["'] asChild>/);
+  assert.match(alertDialogSource, /<Button variant=["']outline["'] asChild>/);
+});
+
+test("Sheet and Drawer retain their public behavior and mobile layout contracts", () => {
+  for (const contract of [
+    /side\?: SheetSide/,
+    /showCloseButton\?: boolean/,
+    /overlayClassName\?: string/,
+    /side = ["']right["']/,
+    /showCloseButton = true/,
+    /<SheetOverlay className=\{overlayClassName\}/,
+    /h-dvh/,
+    /max-h-\[90dvh\]/,
+  ]) {
+    assert.match(sheetSource, contract);
+  }
+
+  assert.match(drawerSource, /shouldScaleBackground = false/);
+  assert.match(drawerSource, /fixed = true/);
+  assert.match(drawerSource, /<DrawerPrimitive\.Handle/);
+  assert.match(drawerContentSource, /max-h-\[85dvh\]/);
+  assert.equal(drawerSource.match(/overflow-y-auto/g)?.length, 1);
+  assert.ok(drawerBodySource.includes("drawer-body-scroll"));
+  assert.match(drawerSource, /export \{[\s\S]*\bDrawerTitle\b/);
+
+  for (const [name, componentSource] of [
+    ["dialog", dialogSource],
+    ["alert-dialog", alertDialogSource],
+    ["sheet", sheetSource],
+    ["drawer", drawerSource],
+  ] as const) {
+    assert.doesNotMatch(componentSource, /disabled:opacity-/, name);
+    assert.doesNotMatch(componentSource, /focus-visible:ring-/, name);
+    assert.doesNotMatch(componentSource, /focus-visible:outline-none/, name);
   }
 });

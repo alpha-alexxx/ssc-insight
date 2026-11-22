@@ -47,14 +47,14 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "dialog-content fixed left-[50%] top-[50%] z-50 flex w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col gap-4 rounded-panel border border-rule bg-background p-5 shadow-pop",
+        "dialog-content fixed left-[50%] top-[50%] z-50 flex w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col gap-4 rounded-floating border border-rule bg-background p-5 shadow-pop",
         className,
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none">
-        <X className="size-4" />
+      <DialogPrimitive.Close className="tap-target absolute right-3 top-3 inline-flex size-[var(--control-height-sm)] items-center justify-center rounded-control text-muted transition-[color,background-color] duration-[var(--dur-quick)] hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted [&_svg[data-icon]]:size-4">
+        <X data-icon="inline-start" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -84,7 +84,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-base font-semibold leading-none tracking-tight text-ink", className)}
+    className={cn(
+      "font-serif text-[length:var(--type-panel-title)] font-medium leading-snug text-ink",
+      className,
+    )}
     {...props}
   />
 ));
@@ -96,7 +99,10 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn(
+      "text-pretty text-[length:var(--type-secondary)] leading-relaxed text-muted-foreground",
+      className,
+    )}
     {...props}
   />
 ));
