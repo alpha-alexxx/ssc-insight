@@ -28,6 +28,12 @@ const securitySource = source("src/app/(workspace)/settings/_settings/security-p
 const targetsSource = source("src/app/(workspace)/settings/_settings/targets-panel.tsx");
 const remindersSource = source("src/app/(workspace)/settings/_settings/reminders-panel.tsx");
 const mockFormSource = source("src/app/(workspace)/add/_add/mock-form.tsx");
+const calendarViewSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar-view.tsx",
+);
+const calendarToolbarSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/calendar-toolbar.tsx",
+);
 const calendarEventSource = source(
   "src/app/(workspace)/calendar/_calendar/event-dialog.tsx",
 );
@@ -564,4 +570,70 @@ test("Task 5C1 presentation edits preserve Calendar callbacks, labels, and selec
       assert.ok(component.includes(fragment), `Calendar contract lost: ${fragment}`);
     }
   }
+});
+
+test("Task 5C2 Calendar local folds query their named containers", () => {
+  assert.match(
+    calendarViewSource,
+    /className="cal-page min-w-0 @container\/cal-page"/,
+  );
+  const surfaceStart = calendarViewSource.indexOf(
+    '<div\n        className={\n          mode === "month"',
+  );
+  const surfaceEnd = calendarViewSource.indexOf("</aside>", surfaceStart);
+  assert.notEqual(surfaceStart, -1, "missing Calendar surface/rail region");
+  assert.notEqual(surfaceEnd, -1, "missing Calendar rail end");
+  const surfaceRail = calendarViewSource.slice(surfaceStart, surfaceEnd);
+  for (const fragment of [
+    "@5xl/cal-page:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]",
+    "@3xl/cal-page:block",
+    "@5xl/cal-page:sticky",
+    "@5xl/cal-page:top-[4.25rem]",
+    "@5xl/cal-page:self-start",
+  ]) {
+    assert.ok(surfaceRail.includes(fragment), `Calendar fold missing: ${fragment}`);
+  }
+  assert.doesNotMatch(surfaceRail, /\b(?:md|xl):/);
+  assert.ok(calendarViewSource.includes('open={isMobile && dayDrawerOpen}'));
+  assert.ok(calendarViewSource.includes('mode === "month" || mode === "week"'));
+
+  assert.match(
+    calendarToolbarSource,
+    /className="cal-toolbar [^"]*@container\/cal-toolbar/,
+  );
+  for (const fragment of [
+    "@lg/cal-toolbar:flex-row",
+    "@lg/cal-toolbar:items-center",
+    "@lg/cal-toolbar:justify-between",
+    "@lg/cal-toolbar:inline-flex",
+    "@lg/cal-toolbar:w-auto",
+    "@lg/cal-toolbar:flex-none",
+  ]) {
+    assert.ok(calendarToolbarSource.includes(fragment), `Toolbar fold missing: ${fragment}`);
+  }
+  assert.doesNotMatch(calendarToolbarSource, /\bsm:/);
+  assert.ok(calendarToolbarSource.includes("max-[359px]:hidden"));
+  assert.ok(calendarToolbarSource.includes('aria-live="polite"'));
+  assert.ok(calendarToolbarSource.includes('aria-label="Calendar view"'));
+
+  for (const fragment of [
+    "@lg/cal-toolbar:inline-flex",
+    "@lg/cal-toolbar:w-auto",
+    "@lg/cal-toolbar:[&_.segment]:flex-none",
+  ]) {
+    assert.ok(calendarLayersSource.includes(fragment), `Layer fold missing: ${fragment}`);
+  }
+  assert.doesNotMatch(calendarLayersSource, /\bsm:/);
+
+  assert.match(
+    calendarEventSource,
+    /<Dialog\.Content className="[^"]*@container\/event-dialog/,
+  );
+  const revisionStart = calendarEventSource.indexOf('<dl className="mt-4');
+  const revisionEnd = calendarEventSource.indexOf("</dl>", revisionStart);
+  assert.notEqual(revisionStart, -1, "missing event revision matrix");
+  assert.notEqual(revisionEnd, -1, "missing event revision matrix end");
+  const revisionMatrix = calendarEventSource.slice(revisionStart, revisionEnd);
+  assert.ok(revisionMatrix.includes("@sm/event-dialog:grid-cols-3"));
+  assert.doesNotMatch(revisionMatrix, /\bsm:/);
 });

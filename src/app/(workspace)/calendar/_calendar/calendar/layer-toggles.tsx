@@ -42,7 +42,7 @@ export function LayerToggles({
     <div
       role="group"
       aria-label="Calendar layers"
-      className="segment-group grid w-full grid-cols-3 gap-0.5 sm:inline-flex sm:w-auto [&_.segment]:min-w-0 [&_.segment]:flex-1 sm:[&_.segment]:flex-none"
+      className="segment-group grid w-full grid-cols-3 gap-0.5 @lg/cal-toolbar:inline-flex @lg/cal-toolbar:w-auto [&_.segment]:min-w-0 [&_.segment]:flex-1 @lg/cal-toolbar:[&_.segment]:flex-none"
     >
       {CALENDAR_LAYERS.map((layer) => {
         const active = on.has(layer);
