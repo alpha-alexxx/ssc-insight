@@ -23,22 +23,23 @@ const Switch = React.forwardRef<
 >(({ className, label, ...props }, ref) => (
   <SwitchPrimitive.Root
     ref={ref}
+    data-slot="switch"
     aria-label={label}
     className={cn(
-      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center border p-[2px]",
-      "rounded-[3px] transition-colors duration-[var(--dur-quick)]",
+      "peer tap-target inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-control border p-[2px]",
+      "transition-colors duration-[var(--dur-quick)]",
       "border-rule bg-paper data-[state=checked]:border-ink data-[state=checked]:bg-ink",
-      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      // The 44px phone hit area without changing the visual size.
-      "relative after:absolute after:-inset-3 after:content-['']",
+      "disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft",
+      "disabled:data-[state=checked]:border-rule-soft disabled:data-[state=checked]:bg-soft",
+      "disabled:[&_[data-slot=switch-thumb]]:bg-muted",
       className,
     )}
     {...props}
   >
     <SwitchPrimitive.Thumb
+      data-slot="switch-thumb"
       className={cn(
-        "pointer-events-none block size-4 shrink-0 rounded-[2px] bg-rule transition-transform duration-[var(--dur-quick)]",
+        "pointer-events-none block size-4 shrink-0 rounded-[calc(var(--radius-control)/2)] bg-rule transition-transform duration-[var(--dur-quick)]",
         "data-[state=checked]:translate-x-4 data-[state=checked]:bg-paper",
       )}
     />
@@ -68,7 +69,7 @@ function SwitchRow({
       <div className="min-w-0">
         <p className="text-sm font-medium text-ink">{title}</p>
         {description && (
-          <p className="mt-0.5 text-[0.6875rem] leading-relaxed text-muted">
+          <p className="mt-0.5 text-pretty text-[length:var(--type-secondary)] leading-relaxed text-muted">
             {description}
           </p>
         )}

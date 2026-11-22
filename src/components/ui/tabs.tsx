@@ -21,11 +21,21 @@ const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+    overflowBehavior?: "wrap" | "scroll";
+  }
+>(({ className, overflowBehavior = "wrap", ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={cn("segment-group max-w-full", className)}
+    data-slot="tabs-list"
+    data-overflow-behavior={overflowBehavior}
+    className={cn(
+      "segment-group max-w-full",
+      overflowBehavior === "scroll"
+        ? "flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0"
+        : "flex-wrap",
+      className,
+    )}
     {...props}
   />
 ));
@@ -38,7 +48,10 @@ function TabsCaption({
 }: React.ComponentPropsWithoutRef<"p">) {
   return (
     <p
-      className={cn("mt-2 text-[0.6875rem] leading-relaxed text-muted", className)}
+      className={cn(
+        "mt-2 text-[length:var(--type-secondary)] leading-relaxed text-muted",
+        className,
+      )}
       {...props}
     />
   );

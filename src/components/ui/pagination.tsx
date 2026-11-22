@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  */
 
 const pageButtonBase =
-  "inline-flex size-8 tap-target items-center justify-center rounded-control text-xs font-medium tabular transition-colors disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex size-[var(--control-height-sm)] tap-target items-center justify-center rounded-control text-[length:var(--type-secondary)] font-medium tabular-nums transition-[color,background-color,border-color] duration-[var(--dur-quick)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft disabled:text-muted";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -51,6 +51,7 @@ function PaginationPage({
   return (
     <button
       type="button"
+      data-slot="pagination-page"
       aria-current={isActive ? "page" : undefined}
       className={cn(
         pageButtonBase,
@@ -111,8 +112,9 @@ function PaginationEllipsis({
   return (
     <span
       aria-hidden="true"
+      data-slot="pagination-ellipsis"
       className={cn(
-        "flex size-8 items-center justify-center text-xs muted",
+        "flex size-[var(--control-height-sm)] items-center justify-center text-[length:var(--type-secondary)] text-muted",
         className,
       )}
       {...props}

@@ -544,7 +544,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-control p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-control border border-transparent p-2 text-left text-sm transition-[width,height,padding,color,background-color,border-color] duration-[var(--dur-quick)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-sidebar-border disabled:bg-sidebar-accent disabled:text-sidebar-foreground/60 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:border-sidebar-border aria-disabled:bg-sidebar-accent aria-disabled:text-sidebar-foreground/60 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-[var(--sidebar-row-h-lg)]! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -554,7 +554,7 @@ const sidebarMenuButtonVariants = cva(
       },
       size: {
         default: "h-[var(--sidebar-row-h)] text-sm",
-        sm: "h-7 text-xs",
+        sm: "h-[var(--control-height-sm)] text-xs",
         lg: "h-[var(--sidebar-row-h-lg)] text-sm group-data-[collapsible=icon]:p-0!",
       },
     },
@@ -567,7 +567,7 @@ const sidebarMenuButtonVariants = cva(
 // Remove collapsed labels from flex layout without losing accessible names.
 // Zero-width blocks still wrap their contents and can inflate the logo header.
 const COLLAPSED_ICON_BUTTON =
-  "group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!";
+  "group-data-[collapsible=icon]:size-[var(--sidebar-row-h-lg)]! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!";
 const COLLAPSED_TEXT_SPAN = "group-data-[collapsible=icon]:sr-only";
 
 const SidebarMenuButton = React.forwardRef<
@@ -643,9 +643,7 @@ const SidebarMenuAction = React.forwardRef<
       ref={ref}
       data-sidebar="menu-action"
       className={cn(
-        "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
-        "after:absolute after:-inset-2 after:md:hidden",
+        "tap-target absolute right-1 top-1.5 flex size-5 items-center justify-center rounded-control border border-transparent p-0 text-sidebar-foreground transition-[color,background-color,border-color,transform] duration-[var(--dur-quick)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-sidebar-border disabled:bg-sidebar-accent disabled:text-sidebar-foreground/60 aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:border-sidebar-border aria-disabled:bg-sidebar-accent aria-disabled:text-sidebar-foreground/60 [&>svg]:size-4 [&>svg]:shrink-0",
         "peer-data-[size=sm]/menu-button:top-1",
         "peer-data-[size=default]/menu-button:top-1.5",
         "peer-data-[size=lg]/menu-button:top-2.5",
@@ -757,7 +755,7 @@ const SidebarMenuSubButton = React.forwardRef<
       data-size={size}
       data-active={isActive}
       className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+        "flex h-[var(--control-height-sm)] min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-control border border-transparent px-2 text-sidebar-foreground transition-colors duration-[var(--dur-quick)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-sidebar-border disabled:bg-sidebar-accent disabled:text-sidebar-foreground/60 aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:border-sidebar-border aria-disabled:bg-sidebar-accent aria-disabled:text-sidebar-foreground/60 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",

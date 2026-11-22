@@ -23,6 +23,13 @@ const inputSource = source("src/components/ui/input.tsx");
 const textareaSource = source("src/components/ui/textarea.tsx");
 const fieldSource = source("src/components/ui/field.tsx");
 const selectSource = source("src/components/ui/select.tsx");
+const checkboxSource = source("src/components/ui/checkbox.tsx");
+const radioGroupSource = source("src/components/ui/radio-group.tsx");
+const switchSource = source("src/components/ui/switch.tsx");
+const tabsSource = source("src/components/ui/tabs.tsx");
+const toggleGroupSource = source("src/components/ui/toggle-group.tsx");
+const paginationSource = source("src/components/ui/pagination.tsx");
+const sidebarSource = source("src/components/ui/sidebar.tsx");
 
 function assertClasses(actual: string, expected: readonly string[]) {
   const classes = new Set(actual.split(/\s+/));
@@ -201,4 +208,177 @@ test("Select composes token controls, semantic states, and floating elevation", 
   assert.match(selectSource, /<ChevronDown[\s\S]*?data-icon=/);
   assert.match(selectSource, /<Check[\s\S]*?data-icon=/);
   assert.doesNotMatch(selectSource, /<(?:ChevronDown|Check)[^>]*\bsize=/);
+});
+
+test("Checkbox and Radio use token geometry, touch targets, and semantic disabled states", () => {
+  for (const [name, componentSource] of [
+    ["Checkbox", checkboxSource],
+    ["RadioGroupItem", radioGroupSource],
+  ] as const) {
+    for (const className of [
+      "size-4",
+      "tap-target",
+      "rounded-[calc(var(--radius-control)/2)]",
+      "disabled:pointer-events-none",
+      "disabled:cursor-not-allowed",
+      "disabled:border-rule-soft",
+      "disabled:bg-soft",
+      "disabled:text-muted",
+      "disabled:data-[state=checked]:border-rule-soft",
+      "disabled:data-[state=checked]:bg-soft",
+    ]) {
+      assert.ok(componentSource.includes(className), `${name}: ${className}`);
+    }
+    assert.doesNotMatch(componentSource, /focus-visible:(?:outline|ring)-accent/);
+    assert.doesNotMatch(componentSource, /disabled:opacity-/);
+  }
+
+  assert.match(checkboxSource, /<Check[\s\S]*?data-icon=/);
+  assert.doesNotMatch(checkboxSource, /<Check[^>]*\bsize=/);
+  assert.match(checkboxSource, /data-slot=["']checkbox["']/);
+  assert.match(radioGroupSource, /data-slot=["']radio-group-item["']/);
+});
+
+test("Switch keeps token motion and geometry with a readable SwitchRow description", () => {
+  for (const className of [
+    "h-5",
+    "w-9",
+    "size-4",
+    "tap-target",
+    "rounded-control",
+    "rounded-[calc(var(--radius-control)/2)]",
+    "duration-[var(--dur-quick)]",
+    "disabled:pointer-events-none",
+    "disabled:cursor-not-allowed",
+    "disabled:border-rule-soft",
+    "disabled:bg-soft",
+    "disabled:data-[state=checked]:border-rule-soft",
+    "disabled:data-[state=checked]:bg-soft",
+    "text-[length:var(--type-secondary)]",
+    "text-pretty",
+  ]) {
+    assert.ok(switchSource.includes(className), `Switch: ${className}`);
+  }
+
+  assert.match(switchSource, /data-slot=["']switch["']/);
+  assert.match(switchSource, /data-slot=["']switch-thumb["']/);
+  assert.doesNotMatch(switchSource, /focus-visible:(?:outline|ring)-accent/);
+  assert.doesNotMatch(switchSource, /disabled:opacity-/);
+});
+
+test("Tabs expose a wrap-or-scroll overflow contract without shrinking labels", () => {
+  assert.match(tabsSource, /overflowBehavior\?:\s*["']wrap["']\s*\|\s*["']scroll["']/);
+  assert.match(tabsSource, /overflowBehavior\s*=\s*["']wrap["']/);
+  assert.match(tabsSource, /data-slot=["']tabs-list["']/);
+  assert.match(tabsSource, /data-overflow-behavior=\{overflowBehavior\}/);
+  for (const className of [
+    "flex-wrap",
+    "flex-nowrap",
+    "overflow-x-auto",
+    "overscroll-x-contain",
+    "[scrollbar-width:none]",
+    "[&::-webkit-scrollbar]:hidden",
+    "[&>*]:shrink-0",
+    "text-[length:var(--type-secondary)]",
+  ]) {
+    assert.ok(tabsSource.includes(className), `Tabs: ${className}`);
+  }
+  assert.doesNotMatch(tabsSource, /overflowBehavior[\s\S]*?text-(?:xs|\[0\.)/);
+});
+
+test("ToggleGroup adapts segment overflow and gives card items token interaction states", () => {
+  assert.match(
+    toggleGroupSource,
+    /overflowBehavior\?:\s*["']wrap["']\s*\|\s*["']scroll["']/,
+  );
+  assert.match(toggleGroupSource, /overflowBehavior\s*=\s*["']wrap["']/);
+  assert.match(toggleGroupSource, /data-slot=["']toggle-group["']/);
+  assert.match(toggleGroupSource, /data-slot=["']toggle-group-item["']/);
+  assert.ok(toggleGroupSource.includes("segment-group"));
+  for (const className of [
+    "flex-wrap",
+    "flex-nowrap",
+    "overflow-x-auto",
+    "overscroll-x-contain",
+    "[scrollbar-width:none]",
+    "[&::-webkit-scrollbar]:hidden",
+    "[&>*]:shrink-0",
+    "rounded-control",
+    "transition-[color,background-color,border-color]",
+    "duration-[var(--dur-quick)]",
+    "disabled:pointer-events-none",
+    "disabled:cursor-not-allowed",
+    "disabled:border-rule-soft",
+    "disabled:bg-soft",
+    "disabled:text-muted",
+  ]) {
+    assert.ok(toggleGroupSource.includes(className), `ToggleGroup: ${className}`);
+  }
+  assert.doesNotMatch(toggleGroupSource, /disabled:opacity-/);
+  assert.doesNotMatch(toggleGroupSource, /\bdark:/);
+});
+
+test("Pagination uses token boxes, readable type, and semantic disabled states", () => {
+  for (const className of [
+    "size-[var(--control-height-sm)]",
+    "tap-target",
+    "rounded-control",
+    "text-[length:var(--type-secondary)]",
+    "tabular-nums",
+    "duration-[var(--dur-quick)]",
+    "disabled:pointer-events-none",
+    "disabled:cursor-not-allowed",
+    "disabled:border-rule-soft",
+    "disabled:bg-soft",
+    "disabled:text-muted",
+  ]) {
+    assert.ok(paginationSource.includes(className), `Pagination: ${className}`);
+  }
+  assert.match(paginationSource, /data-slot=["']pagination-page["']/);
+  assert.match(paginationSource, /data-slot=["']pagination-ellipsis["']/);
+  assert.doesNotMatch(paginationSource, /\bsize-8\b/);
+  assert.doesNotMatch(paginationSource, /disabled:opacity-/);
+  assert.doesNotMatch(paginationSource, /focus-visible:(?:outline|ring)-accent/);
+});
+
+test("Sidebar menu controls use shared geometry and semantic interaction states", () => {
+  for (const className of [
+    "h-[var(--sidebar-row-h)]",
+    "h-[var(--sidebar-row-h-lg)]",
+    "h-[var(--control-height-sm)]",
+    "group-data-[collapsible=icon]:size-[var(--sidebar-row-h-lg)]!",
+    "rounded-control",
+    "tap-target",
+    "disabled:pointer-events-none",
+    "disabled:cursor-not-allowed",
+    "disabled:border-sidebar-border",
+    "disabled:bg-sidebar-accent",
+    "disabled:text-sidebar-foreground/60",
+    "aria-disabled:pointer-events-none",
+    "aria-disabled:cursor-not-allowed",
+    "aria-disabled:border-sidebar-border",
+    "aria-disabled:bg-sidebar-accent",
+    "aria-disabled:text-sidebar-foreground/60",
+  ]) {
+    assert.ok(sidebarSource.includes(className), `Sidebar: ${className}`);
+  }
+  assert.doesNotMatch(sidebarSource, /\b(?:h-7|h-8|size-10)\b[^"']*data-sidebar=["'](?:menu-button|menu-action|menu-sub-button)/);
+  assert.doesNotMatch(sidebarSource, /(?:disabled|aria-disabled):opacity-/);
+  assert.doesNotMatch(sidebarSource, /focus-visible:(?:outline|ring)-accent/);
+});
+
+test("Task 3B primitives contain no legacy disabled opacity or accent focus overrides", () => {
+  for (const [name, componentSource] of [
+    ["checkbox", checkboxSource],
+    ["radio-group", radioGroupSource],
+    ["switch", switchSource],
+    ["tabs", tabsSource],
+    ["toggle-group", toggleGroupSource],
+    ["pagination", paginationSource],
+    ["sidebar", sidebarSource],
+  ] as const) {
+    assert.doesNotMatch(componentSource, /disabled:opacity-/, name);
+    assert.doesNotMatch(componentSource, /aria-disabled:opacity-/, name);
+    assert.doesNotMatch(componentSource, /focus-visible:outline-accent/, name);
+  }
 });
