@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Panel } from "./dashboard-panels";
-import { ThemeToggle } from "./theme-toggle";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import {
   PALETTES,
   STYLES,
-  useThemePrefs,
   type PaletteId,
   type StyleId,
-} from "./theme-style-provider";
+} from "@/lib/theme-style";
+import { Panel } from "./dashboard-panels";
+import { ThemeToggle } from "./theme-toggle";
+import { useThemePrefs } from "./theme-style-provider";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 /**
  * Appearance — the palette × style selection experience (Settings).
@@ -28,12 +28,12 @@ function PaletteChip({ palette }: { palette: (typeof PALETTES)[number] }) {
     <>
       <span
         aria-hidden="true"
-        className="flex h-9 w-full overflow-hidden rounded-[4px] border border-rule-soft"
+        className="flex h-9 w-full overflow-hidden rounded-control border border-rule-soft"
         style={{ background: palette.canvas }}
       >
         <span className="flex w-1/2" style={{ background: palette.paper }}>
           <span
-            className="m-1.5 h-2.5 flex-1 self-end rounded-[2px]"
+            className="m-1.5 h-2.5 flex-1 self-end rounded-[calc(var(--radius-control)/2)]"
             style={{ background: palette.accent }}
           />
         </span>
@@ -49,46 +49,38 @@ function PaletteChip({ palette }: { palette: (typeof PALETTES)[number] }) {
 
 /** Mini wireframes that demonstrate each style's actual geometry. */
 function StyleGlyph({ style }: { style: StyleId }) {
-  if (style === "sera")
-    return (
-      <span
-        aria-hidden="true"
-        className="block h-14 w-full rounded-[2px] border-2 border-ink p-1.5"
-        style={{ boxShadow: "3px 3px 0 0 var(--ink)" }}
-      >
-        <span className="mb-1 block h-1.5 w-3/4 bg-ink" />
-        <span className="mb-1 block h-4 w-full border border-ink bg-accent-soft" />
-        <span className="block h-2 w-1/2 border border-ink" />
-      </span>
-    );
-  if (style === "mira")
-    return (
-      <span
-        aria-hidden="true"
-        className="block h-14 w-full rounded-md border border-rule-soft p-1.5"
-      >
-        <span className="mb-1 block h-1 w-3/5 rounded-sm bg-ink" />
-        <span className="mb-1 block h-2.5 w-full rounded-sm bg-soft" />
-        <span className="flex gap-1">
-          <span className="h-2.5 flex-1 rounded-sm bg-soft" />
-          <span className="h-2.5 flex-1 rounded-sm bg-soft" />
-          <span className="h-2.5 flex-1 rounded-sm bg-soft" />
+  switch (style) {
+    case "mira":
+      return (
+        <span
+          aria-hidden="true"
+          className="block h-14 w-full rounded-[0.75rem] border border-rule-soft p-1.5"
+        >
+          <span className="mb-1 block h-1 w-3/5 rounded-[0.5rem] bg-ink" />
+          <span className="mb-1 block h-2.5 w-full rounded-[0.5rem] bg-soft" />
+          <span className="flex gap-1">
+            <span className="h-2.5 flex-1 rounded-[0.5rem] bg-soft" />
+            <span className="h-2.5 flex-1 rounded-[0.5rem] bg-soft" />
+            <span className="h-2.5 flex-1 rounded-[0.5rem] bg-soft" />
+          </span>
         </span>
-      </span>
-    );
-  return (
-    <span
-      aria-hidden="true"
-      className="block h-14 w-full rounded-[2px] border border-rule-soft p-1.5"
-    >
-      <span className="mb-1.5 block h-1 w-2/3 bg-ink" />
-      <span className="mb-1.5 block h-5 w-full border border-rule-soft bg-canvas" />
-      <span className="flex gap-1.5">
-        <span className="h-2 flex-1 bg-soft" />
-        <span className="h-2 flex-1 bg-soft" />
-      </span>
-    </span>
-  );
+      );
+    case "sera":
+      return (
+        <span
+          aria-hidden="true"
+          className="block h-14 w-full rounded-none border-2 border-ink p-1.5"
+          style={{ boxShadow: "0.25rem 0.25rem 0 0 var(--ink)" }}
+        >
+          <span className="mb-1 block h-1.5 w-3/4 bg-ink" />
+          <span className="mb-1 block h-4 w-full border border-ink bg-accent-soft" />
+          <span className="block h-2 w-1/2 border border-ink" />
+        </span>
+      );
+  }
+
+  const exhaustive: never = style;
+  return exhaustive;
 }
 
 export function AppearancePanel() {
@@ -109,7 +101,7 @@ export function AppearancePanel() {
       title="Appearance"
       description="Pick a color palette and a visual style independently — the change applies everywhere instantly."
     >
-      <div className="p-6 pt-2">
+      <div className="p-4 pt-2 sm:p-6 sm:pt-2">
         <fieldset className="border-0 p-0">
           <legend className="section-label mb-2.5">Color palette</legend>
           <ToggleGroup
@@ -139,7 +131,7 @@ export function AppearancePanel() {
             type="single"
             variant="card"
             aria-label="Visual style"
-            className="grid gap-2 sm:grid-cols-3"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
             value={mounted ? style : ""}
             onValueChange={(value) => value && setStyle(value as StyleId)}
           >
@@ -152,7 +144,7 @@ export function AppearancePanel() {
               >
                 <StyleGlyph style={s.id} />
                 <span className="text-sm font-medium text-ink">{s.label}</span>
-                <span className="text-[11px] leading-snug muted">
+                <span className="text-[length:var(--type-secondary)] text-pretty leading-relaxed muted">
                   {s.description}
                 </span>
               </ToggleGroupItem>
@@ -162,7 +154,7 @@ export function AppearancePanel() {
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-rule-soft pt-4">
           <div>
             <p className="text-sm font-medium">Dark mode</p>
-            <p className="text-[11px] muted">
+            <p className="text-[length:var(--type-secondary)] text-pretty leading-relaxed muted">
               Follows your system by default; palettes adapt to both modes.
             </p>
           </div>
