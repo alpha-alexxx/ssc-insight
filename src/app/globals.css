@@ -10,10 +10,10 @@
    (set before paint by the ThemeStyleProvider script):
    - data-palette="orange|blue|lime|violet|rose|graphite"  (color identity;
      chart series colors are fixed per subject and never vary per palette)
-   - data-style="vega|sera|mira"                  (visual style)
-   Defaults (no attribute = orange + vega) reproduce the original
-   warm editorial paper exactly; every other combination swaps the
-   same semantic tokens. next-themes keeps owning light/dark (.dark).
+   - data-style="mira|sera"                       (visual style)
+   Defaults (no attribute = orange + Mira) provide the refined foundation;
+   Sera is the sole geometry/density override. next-themes keeps owning
+   light/dark (.dark).
    ============================================================ */
 
 :root {
@@ -63,77 +63,77 @@
   --chart-skipped: var(--rule-soft);
   --outcome-unattempted: #c9bda7;
 
-  /* ---- geometry & elevation scale (style: vega — the original) ---- */
-  --radius-panel: 0px;
-  --radius-control: 4px;
-  --radius-card: 10px;
-  --radius-pill: 999px;
+  /* ---- geometry & elevation scale (Mira foundation) ---- */
+  --radius-control: 0.5rem;
+  --radius-card: 0.625rem;
+  --radius-panel: 0.75rem;
+  --radius-floating: 0.75rem;
+  --radius-segment: 0.5rem;
+  --radius-pill: 999rem;
   --panel-border-width: 1px;
   --panel-border-color: var(--rule-soft);
   --stat-rule-width: 1px;
-  /* Ink-tinted elevation for lifted surfaces: popovers, toasts, dialogs. */
+  /* Ink-tinted elevation is reserved for lifted surfaces. */
   --elev-pop:
-    0 1px 2px rgba(37, 35, 31, 0.05), 0 16px 40px -20px rgba(37, 35, 31, 0.22);
+    0 0.0625rem 0.125rem rgba(37, 35, 31, 0.05),
+    0 0.5rem 1.25rem -0.875rem rgba(37, 35, 31, 0.22);
 
   /* ---- density scale (consumed by base + component classes) ---- */
-  --control-pad-y: 10px;
-  --control-pad-x: 12px;
-  --control-height: 40px;
-  --control-height-sm: 32px;
-  --table-cell-pad-y: 15px;
-  --table-cell-pad-x: 18px;
-  --label-gap: 7px;
-  --nav-pad-y: 12px;
-  --nav-pad-x: 14px;
-  --segment-pad-y: 6px;
-  --segment-pad-x: 12px;
-  --stat-cell-pad-y: 23px;
-  --stat-cell-pad-x: 24px;
+  --control-pad-y: 0.5rem;
+  --control-pad-x: 0.75rem;
+  --control-height: 2.25rem;
+  --control-height-sm: 2rem;
+  --table-cell-pad-y: 0.625rem;
+  --table-cell-pad-x: 0.75rem;
+  --label-gap: 0.375rem;
+  --nav-pad-y: 0.5rem;
+  --nav-pad-x: 0.75rem;
+  --segment-pad-y: 0.375rem;
+  --segment-pad-x: 0.625rem;
+  --stat-cell-pad-y: 1rem;
+  --stat-cell-pad-x: 1.25rem;
 
   /* ---- type scale ----
-     Every heading and metric reads its size from one of these, so a style
-     (mira, below) or a breakpoint (the phone block at the end of the file)
-     resizes type by overriding the token — never by re-declaring the class.
-     Values here are the shipped desktop sizes. */
-  /* Phone-safe floor: 375px lands at 28px (the workspace-title size) instead
-     of 32px, so a display title on a form page never outshouts the page. */
-  --type-page-title: clamp(1.75rem, 3.2vw, 2.75rem);
-  --type-workspace-title: clamp(1.75rem, 2.6vw, 2.125rem);
-  --type-section-title: 1.375rem;
+     Every heading and metric reads its size from one of these, so a breakpoint
+     can resize type by overriding the token rather than re-declaring a class. */
+  --type-page-title: clamp(1.75rem, 2.4vw, 2.25rem);
+  --type-workspace-title: clamp(1.5rem, 2.2vw, 1.875rem);
+  --type-section-title: 1.25rem;
   --type-panel-title: 1rem;
-  --type-panel-title-dense: 1.0625rem;
-  --type-metric: clamp(1.75rem, 2.6vw, 2.125rem);
-  --type-stat: 2.625rem;
-  --type-section-label: 0.625rem;
-  /* Body copy rides the same system: one token, so mira can drop a step
-     without re-declaring the body rule. */
+  --type-panel-title-dense: 0.9375rem;
+  --type-metric: clamp(1.5rem, 2.2vw, 1.875rem);
+  --type-stat: 2.25rem;
+  --type-section-label: 0.75rem;
   --type-body: 0.875rem;
-  --type-segment: 0.7813rem;
+  --type-secondary: 0.8125rem;
+  --type-label: 0.75rem;
+  --type-segment: 0.8125rem;
 
   /* ---- component geometry (tokenised so phones can re-standardise it) ---- */
-  --metric-cell-pad-y: 16px;
-  --metric-cell-pad-x: 18px;
-  --band-cell-pad-y: 18px;
-  --band-cell-pad-x: 20px;
-  --day-nav-size: 32px;
-  /* The sticky masthead's height. Sticky offsets elsewhere (the calendar's
-     rail, table anchor targets) read this instead of re-hardcoding 52/68. */
-  --app-header-h: 52px;
+  --metric-cell-pad-y: 0.75rem;
+  --metric-cell-pad-x: 0.875rem;
+  --band-cell-pad-y: 0.875rem;
+  --band-cell-pad-x: 1rem;
+  --day-nav-size: 2rem;
+  /* The sticky masthead's height. Sticky offsets elsewhere read this token. */
+  --app-header-h: 3.25rem;
   /* WCAG 2.2 hit-area floor for icon-only controls. */
-  --tap-min: 44px;
+  --tap-min: 2.75rem;
 
-  /* ---- sidebar chrome (style-adaptive; vega defaults = today's sizes) ---- */
+  /* ---- sidebar chrome (style-adaptive) ---- */
   --sidebar-rule-w: 1px;
   --sidebar-rule-color: var(--rule);
-  --sidebar-row-h: 32px;
-  --sidebar-row-h-lg: 48px;
-  --sidebar-header-pad-y: 12px;
+  --sidebar-row-h: 2rem;
+  --sidebar-row-h-lg: 2.5rem;
+  --sidebar-header-pad-y: 0.5rem;
 
-  /* ---- motion tokens ---- */
+  /* ---- motion and focus tokens ---- */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-quick: 140ms;
-  --dur-enter: 220ms;
-  --dur-view: 240ms;
+  --dur-enter: 180ms;
+  --dur-view: 200ms;
+  --focus-ring: var(--accent);
+  --focus-keyline: var(--paper);
   /* ---- sheen (optional gradient accents) ----
      Solid accent fills and the page canvas can carry a quiet gradient.
      The defaults are `none` — every palette ships flat; a palette that
@@ -157,11 +157,11 @@
   /* Paper-equivalent surface for a card sitting ON a plate. */
   --plate-card: var(--paper);
   /* Landing elevation. The hero collage is the one place on the site that
-     uses depth, so it gets a token rather than a hard-coded shadow: paper
-     lifts softly in vega, gets a hard ink offset in sera, and tightens in
-     mira. Colour derives from --ink, so it flips in dark mode. */
-  --landing-lift: 0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent),
-    0 18px 44px -26px color-mix(in oklab, var(--ink) 55%, transparent);
+     uses depth, so it gets a token rather than a hard-coded shadow. The root
+     Mira treatment stays soft; Sera replaces it with a hard ink offset. */
+  --landing-lift:
+    0 0.0625rem 0.125rem color-mix(in oklab, var(--ink) 8%, transparent),
+    0 0.625rem 1.5rem -1rem color-mix(in oklab, var(--ink) 55%, transparent);
   /* ---- shadcn compatibility aliases (all resolve to paper tokens) ----
      The generated shadcn primitives use --background/--border/--sidebar-*;
      map them onto the existing semantic system so every palette, style,
@@ -396,29 +396,29 @@
   --accent-soft: #26272c;
 }
 
-/* ---------- style: sera — brutal ----------
+/* ---------- style: Sera — brutal ----------
    Square everything, ink-weight rules, hard offset elevation, decisive
    motion, heavier display type. Deliberate, not decorative. */
 [data-style="sera"] {
-  --radius-panel: 0px;
-  --radius-control: 0px;
-  --radius-card: 0px;
-  /* Square everything includes the segmented controls: the pill token is a
-     geometry token like the rest, not a permanent stadium shape. */
-  --radius-pill: 0px;
+  --radius-control: 0;
+  --radius-card: 0;
+  --radius-panel: 0;
+  --radius-floating: 0;
+  --radius-segment: 0;
+  --radius-pill: 0;
   --panel-border-width: 2px;
   --panel-border-color: var(--ink);
   --stat-rule-width: 2px;
-  --elev-pop: 5px 5px 0 0 var(--ink);
-  --dur-quick: 110ms;
-  --dur-enter: 160ms;
-  --dur-view: 170ms;
+  --elev-pop: 0.25rem 0.25rem 0 0 var(--ink);
+  --dur-quick: 100ms;
+  --dur-enter: 140ms;
+  --dur-view: 160ms;
   --ease-out-soft: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --focus-ring: var(--ink);
+  --focus-keyline: var(--paper);
   --sidebar-rule-w: 2px;
   --sidebar-rule-color: var(--ink);
-  /* The landing collage follows the same language: a hard ink offset, not a
-     soft blur, so a sera page never mixes elevation styles. */
-  --landing-lift: 6px 6px 0 0 var(--ink);
+  --landing-lift: 0.375rem 0.375rem 0 0 var(--ink);
 }
 [data-style="sera"] .page-title {
   font-weight: 600;
@@ -450,64 +450,6 @@
    washed out next to 2px ink panels, so it takes a full accent edge. */
 [data-style="sera"] .callout-accent {
   border-color: var(--accent);
-}
-
-/* ---------- style: mira — compact ----------
-   Information-dense: softened radii, tighter controls, shorter rows,
-   quick quiet feedback. Everything sits one "sm" step below vega, in
-   rem so the whole density scale tracks the root font size. Desktop
-   legibility floor: 12px text; phones re-standardise their own floors
-   (44px controls, 16px fields) at the end of this file. */
-[data-style="mira"] {
-  --radius-panel: 0.375rem;
-  --radius-control: 0.375rem;
-  --radius-card: 0.5rem;
-  /* Mira softens every radius; the pill track follows the control radius. */
-  --radius-pill: 0.375rem;
-  --control-pad-y: 0.375rem;
-  --control-pad-x: 0.5625rem;
-  --control-height: 2rem;
-  --control-height-sm: 1.625rem;
-  --table-cell-pad-y: 0.5rem;
-  --table-cell-pad-x: 0.625rem;
-  --label-gap: 0.25rem;
-  --nav-pad-y: 0.4375rem;
-  --nav-pad-x: 0.625rem;
-  --segment-pad-y: 0.1875rem;
-  --segment-pad-x: 0.5rem;
-  --stat-cell-pad-y: 0.75rem;
-  --stat-cell-pad-x: 0.875rem;
-  --metric-cell-pad-y: 0.5rem;
-  --metric-cell-pad-x: 0.75rem;
-  --band-cell-pad-y: 0.875rem;
-  --band-cell-pad-x: 1rem;
-  --day-nav-size: 1.75rem;
-  --dur-quick: 90ms;
-  --dur-enter: 130ms;
-  --dur-view: 140ms;
-  --elev-pop:
-    0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 20px -14px rgba(0, 0, 0, 0.28);
-  --sidebar-row-h: 1.625rem;
-  --sidebar-row-h-lg: 2.375rem;
-  --sidebar-header-pad-y: 0.375rem;
-  /* Mira's compact type and cell rhythm are token overrides, not class
-     re-declarations: the phone block later in this file must be able to
-     supersede them without a specificity fight. */
-  --type-page-title: clamp(1.5rem, 2.4vw, 2rem);
-  --type-workspace-title: clamp(1.5rem, 2.2vw, 1.75rem);
-  --type-section-title: 1.125rem;
-  --type-panel-title: 1rem;
-  --type-panel-title-dense: 0.9375rem;
-  --type-stat: 1.75rem;
-  --type-metric: 1.25rem;
-  --type-body: 0.8125rem;
-  --type-segment: 0.75rem;
-  /* Compact elevation to match mira's tighter scale. */
-  --landing-lift: 0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent),
-    0 10px 24px -16px color-mix(in oklab, var(--ink) 45%, transparent);
-}
-[data-style="mira"] .chart-empty {
-  min-height: 9.375rem;
 }
 
 /* ---------- sidebar: style-adaptive chrome ----------
@@ -565,6 +507,8 @@
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
   --radius-panel: var(--radius-panel);
+  --radius-floating: var(--radius-floating);
+  --radius-segment: var(--radius-segment);
   --radius-pill: var(--radius-pill);
   --shadow-pop: var(--elev-pop);
   --ease-out-soft: var(--ease-out-soft);
@@ -639,11 +583,11 @@
     color: var(--paper);
   }
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--focus-keyline);
   }
-  /* On ink-filled surfaces the accent ring still reads; keep paper as an
-     explicit option for controls that sit on charcoal fills. */
+  /* On ink-filled surfaces keep paper as the explicit focus color. */
   .focus-paper:focus-visible {
     outline-color: var(--paper);
   }
@@ -745,6 +689,14 @@
   }
 }
 
+@media (forced-colors: active) {
+  :focus-visible,
+  .focus-paper:focus-visible {
+    outline-color: Highlight;
+    box-shadow: none;
+  }
+}
+
 /* ---------- Design-system component classes ---------- */
 @layer components {
   .panel {
@@ -798,7 +750,7 @@
     font-weight: 600;
   }
   .chart-empty {
-    min-height: 220px;
+    min-height: 9.375rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -869,12 +821,9 @@
   }
 
   /* ---------- Segmented controls (one pattern, nine views) ----------
-     A pill track holds the options; the active option is a raised paper
-     thumb. Scope tabs (dashboard/history/compare), the mock-form and
-     backup toggles, the planner tabs and the task/todo filters all share
-     this treatment, so they upgrade together. The soft track sits between
-     canvas and paper in every palette, so the control reads on both
-     surfaces it appears on (inside panels and on the page canvas). */
+     A softly rounded track holds the options; the active option is a raised
+     paper thumb. Scope tabs, form toggles, planner tabs and task filters share
+     this treatment, so they upgrade together. */
   .segment-group {
     display: inline-flex;
     align-items: stretch;
@@ -882,7 +831,7 @@
     gap: 2px;
     padding: 3px;
     border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-segment);
     background: var(--soft);
     max-width: 100%;
   }
@@ -893,7 +842,7 @@
     justify-content: center;
     gap: 6px;
     padding: var(--segment-pad-y) var(--segment-pad-x);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-segment);
     font-size: var(--type-segment);
     font-weight: 500;
     color: var(--muted);
@@ -2144,9 +2093,8 @@
   }
   .mock-panel {
     background: var(--paper);
-    /* The mockups claim to BE the workspace, so their panels take the same
-       border geometry as the real `.panel` — 1px hairline under vega, 2px ink
-       under sera, 6px corners under mira. */
+    /* The mockups claim to be the workspace, so their panels consume the same
+       Mira hairline and soft corners or Sera's 2px square geometry. */
     border: var(--panel-border-width) solid var(--panel-border-color);
     border-radius: var(--radius-panel);
     min-width: 0;
@@ -2661,52 +2609,33 @@ html {
 }
 
 /* ---------- Phone touch density ----------
-   LAST token override in the file, deliberately. 44px is an accessibility
-   floor, not a style preference, so it supersedes every [data-style] density.
-   A style block appended below this one would silently win on phones again. */
+   LAST token override in the file, deliberately. The 2.75rem floor is an
+   accessibility requirement, not a style preference, so it supersedes every
+   style density. A style block appended below this one would silently win on
+   phones again. */
 @media (max-width: 639.98px), (pointer: coarse) and (max-width: 1279.98px) {
   :root {
-    --control-height: 44px;
-    --control-height-sm: 44px;
-    --control-pad-y: 12px;
-    --control-pad-x: 16px;
-    --segment-pad-y: 10px;
-    --day-nav-size: 44px;
-    --metric-cell-pad-y: 12px;
-    --metric-cell-pad-x: 12px;
-    --band-cell-pad-y: 12px;
-    --band-cell-pad-x: 14px;
+    --control-height: 2.75rem;
+    --control-height-sm: 2.75rem;
+    --control-pad-y: 0.75rem;
+    --control-pad-x: 1rem;
+    --segment-pad-y: 0.625rem;
+    --segment-pad-x: 0.625rem;
+    --day-nav-size: 2.75rem;
+    --tap-min: 2.75rem;
+    --metric-cell-pad-y: 0.75rem;
+    --metric-cell-pad-x: 0.75rem;
+    --band-cell-pad-y: 0.75rem;
+    --band-cell-pad-x: 0.875rem;
+    --sidebar-row-h: 1.75rem;
+    --sidebar-row-h-lg: 2.625rem;
+    --nav-pad-y: 0.5625rem;
 
-    /* Type steps. The old 21px .panel-title on phones was an inversion —
-       the narrowest screens got the largest section titles — so titles now
-       step down and metrics step to 24px, matching DESIGN.md. */
+    /* Titles step down while metrics retain a readable 1.5rem floor. */
     --type-panel-title: 1rem;
     --type-panel-title-dense: 1rem;
     --type-section-title: 1.25rem;
     --type-metric: 1.5rem;
-  }
-  /* Explicit so a future re-ordering of the mira block cannot resurrect its
-     compact 20px title on phones. The sidebar/segment/nav lines restore
-     mira's shipped touch geometry: its tighter desktop values must not
-     reach coarse pointers below what was verified. */
-  [data-style="mira"] {
-    --type-panel-title: 1rem;
-    --type-panel-title-dense: 1rem;
-    --type-metric: 1.5rem;
-    --sidebar-row-h: 1.75rem;
-    --sidebar-row-h-lg: 2.625rem;
-    --segment-pad-x: 10px;
-    --nav-pad-y: 0.5625rem;
-  }
-}
-
-/* Very narrow phones: tighten segmented controls so four options fit. */
-@media (max-width: 420px) {
-  :root {
-    --segment-pad-x: 10px;
-  }
-  .segment {
-    font-size: 0.7188rem;
   }
 }
 
@@ -2756,7 +2685,7 @@ html {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   select,
   textarea {
-    font-size: 16px;
+    font-size: 1rem;
   }
 }
 
