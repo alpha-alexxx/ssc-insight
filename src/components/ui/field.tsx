@@ -180,7 +180,7 @@ function FieldSeparator({
       <Separator className="absolute inset-0 top-1/2" />
       {children && (
         <span
-          className="relative mx-auto block w-fit bg-background px-2 text-[0.625rem] font-semibold tracking-[0.14em] text-muted uppercase"
+          className="relative mx-auto block w-fit bg-background px-2 text-[length:var(--type-label)] font-semibold tracking-[0.14em] text-muted uppercase"
           data-slot="field-separator-content"
         >
           {children}

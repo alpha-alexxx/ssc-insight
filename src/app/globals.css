@@ -669,7 +669,7 @@
     font-weight: 500;
     text-align: left;
     color: var(--muted);
-    font-size: 0.6875rem;
+    font-size: var(--type-label);
     white-space: nowrap;
   }
   td,
@@ -744,7 +744,7 @@
   }
   .section-label {
     color: var(--muted);
-    font-size: 0.625rem;
+    font-size: var(--type-label);
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: 600;
@@ -2640,18 +2640,25 @@ html {
 }
 
 /* ---------- Page-level action rows ----------
-   On phones actions span the row (one primary per screen stays obvious);
-   from sm they return to their intrinsic widths. `.action-row` owns that
-   switch so every view's footer behaves the same way. */
-.action-row {
+   Intrinsic action clusters wrap without changing role at narrow widths.
+   Explicit form and dialog footers opt into `.action-row-stack`, which stacks
+   below 40rem and returns to an intrinsic wrapping row above it. */
+.action-row,
+.action-row-stack {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: auto;
+}
+.action-row-stack {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: stretch;
-  gap: 8px;
   width: 100%;
 }
-@media (min-width: 640px) {
-  .action-row {
+@media (min-width: 40rem) {
+  .action-row-stack {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;

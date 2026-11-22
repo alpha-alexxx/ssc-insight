@@ -38,7 +38,7 @@ export function PageHeader({
             </p>
           )}
           {meta && (
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.6875rem] text-muted">
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--type-label)] text-muted">
               {meta}
             </p>
           )}

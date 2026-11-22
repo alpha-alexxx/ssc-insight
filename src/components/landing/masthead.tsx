@@ -115,17 +115,19 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
           )}
           <Sheet>
             <SheetTrigger asChild>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 aria-label="Open navigation"
-                className="-mr-1 grid size-9 place-items-center text-muted transition-colors hover:text-ink md:hidden"
+                className="-mr-1 md:hidden"
               >
                 <span aria-hidden="true" className="flex w-4 flex-col gap-[3px]">
                   <span className="h-px w-full bg-current" />
                   <span className="h-px w-full bg-current" />
                   <span className="h-px w-full bg-current" />
                 </span>
-              </button>
+              </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[86vw] sm:max-w-[380px]">
               <div className="flex h-full flex-col p-6">

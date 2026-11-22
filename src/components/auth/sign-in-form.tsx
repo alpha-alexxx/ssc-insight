@@ -107,7 +107,7 @@ export function SignInForm({
                   <GoogleSignInButton
                     enabled={googleEnabled}
                     label="Sign in with Google"
-                    className="h-11 w-full justify-center"
+                    className="w-full justify-center"
                   />
                 </Field>
 
@@ -254,7 +254,7 @@ function SignInCredentialsForm({
       <Button
         type="submit"
         disabled={form.formState.isSubmitting}
-        className="h-11 w-full justify-center"
+        className="w-full justify-center"
       >
         {form.formState.isSubmitting ? (
           <>
@@ -358,7 +358,7 @@ function OtpLogin({
           <Button
             type="submit"
             disabled={requestForm.formState.isSubmitting}
-            className="h-11 w-full justify-center"
+            className="w-full justify-center"
           >
             {requestForm.formState.isSubmitting ? (
               <>
@@ -428,7 +428,7 @@ function OtpLogin({
         <Button
           type="submit"
           disabled={codeForm.formState.isSubmitting}
-          className="h-11 w-full justify-center"
+          className="w-full justify-center"
         >
           {codeForm.formState.isSubmitting ? (
             <>
@@ -528,7 +528,7 @@ function TotpStep({
         <Button
           type="submit"
           disabled={form.formState.isSubmitting}
-          className="h-11 w-full justify-center"
+          className="w-full justify-center"
         >
           {form.formState.isSubmitting ? (
             <>

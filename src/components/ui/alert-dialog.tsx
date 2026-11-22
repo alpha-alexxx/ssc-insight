@@ -67,7 +67,7 @@ function AlertDialogFooter({
   return (
     <div
       className={cn(
-        "action-row mt-5 sm:flex sm:justify-end sm:gap-2",
+        "action-row-stack mt-5 sm:flex sm:justify-end sm:gap-2",
         className,
       )}
       {...props}

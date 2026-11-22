@@ -54,7 +54,7 @@ export function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        "flex cursor-pointer select-none items-center gap-2.5 rounded-control px-2.5 py-2 text-xs font-medium outline-none transition-colors data-[highlighted]:bg-soft data-[highlighted]:text-ink",
+        "flex min-h-[var(--control-height-sm)] cursor-pointer select-none items-center gap-2.5 rounded-control px-2.5 py-2 text-xs font-medium outline-none transition-colors data-[highlighted]:bg-soft data-[highlighted]:text-ink",
         danger
           ? "border border-danger/40 bg-danger-soft/60 text-danger data-[highlighted]:bg-danger-soft data-[highlighted]:text-danger-hover"
           : "text-ink",
@@ -86,7 +86,7 @@ export function DropdownMenuLabel({
   return (
     <DropdownMenuPrimitive.Label
       className={cn(
-        "px-2.5 py-1.5 text-[0.5625rem] font-semibold uppercase tracking-[0.12em] text-muted",
+        "px-2.5 py-1.5 text-[length:var(--type-label)] font-semibold uppercase tracking-[0.12em] text-muted",
         className,
       )}
       {...props}

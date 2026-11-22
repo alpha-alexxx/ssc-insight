@@ -195,7 +195,7 @@ function RequestStage({
             ) : null}
           </Field>
           <FieldError>{error}</FieldError>
-          <Button type="submit" disabled={busy} className="h-11 w-full justify-center">
+          <Button type="submit" disabled={busy} className="w-full justify-center">
             {busy ? (
               <>
                 <Loader2 size={14} className="animate-spin" aria-hidden /> Sending…
@@ -327,7 +327,7 @@ function VerifyStage({
             ) : null}
           </Field>
           <FieldError>{error}</FieldError>
-          <Button type="submit" disabled={busy} className="h-11 w-full justify-center">
+          <Button type="submit" disabled={busy} className="w-full justify-center">
             {busy ? (
               <>
                 <Loader2 size={14} className="animate-spin" aria-hidden /> Saving…
@@ -364,7 +364,7 @@ function DoneStage({ sentEmail }: { sentEmail: string }) {
           authenticator still works.
         </p>
       </header>
-      <Button asChild className="h-11 w-full justify-center">
+      <Button asChild className="w-full justify-center">
         <Link href="/sign-in">Go to sign in</Link>
       </Button>
     </div>
