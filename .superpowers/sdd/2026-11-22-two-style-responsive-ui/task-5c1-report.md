@@ -48,3 +48,13 @@ No retry or graph update was performed.
 ## Concerns
 
 - None in the reduced 5C1 scope. Responsive container-fold migration remains intentionally deferred to Task 5C2.
+
+## Review fix — round 1/5
+
+- Finding: the earlier Agenda control assertion used the first `counts.plan.total` occurrence and accidentally re-selected the `AgendaGroups` Open button, so removing `tap-target` from an `EarlierRanges` date row remained green.
+- Fix: scoped the assertions to the `AgendaGroups` and `EarlierRanges` function slices and directly matched the Open, disclosure, and mapped date-row buttons. Production files were unchanged.
+- `npx tsx --test --test-name-pattern "Task 5C1 Calendar controls consume shared target and field contracts" tests/responsive-ui-contract.test.ts` — 1 passed, 0 failed.
+- `npx tsx --test tests/responsive-ui-contract.test.ts` — 18 passed, 0 failed.
+- `npx eslint tests/responsive-ui-contract.test.ts` — passed with no findings.
+- `git diff --check` — passed with no output.
+- Commit: `test(ui): scope Calendar target contract` (round-one follow-up; hash reported with delivery).

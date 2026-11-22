@@ -485,15 +485,29 @@ test("Task 5C1 Calendar controls consume shared target and field contracts", () 
     assert.match(control, /<span[\s\S]*?size-4[\s\S]*?border[\s\S]*?aria-hidden="true"/);
   }
   assert.match(calendarDayLedgerSource, /onClick=\{onMarkAllDone\}[\s\S]*?tap-target/);
-  for (const label of ["Open", "Earlier days", "counts.plan.total"]) {
-    const at = calendarAgendaSource.indexOf(label);
-    assert.notEqual(at, -1, `agenda control missing: ${label}`);
-    const control = calendarAgendaSource.slice(
-      calendarAgendaSource.lastIndexOf("<button", at),
-      calendarAgendaSource.indexOf("</button>", at),
-    );
-    assert.match(control, /tap-target/, `${label} is missing the shared target`);
-  }
+  const agendaGroups = calendarAgendaSource.slice(
+    calendarAgendaSource.indexOf("function AgendaGroups"),
+    calendarAgendaSource.indexOf("function EarlierRanges"),
+  );
+  assert.match(
+    agendaGroups,
+    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="tap-target inline-flex/,
+    "AgendaGroups Open is missing the shared target",
+  );
+
+  const earlierRanges = calendarAgendaSource.slice(
+    calendarAgendaSource.indexOf("function EarlierRanges"),
+  );
+  assert.match(
+    earlierRanges,
+    /onClick=\{\(\) => setOpen\(\(value\) => !value\)\}[\s\S]*?className="tap-target inline-flex/,
+    "EarlierRanges disclosure is missing the shared target",
+  );
+  assert.match(
+    earlierRanges,
+    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="tap-target flex w-full/,
+    "EarlierRanges date row is missing the shared target",
+  );
 
   for (const [name, component] of task5c1Sources) {
     assert.doesNotMatch(
