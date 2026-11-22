@@ -81,7 +81,7 @@ export function DayLedger({
           <span className="cal-margin-numeral font-serif tabular leading-none text-ink">
             {Number(date.slice(8))}
           </span>
-          <span className="cal-margin-weekday text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+          <span className="cal-margin-weekday text-[length:var(--type-label)] font-semibold uppercase tracking-[0.12em] text-muted">
             {isoWeekdayName(date).slice(0, 3)}
           </span>
         </div>
@@ -93,13 +93,13 @@ export function DayLedger({
               {isoWeekdayName(date)}, {longDate(date)}
             </h2>
             {isToday && (
-              <span className="rounded-pill bg-ink px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-paper">
+              <span className="rounded-pill bg-ink px-2 py-0.5 text-[length:var(--type-label)] font-medium uppercase tracking-wide text-paper">
                 Today
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
             {day ? (
               <>
                 Day {day.day} of {planLength} · Phase {day.phase} ·{" "}
@@ -121,14 +121,14 @@ export function DayLedger({
                 label={`Day ${day.day}`}
                 className="mt-0 flex-1"
               />
-              <span className="shrink-0 text-[10px] tabular text-muted">
+              <span className="shrink-0 text-[length:var(--type-label)] tabular text-muted">
                 {counts.plan.done}/{counts.plan.total} scheduled
               </span>
               {onMarkAllDone && counts.plan.done < counts.plan.total && (
                 <button
                   type="button"
                   onClick={onMarkAllDone}
-                  className="shrink-0 text-[10px] font-medium text-accent transition-colors hover:text-accent-hover"
+                  className="tap-target shrink-0 text-[length:var(--type-label)] font-medium text-accent transition-colors hover:text-accent-hover"
                 >
                   Mark all done
                 </button>
@@ -228,7 +228,7 @@ function LoadLine({ counts }: { counts: EntryCounts }) {
   if (counts.mocks) parts.push(`${counts.mocks} logged`);
   if (!parts.length) return null;
   return (
-    <p className="mt-2 border-t border-rule-soft pt-2 text-[11px] text-muted">
+    <p className="mt-2 border-t border-rule-soft pt-2 text-[length:var(--type-secondary)] text-muted">
       {parts.join(" · ")}
     </p>
   );

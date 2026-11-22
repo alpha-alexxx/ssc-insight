@@ -28,6 +28,45 @@ const securitySource = source("src/app/(workspace)/settings/_settings/security-p
 const targetsSource = source("src/app/(workspace)/settings/_settings/targets-panel.tsx");
 const remindersSource = source("src/app/(workspace)/settings/_settings/reminders-panel.tsx");
 const mockFormSource = source("src/app/(workspace)/add/_add/mock-form.tsx");
+const calendarEventSource = source(
+  "src/app/(workspace)/calendar/_calendar/event-dialog.tsx",
+);
+const calendarDayLedgerSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/day-ledger.tsx",
+);
+const calendarSurfaceSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/calendar-surface.tsx",
+);
+const calendarAgendaSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/agenda-view.tsx",
+);
+const calendarLayersSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/layer-toggles.tsx",
+);
+const calendarEntriesSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/entry-rows.tsx",
+);
+const calendarPeriodSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/period-nav.tsx",
+);
+const calendarMonthSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/month-grid.tsx",
+);
+const calendarWeekSource = source(
+  "src/app/(workspace)/calendar/_calendar/calendar/week-view.tsx",
+);
+
+const task5c1Sources = [
+  ["event dialog", calendarEventSource],
+  ["day ledger", calendarDayLedgerSource],
+  ["calendar surface", calendarSurfaceSource],
+  ["agenda", calendarAgendaSource],
+  ["layer toggles", calendarLayersSource],
+  ["entry rows", calendarEntriesSource],
+  ["period navigation", calendarPeriodSource],
+  ["month grid", calendarMonthSource],
+  ["week view", calendarWeekSource],
+] as const;
 
 const task5bSources = [
   ["exams", examsSource],
@@ -383,5 +422,132 @@ test("Task 5B presentation edits preserve audited handlers, conditions, and labe
     '"Saving…"',
   ]) {
     assert.ok(mockFormSource.includes(fragment), `mock form contract lost: ${fragment}`);
+  }
+});
+
+test("Task 5C1 Calendar prose uses readable role tokens with only the documented decorative numeral exception", () => {
+  const decorativeTodayNumeral =
+    /<span className="font-serif text-\[11px\] font-semibold text-accent" aria-hidden="true">[\s\S]*?<\/span>/;
+  assert.match(calendarMonthSource, decorativeTodayNumeral);
+
+  const banned =
+    /text-(?:\[9px\]|\[10px\]|\[11px\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
+  for (const [name, component] of task5c1Sources) {
+    const visibleSource =
+      name === "month grid" ? component.replace(decorativeTodayNumeral, "") : component;
+    assert.doesNotMatch(
+      visibleSource,
+      banned,
+      `${name} retains ordinary sub-floor visible type`,
+    );
+  }
+
+  for (const [name, component] of task5c1Sources) {
+    assert.match(
+      component,
+      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
+      `${name} is missing role-based typography tokens`,
+    );
+  }
+});
+
+test("Task 5C1 Calendar controls consume shared target and field contracts", () => {
+  assert.match(calendarPeriodSource, /import\s+\{\s*Input\s*\}/);
+  assert.match(
+    calendarPeriodSource,
+    /<Input[\s\S]*?type="date"[\s\S]*?value=\{selected\}[\s\S]*?onChange=\{\(event\) => \{[\s\S]*?onSelect\(event\.target\.value\)/,
+  );
+  assert.doesNotMatch(calendarPeriodSource, /<input\b|\bh-9\b/);
+
+  const close = calendarEventSource.slice(
+    calendarEventSource.indexOf("<Dialog.Close"),
+    calendarEventSource.indexOf("</Dialog.Close>") + "</Dialog.Close>".length,
+  );
+  assert.match(close, /<Dialog\.Close asChild>/);
+  assert.match(close, /<Button/);
+  assert.match(close, /type="button"/);
+  assert.match(close, /variant="ghost"/);
+  assert.match(close, /size="icon"/);
+  assert.match(close, /aria-label="Close event"/);
+  assert.doesNotMatch(close, /<button\b/);
+
+  assert.equal(calendarEventSource.match(/"tap-target /g)?.length, 2);
+  const checkboxStarts = [...calendarEventSource.matchAll(/role="checkbox"/g)].map(
+    (match) => calendarEventSource.lastIndexOf("<button", match.index),
+  );
+  assert.equal(checkboxStarts.length, 2);
+  for (const start of checkboxStarts) {
+    const control = calendarEventSource.slice(
+      start,
+      calendarEventSource.indexOf("</button>", start),
+    );
+    assert.match(control, /tap-target/);
+    assert.match(control, /<span[\s\S]*?size-4[\s\S]*?border[\s\S]*?aria-hidden="true"/);
+  }
+  assert.match(calendarDayLedgerSource, /onClick=\{onMarkAllDone\}[\s\S]*?tap-target/);
+  for (const label of ["Open", "Earlier days", "counts.plan.total"]) {
+    const at = calendarAgendaSource.indexOf(label);
+    assert.notEqual(at, -1, `agenda control missing: ${label}`);
+    const control = calendarAgendaSource.slice(
+      calendarAgendaSource.lastIndexOf("<button", at),
+      calendarAgendaSource.indexOf("</button>", at),
+    );
+    assert.match(control, /tap-target/, `${label} is missing the shared target`);
+  }
+
+  for (const [name, component] of task5c1Sources) {
+    assert.doesNotMatch(
+      component,
+      /\bh-9\b|\bmin-h-10\b|after:-inset-/,
+      `${name} retains fixed or custom target geometry`,
+    );
+  }
+});
+
+test("Task 5C1 Calendar action groups use their audited intrinsic and stacked roles", () => {
+  assert.equal(classTokenCount(calendarAgendaSource, "action-row-stack"), 1);
+  assert.equal(classTokenCount(calendarAgendaSource, "action-row"), 0);
+  assert.equal(classTokenCount(calendarEventSource, "action-row-stack"), 1);
+  assert.equal(classTokenCount(calendarEventSource, "action-row"), 0);
+  assert.equal(classTokenCount(calendarDayLedgerSource, "action-row"), 1);
+  assert.equal(classTokenCount(calendarDayLedgerSource, "action-row-stack"), 0);
+});
+
+test("Task 5C1 presentation edits preserve Calendar callbacks, labels, and selection semantics", () => {
+  for (const fragment of [
+    "onOpenChange={(open) => !open && onClose()}",
+    "onToggleRevision(",
+    "!day.revisionDone.includes(String(revisionIndex))",
+    "onToggleChecklist(day, item.id, !item.done)",
+    "onClick={() => onOpenPlanDay(task.date)}",
+    "onClick={() => onToggleComplete(task)}",
+  ]) {
+    assert.ok(calendarEventSource.includes(fragment), `event contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "onClick={onMarkAllDone}",
+    "onAddPersonal(date)",
+    "onAddMock(date)",
+    "href={`/plan/${date}`}",
+  ]) {
+    assert.ok(calendarDayLedgerSource.includes(fragment), `ledger contract lost: ${fragment}`);
+  }
+  for (const fragment of [
+    "setWindowState({ start: selected, days: days + AGENDA_WINDOW })",
+    "onClick={() => onGoToDate(date)}",
+    "onClick={() => setOpen((value) => !value)}",
+    "onClick={() => onGoToDate(today)}",
+  ]) {
+    assert.ok(calendarAgendaSource.includes(fragment), `agenda contract lost: ${fragment}`);
+  }
+  for (const [component, fragments] of [
+    [calendarLayersSource, ["onClick={() => onToggle(layer, !active)}", "aria-pressed={active}"]],
+    [calendarPeriodSource, ["onClick={() => onStep(-1)}", "onClick={() => onStep(1)}", "if (event.target.value) onSelect(event.target.value)"]],
+    [calendarMonthSource, ["aria-label={label}", "onClick={onSelect}", "tabIndex={isTabStop ? 0 : -1}"]],
+    [calendarWeekSource, ["aria-label={label}", "onClick={onSelect}", 'layout="column"', 'layout="row"']],
+  ] as const) {
+    for (const fragment of fragments) {
+      assert.ok(component.includes(fragment), `Calendar contract lost: ${fragment}`);
+    }
   }
 });

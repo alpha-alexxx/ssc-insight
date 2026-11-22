@@ -65,7 +65,7 @@ export function LayerToggles({
             />
             <span className="truncate">{LAYER_META[layer].label}</span>
             {count > 0 && (
-              <span className="tabular text-[10px] text-muted">{count}</span>
+              <span className="tabular text-[length:var(--type-label)] text-muted">{count}</span>
             )}
           </button>
         );

@@ -32,7 +32,7 @@ export function CalendarSurface({
       {(meta || actions) && (
         <div className="section-head flex-row items-center justify-between gap-3 border-b border-rule-soft px-4 pb-2.5 pt-3 sm:px-6">
           <div className="min-w-0">
-            {meta && <p className="text-[11px] text-muted">{meta}</p>}
+            {meta && <p className="text-[length:var(--type-secondary)] text-muted">{meta}</p>}
           </div>
           {actions}
         </div>

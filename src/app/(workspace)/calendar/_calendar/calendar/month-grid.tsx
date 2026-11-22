@@ -121,7 +121,7 @@ export const MonthGrid = memo(function MonthGrid({
           <div
             key={name}
             aria-hidden="true"
-            className="px-1 pb-1 text-center text-[11px] font-medium text-muted"
+            className="px-1 pb-1 text-center text-[length:var(--type-label)] font-medium text-muted"
           >
             <span className="cal-weekday-full">{name}</span>
             <span className="cal-weekday-initial">{name[0]}</span>
@@ -242,7 +242,7 @@ function MonthCell({
           {Number(iso.slice(8))}
         </span>
         {counts.plan.total > 0 && (
-          <span className="text-[10px] tabular text-muted">
+          <span className="text-[length:var(--type-label)] tabular text-muted">
             {done ? (
               <PlainIcon name="check" size={10} className="text-positive" />
             ) : (
@@ -259,7 +259,7 @@ function MonthCell({
             <CellRow key={entry.id} entry={entry} />
           ))}
           {entries.length > MAX_ROWS && (
-            <span className="px-1 text-[10px] leading-tight text-muted">
+            <span className="px-1 text-[length:var(--type-label)] leading-tight text-muted">
               +{entries.length - MAX_ROWS} more
             </span>
           )}
@@ -282,7 +282,7 @@ function MonthCell({
               />
             ) : null;
           })}
-          <span className="ml-auto text-[10px] tabular leading-none text-muted">
+          <span className="ml-auto text-[length:var(--type-label)] tabular leading-none text-muted">
             {entries.length}
           </span>
         </span>
@@ -297,7 +297,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[10px] font-medium leading-tight",
+          "flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[length:var(--type-label)] font-medium leading-tight",
           planTickClass(entry.task),
           entry.task.completed
             ? "text-muted line-through"
@@ -313,7 +313,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     );
   if (entry.kind === "revision")
     return (
-      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[10px] leading-tight text-muted">
+      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[length:var(--type-label)] leading-tight text-muted">
         <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-rule" aria-hidden="true" />
         <span className="truncate">{entry.label}</span>
       </span>
@@ -322,7 +322,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft bg-paper px-1 py-0.5 text-[10px] leading-tight",
+          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft bg-paper px-1 py-0.5 text-[length:var(--type-label)] leading-tight",
           entry.status === "completed" ? "text-muted line-through" : "text-ink",
         )}
       >
@@ -330,7 +330,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
       </span>
     );
   return (
-    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[10px] leading-tight text-ink">
+    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight text-ink">
       <span className="truncate">{entry.attempt.name}</span>
       <span className="ml-auto tabular text-muted">{entry.scorePct}</span>
     </span>
@@ -344,7 +344,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
  */
 export function CalendarLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pt-3 text-[10px] text-muted">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pt-3 text-[length:var(--type-label)] text-muted">
       {(["plan", "tasks", "mocks"] as const).map((layer) => (
         <span key={layer} className="inline-flex items-center gap-1.5">
           <span
@@ -377,7 +377,7 @@ export function CalendarLegend() {
 /** Plan-category key, shown under the grid in the plan layer. */
 export function PlanCategoryLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pb-1 text-[10px] text-muted">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pb-1 text-[length:var(--type-label)] text-muted">
       {TASK_LEGEND.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-1.5">
           <span

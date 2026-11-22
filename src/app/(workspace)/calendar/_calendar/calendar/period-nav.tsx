@@ -1,5 +1,6 @@
 "use client";
 import { PlainIcon } from "@/components/icon";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -102,18 +103,18 @@ export function PeriodNav({
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64">
-            <label className="block text-[10px] font-medium text-muted">
+            <label className="block text-[length:var(--type-label)] font-medium text-muted">
               Jump to a date
-              <input
+              <Input
                 type="date"
-                className="mt-1 h-9 w-full rounded-control border border-rule bg-paper px-2 py-0 text-sm tabular"
+                className="mt-1 tabular"
                 value={selected}
                 onChange={(event) => {
                   if (event.target.value) onSelect(event.target.value);
                 }}
               />
             </label>
-            <p className="mt-2 text-[10px] text-muted">
+            <p className="mt-2 text-[length:var(--type-secondary)] text-muted">
               Any date works, including outside the study plan.
             </p>
           </PopoverContent>
