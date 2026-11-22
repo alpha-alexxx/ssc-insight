@@ -10,12 +10,7 @@ SSC Insight is a private SSC CGL Tier 2 mock tracker. It records full, sectional
 
 Authoritative docs — read the relevant one before changing its area:
 
-- `PRODUCT.md` — product behavior, scope boundaries, private-account rules.
-- `DESIGN.md` — paper-and-ink visual system, chart tokens, interaction rules.
 - `README.md` — Neon/Vercel setup, environment variables, migrations, verification scripts.
-- `docs/private-accounts.md`, `docs/neon-migration.md` — ownership and migration history.
-- `docs/caching.md` — the cache-policy matrix.
-- `docs/ui-overhaul/*` — the 15-phase design overhaul history.
 
 ## graphify
 
@@ -163,12 +158,12 @@ Domain rules live in `src/lib/domain.ts`:
 
 `src/lib/analytics.ts` is server-side and returns the complete dashboard payload. The four dashboard tabs are **analytical scopes**, not record filters:
 
-| Scope | Projection |
-| --- | --- |
-| `full` | One point per saved full mock |
-| `subject` | One point per `(attemptId, subjectId)` from full, sectional, and standalone subject mocks |
+| Scope       | Projection                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `full`      | One point per saved full mock                                                                 |
+| `subject`   | One point per `(attemptId, subjectId)` from full, sectional, and standalone subject mocks     |
 | `sectional` | Explicit sectional attempts (one section each) plus Section I/II derived from every full mock |
-| `all` | One point per saved parent attempt, compared by percentage |
+| `all`       | One point per saved parent attempt, compared by percentage                                    |
 
 Critical invariants:
 
@@ -290,7 +285,7 @@ AI is optional, read-only, and server-only. It must fail closed without breaking
 - `data-panel.tsx` — export/import with a preview that counts mocks AND planner rows (untouched). `about-panel.tsx` describes the ACTIVE catalog entry (paper, marks, marking, duration, source notice, catalog `Badge`) and shows an `Avatar` with account initials.
 
 - `security-panel.tsx` + `use-auth-security.ts` — Sign-in & security: identity, password set/change, TOTP two-factor lifecycle (enroll ladder with QR + backup codes, disable, regenerate) and session list with revoke-others. Instant actions + dialogs + toasts, deliberately NOT a registered draft (nothing here edits tracker settings). Wire calls ride `src/lib/auth/email-client.ts`; session data comes from the SDK's `useSession`, sessions from a `['auth','sessions']` query.
-One client cache backs all of it: `/api/exams` returns the catalog, the scope, the targets envelope and every resolved target. There is no separate `["settings"]` query — a write that updated one and not the other is exactly how a target could silently disagree with its own maximum.
+  One client cache backs all of it: `/api/exams` returns the catalog, the scope, the targets envelope and every resolved target. There is no separate `["settings"]` query — a write that updated one and not the other is exactly how a target could silently disagree with its own maximum.
 
 ## Testing
 
