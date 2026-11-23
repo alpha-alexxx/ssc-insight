@@ -5,6 +5,8 @@ import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
 import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
 import { Icon, PlainIcon } from "@/components/icon";
+import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
+import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
 import { Tooltip } from "@/components/tooltip";
 import { useExamScope } from "@/components/exam-context";
 import { istTodayIso } from "@/lib/plan/view-model";
@@ -144,7 +146,7 @@ function AskAiButton({
         !inHeader && (expanded ? "justify-start px-3" : "justify-center px-0"),
       )}
     >
-      <Icon name="sparkles" size={16} tone="primary" animated />
+      <SparklesIcon size={16} color="var(--primary)" animateOnHover animateOnTap />
       {(expanded || inHeader) && <span>Ask AI</span>}
     </Button>
   );
@@ -311,19 +313,14 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
               {group.label === "Results" && (
                 <li className={expanded ? "pt-1.5" : "pt-1"}>
                   {expanded ? (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={onAddMock}
-                      className="h-9 w-full justify-start gap-2 px-3"
-                    >
-                      <Icon name="plus" size={16} tone="primary" animated />
+                    <Button variant="primary" size="sm" onClick={onAddMock} className="h-9 w-full justify-start gap-2 px-3">
+                      <PlusSignIcon size={16} color="var(--primary-foreground)" animateOnHover animateOnTap />
                       <span>Log a mock</span>
                     </Button>
                   ) : (
                     <Tooltip content="Log a mock" side="right">
                       <Button variant="primary" size="icon" onClick={onAddMock} className="size-9">
-                        <Icon name="plus" size={16} tone="primary" animated animateOn="tap" />
+                        <PlusSignIcon size={16} color="var(--primary-foreground)" animateOnTap />
                       </Button>
                     </Tooltip>
                   )}

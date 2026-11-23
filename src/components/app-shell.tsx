@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/button";
 import { Icon, PlainIcon } from "@/components/icon";
+import { Menu01Icon } from "@/components/animate-ui/icons/hugeicons/menu-01";
+import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
 import { Sheet } from "@/components/sheet";
 import { Tooltip } from "@/components/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -202,7 +204,7 @@ export function AppHeader({
         aria-label="Open navigation"
         className="size-11 md:hidden"
       >
-        <Icon name="menu" size={16} animated />
+        <Menu01Icon size={16} animateOnHover animateOnTap />
       </Button>
       <Tooltip content={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}>
         <Button
@@ -212,7 +214,7 @@ export function AppHeader({
           aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
           className="hidden size-8 md:inline-flex"
         >
-          <Icon name="panelLeft" size={16} animated />
+          <PanelLeftIcon size={16} animateOnHover animateOnTap />
         </Button>
       </Tooltip>
 
@@ -226,7 +228,7 @@ export function AppHeader({
           aria-label="Search"
           className="h-8 gap-2 px-3"
         >
-          <Icon name="search" size={14} animated={false} />
+          <Icon name="search" size={14} />
           <span className="hidden sm:inline">Search</span>
           <kbd
             aria-hidden="true"

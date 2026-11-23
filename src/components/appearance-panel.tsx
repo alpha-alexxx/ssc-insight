@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Icon, PlainIcon } from "@/components/icon";
+import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { THEMES, type ThemeId } from "@/lib/theme-style";
 import { useThemePrefs } from "@/components/theme-style-provider";
@@ -52,7 +53,7 @@ export function AppearancePanel() {
     >
       <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
-          <Icon name="sparkles" size={18} tone="primary" animated animateOn="viewOnce" />
+          <SparklesIcon size={18} color="var(--primary)" animateOnView animateOnViewOnce />
         </span>
         <div>
           <h2 id="appearance-heading" className="text-base font-semibold text-foreground">

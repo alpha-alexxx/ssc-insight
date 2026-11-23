@@ -7,7 +7,7 @@ import { Dialog } from "@/components/dialog";
 import { Input } from "@/components/input";
 import { Kbd } from "@/components/kbd";
 import { Spinner } from "@/components/spinner";
-import { PlainIcon, Icon } from "@/components/icon";
+import { PlainIcon } from "@/components/icon";
 import {
   collectResultsByType,
   normalizeForSearch,
@@ -347,7 +347,7 @@ export function WorkspaceCommandPalette({
               onClick={() => void search.refetch()}
               className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
             >
-              <Icon name="refresh" size={13} /> Retry
+              <PlainIcon name="refresh" size={13} /> Retry
             </button>
           </div>
         )}
