@@ -5,7 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeStyleProvider } from "@/components/theme-style-provider";
 import { THEME_PREFS_SCRIPT } from "@/lib/theme-style";
-import { ToastProvider } from "@/components/toast";
+import { Toaster } from "@/components/toast-stack";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -22,9 +22,10 @@ export const metadata: Metadata = {
  *   before-paint script, and re-evaluates "system" when the OS theme
  *   changes. suppressHydrationWarning is required because the server
  *   renders <html> without the class next-themes' script adds.
- * - ThemeStyleProvider owns the client palette (data-palette) and visual style
- *   (data-style) state. The pure theme-style contract resolves both attributes
- *   before paint, defaults to orange/Mira, and migrates legacy Vega values.
+ * - ThemeStyleProvider owns the palette (data-theme) state. The pure
+ *   theme-style contract resolves the attribute before paint and defaults
+ *   to graphite.
+ * Toasts come from Hairline's toast-stack (toast() is module-level).
  */
 export default function RootLayout({
   children,
@@ -32,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        {/* Blocking inline script: resolves palette/style before first paint. */}
+        {/* Blocking inline script: resolves palette before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_PREFS_SCRIPT }} />
         <ThemeProvider
           attribute="class"
@@ -43,7 +44,8 @@ export default function RootLayout({
         >
           <ThemeStyleProvider>
             <ErrorBoundary>
-              <ToastProvider>{children}</ToastProvider>
+              {children}
+              <Toaster position="bottom-right" />
             </ErrorBoundary>
           </ThemeStyleProvider>
         </ThemeProvider>

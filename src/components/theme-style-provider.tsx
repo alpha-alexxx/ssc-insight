@@ -8,34 +8,23 @@ import {
   type ReactNode,
 } from "react";
 import {
-  DEFAULT_PALETTE,
-  DEFAULT_STYLE,
+  DEFAULT_THEME,
   PALETTE_STORAGE_KEY,
-  STYLE_STORAGE_KEY,
-  normalizePalette,
-  normalizeStyle,
-  type PaletteId,
-  type StyleId,
+  normalizeTheme,
+  THEMES,
+  type ThemeId,
 } from "@/lib/theme-style";
 
-export {
-  PALETTE_STORAGE_KEY,
-  STYLE_STORAGE_KEY,
-  PALETTES,
-  STYLES,
-  THEME_PREFS_SCRIPT,
-  microMotion,
-  viewTransition,
-} from "@/lib/theme-style";
-export type { PaletteId, StyleId } from "@/lib/theme-style";
+export { PALETTE_STORAGE_KEY, THEMES, THEME_PREFS_SCRIPT } from "@/lib/theme-style";
+export type { ThemeId } from "@/lib/theme-style";
 
 /**
- * Client state and persistence for palette × style preferences, orthogonal to
- * next-themes' light/dark setting.
+ * Client state and persistence for the palette preference (`data-theme` on
+ * <html>), orthogonal to next-themes' light/dark setting.
  *
  * The pure contract and before-paint migration live in `lib/theme-style`.
- * This provider normalizes those prepaint data attributes into React state and
- * keeps state, <html>, and localStorage aligned after user changes.
+ * This provider normalizes the prepaint attribute into React state and keeps
+ * state, <html>, and localStorage aligned after user changes.
  */
 
 function persist(key: string, value: string) {
@@ -47,55 +36,35 @@ function persist(key: string, value: string) {
 }
 
 type ThemePrefs = {
-  palette: PaletteId;
-  style: StyleId;
-  setPalette: (palette: PaletteId) => void;
-  setStyle: (style: StyleId) => void;
+  theme: ThemeId;
+  setTheme: (theme: ThemeId) => void;
 };
 
 const ThemePrefsContext = createContext<ThemePrefs | null>(null);
 
-// Lazy initializers read and normalize the <html> attributes set before paint.
+// Lazy initializers read and normalize the <html> attribute set before paint.
 // The provider renders no markup of its own, so there is no hydration surface.
-function initialPalette(): PaletteId {
-  if (typeof document === "undefined") return DEFAULT_PALETTE;
-  return normalizePalette(document.documentElement.dataset.palette);
-}
-
-function initialStyle(): StyleId {
-  if (typeof document === "undefined") return DEFAULT_STYLE;
-  return normalizeStyle(document.documentElement.dataset.style);
+function initialTheme(): ThemeId {
+  if (typeof document === "undefined") return DEFAULT_THEME;
+  return normalizeTheme(document.documentElement.dataset.theme);
 }
 
 export function ThemeStyleProvider({ children }: { children: ReactNode }) {
-  const [palette, setPaletteState] = useState<PaletteId>(initialPalette);
-  const [style, setStyleState] = useState<StyleId>(initialStyle);
+  const [theme, setThemeState] = useState<ThemeId>(initialTheme);
 
-  const setPalette = useCallback((next: PaletteId) => {
-    setPaletteState(next);
-    document.documentElement.dataset.palette = next;
+  const setTheme = useCallback((next: ThemeId) => {
+    setThemeState(next);
+    document.documentElement.dataset.theme = next;
     persist(PALETTE_STORAGE_KEY, next);
   }, []);
-  const setStyle = useCallback((next: StyleId) => {
-    setStyleState(next);
-    document.documentElement.dataset.style = next;
-    persist(STYLE_STORAGE_KEY, next);
-  }, []);
 
-  const value = useMemo(
-    () => ({ palette, style, setPalette, setStyle }),
-    [palette, style, setPalette, setStyle],
-  );
-  return (
-    <ThemePrefsContext.Provider value={value}>
-      {children}
-    </ThemePrefsContext.Provider>
-  );
+  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+
+  return <ThemePrefsContext.Provider value={value}>{children}</ThemePrefsContext.Provider>;
 }
 
 export function useThemePrefs(): ThemePrefs {
   const ctx = useContext(ThemePrefsContext);
-  if (!ctx)
-    throw new Error("useThemePrefs must be used inside ThemeStyleProvider");
+  if (!ctx) throw new Error("useThemePrefs must be used inside <ThemeStyleProvider>");
   return ctx;
 }
