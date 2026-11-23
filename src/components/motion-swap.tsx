@@ -1,7 +1,8 @@
 "use client";
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { microMotion, useThemePrefs } from "./theme-style-provider";
+import { microMotion } from "@/lib/theme-style";
+import { useThemePrefs } from "./theme-style-provider";
 
 /**
  * In-place content swap: a short fade + 4px rise when `swapKey` changes.

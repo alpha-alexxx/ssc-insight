@@ -3,10 +3,8 @@ import "@fontsource-variable/dm-sans/index.css";
 import "@fontsource-variable/source-serif-4/index.css";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import {
-  THEME_PREFS_SCRIPT,
-  ThemeStyleProvider,
-} from "@/components/theme-style-provider";
+import { ThemeStyleProvider } from "@/components/theme-style-provider";
+import { THEME_PREFS_SCRIPT } from "@/lib/theme-style";
 import { ToastProvider } from "@/components/toast";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Analytics } from "@vercel/analytics/next";
@@ -24,9 +22,9 @@ export const metadata: Metadata = {
  *   before-paint script, and re-evaluates "system" when the OS theme
  *   changes. suppressHydrationWarning is required because the server
  *   renders <html> without the class next-themes' script adds.
- * - ThemeStyleProvider owns the palette (data-palette) and visual style
- *   (data-style) dimensions via its own before-paint script and CSS
- *   custom properties; the defaults reproduce the original design.
+ * - ThemeStyleProvider owns the client palette (data-palette) and visual style
+ *   (data-style) state. The pure theme-style contract resolves both attributes
+ *   before paint, defaults to orange/Mira, and migrates legacy Vega values.
  */
 export default function RootLayout({
   children,

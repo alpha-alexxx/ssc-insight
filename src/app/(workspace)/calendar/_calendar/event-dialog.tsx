@@ -37,7 +37,7 @@ export function EventDialog({
     <Dialog.Root open={!!task} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 bg-ink/40 z-40" />
-        <Dialog.Content className="event-dialog dialog-content fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-paper border border-rule rounded-panel w-[calc(100%-32px)] max-w-lg max-h-[85vh] overflow-auto p-6 shadow-pop">
+        <Dialog.Content className="event-dialog dialog-content @container/event-dialog fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-paper border border-rule rounded-panel w-[calc(100%-32px)] max-w-lg max-h-[85vh] overflow-auto p-6 shadow-pop">
           {task && (
             <>
               <Dialog.Title className="font-serif text-2xl leading-tight pr-8">
@@ -52,11 +52,16 @@ export function EventDialog({
                   {task.questions} Q · {task.marks} marks
                 </span>
               </Dialog.Description>
-              <Dialog.Close
-                className="absolute top-5 right-5 muted hover:text-ink transition-colors"
-                aria-label="Close event"
-              >
-                <PlainIcon name="close" size={20} />
+              <Dialog.Close asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-5 right-5"
+                  aria-label="Close event"
+                >
+                  <PlainIcon name="close" size={20} />
+                </Button>
               </Dialog.Close>
 
               <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
@@ -64,7 +69,7 @@ export function EventDialog({
                 <ResultLine task={task} />
               </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+              <dl className="mt-4 grid grid-cols-2 gap-2 text-xs @sm/event-dialog:grid-cols-3">
                 <RevFlag label="Rev-1 same day" done={task.rev1} />
                 <RevFlag label="Rev-2 weekly" done={task.rev2} />
                 <RevFlag label="Rev-3 final" done={task.rev3} />
@@ -94,16 +99,21 @@ export function EventDialog({
                                 !day.revisionDone.includes(String(revisionIndex)),
                               )
                             }
-                            className={cn(
-                              "relative mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors after:absolute after:-inset-2.5 after:content-['']",
-                              day.revisionDone.includes(String(revisionIndex))
-                                ? "border-positive bg-positive-soft text-positive"
-                                : "border-rule bg-paper hover:border-ink",
-                            )}
+                            className="tap-target relative mt-0.5 flex size-4 shrink-0 items-center justify-center"
                           >
-                            {day.revisionDone.includes(String(revisionIndex)) && (
-                              <PlainIcon name="check" size={9} />
-                            )}
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+                                day.revisionDone.includes(String(revisionIndex))
+                                  ? "border-positive bg-positive-soft text-positive"
+                                  : "border-rule bg-paper hover:border-ink",
+                              )}
+                              aria-hidden="true"
+                            >
+                              {day.revisionDone.includes(String(revisionIndex)) && (
+                                <PlainIcon name="check" size={9} />
+                              )}
+                            </span>
                           </button>
                         ) : (
                           <span
@@ -146,14 +156,19 @@ export function EventDialog({
                             onClick={() =>
                               onToggleChecklist(day, item.id, !item.done)
                             }
-                            className={cn(
-                              "relative flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors after:absolute after:-inset-2.5 after:content-['']",
-                              item.done
-                                ? "border-positive bg-positive-soft text-positive"
-                                : "border-rule bg-paper hover:border-ink",
-                            )}
+                            className="tap-target relative flex size-4 shrink-0 items-center justify-center"
                           >
-                            {item.done && <PlainIcon name="check" size={9} />}
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+                                item.done
+                                  ? "border-positive bg-positive-soft text-positive"
+                                  : "border-rule bg-paper hover:border-ink",
+                              )}
+                              aria-hidden="true"
+                            >
+                              {item.done && <PlainIcon name="check" size={9} />}
+                            </span>
                           </button>
                         ) : (
                           <span
@@ -177,7 +192,7 @@ export function EventDialog({
                 </div>
               )}
 
-              <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <div className="action-row-stack mt-6 sm:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
@@ -205,11 +220,11 @@ export function EventDialog({
 
 function PlanDoneState({ completed }: { completed: boolean }) {
   return completed ? (
-    <span className="inline-flex items-center gap-1 rounded-pill border border-positive/40 bg-positive-soft px-2 py-0.5 text-[10px] font-medium text-positive">
+    <span className="inline-flex items-center gap-1 rounded-pill border border-positive/40 bg-positive-soft px-2 py-0.5 text-[length:var(--type-label)] font-medium text-positive">
       <PlainIcon name="check" size={10} /> Completed
     </span>
   ) : (
-    <span className="inline-flex items-center rounded-pill border border-rule-soft bg-soft px-2 py-0.5 text-[10px] font-medium text-muted">
+    <span className="inline-flex items-center rounded-pill border border-rule-soft bg-soft px-2 py-0.5 text-[length:var(--type-label)] font-medium text-muted">
       Not done yet
     </span>
   );
@@ -222,8 +237,8 @@ function RevFlag({ label, done }: { label: string; done: boolean }) {
         done ? "border-positive/40 bg-positive-soft text-positive" : "border-rule-soft bg-canvas text-muted"
       }`}
     >
-      <dt className="text-[10px] font-medium">{label}</dt>
-      <dd className="text-[10px]">{done ? "Done" : "Pending"}</dd>
+      <dt className="text-[length:var(--type-label)] font-medium">{label}</dt>
+      <dd className="text-[length:var(--type-secondary)]">{done ? "Done" : "Pending"}</dd>
     </div>
   );
 }

@@ -219,7 +219,7 @@ export function TaskToolbar({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="@container/tasks-toolbar flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 basis-52">
           <Search
             size={14}
@@ -236,7 +236,7 @@ export function TaskToolbar({
             className="pl-9!"
           />
         </div>
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 @lg/tasks-toolbar:flex">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="outline" size="sm">
@@ -262,7 +262,7 @@ export function TaskToolbar({
               <Button type="button" variant="outline" size="sm">
                 Filters
                 {active > 0 && (
-                  <span className="rounded-pill bg-accent px-1.5 text-[0.625rem] font-semibold leading-4 text-paper">
+                  <span className="rounded-pill bg-accent px-1.5 text-[length:var(--type-label)] font-semibold leading-4 text-paper">
                     {active}
                   </span>
                 )}
@@ -272,7 +272,7 @@ export function TaskToolbar({
           </DropdownMenu>
           {selectButton}
         </div>
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 @lg/tasks-toolbar:hidden">
           <Button
             type="button"
             variant="outline"
@@ -281,7 +281,7 @@ export function TaskToolbar({
           >
             Filters
             {active > 0 && (
-              <span className="rounded-pill bg-accent px-1.5 text-[0.625rem] font-semibold leading-4 text-paper">
+              <span className="rounded-pill bg-accent px-1.5 text-[length:var(--type-label)] font-semibold leading-4 text-paper">
                 {active}
               </span>
             )}

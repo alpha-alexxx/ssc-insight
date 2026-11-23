@@ -153,7 +153,7 @@ function WeekDayCell({
         )}
       >
         <span className="flex w-11 shrink-0 flex-col items-center gap-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
+          <span className="text-[length:var(--type-label)] font-medium uppercase tracking-[0.08em] text-muted">
             {isoWeekdayShort(iso)}
           </span>
           {numeral}
@@ -165,13 +165,13 @@ function WeekDayCell({
                 <CompactRow key={entry.id} entry={entry} layout={layout} />
               ))}
               {entries.length > shown && (
-                <span className="px-1.5 text-[10px] text-muted">
+                <span className="px-1.5 text-[length:var(--type-label)] text-muted">
                   +{entries.length - shown} more
                 </span>
               )}
             </>
           ) : (
-            <span className="py-0.5 text-[11px] text-muted">No assignments</span>
+            <span className="py-0.5 text-[length:var(--type-secondary)] text-muted">No assignments</span>
           )}
         </span>
         <DayTicks counts={counts} className="shrink-0 pt-1" />
@@ -196,12 +196,12 @@ function WeekDayCell({
       )}
     >
       <span className="flex flex-col items-center gap-0.5 border-b border-rule-soft px-1.5 py-2">
-        <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
+        <span className="text-[length:var(--type-label)] font-medium uppercase tracking-[0.08em] text-muted">
           {isoWeekdayShort(iso)}
         </span>
         {numeral}
         {counts.plan.total > 0 && (
-          <span className="text-[10px] tabular text-muted">
+          <span className="text-[length:var(--type-label)] tabular text-muted">
             {counts.plan.done}/{counts.plan.total}
           </span>
         )}
@@ -211,12 +211,12 @@ function WeekDayCell({
           <CompactRow key={entry.id} entry={entry} layout="column" />
         ))}
         {entries.length > shown && (
-          <span className="px-1 text-[10px] text-muted">
+          <span className="px-1 text-[length:var(--type-label)] text-muted">
             +{entries.length - shown} more
           </span>
         )}
         {!entries.length && (
-          <span className="px-1 py-1 text-[10px] text-muted">Nothing</span>
+          <span className="px-1 py-1 text-[length:var(--type-secondary)] text-muted">Nothing</span>
         )}
       </span>
     </button>
@@ -231,7 +231,7 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     return (
       <span
         className={cn(
-          "flex items-center gap-1 overflow-hidden rounded-[2px] py-0.5 pl-1 text-[10px] leading-tight",
+          "flex items-center gap-1 overflow-hidden rounded-[2px] py-0.5 pl-1 text-[length:var(--type-label)] leading-tight",
           entry.task.completed ? "text-muted line-through" : "text-ink",
         )}
       >
@@ -246,7 +246,7 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     );
   if (entry.kind === "revision")
     return (
-      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 text-[10px] leading-tight text-muted">
+      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 text-[length:var(--type-label)] leading-tight text-muted">
         <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-rule" aria-hidden="true" />
         <span className="truncate">Revision</span>
       </span>
@@ -255,7 +255,7 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft px-1 py-0.5 text-[10px] leading-tight",
+          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight",
           entry.status === "completed" ? "text-muted line-through" : "text-ink",
         )}
       >
@@ -263,7 +263,7 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
       </span>
     );
   return (
-    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[10px] leading-tight text-ink">
+    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight text-ink">
       <span className="truncate">{entry.attempt.name}</span>
       <span className="ml-auto tabular text-muted">{entry.scorePct}</span>
     </span>

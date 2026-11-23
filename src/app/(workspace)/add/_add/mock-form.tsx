@@ -547,7 +547,7 @@ export function MockForm({
                   : "Paste the report text, then choose a standard or AI-assisted import."}
               </p>
             </div>
-            <ol className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted" aria-label="Import progress">
+            <ol className="flex items-center gap-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted" aria-label="Import progress">
               <li className={!aiReviewing ? "text-ink" : ""}>1 Paste</li>
               <li aria-hidden="true">/</li>
               <li className={aiReviewing ? "text-ink" : ""}>2 Review</li>
@@ -586,7 +586,7 @@ export function MockForm({
                   maxLength={100000}
                 />
               </label>
-              <div className="mt-2 flex flex-wrap justify-between gap-2 text-[11px] text-muted">
+              <div className="mt-2 flex flex-wrap justify-between gap-2 text-[length:var(--type-secondary)] text-muted">
                 <span>
                   AI can arrange up to {MAX_EXTRACT_CHARS.toLocaleString("en-IN")} characters. The manual parser accepts longer reports.
                 </span>
@@ -594,7 +594,7 @@ export function MockForm({
                   {paste.length.toLocaleString("en-IN")} / {MAX_EXTRACT_CHARS.toLocaleString("en-IN")} for AI
                 </span>
               </div>
-              <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="action-row mt-5 gap-3">
                 <Button disabled={!paste.trim() || aiBusy} onClick={importPaste}>
                   Import with standard parser <PlainIcon name="check" size={15} />
                 </Button>
@@ -643,7 +643,7 @@ export function MockForm({
                     : "AI is not configured. Automatic review and manual entry still work."}
                 </p>
               )}
-              <p className="mt-3 text-[11px] text-muted">
+              <p className="mt-3 text-[length:var(--type-secondary)] text-muted">
                 AI maps the pasted report into an editable draft but never saves. You will review every field before copying it to the form.
               </p>
               {aiError && (
@@ -1087,7 +1087,7 @@ export function MockForm({
                   );
                 })()}
             </div>
-            <div className="action-row gap-3 sm:w-auto">
+            <div className="action-row-stack gap-3 sm:w-auto">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>

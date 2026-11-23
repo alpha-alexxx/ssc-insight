@@ -105,7 +105,7 @@ export function DataPanel({
             {fileInput}
           </div>
           {!preview && (
-            <p className="mt-3 text-[0.6875rem] leading-relaxed text-muted">
+            <p className="mt-3 text-[length:var(--type-secondary)] leading-relaxed text-muted">
               Imports are atomic and capped at 4 MB. Merge keeps what you have
               and skips exact duplicates; replace deletes this account&apos;s
               mocks first and needs a safety download.
@@ -198,7 +198,7 @@ function BackupPreviewCard({
           <p className="text-sm font-medium text-ink">
             {backupName || "Backup file"}
           </p>
-          <p className="mt-1 text-[0.6875rem] text-muted">
+          <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
             {preview.legacy
               ? "Legacy backup · attempts only"
               : `Format v${preview.formatVersion}`}
@@ -207,7 +207,7 @@ function BackupPreviewCard({
               : ""}
           </p>
         </div>
-        <span className="text-[0.6875rem] tabular text-muted">
+        <span className="text-[length:var(--type-secondary)] tabular text-muted">
           {preview.total} attempt{preview.total === 1 ? "" : "s"} ·{" "}
           {preview.subjectResults} subject result
           {preview.subjectResults === 1 ? "" : "s"}
@@ -231,7 +231,7 @@ function BackupPreviewCard({
           ] as const
         ).map(([label, value]) => (
           <div key={label}>
-            <p className="text-[0.6875rem] text-muted">{label}</p>
+            <p className="text-[length:var(--type-label)] text-muted">{label}</p>
             <p className="font-semibold tabular">{value}</p>
           </div>
         ))}
@@ -239,10 +239,10 @@ function BackupPreviewCard({
 
       {plannerRows > 0 && (
         <div className="mt-3 rounded-control border border-rule-soft bg-paper p-2.5">
-          <p className="text-[0.6875rem] font-medium text-ink">
+          <p className="text-[length:var(--type-label)] font-medium text-ink">
             Planner work in this file
           </p>
-          <p className="mt-0.5 text-[0.6875rem] leading-relaxed text-muted">
+          <p className="mt-0.5 text-[length:var(--type-secondary)] leading-relaxed text-muted">
             {preview.planner.planTasks} plan task progress ·{" "}
             {preview.planner.planDays} day records ·{" "}
             {preview.planner.personalTasks} personal tasks ·{" "}
@@ -254,7 +254,7 @@ function BackupPreviewCard({
       )}
 
       {importMode === "replace" && (
-        <p className="mt-3 text-[0.6875rem] leading-relaxed text-ink">
+        <p className="mt-3 text-[length:var(--type-secondary)] leading-relaxed text-ink">
           Replace deletes <strong>{preview.willDelete}</strong> existing mocks
           in this account, then imports <strong>{preview.importable}</strong>{" "}
           from the backup. Planner work is never deleted.
@@ -262,7 +262,7 @@ function BackupPreviewCard({
       )}
 
       <div className="mt-4">
-        <p className="text-[0.6875rem] font-medium text-ink">Import mode</p>
+        <p className="text-[length:var(--type-label)] font-medium text-ink">Import mode</p>
         <div role="group" aria-label="Import mode" className="segment-group mt-1.5">
           {(
             [
@@ -300,14 +300,14 @@ function BackupPreviewCard({
             </span>
           </label>
         ) : (
-          <p className="text-[0.6875rem] text-muted">
+          <p className="text-[length:var(--type-secondary)] text-muted">
             This backup has no settings to apply.
           </p>
         )}
       </div>
 
       {preview.conflicts > 0 && (
-        <p className="mt-3 text-[0.6875rem] leading-relaxed">
+        <p className="mt-3 text-[length:var(--type-secondary)] leading-relaxed">
           {preview.conflicts} record{preview.conflicts === 1 ? "" : "s"} share a
           name, date and type with existing mocks but differ in content. Merge
           adds them rather than silently dropping them.
@@ -315,14 +315,14 @@ function BackupPreviewCard({
       )}
 
       {preview.warnings.length > 0 && (
-        <ul className="mt-3 space-y-1 text-[0.6875rem]">
+        <ul className="mt-3 space-y-1 text-[length:var(--type-secondary)]">
           {preview.warnings.map((warning) => (
             <li key={warning}>{warning}</li>
           ))}
         </ul>
       )}
 
-      <div className="action-row mt-4 sm:justify-start">
+      <div className="action-row-stack mt-4 sm:justify-start">
         {importMode === "merge" ? (
           <Button
             size="sm"
@@ -360,7 +360,7 @@ function BackupPreviewCard({
         </Button>
       </div>
       {importMode === "replace" && safetyDownloaded && (
-        <p className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-positive">
+        <p className="mt-2 flex items-center gap-1.5 text-[length:var(--type-secondary)] text-positive">
           <DuotoneIcon name="success" size={13} tone="accent" />
           Safety backup downloaded. Verify it before replacing this account.
         </p>

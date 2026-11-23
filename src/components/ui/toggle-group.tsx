@@ -29,14 +29,30 @@ const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & {
     variant?: ToggleGroupVariant;
+    overflowBehavior?: "wrap" | "scroll";
   }
->(({ className, variant = "segment", ...props }, ref) => (
-  <ToggleGroupPrimitive.Root
-    ref={ref}
-    className={cn(variant === "card" && "w-full", className)}
-    {...props}
-  />
-));
+>(
+  (
+    { className, variant = "segment", overflowBehavior = "wrap", ...props },
+    ref,
+  ) => (
+    <ToggleGroupPrimitive.Root
+      ref={ref}
+      data-slot="toggle-group"
+      data-overflow-behavior={variant === "segment" ? overflowBehavior : undefined}
+      className={cn(
+        variant === "segment" && "segment-group max-w-full",
+        variant === "segment" &&
+          (overflowBehavior === "scroll"
+            ? "flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0"
+            : "flex-wrap"),
+        variant === "card" && "w-full",
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
 ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 
 /**
@@ -53,9 +69,10 @@ const ToggleGroupItem = React.forwardRef<
 >(({ className, variant = "segment", ...props }, ref) => (
   <ToggleGroupPrimitive.Item
     ref={ref}
+    data-slot="toggle-group-item"
     className={cn(
       variant === "card"
-        ? "flex flex-col items-stretch rounded-control border border-rule-soft text-left transition-colors hover:border-rule data-[state=on]:border-accent data-[state=on]:bg-accent-soft"
+        ? "flex flex-col items-stretch rounded-control border border-rule-soft text-left transition-[color,background-color,border-color] duration-[var(--dur-quick)] hover:border-rule data-[state=on]:border-accent data-[state=on]:bg-accent-soft disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft disabled:text-muted"
         : "segment",
       className,
     )}

@@ -99,7 +99,7 @@ export function AgendaView({
             Nothing scheduled from {shortDate(selected)} to {shortDate(to)}.
             {startDay ? "" : " This date is outside the plan window."}
           </p>
-          <div className="action-row">
+          <div className="action-row-stack">
             {nextActivity && (
               <Button
                 size="sm"
@@ -137,7 +137,7 @@ export function AgendaView({
         >
           Show {AGENDA_WINDOW} more days
         </Button>
-        <span className="text-[10px] text-muted">
+        <span className="text-[length:var(--type-secondary)] text-muted">
           through {shortDate(addIsoDays(selected, days - 1))}
         </span>
       </div>
@@ -152,7 +152,7 @@ export function AgendaView({
       )}
 
       {!startDay && (
-        <p className="mt-3 border-t border-rule-soft pt-3 text-[11px] text-muted">
+        <p className="mt-3 border-t border-rule-soft pt-3 text-[length:var(--type-secondary)] text-muted">
           The study plan runs {shortDate(planStart)} – {shortDate(planEnd)}.
           Personal tasks and logged mocks work outside that window.
         </p>
@@ -215,14 +215,14 @@ function AgendaGroups({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-1">
                 <h3 className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  <span className="text-[length:var(--type-label)] font-semibold uppercase tracking-[0.12em] text-muted">
                     {isoWeekdayName(date).slice(0, 3)} {shortDate(date)}
                   </span>
                   {day && (
-                    <span className="text-[10px] text-muted">Day {day.day}</span>
+                    <span className="text-[length:var(--type-label)] text-muted">Day {day.day}</span>
                   )}
                   {isToday && (
-                    <span className="rounded-pill bg-ink px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-paper">
+                    <span className="rounded-pill bg-ink px-1.5 py-px text-[length:var(--type-label)] font-medium uppercase tracking-wide text-paper">
                       Today
                     </span>
                   )}
@@ -230,7 +230,7 @@ function AgendaGroups({
                 <button
                   type="button"
                   onClick={() => onGoToDate(date)}
-                  className="inline-flex items-center gap-1 text-[10px] text-muted hover:text-accent"
+                  className="tap-target inline-flex items-center gap-1 text-[length:var(--type-label)] text-muted hover:text-accent"
                   aria-label={`Open ${longDate(date)}`}
                 >
                   Open
@@ -239,7 +239,7 @@ function AgendaGroups({
               </div>
               {day && (
                 <>
-                  <p className="mt-0.5 px-1 text-[11px] text-muted">
+                  <p className="mt-0.5 px-1 text-[length:var(--type-secondary)] text-muted">
                     {dayTypeLabel(day.dayType)}
                   </p>
                   <ProgressRule
@@ -302,7 +302,7 @@ function EarlierRanges({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1 text-[11px] font-medium text-muted transition-colors hover:text-ink"
+        className="tap-target inline-flex items-center gap-1 text-[length:var(--type-label)] font-medium text-muted transition-colors hover:text-ink"
       >
         <PlainIcon
           name="chevronRight"
@@ -320,7 +320,7 @@ function EarlierRanges({
               <button
                 type="button"
                 onClick={() => onGoToDate(date)}
-                className="flex w-full justify-between gap-3 border-b border-rule-soft py-1.5 text-left text-[11px] last:border-0 hover:bg-soft"
+                className="tap-target flex w-full justify-between gap-3 border-b border-rule-soft py-1.5 text-left text-[length:var(--type-secondary)] last:border-0 hover:bg-soft"
               >
                 <span className="text-muted">
                   {isoWeekdayName(date).slice(0, 3)} {shortDate(date)}
@@ -344,7 +344,7 @@ function EarlierRanges({
         })}
       </ul>
       {dates.length > 3 && !open && (
-        <span className="mt-1 block text-[10px] text-muted">
+        <span className="mt-1 block text-[length:var(--type-secondary)] text-muted">
           {dates.length - 3} older
         </span>
       )}

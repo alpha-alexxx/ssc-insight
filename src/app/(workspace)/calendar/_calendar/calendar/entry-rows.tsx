@@ -102,7 +102,7 @@ export function PersonalEntryRow({
             >
               {entry.task.title}
             </span>
-            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted">
+            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[length:var(--type-secondary)] text-muted">
               {entry.overdue && <span className="text-danger">Overdue</span>}
               {entry.task.priority !== "normal" && (
                 <span className="capitalize">{entry.task.priority} priority</span>
@@ -148,7 +148,7 @@ export function AttemptEntryRow({
           <span className="block truncate text-[13px] font-medium leading-snug text-ink">
             {attempt.name}
           </span>
-          <span className="mt-0.5 block truncate text-[10px] text-muted">
+          <span className="mt-0.5 block truncate text-[length:var(--type-secondary)] text-muted">
             {attempt.platform} · {mockTypeLabel(attempt.type)}
           </span>
         </span>
@@ -160,7 +160,7 @@ export function AttemptEntryRow({
           aria-hidden="true"
         >
           {scorePct}
-          <span className="ml-0.5 text-[10px] text-muted">%</span>
+          <span className="ml-0.5 text-[length:var(--type-label)] text-muted">%</span>
         </span>
         <PlainIcon name="chevronRight" size={13} className="shrink-0 text-muted" />
       </button>
@@ -252,7 +252,7 @@ export function entryPlanRow(entry: Extract<CalendarEntry, { kind: "plan-task" }
 /** Shared "quiet day" line for agenda gaps. */
 export function QuietDays({ count }: { count: number }) {
   return (
-    <p className="flex items-center justify-center gap-2 border-y border-rule-soft/60 py-2 text-[10px] text-muted">
+    <p className="flex items-center justify-center gap-2 border-y border-rule-soft/60 py-2 text-[length:var(--type-secondary)] text-muted">
       <span aria-hidden="true">· · ·</span>
       {count} quiet {count === 1 ? "day" : "days"}
       <span aria-hidden="true">· · ·</span>

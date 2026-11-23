@@ -807,7 +807,7 @@ export function MyTasksView({
   const quickAddDate = dayMode ? dayDetail ?? today : today;
 
   return (
-    <section aria-label="My tasks" className="personal-workspace min-w-0">
+    <section aria-label="My tasks" className="personal-workspace min-w-0 @container/mt-page">
       <PageHeader
         icon={<DuotoneTile name="check" tile="accent" className="size-12" />}
         title="My tasks"
@@ -827,8 +827,8 @@ export function MyTasksView({
 
       <OverviewStrip counts={stripCounts} onOpen={openTab} />
 
-      <div className="mt-5 grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-        <main className="flex min-w-0 flex-col gap-3 lg:col-start-1 lg:row-start-1">
+      <div className="mt-5 grid min-w-0 items-start gap-5 @5xl/mt-page:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+        <main className="flex min-w-0 flex-col gap-3 @5xl/mt-page:col-start-1 @5xl/mt-page:row-start-1">
           {/* Tabs */}
           <div
             role="tablist"
@@ -934,7 +934,7 @@ export function MyTasksView({
                       patchFilters({ [entry.key]: "all" } as Partial<TaskFilters>);
                       resetPage();
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-accent/40 bg-accent-soft px-2.5 py-1 text-[0.6875rem] font-medium text-accent transition-colors hover:bg-accent/15"
+                    className="inline-flex min-h-[var(--control-height-sm)] items-center gap-1.5 rounded-pill border border-accent/40 bg-accent-soft px-2.5 py-1 text-[length:var(--type-label)] font-medium text-accent tap-target transition-colors hover:bg-accent/15"
                     aria-label={`Remove ${entry.key} filter`}
                   >
                     {entry.key === "group" && entry.value !== "ungrouped"
@@ -949,7 +949,7 @@ export function MyTasksView({
                     clearFilters();
                     resetPage();
                   }}
-                  className="text-[0.6875rem] font-medium text-muted underline underline-offset-4 hover:text-ink"
+                  className="inline-flex min-h-[var(--control-height-sm)] items-center text-[length:var(--type-label)] font-medium text-muted tap-target underline underline-offset-4 hover:text-ink"
                 >
                   Clear all
                 </button>
@@ -991,7 +991,7 @@ export function MyTasksView({
               !myDayMode &&
               main.data &&
               main.data.total > main.data.limit && (
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule-soft pt-3 text-xs text-muted">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule-soft pt-3 text-[length:var(--type-secondary)] text-muted">
                   <span>
                     {main.data.total} {main.data.total === 1 ? "task" : "tasks"} ·
                     Page {main.data.page} of{" "}
@@ -1026,7 +1026,7 @@ export function MyTasksView({
           </div>
         </main>
 
-        <aside className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1">
+        <aside className="flex min-w-0 flex-col gap-4 @5xl/mt-page:col-start-2 @5xl/mt-page:row-start-1">
           <PlanRail plan={planApi.plan} today={today} />
           <section className="panel p-4" aria-label="Task calendar">
             <PersonalCalendar
@@ -1047,12 +1047,12 @@ export function MyTasksView({
                 Manage
               </Button>
             </div>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
               Group tasks by subject or project. Click one to filter All tasks.
             </p>
             <ul className="mt-3 space-y-1">
               {groupsWithCounts.length === 0 && (
-                <li className="rounded-control border border-dashed border-rule px-3 py-3 text-center text-xs text-muted">
+                <li className="rounded-control border border-dashed border-rule px-3 py-3 text-center text-[length:var(--type-label)] text-muted">
                   No groups yet — create one from any task&apos;s editor, or
                   open Manage.
                 </li>
@@ -1067,7 +1067,7 @@ export function MyTasksView({
                       openTab("all");
                     }}
                     className={cn(
-                      "flex min-h-9 w-full items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-left text-xs transition-colors",
+                      "flex min-h-[var(--control-height-sm)] w-full items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-left text-[length:var(--type-label)] tap-target transition-colors",
                       filters.group === group.id
                         ? "bg-accent-soft font-medium text-accent"
                         : "text-ink hover:bg-soft",
@@ -1165,7 +1165,7 @@ export function MyTasksView({
                 “{confirm.task.title}” and its subtasks can be restored later
                 from Trash.
               </Dialog.Description>
-              <div className="action-row mt-4 justify-end gap-2 sm:mx-0">
+              <div className="action-row-stack mt-4 justify-end gap-2 sm:mx-0">
                 <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
                   Cancel
                 </Button>
@@ -1205,7 +1205,7 @@ export function MyTasksView({
                   ? "Selected tasks and their subtasks can be restored from Trash."
                   : "Applies to everything matching the current view, search, and filters — not just this page. You can restore them from Trash."}
               </Dialog.Description>
-              <div className="action-row mt-4 justify-end gap-2 sm:mx-0">
+              <div className="action-row-stack mt-4 justify-end gap-2 sm:mx-0">
                 <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
                   Cancel
                 </Button>
@@ -1272,7 +1272,7 @@ export function MyTasksView({
                     onChange={(e) => setNewDate(e.target.value)}
                   />
                 </label>
-                <div className="flex justify-end gap-2">
+                <div className="action-row-stack justify-end gap-2">
                   <Button
                     type="button"
                     variant="ghost"

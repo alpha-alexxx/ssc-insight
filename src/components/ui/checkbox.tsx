@@ -21,21 +21,21 @@ const Checkbox = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CheckboxPrimitive.Root
     ref={ref}
+    data-slot="checkbox"
     className={cn(
-      "peer inline-flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-rule bg-paper",
+      "peer tap-target inline-flex size-4 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)/2)] border border-rule bg-paper",
       "transition-colors duration-[var(--dur-quick)]",
       "data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-paper",
       "data-[state=indeterminate]:border-ink data-[state=indeterminate]:bg-ink data-[state=indeterminate]:text-paper",
-      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      // Touch floor without growing the visual box.
-      "relative after:absolute after:-inset-2.5 after:content-['']",
+      "disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft disabled:text-muted",
+      "disabled:data-[state=checked]:border-rule-soft disabled:data-[state=checked]:bg-soft disabled:data-[state=checked]:text-muted",
+      "disabled:data-[state=indeterminate]:border-rule-soft disabled:data-[state=indeterminate]:bg-soft disabled:data-[state=indeterminate]:text-muted",
       className,
     )}
     {...props}
   >
-    <CheckboxPrimitive.Indicator className="flex items-center justify-center">
-      <Check size={10} strokeWidth={3} aria-hidden="true" />
+    <CheckboxPrimitive.Indicator className="flex items-center justify-center [&_svg[data-icon]]:size-2.5">
+      <Check data-icon="inline-start" strokeWidth={3} aria-hidden="true" />
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 ));

@@ -410,7 +410,7 @@ export function CalendarView({
   const selectMode = (next: CalendarMode) => setExplicitMode(next);
 
   return (
-    <div className="cal-page min-w-0">
+    <div className="cal-page min-w-0 @container/cal-page">
       <PageHeader
         title="Study calendar"
         description="Scheduled tests and revision, your own tasks, and every result you have logged — one ledger."
@@ -489,7 +489,7 @@ export function CalendarView({
       <div
         className={
           mode === "month" || mode === "week"
-            ? "cal-surface mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]"
+            ? "cal-surface mt-4 grid items-start gap-4 @5xl/cal-page:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]"
             : "cal-surface mt-4"
         }
       >
@@ -553,10 +553,11 @@ export function CalendarView({
         </div>
 
         {/* The desktop rail: month and week only; day/agenda carry the ledger
-            themselves. Below xl it stacks directly under the surface rather
-            than sitting below the fold of the whole page. */}
+            themselves. Below the wide cal-page threshold it stacks directly
+            under the surface rather than sitting below the fold of the whole
+            page. */}
         {(mode === "month" || mode === "week") && (
-          <aside className="hidden min-w-0 md:block xl:sticky xl:top-[68px] xl:self-start">
+          <aside className="hidden min-w-0 @3xl/cal-page:block @5xl/cal-page:sticky @5xl/cal-page:top-[4.25rem] @5xl/cal-page:self-start">
             <Swap swapKey={requested}>
               <DayLedger {...ledgerProps} variant="rail" />
             </Swap>

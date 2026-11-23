@@ -61,10 +61,10 @@ const DrawerContent = React.forwardRef<
       className={cn(
         "drawer-content fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col",
         "border-t border-rule bg-paper",
-        /* The panel's own radius token, top corners only: a bottom drawer
-           meets the viewport edge squarely. */
-        "rounded-t-[var(--radius-panel)]",
-        "pb-[max(12px,env(safe-area-inset-bottom))]",
+        /* The floating radius token applies to the exposed top corners only:
+           a bottom drawer meets the viewport edge squarely. */
+        "rounded-t-[var(--radius-floating)] shadow-pop",
+        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         className,
       )}
       {...props}
@@ -113,7 +113,10 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn("font-serif text-xl font-medium text-ink", className)}
+    className={cn(
+      "font-serif text-[length:var(--type-section-title)] font-medium leading-snug text-ink",
+      className,
+    )}
     {...props}
   />
 ));
@@ -125,7 +128,10 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn("text-xs text-muted", className)}
+    className={cn(
+      "text-pretty text-[length:var(--type-secondary)] leading-relaxed text-muted",
+      className,
+    )}
     {...props}
   />
 ));

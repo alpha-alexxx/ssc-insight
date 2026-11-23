@@ -148,7 +148,7 @@ export function SecurityPanel({
               <Badge variant={twoFactorEnabled ? "default" : "secondary"}>
                 {twoFactorEnabled ? "On" : "Off"}
               </Badge>
-              <div className="flex flex-wrap gap-2">
+              <div className="action-row">
                 {twoFactorEnabled ? (
                   <>
                     <Button
@@ -247,7 +247,7 @@ function SessionsCard() {
                     <span className="block truncate text-xs font-medium text-ink">
                       {describeDevice(session.userAgent)}
                     </span>
-                    <span className="tabular-nums block text-[0.625rem] text-muted">
+                    <span className="tabular-nums block text-[length:var(--type-secondary)] text-muted">
                       {session.createdAt
                         ? `Since ${new Date(session.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
                         : "Unknown start"}
@@ -504,7 +504,7 @@ function ChangePasswordDialog({
                 {error}
               </p>
             ) : null}
-            <div className="flex justify-end gap-2">
+            <div className="action-row-stack sm:justify-end">
               <Button type="button" variant="outline" onClick={close}>
                 Cancel
               </Button>
@@ -566,7 +566,7 @@ function ChangePasswordDialog({
                       "Email me a code"
                     )}
                   </Button>
-                  <p className="text-[0.6875rem] leading-relaxed text-muted">
+                  <p className="text-[length:var(--type-secondary)] leading-relaxed text-muted">
                     No password yet (Google-only account)? This same code sets
                     your first password.
                   </p>
@@ -648,7 +648,7 @@ function ChangePasswordDialog({
                     {error}
                   </p>
                 ) : null}
-                <div className="flex justify-end gap-2">
+                <div className="action-row-stack sm:justify-end">
                   <Button type="button" variant="outline" onClick={close}>
                     Cancel
                   </Button>
@@ -784,7 +784,7 @@ function EnrollDialog({
                   {error}
                 </p>
               ) : null}
-              <div className="flex justify-end gap-2">
+              <div className="action-row-stack sm:justify-end">
                 <Button type="button" variant="outline" onClick={close}>
                   Cancel
                 </Button>
@@ -838,7 +838,7 @@ function EnrollDialog({
                   {error}
                 </p>
               ) : null}
-              <div className="flex w-full justify-end gap-2">
+              <div className="action-row-stack sm:w-full sm:justify-end">
                 <Button variant="outline" onClick={close}>
                   Cancel
                 </Button>
@@ -894,7 +894,7 @@ function EnrollDialog({
                   {error}
                 </p>
               ) : null}
-              <div className="flex justify-end gap-2">
+              <div className="action-row-stack sm:justify-end">
                 <Button type="button" variant="outline" onClick={close}>
                   Cancel
                 </Button>
@@ -938,7 +938,7 @@ function EnrollDialog({
                 </p>
               ) : null}
             </div>
-            <div className="flex items-center justify-between gap-2">
+            <div className="action-row-stack sm:justify-between">
               <Button type="button" variant="outline" size="sm" onClick={() => void copyCodes()}>
                 {copied ? (
                   <>
@@ -1018,7 +1018,7 @@ function DisableTwoFactorDialog({
               {error}
             </p>
           ) : null}
-          <div className="flex justify-end gap-2">
+          <div className="action-row-stack sm:justify-end">
             <Button type="button" variant="outline" onClick={close}>
               Keep it on
             </Button>
@@ -1116,7 +1116,7 @@ function RegenerateCodesDialog({
                   {error}
                 </p>
               ) : null}
-              <div className="flex justify-end gap-2">
+              <div className="action-row-stack sm:justify-end">
                 <Button type="button" variant="outline" onClick={close}>
                   Cancel
                 </Button>
@@ -1149,7 +1149,7 @@ function RegenerateCodesDialog({
                 ))}
               </ol>
             </div>
-            <div className="flex items-center justify-between gap-2">
+            <div className="action-row-stack sm:justify-between">
               <Button
                 type="button"
                 variant="outline"

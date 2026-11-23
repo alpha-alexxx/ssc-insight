@@ -19,6 +19,7 @@ const RadioGroup = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <RadioGroupPrimitive.Root
     ref={ref}
+    data-slot="radio-group"
     className={cn("grid gap-2", className)}
     {...props}
   />
@@ -31,18 +32,21 @@ const RadioGroupItem = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <RadioGroupPrimitive.Item
     ref={ref}
+    data-slot="radio-group-item"
     className={cn(
-      "inline-flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-rule bg-paper",
+      "tap-target inline-flex size-4 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)/2)] border border-rule bg-paper",
       "transition-colors duration-[var(--dur-quick)]",
-      "data-[state=checked]:border-ink data-[state=checked]:bg-ink",
-      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      "relative after:absolute after:-inset-2.5 after:content-['']",
+      "data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-paper",
+      "disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft disabled:text-muted",
+      "disabled:data-[state=checked]:border-rule-soft disabled:data-[state=checked]:bg-soft disabled:data-[state=checked]:text-muted",
       className,
     )}
     {...props}
   >
-    <RadioGroupPrimitive.Indicator className="block size-1.5 bg-paper" />
+    <RadioGroupPrimitive.Indicator
+      data-slot="radio-group-indicator"
+      className="block size-1.5 bg-current"
+    />
   </RadioGroupPrimitive.Item>
 ));
 RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;

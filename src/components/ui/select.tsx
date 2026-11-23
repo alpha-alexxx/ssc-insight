@@ -25,20 +25,19 @@ const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    data-slot="select-trigger"
     className={cn(
-      "flex h-[var(--control-height)] w-full items-center justify-between gap-2 px-[var(--control-pad-x)]",
-      "border border-rule bg-paper text-left text-sm text-ink",
-      "rounded-[var(--radius-control)] transition-colors duration-[var(--dur-quick)]",
-      "hover:border-ink data-[placeholder]:text-muted",
-      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-      "disabled:cursor-not-allowed disabled:opacity-50",
+      "flex h-[var(--control-height)] w-full items-center justify-between gap-2 rounded-control border border-rule bg-paper px-[var(--control-pad-x)] text-left text-[length:var(--type-body)] text-ink",
+      "touch-manipulation transition-colors duration-[var(--dur-quick)] hover:border-ink data-[placeholder]:text-muted",
+      "aria-invalid:border-danger aria-invalid:focus-visible:outline-danger disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-rule-soft disabled:bg-soft disabled:text-muted",
+      "[&_svg[data-icon]]:size-4 [&_svg[data-icon]]:shrink-0",
       className,
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown size={13} className="shrink-0 text-muted" aria-hidden="true" />
+      <ChevronDown data-icon="inline-end" className="text-muted" aria-hidden="true" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -51,10 +50,10 @@ const SelectContent = React.forwardRef<
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
+      data-slot="select-content"
       position={position}
       className={cn(
-        "popover-content z-50 max-h-72 min-w-[8rem] overflow-hidden",
-        "border border-rule bg-paper text-ink shadow-pop rounded-[var(--radius-control)]",
+        "popover-content z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-floating border border-rule bg-paper text-ink shadow-pop",
         position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
         className,
       )}
@@ -72,6 +71,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
+    data-slot="select-label"
     className={cn(
       "px-2 py-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted",
       className,
@@ -87,17 +87,18 @@ const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
+    data-slot="select-item"
     className={cn(
-      "relative flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-[2px] px-2 py-1.5 pr-7 text-sm outline-none",
-      "data-[highlighted]:bg-soft data-[state=checked]:font-medium",
-      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex min-h-[var(--control-height-sm)] cursor-pointer select-none items-center gap-2 rounded-control px-2 py-1.5 pr-7 text-[length:var(--type-secondary)] outline-none",
+      "data-[highlighted]:bg-soft data-[state=checked]:font-medium data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:text-muted",
+      "[&_svg[data-icon]]:size-4 [&_svg[data-icon]]:shrink-0",
       className,
     )}
     {...props}
   >
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     <SelectPrimitive.ItemIndicator className="absolute right-2">
-      <Check size={13} className="text-accent" aria-hidden="true" />
+      <Check data-icon="inline-end" className="text-accent" aria-hidden="true" />
     </SelectPrimitive.ItemIndicator>
   </SelectPrimitive.Item>
 ));
@@ -109,6 +110,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
+    data-slot="select-separator"
     className={cn("my-1 h-px bg-rule-soft", className)}
     {...props}
   />

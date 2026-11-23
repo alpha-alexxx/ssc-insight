@@ -2,6 +2,7 @@
 import { useCallback } from "react";
 import { useTheme } from "next-themes";
 import { PlainIcon } from "./icon";
+import { Button } from "./ui/button";
 
 /**
  * Theme toggle for the SSC Insight warm-paper / warm-charcoal palette.
@@ -24,15 +25,17 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   }, [resolvedTheme, setTheme]);
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={toggle}
       aria-label="Toggle theme"
       title="Toggle theme"
-      className={`muted hover:text-accent transition-colors inline-flex items-center justify-center size-8 ${className}`}
+      className={className}
     >
       <PlainIcon name="moon" size={17} tone="ink" className="dark:hidden" />
       <PlainIcon name="sun" size={17} tone="ink" className="hidden dark:block" />
-    </button>
+    </Button>
   );
 }

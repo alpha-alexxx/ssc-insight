@@ -91,7 +91,7 @@ export function SignUpForm({
             <GoogleSignInButton
               enabled={googleEnabled}
               label="Continue with Google"
-              className="h-11 w-full justify-center"
+              className="w-full justify-center"
             />
           </Field>
 
@@ -161,7 +161,7 @@ export function SignUpForm({
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="h-11 w-full justify-center"
+                  className="w-full justify-center"
                 >
                   {form.formState.isSubmitting ? (
                     <>
