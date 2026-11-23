@@ -6,6 +6,7 @@ import { QueryProvider } from "@/components/query-provider";
 import { ExamScopeProvider } from "@/components/exam-context";
 import { AiWorkspaceProvider } from "@/components/use-ai-workspace";
 import { requireUser } from "@/lib/auth/require-user";
+import { devAuthBypassActive } from "@/lib/auth/dev-bypass";
 import { SessionError } from "@/lib/auth/session-policy";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function WorkspaceLayout({
   const defaultSidebarOpen =
     (await cookies()).get("sidebar_state")?.value !== "false";
   return (
-    <PrivateWorkspace key={user.id} userId={user.id}>
+    <PrivateWorkspace key={user.id} userId={user.id} devBypass={devAuthBypassActive()}>
       <QueryProvider>
         <ExamScopeProvider>
           <AiWorkspaceProvider>

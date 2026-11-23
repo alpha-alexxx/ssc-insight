@@ -9,6 +9,14 @@ import { Button } from "./ui/button";
 /** Props for {@link PrivateWorkspace}. */
 export interface PrivateWorkspaceProps {
   userId: string;
+  /**
+   * Server-side dev bypass (DEV_AUTH_BYPASS=true, non-production). When set,
+   * the client session guard is skipped — the server layout already trusted
+   * the dev user via requireUser(), and the managed Neon Auth service isn't
+   * reachable in-sandbox, so the client-side useSession() would otherwise hang
+   * on the guard screen. Production is unaffected (the flag is never set there).
+   */
+  devBypass?: boolean;
   children: ReactNode;
 }
 
@@ -17,7 +25,16 @@ export interface PrivateWorkspaceProps {
  * children (the workspace shell) only while the signed-in session is
  * verified — re-checked on focus, visibility, pageshow and every 60s.
  */
-export function PrivateWorkspace({ userId, children }: PrivateWorkspaceProps) {
+export function PrivateWorkspace({ userId, devBypass = false, children }: PrivateWorkspaceProps) {
+  // Dev bypass: skip the client session guard entirely. The server layout
+  // already gated on requireUser() (which returns the dev user when active).
+  // Split into a separate guard component so its hooks aren't called when the
+  // bypass is active (rules-of-hooks + avoids the hanging useSession fetch).
+  if (devBypass) return <>{children}</>;
+  return <PrivateWorkspaceGuard userId={userId}>{children}</PrivateWorkspaceGuard>;
+}
+
+function PrivateWorkspaceGuard({ userId, children }: { userId: string; children: ReactNode }) {
   const router = useRouter();
   const { data: session, isPending, error, refetch } = authClient.useSession();
   const [blocked, setBlocked] = useState(false);
