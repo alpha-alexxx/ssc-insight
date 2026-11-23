@@ -48,7 +48,6 @@ export default async function WorkspaceLayout({
             <AiWorkspaceProvider>
               <WorkspaceChrome
                 defaultSidebarOpen={defaultSidebarOpen}
-                authEnabled={process.env.GOOGLE_AUTH_ENABLED === "true"}
                 userEmail={user.email ?? ""}
                 userName={user.name ?? ""}
                 userImage={user.image ?? ""}

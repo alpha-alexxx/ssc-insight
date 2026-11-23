@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AuthControl } from "./auth-control";
+import { SidebarUserMenu } from "./auth-control";
 import { ExamSwitcher } from "./exam-switcher";
 import { useExamScope } from "./exam-context";
 import { DuotoneIcon, PlainIcon } from "./icon";
@@ -23,7 +23,6 @@ import {
   SidebarRail,
   SidebarTrigger,
   useSidebar,
-  COLLAPSED_ICON_BUTTON,
   COLLAPSED_TEXT_SPAN,
 } from "./ui/sidebar";
 import { istTodayIso } from "@/lib/plan/view-model";
@@ -34,9 +33,16 @@ export type { AppView } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 /**
- * Application shell — official shadcn sidebar composition adapted to the
+ * Application shell — official shadcn sidebar-07 composition adapted to the
  * real workspace routes. The sidebar owns expanded/collapsed and the mobile
  * Sheet; the shell keeps route intent, auth, and view labels.
+ *
+ * Footer grammar (sidebar-07 NavUser): Ask AI is a full-width accent button
+ * at the top of the footer; the account block (avatar + name/email + logout)
+ * sits under it. Collapsed, the footer folds to the avatar alone — its
+ * dropdown then carries identity, Settings, Trash, and Sign out, and the
+ * header picks up the Ask AI button (plus the Settings shortcut when the
+ * current view is neither of them).
  */
 
 /** Plan-day route for "today" (IST) — computed per render, not at module load. */
@@ -56,7 +62,7 @@ export const VIEW_META: Record<
   compare: { label: "Compare mocks", icon: "compare" },
   performance: { label: "Performance", icon: "report" },
   add: { label: "Log a mock", icon: "add" },
-  ask: { label: "Ask AI", icon: "sparkles" },
+  ask: { label: "AI workspace", icon: "sparkles" },
   trash: { label: "Trash", icon: "trash" },
   settings: { label: "Settings", icon: "settings" },
 };
@@ -73,12 +79,13 @@ export function AppFrame({
   userName,
   userEmail,
   userImage,
-  authEnabled,
   aiEnabled,
   onRouteIntent,
   onAddMock,
   onOpenAi,
   onOpenSearch,
+  onOpenSettings,
+  onOpenTrash,
   children,
   defaultSidebarOpen = true,
 }: {
@@ -86,12 +93,13 @@ export function AppFrame({
   userName: string;
   userEmail: string;
   userImage: string;
-  authEnabled: boolean;
   aiEnabled: boolean;
   onRouteIntent: (view: AppView) => void;
   onAddMock: () => void;
   onOpenAi: () => void;
   onOpenSearch: () => void;
+  onOpenSettings: () => void;
+  onOpenTrash: () => void;
   children: React.ReactNode;
   defaultSidebarOpen?: boolean;
 }) {
@@ -99,8 +107,15 @@ export function AppFrame({
     <SidebarProvider defaultOpen={defaultSidebarOpen}>
       <AppSidebar
         view={view}
+        userName={userName}
+        userEmail={userEmail}
+        userImage={userImage}
+        aiEnabled={aiEnabled}
         onRouteIntent={onRouteIntent}
         onAddMock={onAddMock}
+        onOpenAi={onOpenAi}
+        onOpenSettings={onOpenSettings}
+        onOpenTrash={onOpenTrash}
       />
       <SidebarInset
         id="main-content"
@@ -109,10 +124,6 @@ export function AppFrame({
       >
         <AppHeader
           view={view}
-          userName={userName}
-          userEmail={userEmail}
-          userImage={userImage}
-          authEnabled={authEnabled}
           aiEnabled={aiEnabled}
           onRouteIntent={onRouteIntent}
           onOpenAi={onOpenAi}
@@ -153,7 +164,7 @@ export const NAV_GROUPS: {
   {
     label: "Coach",
     items: [
-      { view: "ask", label: "Ask AI", href: VIEW_HREF.ask },
+      { view: "ask", label: "AI workspace", href: VIEW_HREF.ask },
     ],
   },
 ];
@@ -206,12 +217,26 @@ function NavItem({
 
 export function AppSidebar({
   view,
+  userName,
+  userEmail,
+  userImage,
+  aiEnabled,
   onRouteIntent,
   onAddMock,
+  onOpenAi,
+  onOpenSettings,
+  onOpenTrash,
 }: {
   view: AppView;
+  userName: string;
+  userEmail: string;
+  userImage: string;
+  aiEnabled: boolean;
   onRouteIntent: (view: AppView) => void;
   onAddMock: () => void;
+  onOpenAi: () => void;
+  onOpenSettings: () => void;
+  onOpenTrash: () => void;
 }) {
   const { setOpenMobile } = useSidebar();
   return (
@@ -300,10 +325,7 @@ export function AppSidebar({
                         onAddMock();
                         setOpenMobile(false);
                       }}
-                      className={cn(
-                        "sidebar-cta flex min-h-10 w-full items-center gap-2.5 rounded-control bg-accent px-2.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-accent-hover",
-                        COLLAPSED_ICON_BUTTON,
-                      )}
+                      className="sidebar-cta flex min-h-10 w-full items-center gap-2.5 rounded-control bg-accent px-2.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-accent-hover"
                     >
                       <PlainIcon name="plus" size={16} tone="paper" />
                       <span className={cn(COLLAPSED_TEXT_SPAN)}>
@@ -323,24 +345,89 @@ export function AppSidebar({
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter className="border-t border-rule-soft bg-canvas/60">
-        {/*
-          Trash sits with the account rather than in a nav group: it is not a
-          place you work, it is where deleted work from every module waits.
-          Reusing NavItem keeps the collapsed-rail tooltip, the active tint and
-          the mobile-close behavior identical to the grouped links.
-        */}
-        <SidebarMenu>
-          <NavItem
-            item={{
-              view: "trash",
-              label: "Trash",
-              href: VIEW_HREF.trash,
+      {/* px-0 on the rail: the footer's 8px side padding left the 40px avatar
+          2px off-centre inside the 56px rail. Every other rail footer row is
+          hidden, so the padding buys nothing there. */}
+      <SidebarFooter className="gap-1 border-t border-rule-soft bg-canvas/60 group-data-[collapsible=icon]:px-0">
+        {/* Utility icons — expanded only. Trash waits here instead of in a nav
+            group (it is not a place you work, it is where deleted work from
+            every module waits) and Settings belongs to the account surface it
+            configures. Collapsed, both fold into the avatar dropdown, so the
+            rail keeps one account target instead of three 40px buttons. */}
+        <div className="flex items-center gap-1 px-1.5 group-data-[collapsible=icon]:hidden">
+          <SidebarMenuButton
+            type="button"
+            tooltip="Settings"
+            isActive={view === "settings"}
+            onClick={() => {
+              onRouteIntent("settings");
+              setOpenMobile(false);
+              onOpenSettings();
             }}
-            active={view === "trash"}
-            onRouteIntent={onRouteIntent}
-          />
-        </SidebarMenu>
+            className="h-8 min-w-0 flex-1 justify-center gap-1.5 px-2 data-[active=true]:bg-accent-soft data-[active=true]:text-accent data-[active=true]:hover:bg-accent-soft data-[active=true]:hover:text-accent"
+          >
+            <PlainIcon
+              name="settings"
+              size={15}
+              tone={view === "settings" ? "accent" : "ink"}
+            />
+            <span className="truncate">Settings</span>
+          </SidebarMenuButton>
+          <SidebarMenuButton
+            type="button"
+            tooltip="Trash"
+            isActive={view === "trash"}
+            onClick={() => {
+              onRouteIntent("trash");
+              setOpenMobile(false);
+              onOpenTrash();
+            }}
+            className="h-8 min-w-0 flex-1 justify-center gap-1.5 px-2 data-[active=true]:bg-accent-soft data-[active=true]:text-accent data-[active=true]:hover:bg-accent-soft data-[active=true]:hover:text-accent"
+          >
+            <PlainIcon
+              name="trash"
+              size={15}
+              tone={view === "trash" ? "accent" : "ink"}
+            />
+            <span className="truncate">Trash</span>
+          </SidebarMenuButton>
+        </div>
+        {/* Ask AI sits directly above the profile block — the coach is the one
+            action a study session ends on. Collapsed to the rail it moves to
+            the header (AppHeader renders the button there). */}
+        {aiEnabled && (
+          <SidebarMenu className="group-data-[collapsible=icon]:hidden">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Ask AI"
+                type="button"
+                onClick={() => {
+                  onOpenAi();
+                  setOpenMobile(false);
+                }}
+                aria-label="Ask AI"
+                className="ask-cta flex min-h-10 w-full items-center gap-2.5 rounded-control border border-accent/40 bg-accent-soft px-2.5 py-2 text-sm font-medium text-accent transition-colors hover:border-accent hover:bg-accent-soft/70"
+              >
+                <PlainIcon name="sparkles" size={16} tone="accent" />
+                <span className={cn(COLLAPSED_TEXT_SPAN)}>Ask AI</span>
+                <PlainIcon
+                  name="chevronRight"
+                  size={13}
+                  tone="accent"
+                  className="ml-auto shrink-0 group-data-[collapsible=icon]:hidden"
+                />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+        {/* The sidebar-07 NavUser block: avatar + name/email + logout.
+            Collapsed the row folds to the avatar and its dropdown carries
+            identity, Settings, Trash, and Sign out. */}
+        <SidebarUserMenu
+          name={userName}
+          email={userEmail}
+          imageUrl={userImage}
+        />
         <ActiveExamFooterNote />
       </SidebarFooter>
       <SidebarRail />
@@ -365,10 +452,6 @@ function ActiveExamFooterNote() {
 /** Props for {@link AppHeader}. */
 export interface AppHeaderProps {
   view: AppView;
-  userName: string;
-  userEmail: string;
-  userImage: string;
-  authEnabled: boolean;
   aiEnabled: boolean;
   onRouteIntent: (view: AppView) => void;
   onOpenAi: () => void;
@@ -380,24 +463,21 @@ export interface AppHeaderProps {
  * of the viewport with no surrounding margin. Only the bottom edge carries a
  * hairline — the other three edges are the viewport itself.
  *
- * **Five controls on phones.** Six controls plus a breadcrumb cannot fit in
- * 375px, so below `sm` the bar keeps the trigger, the (truncating) page title,
- * search, theme and the account avatar. Ask AI lives in the sidebar and the
- * ⌘K palette; the exam switcher collapses to its icon. From `sm` every
- * control returns with its label and the search becomes the full pill.
+ * **Contextual controls.** The Ask AI button appears in the header when the
+ * sidebar is collapsed to the icon rail (where the footer CTA has no room)
+ * and on phones (where the sidebar is a closed Sheet). The account lives in
+ * the sidebar footer only — including on phones, where the Sheet carries the
+ * full identity block.
  */
 export function AppHeader({
   view,
-  userName,
-  userEmail,
-  userImage,
-  authEnabled,
   aiEnabled,
   onRouteIntent,
   onOpenAi,
   onOpenSearch,
 }: AppHeaderProps) {
   const router = useRouter();
+  const { state, isMobile } = useSidebar();
   const { label } = VIEW_META[view];
 
   const openSettings = () => {
@@ -405,13 +485,15 @@ export function AppHeader({
     router.push(VIEW_HREF.settings);
   };
 
+  const showHeaderAsk = aiEnabled && (isMobile || state === "collapsed");
+
   return (
     <header
       className="
         app-header sticky inset-x-0 top-0 z-30
-        flex h-[var(--app-header-h)] w-full shrink-0 items-center gap-1.5
+        flex h-[var(--app-header-h)] w-full shrink-0 items-center gap-1
         border-b border-rule-soft
-        bg-paper/95 px-3 backdrop-blur-sm
+        bg-paper/95 px-2 backdrop-blur-sm
         sm:gap-2 sm:px-4 md:px-6
       "
     >
@@ -443,14 +525,16 @@ export function AppHeader({
           </kbd>
         </button>
 
-        {/* Ask AI is a phone-sidebar and ⌘K destination; the header carries it
-            only where there is room for the label to be honest. */}
-        {aiEnabled && (
+        {/* Ask AI lives in the sidebar footer while there is a footer to
+            hold it; the rail and the phone sidebar hand the button back to
+            the header (always labelled there — the rail click opens the AI
+            panel directly, mirroring the footer CTA). */}
+        {showHeaderAsk && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onOpenAi}
-            className="hidden h-8 px-2.5 sm:inline-flex"
+            className="inline-flex size-9 shrink-0 p-0 text-accent hover:text-accent sm:h-8 sm:w-auto sm:px-2.5"
             aria-label="Ask AI"
           >
             <PlainIcon
@@ -466,14 +550,6 @@ export function AppHeader({
         <ExamSwitcher onManageExams={openSettings} compact />
 
         <ThemeToggle className="size-11 sm:size-8" />
-
-        <AuthControl
-          enabled={authEnabled}
-          name={userName}
-          email={userEmail}
-          imageUrl={userImage}
-          onSettings={openSettings}
-        />
       </div>
     </header>
   );

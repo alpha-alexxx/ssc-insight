@@ -472,6 +472,9 @@
 [data-style="sera"] [data-sidebar="menu-button"].sidebar-cta {
   box-shadow: 3px 3px 0 0 var(--ink);
 }
+[data-style="sera"] [data-sidebar="menu-button"].ask-cta {
+  box-shadow: 3px 3px 0 0 var(--ink);
+}
 [data-style="sera"] [data-sidebar="sidebar"] [data-sidebar="header"],
 [data-style="sera"] [data-sidebar="sidebar"] [data-sidebar="footer"] {
   border-color: var(--rule);

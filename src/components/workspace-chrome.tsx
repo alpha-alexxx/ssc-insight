@@ -39,14 +39,12 @@ import { usePlanData } from "./use-plan-data";
  * now the page's job, which is the entire point of the shift.
  */
 export function WorkspaceChrome({
-  authEnabled = false,
   userEmail = "",
   userName = "",
   userImage = "",
   defaultSidebarOpen = true,
   children,
 }: {
-  authEnabled?: boolean;
   userEmail?: string;
   userName?: string;
   userImage?: string;
@@ -166,12 +164,13 @@ export function WorkspaceChrome({
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
-          authEnabled={authEnabled}
           aiEnabled={!!ai.aiStatus?.enabled}
           onRouteIntent={() => undefined}
           onAddMock={addMock}
           onOpenAi={() => openAiChat("chat")}
           onOpenSearch={openSearch}
+          onOpenSettings={() => go("settings")}
+          onOpenTrash={() => go("trash")}
         >
           {/* px-* lives here once, so a route cannot forget it (one did). */}
           <div className="workspace-content mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
