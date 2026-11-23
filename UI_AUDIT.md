@@ -1,7 +1,16 @@
 # UI Audit — Hairline-only rebuild of ssc-insight
 
-Status: **gate cleared** — the two §9 questions were answered by the user;
-branch `ui/hairline` created from `main` tip (397137b). Migration proceeds.
+Status: **migration COMPLETE** (branch `ui/hairline`). The rebuild is done:
+- Token system: six OKLCH palettes × light/dark via `data-theme` + `.dark`,
+  graphite default, WCAG AA gate (`scripts/check-contrast.ts`, 216 pairs PASS).
+- Chrome, all 13 workspace pages, landing, auth pages, AI surfaces, system
+  pages rebuilt on Hairline UI (+ Animate UI animated Hugeicons, static
+  Hugeicons fallback).
+- Legacy removed: `components/ui/*` (shadcn primitives), sonner, radix,
+  cmdk, recharts; hard-color gate `scripts/check-ui-tokens.ts` PASS.
+- Gates at completion: tsc clean, eslint 0 errors, 516/516 tests,
+  all 19 routes HTTP 200, dashboard + /ask browser-verified with screenshots
+  (`docs/ui-screenshots/hairline-final-*.png`).
 
 ### User decisions (gate outcome)
 
