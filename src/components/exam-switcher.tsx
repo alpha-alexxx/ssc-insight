@@ -1,17 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { PlainIcon } from "./icon";
-import { useExamScope } from "./exam-context";
+import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
+import { Button } from "@/components/button";
+import { PlainIcon } from "@/components/icon";
+import { useExamScope } from "@/components/exam-context";
 import {
   examsKeys,
   putScopeRequest,
@@ -28,7 +21,7 @@ import { cn } from "@/lib/utils";
  * plus a combined "· All tiers" entry when an exam has two or more enabled
  * tiers. Switching persists the full scope (PUT /api/settings), and the
  * workspace — dashboard, history, add form, analytics — re-scopes through
- * the exam context.
+ * the exam context. Rendered with Hairline's DropdownMenu.
  */
 export function ExamSwitcher({
   onManageExams,
@@ -46,7 +39,7 @@ export function ExamSwitcher({
     return (
       <span
         aria-hidden="true"
-        className="inline-flex size-11 shrink-0 items-center rounded-control bg-soft/40 sm:h-8 sm:w-20"
+        className="inline-flex size-11 shrink-0 items-center rounded-full bg-muted/40 sm:h-8 sm:w-20"
       />
     );
   }
@@ -79,66 +72,42 @@ export function ExamSwitcher({
     }
   };
 
+  const items: MenuEntry[] = [
+    { type: "label", label: "Your exam tiers" },
+    { type: "separator" },
+    ...(entries.length === 0
+      ? [{ type: "item" as const, id: "none", label: "No tiers enabled yet", disabled: true }]
+      : entries.map((entry) => ({
+          type: "item" as const,
+          id: entry.key,
+          label: entry.isCustom ? `${entry.label} · custom` : entry.label,
+          icon: entry.key === activeKey ? <PlainIcon name="check" size={14} tone="primary" /> : undefined,
+          onSelect: () => void switchScope(entry),
+        }))),
+    { type: "separator" },
+    { id: "manage", label: "Manage exams", icon: <PlainIcon name="settings" size={14} />, onSelect: onManageExams },
+  ];
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <DropdownMenu
+      trigger={
         <Button
           variant="ghost"
           size="sm"
           disabled={busy}
           aria-label={`Active scope: ${active?.label ?? "exam"}. Switch exam or tier.`}
-          className={cn(
-            "h-8 max-w-[10rem] gap-1.5 px-2.5 sm:max-w-[16rem]",
-            compact && "max-w-8 px-0 sm:max-w-[16rem] sm:px-2.5",
-            "data-[state=open]:ring-2 data-[state=open]:ring-rule",
-          )}
+          className={cn("h-8 max-w-[10rem] gap-1.5 px-2.5 sm:max-w-[16rem]", compact && "max-w-8 px-0 sm:max-w-[16rem] sm:px-2.5")}
         >
-          <PlainIcon name="layers" size={14} tone="accent" aria-hidden="true" />
-          <span className="truncate text-sm font-medium">
-            {compact ? null : active?.label}
-          </span>
-          {compact ? null : (
-            <PlainIcon name="chevronDown" size={12} aria-hidden="true" />
-          )}
+          <PlainIcon name="layers" size={14} tone="primary" />
+          <span className="truncate text-[12px] font-medium">{compact ? null : active?.label}</span>
+          {compact ? null : <PlainIcon name="chevronDown" size={12} />}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[14rem]">
-        <DropdownMenuLabel className="normal-case tracking-normal">
-          Your exam tiers
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {entries.length === 0 && (
-          <DropdownMenuItem disabled>No tiers enabled yet</DropdownMenuItem>
-        )}
-        {entries.map((entry) => (
-          <DropdownMenuItem
-            key={entry.key}
-            onSelect={() => void switchScope(entry)}
-            className={cn(entry.key === activeKey && "bg-soft/70")}
-          >
-            <span className="flex-1 truncate">
-              {entry.label}
-              {entry.isCustom ? (
-                <span className="ml-1.5 text-[0.625rem] uppercase tracking-wide text-muted">
-                  custom
-                </span>
-              ) : null}
-            </span>
-            {entry.key === activeKey && (
-              <PlainIcon
-                name="check"
-                size={13}
-                tone="accent"
-                aria-hidden="true"
-              />
-            )}
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onManageExams}>
-          Manage exams
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+      items={items}
+      side="bottom"
+      align="end"
+      label="Exam scope"
+      minWidth={224}
+    />
   );
 }

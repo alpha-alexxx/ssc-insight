@@ -3,33 +3,24 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import {
-  DEFAULT_PALETTE,
-  DEFAULT_STYLE,
+  DEFAULT_THEME,
   PALETTE_STORAGE_KEY,
-  PALETTES,
-  STYLE_STORAGE_KEY,
-  STYLES,
+  THEMES,
   THEME_PREFS_SCRIPT,
-  microMotion,
-  normalizePalette,
-  normalizeStyle,
-  viewTransition,
+  normalizeTheme,
 } from "../src/lib/theme-style";
 
 type PrepaintOptions = {
   storage?: Record<string, string>;
   getItemThrows?: boolean;
-  setItemThrows?: boolean;
 };
 
 function runPrepaint({
   storage: initialStorage = {},
   getItemThrows = false,
-  setItemThrows = false,
 }: PrepaintOptions = {}) {
   const dataset: Record<string, string> = {};
   const storage = new Map(Object.entries(initialStorage));
-  const writes: Array<[string, string]> = [];
 
   vm.runInNewContext(THEME_PREFS_SCRIPT, {
     document: { documentElement: { dataset } },
@@ -38,319 +29,79 @@ function runPrepaint({
         if (getItemThrows) throw new Error("getItem unavailable");
         return storage.get(key) ?? null;
       },
-      setItem(key: string, value: string) {
-        if (setItemThrows) throw new Error("setItem unavailable");
-        storage.set(key, value);
-        writes.push([key, value]);
+      setItem() {
+        /* prepaint script never writes in the new contract */
       },
     },
   });
-
-  return { dataset, storage, writes };
+  return dataset;
 }
 
-const globalsCss = readFileSync(
-  new URL("../src/app/globals.css", import.meta.url),
-  "utf8",
-);
+test("default palette is graphite and needs no attribute", () => {
+  assert.equal(DEFAULT_THEME, "graphite");
+});
 
-function customPropertiesFor(selector: string) {
-  const selectorStart = globalsCss.indexOf(`${selector} {`);
-  assert.notEqual(selectorStart, -1, `missing ${selector} block`);
-
-  const blockStart = globalsCss.indexOf("{", selectorStart) + 1;
-  const blockEnd = globalsCss.indexOf("\n}", blockStart);
-  assert.notEqual(blockEnd, -1, `unterminated ${selector} block`);
-
-  return new Map(
-    Array.from(
-      globalsCss.slice(blockStart, blockEnd).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g),
-      ([, property, value]) => [property, value.trim()],
-    ),
-  );
-}
-
-const ROOT_MIRA_CONTRACT = {
-  "--radius-control": "0.5rem",
-  "--radius-card": "0.625rem",
-  "--radius-panel": "0.75rem",
-  "--radius-floating": "0.75rem",
-  "--radius-segment": "0.5rem",
-  "--radius-pill": "999rem",
-  "--panel-border-width": "1px",
-  "--panel-border-color": "var(--rule-soft)",
-  "--stat-rule-width": "1px",
-  "--control-pad-y": "0.5rem",
-  "--control-pad-x": "0.75rem",
-  "--control-height": "2.25rem",
-  "--control-height-sm": "2rem",
-  "--table-cell-pad-y": "0.625rem",
-  "--table-cell-pad-x": "0.75rem",
-  "--label-gap": "0.375rem",
-  "--nav-pad-y": "0.5rem",
-  "--nav-pad-x": "0.75rem",
-  "--segment-pad-y": "0.375rem",
-  "--segment-pad-x": "0.625rem",
-  "--stat-cell-pad-y": "1rem",
-  "--stat-cell-pad-x": "1.25rem",
-  "--type-page-title": "clamp(1.75rem, 2.4vw, 2.25rem)",
-  "--type-workspace-title": "clamp(1.5rem, 2.2vw, 1.875rem)",
-  "--type-section-title": "1.25rem",
-  "--type-panel-title": "1rem",
-  "--type-panel-title-dense": "0.9375rem",
-  "--type-metric": "clamp(1.5rem, 2.2vw, 1.875rem)",
-  "--type-stat": "2.25rem",
-  "--type-section-label": "0.75rem",
-  "--type-body": "0.875rem",
-  "--type-secondary": "0.8125rem",
-  "--type-label": "0.75rem",
-  "--type-segment": "0.8125rem",
-  "--metric-cell-pad-y": "0.75rem",
-  "--metric-cell-pad-x": "0.875rem",
-  "--band-cell-pad-y": "0.875rem",
-  "--band-cell-pad-x": "1rem",
-  "--day-nav-size": "2rem",
-  "--app-header-h": "3.25rem",
-  "--tap-min": "2.75rem",
-  "--sidebar-row-h": "2rem",
-  "--sidebar-row-h-lg": "2.5rem",
-  "--sidebar-header-pad-y": "0.5rem",
-  "--dur-quick": "140ms",
-  "--dur-enter": "180ms",
-  "--dur-view": "200ms",
-  "--focus-ring": "var(--accent)",
-  "--focus-keyline": "var(--paper)",
-} as const;
-
-const SERA_CONTRACT = {
-  "--radius-control": "0",
-  "--radius-card": "0",
-  "--radius-panel": "0",
-  "--radius-floating": "0",
-  "--radius-segment": "0",
-  "--radius-pill": "0",
-  "--panel-border-width": "2px",
-  "--panel-border-color": "var(--ink)",
-  "--stat-rule-width": "2px",
-  "--elev-pop": "0.25rem 0.25rem 0 0 var(--ink)",
-  "--dur-quick": "100ms",
-  "--dur-enter": "140ms",
-  "--dur-view": "160ms",
-  "--ease-out-soft": "cubic-bezier(0.2, 0.9, 0.25, 1)",
-  "--focus-ring": "var(--ink)",
-  "--focus-keyline": "var(--paper)",
-  "--sidebar-rule-w": "2px",
-  "--sidebar-rule-color": "var(--ink)",
-  "--landing-lift": "0.375rem 0.375rem 0 0 var(--ink)",
-} as const;
-
-test("globals CSS makes the root the complete Mira contract with no Vega", () => {
-  assert.doesNotMatch(globalsCss, /\bvega\b/i);
-
-  const rootProperties = customPropertiesFor(":root");
-  for (const [property, value] of Object.entries(ROOT_MIRA_CONTRACT)) {
-    assert.equal(rootProperties.get(property), value, property);
+test("the six palettes carry unique ids", () => {
+  const ids = THEMES.map((t) => t.id);
+  assert.equal(ids.length, 6);
+  assert.equal(new Set(ids).size, 6);
+  for (const expected of ["terracotta", "blue", "lime", "violet", "rose", "graphite"]) {
+    assert.ok(ids.includes(expected), `${expected} must exist`);
   }
 });
 
-test("globals CSS keeps Sera as the sole exact style token override", () => {
-  assert.doesNotMatch(globalsCss, /\[data-style=(["'])mira\1\]/i);
-
-  const styleTokenBlocks = Array.from(
-    globalsCss.matchAll(/^\s*\[data-style=(["'])([^"']+)\1\]\s*\{/gim),
-    ([, , style]) => style,
-  );
-  assert.deepEqual(styleTokenBlocks, ["sera"]);
-
-  const seraProperties = customPropertiesFor('[data-style="sera"]');
-  assert.deepEqual(Object.fromEntries(seraProperties), SERA_CONTRACT);
-
-  for (const property of [
-    "--control-height",
-    "--control-height-sm",
-    "--control-pad-y",
-    "--control-pad-x",
-    "--table-cell-pad-y",
-    "--table-cell-pad-x",
-    "--type-body",
-    "--type-secondary",
-    "--type-label",
-    "--type-segment",
-    "--tap-min",
-  ]) {
-    assert.equal(seraProperties.has(property), false, property);
+test("every palette declares label, description and an oklch swatch", () => {
+  for (const t of THEMES) {
+    assert.equal(typeof t.label, "string");
+    assert.equal(typeof t.description, "string");
+    assert.match(t.swatch, /^oklch\(/);
   }
 });
 
-test("globals CSS keeps all style selectors before phone touch density", () => {
-  const seraIndex = globalsCss.indexOf('[data-style="sera"] {');
-  const phoneIndex = globalsCss.indexOf("Phone touch density");
-
-  assert.ok(seraIndex >= 0 && seraIndex < phoneIndex);
-  assert.doesNotMatch(globalsCss.slice(phoneIndex), /\[data-style=/i);
+test("normalizeTheme accepts valid ids and falls back to graphite", () => {
+  for (const t of THEMES) assert.equal(normalizeTheme(t.id), t.id);
+  assert.equal(normalizeTheme("orange"), DEFAULT_THEME);
+  assert.equal(normalizeTheme(undefined), DEFAULT_THEME);
+  assert.equal(normalizeTheme(42), DEFAULT_THEME);
 });
 
-test("globals CSS keeps segment text legible and uses the segment radius", () => {
-  assert.doesNotMatch(globalsCss, /font-size:\s*0\.7188rem/i);
-  assert.match(
-    globalsCss,
-    /\.segment-group\s*\{[\s\S]*?border-radius:\s*var\(--radius-segment\);/,
-  );
-  assert.match(
-    globalsCss,
-    /\.segment\s*\{[\s\S]*?border-radius:\s*var\(--radius-segment\);[\s\S]*?font-size:\s*var\(--type-segment\);/,
-  );
+test("prepaint sets data-theme=graphite by default", () => {
+  assert.deepEqual(runPrepaint(), { theme: "graphite" });
 });
 
-test("globals CSS provides contrast-keyed and forced-colors focus rings", () => {
-  assert.match(
-    globalsCss,
-    /:focus-visible\s*\{[\s\S]*?outline:\s*2px solid var\(--focus-ring\);[\s\S]*?outline-offset:\s*2px;[\s\S]*?box-shadow:\s*0 0 0 1px var\(--focus-keyline\);/,
-  );
-  assert.match(
-    globalsCss,
-    /@media\s*\(forced-colors:\s*active\)\s*\{[\s\S]*?:focus-visible[\s\S]*?outline-color:\s*(?:CanvasText|Highlight|LinkText|ButtonText);[\s\S]*?box-shadow:\s*none;/i,
-  );
-  assert.doesNotMatch(globalsCss, /@import[^;]*tw-animate-css/i);
-});
-
-test("globals CSS preserves rem-based phone field and touch floors", () => {
-  const phoneIndex = globalsCss.indexOf("Phone touch density");
-  const phoneEnd = globalsCss.indexOf("Page-level action rows", phoneIndex);
-  const phoneCss = globalsCss.slice(phoneIndex, phoneEnd);
-
-  for (const property of [
-    "--control-height",
-    "--control-height-sm",
-    "--day-nav-size",
-    "--tap-min",
-  ]) {
-    assert.match(phoneCss, new RegExp(`${property}:\\s*2\\.75rem;`), property);
-  }
-  for (const property of [
-    "--control-pad-y",
-    "--control-pad-x",
-    "--segment-pad-y",
-    "--segment-pad-x",
-  ]) {
-    assert.match(phoneCss, new RegExp(`${property}:\\s*[0-9.]+rem;`), property);
-  }
-  assert.match(
-    globalsCss,
-    /input:not\(\[type="checkbox"\]\)[\s\S]*?textarea\s*\{\s*font-size:\s*1rem;/,
-  );
-});
-
-test("exports the exact ordered two-style and six-palette choices", () => {
+test("prepaint restores a saved palette", () => {
   assert.deepEqual(
-    STYLES.map(({ id, label }) => ({ id, label })),
-    [
-      { id: "mira", label: "Mira · Refined" },
-      { id: "sera", label: "Sera · Brutal" },
-    ],
+    runPrepaint({ storage: { [PALETTE_STORAGE_KEY]: "terracotta" } }),
+    { theme: "terracotta" },
   );
+});
+
+test("prepaint migrates the legacy orange palette to terracotta", () => {
   assert.deepEqual(
-    PALETTES.map(({ id }) => id),
-    ["orange", "blue", "lime", "violet", "rose", "graphite"],
+    runPrepaint({ storage: { "ssc.palette": "orange" } }),
+    { theme: "terracotta" },
   );
 });
 
-test("normalizes palette values to the six valid IDs or orange", () => {
-  for (const id of [
-    "orange",
-    "blue",
-    "lime",
-    "violet",
-    "rose",
-    "graphite",
-  ] as const) {
-    assert.equal(normalizePalette(id), id);
+test("prepaint ignores unknown values", () => {
+  assert.deepEqual(
+    runPrepaint({ storage: { [PALETTE_STORAGE_KEY]: "rainbow" } }),
+    { theme: "graphite" },
+  );
+});
+
+test("prepaint survives a throwing localStorage", () => {
+  assert.deepEqual(runPrepaint({ getItemThrows: true }), { theme: "graphite" });
+});
+
+test("globals.css defines all six palettes in both modes", () => {
+  const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  // Graphite is the attribute-less default: :root carries light, .dark carries dark.
+  assert.ok(/:root\s*{[^}]*--background:\s*oklch\(/.test(css), "graphite light block (:root)");
+  assert.ok(/\.dark\s*{[^}]*--background:\s*oklch\(/.test(css), "graphite dark block (.dark)");
+  for (const t of THEMES) {
+    if (t.id === "graphite") continue;
+    assert.ok(css.includes(`[data-theme="${t.id}"]`), `${t.id} light block`);
+    assert.ok(css.includes(`.dark[data-theme="${t.id}"]`), `${t.id} dark block`);
   }
-
-  for (const value of [null, undefined, "unknown", "", 0, {}, []]) {
-    assert.equal(normalizePalette(value), DEFAULT_PALETTE);
-  }
-});
-
-test("normalizes style values to Mira or Sera and migrates legacy Vega", () => {
-  assert.equal(normalizeStyle("mira"), "mira");
-  assert.equal(normalizeStyle("sera"), "sera");
-
-  for (const value of [null, undefined, "unknown", "", "vega", 0, {}, []]) {
-    assert.equal(normalizeStyle(value), DEFAULT_STYLE);
-  }
-});
-
-test("prepaint defaults empty storage to orange and Mira and persists Mira", () => {
-  const result = runPrepaint();
-
-  assert.deepEqual(result.dataset, { palette: "orange", style: "mira" });
-  assert.equal(result.storage.get(STYLE_STORAGE_KEY), "mira");
-  assert.deepEqual(result.writes, [[STYLE_STORAGE_KEY, "mira"]]);
-});
-
-test("prepaint preserves valid blue and Sera preferences", () => {
-  const result = runPrepaint({
-    storage: {
-      [PALETTE_STORAGE_KEY]: "blue",
-      [STYLE_STORAGE_KEY]: "sera",
-    },
-  });
-
-  assert.deepEqual(result.dataset, { palette: "blue", style: "sera" });
-  assert.deepEqual(result.writes, []);
-});
-
-test("prepaint migrates legacy Vega and invalid styles to persisted Mira", () => {
-  for (const style of ["vega", "future-style"]) {
-    const result = runPrepaint({
-      storage: { [STYLE_STORAGE_KEY]: style },
-    });
-
-    assert.equal(result.dataset.style, "mira", style);
-    assert.equal(result.storage.get(STYLE_STORAGE_KEY), "mira", style);
-    assert.deepEqual(result.writes, [[STYLE_STORAGE_KEY, "mira"]], style);
-  }
-});
-
-test("prepaint normalizes an invalid palette to orange", () => {
-  const result = runPrepaint({
-    storage: {
-      [PALETTE_STORAGE_KEY]: "chartreuse",
-      [STYLE_STORAGE_KEY]: "sera",
-    },
-  });
-
-  assert.deepEqual(result.dataset, { palette: "orange", style: "sera" });
-});
-
-test("prepaint still assigns both datasets when storage reads throw", () => {
-  const result = runPrepaint({ getItemThrows: true });
-
-  assert.deepEqual(result.dataset, { palette: "orange", style: "mira" });
-});
-
-test("prepaint still assigns both datasets when migration writes throw", () => {
-  const result = runPrepaint({ setItemThrows: true });
-
-  assert.deepEqual(result.dataset, { palette: "orange", style: "mira" });
-});
-
-test("returns the exact exhaustive motion mappings", () => {
-  assert.deepEqual(viewTransition("mira"), {
-    duration: 0.2,
-    ease: "easeOut",
-  });
-  assert.deepEqual(viewTransition("sera"), {
-    duration: 0.16,
-    ease: "circOut",
-  });
-  assert.deepEqual(microMotion("mira"), {
-    duration: 0.18,
-    ease: "easeOut",
-  });
-  assert.deepEqual(microMotion("sera"), {
-    duration: 0.14,
-    ease: "circOut",
-  });
 });

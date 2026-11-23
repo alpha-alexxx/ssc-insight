@@ -158,7 +158,7 @@ function Line({
 
   // The one button's state: what it says and whether it does anything.
   const mode = status === "undoing" ? "undoing" : undone ? "undone" : failed && onRetry ? "retry" : canUndo ? "undo" : null;
-  const [lastMode, setLastMode] = React.useState(mode);
+  const [lastMode, setLastMode] = React.useState<"undo" | "undoing" | "undone" | "retry" | null>(mode);
   if (mode && mode !== lastMode) setLastMode(mode);
   const shown = mode ?? lastMode;
   const actionable = mode === "undo" || mode === "retry";

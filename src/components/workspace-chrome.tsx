@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MotionConfig } from "motion/react";
 import { AppFrame } from "./app-shell";
-import { CommandPalette } from "./command-palette";
+import { WorkspaceCommandPalette } from "./workspace-command-palette";
 import { AiChatSheet } from "./ai-chat-sheet";
 import { aiUsageLabel, useAiWorkspace } from "./use-ai-workspace";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
@@ -15,7 +15,7 @@ import {
   deleteAttemptRequest,
 } from "@/lib/queries/attempts";
 import { analyticsKeys } from "@/lib/queries/analytics";
-import { ToastProvider, useToast } from "./toast";
+import { toast } from "./toast-stack";
 import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
 import { useUiStore } from "@/stores/ui-store";
 import { AI_VIEWS, type AiScreenContext, type AiView } from "@/lib/ai/client-types";
@@ -53,7 +53,6 @@ export function WorkspaceChrome({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const toast = useToast();
   const view = viewForPathname(pathname);
 
   // The one-shot sign-in greeting: the auth pages and /auth/complete land
@@ -71,7 +70,7 @@ export function WorkspaceChrome({
       "",
       `/dashboard${rest ? `?${rest}` : ""}`,
     );
-    toast.success("Signed in", "Your workspace is ready.");
+    toast.success("Signed in", { description: "Your workspace is ready." });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on the dashboard arrival only; toast is stable
   }, [pathname]);
 
@@ -106,12 +105,11 @@ export function WorkspaceChrome({
         queryClient.invalidateQueries({ queryKey: attemptKeys.all }),
         queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
       ]);
-      toast.success("Moved to Trash", "Recoverable for 15 days");
+      toast.success("Moved to Trash", { description: "Recoverable for 15 days" });
     } catch (error) {
-      toast.error(
-        "Couldn't delete",
-        error instanceof Error ? error.message : "Could not delete",
-      );
+      toast.error("Couldn't delete", {
+        description: error instanceof Error ? error.message : "Could not delete",
+      });
     }
   };
 
@@ -143,12 +141,11 @@ export function WorkspaceChrome({
         onNavigate: go,
         onOpenSearch: openSearch,
         onShowHelp: () =>
-          toast.info(
-            "Shortcuts",
-            "⌘K=search · n=new · g d/h/c/s=navigate · /=focus search · ?=help",
-          ),
+          toast.info("Shortcuts", {
+            description: "⌘K=search · n=new · g d/h/c/s=navigate · /=focus search · ?=help",
+          }),
       }),
-      [addMock, go, openSearch, toast],
+      [addMock, go, openSearch],
     ),
   );
 
@@ -191,7 +188,7 @@ export function WorkspaceChrome({
           onDelete={() => void removeAttempt()}
           busy={false}
         />
-        <CommandPalette
+        <WorkspaceCommandPalette
           open={searchOpen}
           onOpenChange={setSearchOpen}
           aiEnabled={!!ai.aiStatus?.enabled}
@@ -240,6 +237,3 @@ export function WorkspaceChrome({
     </MotionConfig>
   );
 }
-
-// Re-exported so the layout imports one module for the chrome.
-export { ToastProvider };

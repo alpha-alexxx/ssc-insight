@@ -1,8 +1,6 @@
 "use client";
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { microMotion } from "@/lib/theme-style";
-import { useThemePrefs } from "./theme-style-provider";
 
 /**
  * In-place content swap: a short fade + 4px rise when `swapKey` changes.
@@ -13,7 +11,12 @@ import { useThemePrefs } from "./theme-style-provider";
  * replaces other content (a new plan day, a new analytics scope), never for
  * ordinary re-renders. Under `prefers-reduced-motion` the content simply
  * appears, and `MotionConfig reducedMotion="user"` in the shell backstops it.
+ *
+ * The motion spec is fixed (the dual-style axis is gone — Hairline's own
+ * interaction feel is the only motion language).
  */
+const SWAP_MOTION = { duration: 0.18, ease: "easeOut" } as const;
+
 export function Swap({
   swapKey,
   children,
@@ -24,7 +27,6 @@ export function Swap({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  const { style } = useThemePrefs();
   // Stay on the same element either way so SSR and client markup agree;
   // `initial={false}` simply skips the entrance when motion is unwanted.
   return (
@@ -33,7 +35,7 @@ export function Swap({
       className={className}
       initial={reduced ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={microMotion(style)}
+      transition={SWAP_MOTION}
     >
       {children}
     </motion.div>

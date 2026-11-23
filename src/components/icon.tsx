@@ -526,7 +526,13 @@ export type IconTone =
   | "muted"
   | "destructive"
   | "success"
-  | "warning";
+  | "warning"
+  // TEMPORARY legacy aliases — used by not-yet-migrated components;
+  // removed with the legacy UI cleanup commit.
+  | "ink"
+  | "accent"
+  | "paper"
+  | "mono";
 
 const TONE_COLOR: Record<IconTone, string> = {
   current: "currentColor",
@@ -536,6 +542,11 @@ const TONE_COLOR: Record<IconTone, string> = {
   destructive: "var(--destructive)",
   success: "var(--success)",
   warning: "var(--warning)",
+  // legacy aliases
+  ink: "var(--foreground)",
+  accent: "var(--primary)",
+  paper: "var(--background)",
+  mono: "currentColor",
 };
 
 export type IconTrigger = "hover" | "tap" | "viewOnce";
@@ -627,5 +638,64 @@ export function PlainIcon({
       strokeWidth={strokeWidth}
       animated={false}
     />
+  );
+}
+
+/* ------------------------------------------------------------------
+ * TEMPORARY compat exports (DuotoneIcon / DuotoneTile).
+ *
+ * Used by not-yet-migrated components. Rendered on the new token set
+ * (single-tone); removed with the legacy UI cleanup commit.
+ * ------------------------------------------------------------------ */
+export function DuotoneIcon({
+  name,
+  size = 18,
+  tone = "ink",
+  className = "",
+  title,
+}: {
+  name: IconName;
+  size?: number;
+  tone?: IconTone;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <Icon name={name} size={size} tone={tone} className={className} title={title} />
+  );
+}
+
+export function DuotoneTile({
+  name,
+  size = 22,
+  tile = "accent",
+  className = "",
+  title,
+}: {
+  name: IconName;
+  size?: number;
+  tile?: "accent" | "ink" | "paper";
+  className?: string;
+  title?: string;
+}) {
+  const wash =
+    tile === "accent"
+      ? "bg-accent text-accent-foreground"
+      : tile === "ink"
+        ? "bg-muted text-foreground"
+        : "bg-background text-foreground";
+  return (
+    <span
+      className={`inline-flex size-11 items-center justify-center rounded-2xl shadow-[inset_0_0_0_1px_var(--border)] ${wash} ${className}`}
+      aria-hidden={title ? undefined : true}
+      role={title ? "img" : undefined}
+      aria-label={title}
+    >
+      <Icon
+        name={name}
+        size={size}
+        tone={tile === "accent" ? "primary" : "current"}
+      />
+    </span>
   );
 }
