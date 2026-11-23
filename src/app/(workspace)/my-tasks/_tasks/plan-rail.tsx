@@ -38,7 +38,7 @@ export function PlanRail({
     return (
       <section className="panel p-4" aria-label="Study plan">
         <h3 className="font-serif text-lg">Study plan</h3>
-        <p className="mt-1 text-xs text-muted">Loading today&apos;s plan…</p>
+        <p className="mt-1 text-[length:var(--type-secondary)] text-muted">Loading today&apos;s plan…</p>
         <div className="mt-3 h-16 animate-pulse rounded-control bg-soft" />
       </section>
     );
@@ -56,23 +56,23 @@ export function PlanRail({
         <h3 className="font-serif text-lg">Study plan</h3>
         <Link
           href={`/plan/week/${today}`}
-          className="text-[0.6875rem] font-medium text-accent hover:underline"
+          className="inline-flex min-h-[var(--control-height-sm)] items-center text-[length:var(--type-label)] font-medium text-accent tap-target hover:underline"
         >
           This week →
         </Link>
       </div>
-      <p className="mt-0.5 text-[0.6875rem] leading-relaxed text-muted">
+      <p className="mt-0.5 text-[length:var(--type-secondary)] leading-relaxed text-muted">
         What the schedule expects. Completing plan work happens on the plan.
       </p>
 
       {todayDay ? (
         <div className="mt-3">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
+            <p className="text-[length:var(--type-label)] font-semibold uppercase tracking-[0.1em] text-muted">
               Today · Day {todayDay.day}
             </p>
             {todayStats && (
-              <span className="text-[0.625rem] tabular text-muted">
+              <span className="text-[length:var(--type-label)] tabular text-muted">
                 {todayStats.completed}/{todayStats.total}
               </span>
             )}
@@ -87,12 +87,12 @@ export function PlanRail({
           )}
           <ul className="mt-2 space-y-1">
             {todayDay.tasks.length === 0 && (
-              <li className="text-xs text-muted">No assignments scheduled.</li>
+              <li className="text-[length:var(--type-secondary)] text-muted">No assignments scheduled.</li>
             )}
             {todayDay.tasks.slice(0, 4).map((task) => (
               <li
                 key={task.key}
-                className="flex items-baseline gap-2 text-xs"
+                className="flex items-baseline gap-2 text-[length:var(--type-secondary)]"
               >
                 <span
                   aria-hidden="true"
@@ -110,14 +110,14 @@ export function PlanRail({
                   {task.name}
                 </span>
                 {isMockType(task.type) && (
-                  <span className="shrink-0 text-[0.5625rem] uppercase tracking-wide text-accent">
+                  <span className="shrink-0 text-[length:var(--type-label)] uppercase tracking-wide text-accent">
                     Mock
                   </span>
                 )}
               </li>
             ))}
             {todayDay.tasks.length > 4 && (
-              <li className="text-[0.625rem] text-muted">
+              <li className="text-[length:var(--type-secondary)] text-muted">
                 +{todayDay.tasks.length - 4} more assignment
                 {todayDay.tasks.length - 4 === 1 ? "" : "s"}
               </li>
@@ -125,17 +125,17 @@ export function PlanRail({
           </ul>
         </div>
       ) : (
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-[length:var(--type-secondary)] text-muted">
           Today is outside the 50-day plan window.
         </p>
       )}
 
       {tomorrowDay && (
         <div className="mt-3 border-t border-rule-soft pt-2.5">
-          <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
+          <p className="text-[length:var(--type-label)] font-semibold uppercase tracking-[0.1em] text-muted">
             Tomorrow · Day {tomorrowDay.day}
           </p>
-          <p className="mt-0.5 text-xs text-ink">
+          <p className="mt-0.5 text-[length:var(--type-secondary)] text-ink">
             {tomorrowDay.tasks.length
               ? `${tomorrowDay.tasks.length} assignment${tomorrowDay.tasks.length === 1 ? "" : "s"} — ${tomorrowDay.tasks[0]!.name}${tomorrowDay.tasks.length > 1 ? "…" : ""}`
               : "Nothing scheduled."}
@@ -145,20 +145,20 @@ export function PlanRail({
 
       {recommended && (
         <div className="mt-3 rounded-control bg-canvas p-2.5">
-          <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
+          <p className="text-[length:var(--type-label)] font-semibold uppercase tracking-[0.1em] text-muted">
             {recommended.overdue ? "Carried over" : "Next up"}
           </p>
-          <p className="mt-0.5 text-xs leading-snug text-ink">
+          <p className="mt-0.5 text-[length:var(--type-secondary)] leading-snug text-ink">
             {recommended.task.name}
           </p>
-          <p className="text-[0.625rem] text-muted">
+          <p className="text-[length:var(--type-secondary)] text-muted">
             Day {recommended.day.day} · {shortDate(recommended.day.date)}
           </p>
           <Button
             asChild
             size="sm"
             variant="outline"
-            className="mt-2 h-7 w-full text-[0.6875rem]"
+            className="mt-2 w-full"
           >
             <Link href={`/plan/${recommended.day.date}`}>
               Open day <PlainIcon name="arrowRight" size={12} />
@@ -167,10 +167,10 @@ export function PlanRail({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2 border-t border-rule-soft pt-2.5">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-rule-soft pt-2.5">
         <Link
           href={`/plan/${today}`}
-          className="text-[0.6875rem] font-medium text-accent hover:underline"
+          className="inline-flex min-h-[var(--control-height-sm)] items-center text-[length:var(--type-label)] font-medium text-accent tap-target hover:underline"
         >
           Today&apos;s workspace
         </Link>
@@ -179,14 +179,14 @@ export function PlanRail({
         </span>
         <Link
           href="/calendar"
-          className="text-[0.6875rem] font-medium text-accent hover:underline"
+          className="inline-flex min-h-[var(--control-height-sm)] items-center text-[length:var(--type-label)] font-medium text-accent tap-target hover:underline"
         >
           Calendar
         </Link>
         <span aria-hidden="true" className="text-muted">
           ·
         </span>
-        <span className="text-[0.6875rem] text-muted">
+        <span className="text-[length:var(--type-secondary)] text-muted">
           {longDate(today)}
         </span>
       </div>

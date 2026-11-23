@@ -61,6 +61,21 @@ const calendarMonthSource = source(
 const calendarWeekSource = source(
   "src/app/(workspace)/calendar/_calendar/calendar/week-view.tsx",
 );
+const boardViewSource = source("src/app/(workspace)/my-tasks/_tasks/board-view.tsx");
+const myTasksViewSource = source(
+  "src/app/(workspace)/my-tasks/_tasks/my-tasks-view.tsx",
+);
+const planRailSource = source("src/app/(workspace)/my-tasks/_tasks/plan-rail.tsx");
+const taskToolbarSource = source(
+  "src/app/(workspace)/my-tasks/_tasks/task-toolbar.tsx",
+);
+
+const task5d1Sources = [
+  ["board", boardViewSource],
+  ["my tasks view", myTasksViewSource],
+  ["plan rail", planRailSource],
+  ["task toolbar", taskToolbarSource],
+] as const;
 
 const task5c1Sources = [
   ["event dialog", calendarEventSource],
@@ -672,4 +687,173 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
   const revisionMatrix = calendarEventSource.slice(revisionStart, revisionEnd);
   assert.ok(revisionMatrix.includes("@sm/event-dialog:grid-cols-3"));
   assert.doesNotMatch(revisionMatrix, /\bsm:/);
+});
+
+test("Task 5D1 My Tasks prose uses readable role tokens with only the documented board initial exception", () => {
+  const decorativeBoardInitial =
+    /className="flex size-3 items-center justify-center rounded-\[2px\] bg-soft text-\[7px\] font-semibold uppercase"[\s\S]*?aria-hidden="true"[\s\S]*?\{host\.charAt\(0\)\}/;
+  assert.match(boardViewSource, decorativeBoardInitial);
+
+  const banned =
+    /text-(?:\[9px\]|\[10px\]|\[11px\]|\[0\.5625rem\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
+  for (const [name, component] of task5d1Sources) {
+    const visibleSource =
+      name === "board" ? component.replace(decorativeBoardInitial, "") : component;
+    assert.doesNotMatch(
+      visibleSource,
+      banned,
+      `${name} retains ordinary sub-floor visible type`,
+    );
+  }
+
+  for (const [name, component] of task5d1Sources) {
+    assert.match(
+      component,
+      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
+      `${name} is missing role-based typography tokens`,
+    );
+  }
+});
+
+test("Task 5D1 route controls inherit shared target and control contracts", () => {
+  assert.doesNotMatch(planRailSource, /\bh-7\b/);
+  const openDay = planRailSource.slice(
+    planRailSource.indexOf("<Button"),
+    planRailSource.indexOf("</Button>") + "</Button>".length,
+  );
+  assert.match(openDay, /<Button/);
+  assert.match(openDay, /asChild/);
+  assert.match(openDay, /size="sm"/);
+  assert.match(openDay, /variant="outline"/);
+  assert.match(openDay, /href=\{`\/plan\/\$\{recommended\.day\.date\}`\}/);
+  assert.doesNotMatch(openDay, /text-\[0\.6875rem\]/);
+
+  assert.doesNotMatch(myTasksViewSource, /\bmin-h-9\b/);
+  const groupButton = myTasksViewSource.slice(
+    myTasksViewSource.indexOf('aria-pressed={filters.group === group.id && tab === "all"}'),
+    myTasksViewSource.indexOf("</button>", myTasksViewSource.indexOf('aria-pressed={filters.group === group.id && tab === "all"}')),
+  );
+  assert.match(groupButton, /className=\{cn\(/);
+  assert.match(groupButton, /min-h-\[var\(--control-height-sm\)\]/);
+  assert.match(groupButton, /tap-target/);
+
+  const filterChipRegion = myTasksViewSource.slice(
+    myTasksViewSource.indexOf("activeEntries.length > 0"),
+    myTasksViewSource.indexOf("selecting &&"),
+  );
+  assert.match(
+    filterChipRegion,
+    /rounded-pill border border-accent\/40[\s\S]*?min-h-\[var\(--control-height-sm\)\][\s\S]*?tap-target/,
+  );
+  const clearAllStart = filterChipRegion.indexOf("Clear all");
+  const clearAllButton = filterChipRegion.slice(
+    Math.max(0, filterChipRegion.lastIndexOf("<button", clearAllStart)),
+    filterChipRegion.indexOf("</button>", clearAllStart),
+  );
+  assert.match(clearAllButton, /min-h-\[var\(--control-height-sm\)\]/);
+  assert.match(clearAllButton, /tap-target/);
+  assert.match(clearAllButton, /text-\[length:var\(--type-label\)\]/);
+
+  for (const [name, component] of task5d1Sources) {
+    assert.doesNotMatch(
+      component,
+      /\bh-(?:7|9)\b/,
+      `${name} retains a fixed control height`,
+    );
+  }
+  assert.doesNotMatch(boardViewSource, /text-\[0\.8125rem\]/);
+});
+
+test("Task 5D1 footers use their audited stacked and wrapping roles", () => {
+  assert.equal(classTokenCount(myTasksViewSource, "action-row-stack"), 3);
+  assert.equal(classTokenCount(myTasksViewSource, "action-row"), 0);
+  assert.equal(classTokenCount(planRailSource, "action-row"), 0);
+  assert.equal(classTokenCount(boardViewSource, "action-row"), 0);
+
+  const taskFooter = myTasksViewSource.slice(
+    myTasksViewSource.indexOf("Move to Trash?"),
+    myTasksViewSource.indexOf("</Dialog.Content>"),
+  );
+  assert.match(taskFooter, /className="action-row-stack mt-4 justify-end gap-2 sm:mx-0"/);
+
+  const rescheduleFooter = myTasksViewSource.slice(
+    myTasksViewSource.indexOf("New date"),
+    myTasksViewSource.indexOf("</form>"),
+  );
+  assert.match(rescheduleFooter, /className="action-row-stack justify-end gap-2"/);
+  assert.match(rescheduleFooter, /<Button[\s\S]*?variant="ghost"[\s\S]*?disabled=\{busy\}[\s\S]*?Cancel/);
+  assert.match(rescheduleFooter, /<Button disabled=\{busy\}>Reschedule<\/Button>/);
+});
+
+test("Task 5D1 local folds query named containers", () => {
+  const pageRegion = myTasksViewSource.slice(
+    myTasksViewSource.indexOf('aria-label="My tasks"'),
+    myTasksViewSource.indexOf("</aside>"),
+  );
+  assert.match(
+    pageRegion,
+    /className="personal-workspace min-w-0 @container\/mt-page"/,
+  );
+  assert.ok(pageRegion.includes("@5xl/mt-page:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]"));
+  assert.ok(pageRegion.includes("@3xl/mt-page:col-start-2"));
+  assert.doesNotMatch(pageRegion, /\blg:/);
+
+  const boardGridClass = boardViewSource.slice(
+    boardViewSource.indexOf("// The board is its own container"),
+    boardViewSource.indexOf("{COLUMNS.map") - 8,
+  );
+  assert.match(boardGridClass, /@container\/board/);
+  assert.ok(boardGridClass.includes("@sm/board:grid-cols-2"));
+  assert.ok(boardGridClass.includes("@2xl/board:grid-cols-3"));
+  assert.doesNotMatch(boardGridClass, /\b(?:sm|lg):/);
+
+  const toolbarDesktop = taskToolbarSource.slice(
+    taskToolbarSource.indexOf('<div className="hidden items-center gap-2 @lg/tasks-toolbar:flex">'),
+    taskToolbarSource.indexOf('<div className="flex items-center gap-2 @lg/tasks-toolbar:hidden">'),
+  );
+  assert.match(
+    toolbarDesktop,
+    /className="hidden items-center gap-2 @lg\/tasks-toolbar:flex"/,
+  );
+  assert.ok(toolbarDesktop.includes("DropdownMenu"));
+  assert.ok(toolbarDesktop.includes('variant="outline"'));
+  assert.doesNotMatch(toolbarDesktop, /\bmd:/);
+  const toolbarPhone = taskToolbarSource.slice(
+    taskToolbarSource.indexOf('<div className="flex items-center gap-2 @lg/tasks-toolbar:hidden">'),
+    taskToolbarSource.indexOf("{layoutSegment}"),
+  );
+  assert.ok(toolbarPhone.includes("@lg/tasks-toolbar:hidden"));
+  assert.doesNotMatch(toolbarPhone, /\bmd:/);
+});
+
+test("Task 5D1 presentation edits preserve route handlers and state contracts", () => {
+  for (const fragment of [
+    "patchFilters({ [entry.key]: \"all\" } as Partial<TaskFilters>)",
+    "clearFilters();",
+    "resetPage();",
+    "onClick={() => setGroupsOpen(true)}",
+    "patchFilters({ group: group.id })",
+    "onPatchFilters({ sort: value })",
+    "onClick={() => setSheetOpen(true)}",
+    "onCycleStatus(task, column)",
+    "handleDrop(column.id)",
+    "onClick={() => onEdit(task)}",
+    "void bulkRescheduleApply()",
+    "dueDate: newDate",
+    "setPage(page - 1)",
+    "setPage(page + 1)",
+    "href={`/plan/week/${today}`}",
+    "href=\"/calendar\"",
+  ]) {
+    assert.ok(
+      myTasksViewSource.includes(fragment) ||
+        boardViewSource.includes(fragment) ||
+        taskToolbarSource.includes(fragment) ||
+        planRailSource.includes(fragment),
+      `route contract lost: ${fragment}`,
+    );
+  }
+  assert.ok(myTasksViewSource.includes('aria-label="Task calendar"'));
+  assert.ok(myTasksViewSource.includes("<PersonalCalendar"));
+  assert.ok(myTasksViewSource.includes("<PlanRail plan={planApi.plan}"));
 });

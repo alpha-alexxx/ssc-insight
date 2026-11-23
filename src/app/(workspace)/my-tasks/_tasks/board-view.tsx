@@ -59,9 +59,10 @@ export function BoardView({
   }
 
   return (
-    // Two columns until lg: 768–1023 with the sidebar open leaves ~490px of
-    // content, and three ~150px columns wrap every card's meta into slivers.
-    <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    // The board is its own container: 768–1023 with the sidebar open leaves
+    // ~490px of content, and three ~150px columns wrap every card's meta
+    // into slivers, so columns fold by board width rather than viewport.
+    <div className="@container/board grid items-start gap-3 @sm/board:grid-cols-2 @2xl/board:grid-cols-3">
       {COLUMNS.map((column) => {
         const items = byColumn.get(column.id)!;
         const highlighted = overColumn === column.id;
@@ -92,13 +93,13 @@ export function BoardView({
             <header className="flex items-center gap-2 px-1.5 pb-2.5 pt-1">
               <StatusDot status={column.id} size={9} />
               <h3 className="text-xs font-semibold text-ink">{column.label}</h3>
-              <span className="text-xs tabular text-muted">{items.length}</span>
+              <span className="text-[length:var(--type-label)] tabular text-muted">{items.length}</span>
             </header>
             <ul className="flex min-h-20 flex-col gap-2">
               {items.length === 0 && (
                 <li
                   className={cn(
-                    "rounded-control border border-dashed border-rule px-3 py-5 text-center text-[0.6875rem] text-muted",
+                    "rounded-control border border-dashed border-rule px-3 py-5 text-center text-[length:var(--type-label)] text-muted",
                     highlighted && "border-accent text-accent",
                   )}
                 >
@@ -147,13 +148,13 @@ export function BoardView({
                       >
                         <span
                           className={cn(
-                            "line-clamp-2 break-words text-[0.8125rem] font-medium leading-snug",
+                            "line-clamp-2 break-words text-[length:var(--type-secondary)] font-medium leading-snug",
                             done && "text-muted line-through",
                           )}
                         >
                           {task.title}
                         </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.625rem] text-muted">
+                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--type-label)] text-muted">
                           {overdue && task.dueDate && (
                             <span className="font-medium tabular text-danger">
                               Overdue · {shortDate(task.dueDate)}
