@@ -7,7 +7,7 @@ import {
   Info,
   Sparkles,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";

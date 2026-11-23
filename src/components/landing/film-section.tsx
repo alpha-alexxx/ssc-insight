@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
-import { Check, Pause, Play, RotateCcw, TrendingUp } from "lucide-react";
+import { Check, Pause, Play, RotateCcw, TrendingUp } from "@/components/ui/icons";
 import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { TypedLine } from "./atoms";

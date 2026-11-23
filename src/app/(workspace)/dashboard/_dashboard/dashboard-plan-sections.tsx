@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Flag } from "lucide-react";
+import { ChevronDown, Flag } from "@/components/ui/icons";
 import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/ui/button";

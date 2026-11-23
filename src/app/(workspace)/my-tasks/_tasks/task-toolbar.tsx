@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { Search } from "lucide-react";
+import { Search } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

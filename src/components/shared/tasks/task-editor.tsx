@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "@/components/ui/icons";
 import { Dialog } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { useOverlayFocus, useOverlayViewport } from "@/components/use-overlay-viewport";

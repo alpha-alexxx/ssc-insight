@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, BrainCircuit, ChevronDown, Pencil, RotateCcw, Shield, Sparkles } from "lucide-react";
+import { ArrowDown, BrainCircuit, ChevronDown, Pencil, RotateCcw, Shield, Sparkles } from "@/components/ui/icons";
 import { EASE } from "@/lib/motion";
 import type { ChatMessage } from "@/lib/ai/client-types";
 import type { ChatPhase } from "@/components/use-ai-workspace";

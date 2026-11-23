@@ -7,7 +7,7 @@ import {
   MessageSquare,
   SquarePen,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useOverlayViewport, useOverlayFocus } from "./use-overlay-viewport";
 import { Button } from "./ui/button";

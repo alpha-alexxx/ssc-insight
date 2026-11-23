@@ -14,7 +14,7 @@ import {
   Trash2,
   Pencil,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Dialog } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import {

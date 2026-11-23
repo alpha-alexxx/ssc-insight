@@ -9,7 +9,7 @@ import {
   GitCompare,
   Sparkles,
   Target,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 

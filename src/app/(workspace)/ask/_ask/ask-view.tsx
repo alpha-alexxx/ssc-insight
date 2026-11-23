@@ -13,7 +13,7 @@ import {
   Sparkles,
   SquarePen,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { aiUsageLabel, useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";

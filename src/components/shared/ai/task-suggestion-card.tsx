@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { shortDate } from "@/lib/format";
 import { linkHost } from "@/lib/plan/view-model";

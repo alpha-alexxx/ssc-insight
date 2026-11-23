@@ -10,7 +10,7 @@ import {
   ImagePlus,
   Trash2,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { MAX_ATTACHED_IMAGES, prepareImages } from "./image";
 import { cn } from "@/lib/utils";
 

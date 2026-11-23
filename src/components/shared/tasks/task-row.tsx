@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, CalendarClock, Copy, Pencil, Trash2 } from "lucide-react";
+import { CalendarPlus, CalendarClock, Copy, Pencil, Trash2 } from "@/components/ui/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

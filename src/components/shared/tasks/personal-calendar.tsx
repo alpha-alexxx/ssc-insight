@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useTodoCalendar } from "@/components/use-todos-data";
 import { addIsoDays, istTodayIso } from "@/lib/plan/view-model";

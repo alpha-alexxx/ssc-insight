@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "@/components/ui/icons";
 import { Dialog } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";

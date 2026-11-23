@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Check, MoreHorizontal, Trash2 } from "lucide-react";
+import { CalendarClock, Check, MoreHorizontal, Trash2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

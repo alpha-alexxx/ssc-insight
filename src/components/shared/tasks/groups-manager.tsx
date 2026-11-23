@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "radix-ui";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useOverlayFocus } from "@/components/use-overlay-viewport";
 import type { GroupWithCount } from "./types";

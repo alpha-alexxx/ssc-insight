@@ -9,7 +9,7 @@ import {
   ScanLine,
   Shield,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { aiUsageQueryOptions } from "@/lib/queries/ai";
 import { cn } from "@/lib/utils";
 

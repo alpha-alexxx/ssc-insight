@@ -229,6 +229,8 @@ export const Compass = makeIcon(Compass01Icon);
 // actions
 export const Activity = makeIcon(Activity01Icon);
 export const AddCircle = makeIcon(Add01Icon);
+export const AlertCircle = makeIcon(AlertCircleIcon);
+export const Info = makeIcon(InformationCircleIcon);
 export const Check = makeIcon(CheckIcon);
 export const CheckCircle = makeIcon(CheckIcon);
 export const Copy = makeIcon(CopyIconData);

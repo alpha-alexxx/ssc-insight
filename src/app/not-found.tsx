@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Compass } from "lucide-react";
+import { Compass } from "@/components/ui/icons";
 
 export const metadata: Metadata = {
   title: "Page not found · SSC Insight",

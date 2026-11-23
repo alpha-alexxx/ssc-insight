@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield } from "lucide-react";
+import { Shield } from "@/components/ui/icons";
 import type { AiStatus } from "@/lib/ai/client-types";
 import { cn } from "@/lib/utils";
 

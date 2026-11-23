@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useId, memo, useState } from "react";
-import { Lightbulb, Pencil } from "lucide-react";
+import { Lightbulb, Pencil } from "@/components/ui/icons";
 import {
   Area,
   AreaChart,

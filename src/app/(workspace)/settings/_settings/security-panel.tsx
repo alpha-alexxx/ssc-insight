@@ -12,7 +12,7 @@ import {
   MailWarning,
   MonitorSmartphone,
   ShieldOff,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   authFailureCopy,
   EmailAuthError,

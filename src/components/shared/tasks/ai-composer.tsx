@@ -7,7 +7,7 @@ import {
   Sparkles,
   X,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 import { api } from "@/lib/api-client";

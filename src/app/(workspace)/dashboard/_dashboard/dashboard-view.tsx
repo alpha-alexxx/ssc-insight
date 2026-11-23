@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/ui/button";

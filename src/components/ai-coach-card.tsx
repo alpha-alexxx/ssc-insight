@@ -1,5 +1,5 @@
 "use client";
-import { AlertCircle, MessageSquare, RefreshCw, Sparkles } from "lucide-react";
+import { AlertCircle, MessageSquare, RefreshCw, Sparkles } from "@/components/ui/icons";
 import { Panel } from "./dashboard-panels";
 import { Button } from "./ui/button";
 import type { AiStatus } from "@/lib/ai/client-types";

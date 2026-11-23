@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type RefObject } from "react";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { PlainIcon } from "@/components/icon";
 import { shortDate } from "@/lib/format";

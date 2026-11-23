@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Search, Trash2, X } from "@/components/ui/icons";
 import { EASE } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/toast";

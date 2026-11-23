@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 /**

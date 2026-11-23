@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Wrench } from "lucide-react";
+import { Wrench } from "@/components/ui/icons";
 
 export const metadata: Metadata = {
   title: "Brief maintenance · SSC Insight",
