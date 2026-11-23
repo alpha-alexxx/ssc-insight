@@ -10,6 +10,7 @@ import { ScopeDiagram } from "./scope-diagram";
 import { Section, SectionHead } from "./section";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LiquidButton } from "@/components/animate-ui/buttons/liquid";
 import { Petals } from "./atoms";
 import { AiPanel } from "./mockups/ai-panel";
 import { BrowserFrame, MockupCaption } from "./mockups/browser-frame";
@@ -362,12 +363,12 @@ export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 {authAvailable ? (
                   <>
-                    <Button
+                    <LiquidButton
                       asChild
-                      className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
+                      className="inline-flex h-auto items-center justify-center gap-2.5 px-6 py-3 text-[0.9375rem] font-medium rounded-control bg-accent text-paper hover:bg-accent-hover"
                     >
                       <Link href="/sign-up">Start For Free</Link>
-                    </Button>
+                    </LiquidButton>
                     <Button
                       asChild
                       variant="ghost"
