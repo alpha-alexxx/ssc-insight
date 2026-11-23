@@ -1,8 +1,19 @@
 # UI Audit — Hairline-only rebuild of ssc-insight
 
-Status: **audit gate** — written per the task's section 1B, awaiting approval
-before branching (`zaj/hairline-ui`), setup, and migration. No code has been
-changed yet.
+Status: **gate cleared** — the two §9 questions were answered by the user;
+branch `ui/hairline` created from `main` tip (397137b). Migration proceeds.
+
+### User decisions (gate outcome)
+
+1. **Branch**: `ui/hairline` (not `zaj/hairline-ui`).
+2. **Style axis: DROPPED.** No `data-style="vega|lyra"`, no dual geometry, no
+   override layer (§9.1 options a/b/c are all moot). Hairline's own default
+   look — its built-in per-component border radius — is used as shipped.
+   Theme axes are exactly two: `class="dark"` (next-themes) + `data-theme`
+   palette (six, default **Graphite**).
+3. **shadcn is fully replaced.** No shadcn core components remain; the shadcn
+   CLI is used only as the installer for Hairline (and @animate-ui icons).
+   Hairline provides everything else.
 
 ---
 
@@ -344,53 +355,33 @@ Everything else visual comes from Hairline only.
 
 ---
 
-## 8. Git state (STOP condition from §0.2)
+## 8. Git state (STOP condition from §0.2) — RESOLVED
 
-`git status` is **NOT clean**:
-```
- M bun.lock                                (mode change 100644→100755; sandbox artifact, zero content diff)
- M docs/ui-screenshots/dashboard-final.png (re-taken during last verification; same size)
- M docs/ui-screenshots/dashboard.png       (same)
- M docs/ui-screenshots/history.png         (same)
-```
-Branch: `main` @ `74314f4` (an auto-snapshot commit `54564686-…` sits on top of
-the last real commit `2817eed`; `zaj/shadcn-ui` = `2817eed`).
-None of these are content changes; they are sandbox churn. **Disposition
-needed from you** (discard / commit-as-chore / leave) before I create
-`zaj/hairline-ui`.
+The earlier unclean entries were sandbox churn, captured by the external
+auto-snapshot commits on `main` (397137b) — audit + screenshots + `bun.lock`
+mode change; no code changes. `ui/hairline` was created from that tip with a
+clean tree. Drift mitigation stays in force (verify
+`git branch --show-current` before every commit; keep `main` == branch tip).
 
 ---
 
-## 9. Gate questions (task §1C)
+## 9. Gate questions (task §1C) — RESOLVED
 
-### 9.1 Vega & Lyra on Hairline — **NO token hooks exist**
+### 9.1 Vega & Lyra on Hairline — **dropped by user decision**
 
-Hairline exposes **only color tokens** (the shadcn variable set). There is no
-`--radius`, no border-weight, no density and no font token anywhere in its
-docs; geometry is per-component (`size` props, hardcoded `rounded-*`
-utilities). "Never touch color in a style variant" is satisfiable, but
-radius/border/density/font **cannot** be driven through tokens Hairline reads.
-Options:
-- **(a) scoped CSS overrides** — keep a `--radius`-style pair of tokens we own
-  and apply them under `[data-style="lyra"]` via a small CSS layer that targets
-  Hairline's rounded utilities + `data-slot` hooks (does not change any
-  component's API or files; not "tokens Hairline exposes" in the strict sense).
-- **(b) style axis limited to composed components + typography/density only**
-  (sidebar, cards, hero, spacing/type scales) — fully compliant, but installed
-  Hairline components look identical in vega vs lyra except where they expose
-  geometry variants.
-- **(c) both** — (b) as the base + a tightly-audited (a) for installed
-  components, documented per component in DESIGN.md.
-My recommendation: **(c)**, with the override layer kept to radius + border
-width only. **Your decision required.**
+Hairline exposes only color tokens (no `--radius`, border-weight, density or
+font tokens); geometry is per-component. Per the user: no style type at all —
+just the default, with the border radius Hairline itself provides. No
+`data-style` attribute exists in the new system; no CSS override layer.
 
-### 9.2 Six palettes onto Hairline's tokens — **YES, cleanly**
+### 9.2 Six palettes onto Hairline's tokens — **YES, cleanly (approved)**
 
 Hairline reads exactly the standard shadcn variable set; the 6
 palette × light/dark blocks (`[data-theme=…]`, `.dark[data-theme=…]`) define
 every token (background…sidebar-*, chart-1..5) with nothing leaking between
-palettes. Two caveats to verify on install (policy: remap or wrap, never
-blind-fork):
+palettes. Palette hues (OKLCH): terracotta ~40 / blue ~255 / lime ~125 /
+violet ~295 / rose ~10 / graphite ~260. **Default: graphite.** Two caveats
+to verify on install (policy: remap or wrap, never blind-fork):
 - tone colors (success/warning/danger in Badge/Alert/StatusButton…) may be
   hardcoded oklch inside component source — remap to our tokens where found;
 - premium hero aside, a few decorative components (live-qr, snowfall,
