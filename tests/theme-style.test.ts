@@ -45,7 +45,14 @@ test("the six palettes carry unique ids", () => {
   const ids = THEMES.map((t) => t.id);
   assert.equal(ids.length, 6);
   assert.equal(new Set(ids).size, 6);
-  for (const expected of ["terracotta", "blue", "lime", "violet", "rose", "graphite"]) {
+  for (const expected of [
+    "terracotta",
+    "blue",
+    "lime",
+    "violet",
+    "rose",
+    "graphite",
+  ] as const) {
     assert.ok(ids.includes(expected), `${expected} must exist`);
   }
 });
@@ -77,10 +84,9 @@ test("prepaint restores a saved palette", () => {
 });
 
 test("prepaint migrates the legacy orange palette to terracotta", () => {
-  assert.deepEqual(
-    runPrepaint({ storage: { "ssc.palette": "orange" } }),
-    { theme: "terracotta" },
-  );
+  assert.deepEqual(runPrepaint({ storage: { "ssc.palette": "orange" } }), {
+    theme: "terracotta",
+  });
 });
 
 test("prepaint ignores unknown values", () => {
@@ -95,13 +101,25 @@ test("prepaint survives a throwing localStorage", () => {
 });
 
 test("globals.css defines all six palettes in both modes", () => {
-  const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  const css = readFileSync(
+    new URL("../src/app/globals.css", import.meta.url),
+    "utf8",
+  );
   // Graphite is the attribute-less default: :root carries light, .dark carries dark.
-  assert.ok(/:root\s*{[^}]*--background:\s*oklch\(/.test(css), "graphite light block (:root)");
-  assert.ok(/\.dark\s*{[^}]*--background:\s*oklch\(/.test(css), "graphite dark block (.dark)");
+  assert.ok(
+    /:root\s*{[^}]*--background:\s*oklch\(/.test(css),
+    "graphite light block (:root)",
+  );
+  assert.ok(
+    /\.dark\s*{[^}]*--background:\s*oklch\(/.test(css),
+    "graphite dark block (.dark)",
+  );
   for (const t of THEMES) {
     if (t.id === "graphite") continue;
     assert.ok(css.includes(`[data-theme="${t.id}"]`), `${t.id} light block`);
-    assert.ok(css.includes(`.dark[data-theme="${t.id}"]`), `${t.id} dark block`);
+    assert.ok(
+      css.includes(`.dark[data-theme="${t.id}"]`),
+      `${t.id} dark block`,
+    );
   }
 });
