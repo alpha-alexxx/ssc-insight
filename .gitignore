@@ -36,6 +36,13 @@ videos/*
 .impeccable/refine/
 .impeccable/graphite/
 
+# sandbox-only infrastructure (preview gateway + dev scripts) — not part of the app
+Caddyfile
+.zscripts/
+dev.pid
+upload/
+tool-results/
+
 # ignoring videos and claude skills
 /videos
 /.claude
