@@ -1,7 +1,8 @@
 "use client";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Icon } from "@/components/icon";
 import { useExamScope } from "@/components/exam-context";
 
 /**
@@ -16,15 +17,26 @@ import { useExamScope } from "@/components/exam-context";
 export function EmptyScopeNotice() {
   const router = useRouter();
   return (
-    <section className="panel mx-auto my-6 max-w-2xl p-6 text-center sm:p-8">
-      <h2 className="panel-title">Pick your exams to start</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
+    <section className="mx-auto my-6 max-w-2xl rounded-2xl bg-card px-6 py-8 text-center shadow-[inset_0_0_0_1px_var(--border)] sm:px-8">
+      <span
+        className="mx-auto mb-4 grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary"
+        aria-hidden="true"
+      >
+        <Icon name="compass" size={20} tone="primary" />
+      </span>
+      <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
+        Pick your exams to start
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
         Enable the tiers you are preparing for — Tier 1, Tier 2, or both of an
         exam — and the workspace scopes every chart, list, and form to them.
       </p>
       <div className="mt-5 flex justify-center">
-        <Button onClick={() => router.push("/settings")}>
-          <PlainIcon name="settings" size={15} /> Choose exams
+        <Button
+          onClick={() => router.push("/settings")}
+          icon={<Icon name="settings" size={15} tone="current" />}
+        >
+          Choose exams
         </Button>
       </div>
     </section>
@@ -41,7 +53,7 @@ export function ScopeGate({
   children,
 }: {
   pathname: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const scope = useExamScope();
   const noScope = scope.exams != null && scope.exams.enabledTiers.length === 0;

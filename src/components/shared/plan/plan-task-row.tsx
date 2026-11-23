@@ -36,10 +36,10 @@ export function taskIcon(type: PlanTaskView["type"]) {
 }
 
 export function taskTile(type: PlanTaskView["type"]): string {
-  if (isMockType(type)) return "bg-accent-soft text-accent";
-  if (type.endsWith("_sectional")) return "bg-positive-soft text-positive";
-  if (type === "maths_topic") return "bg-warning-soft text-warning";
-  return "bg-soft text-muted";
+  if (isMockType(type)) return "bg-primary/10 text-primary";
+  if (type.endsWith("_sectional")) return "bg-success/10 text-success";
+  if (type === "maths_topic") return "bg-warning/10 text-warning";
+  return "bg-muted text-muted-foreground";
 }
 
 export function PlanTaskRow({
@@ -74,7 +74,7 @@ export function PlanTaskRow({
         <button
           type="button"
           onClick={onLogAttempt}
-          className="inline-flex items-center gap-1 rounded-pill border border-accent/30 px-2 py-0.5 text-[10px] font-medium text-accent transition-colors hover:border-accent/60"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_35%,transparent)] transition-colors hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
         >
           Log attempt
         </button>
@@ -86,7 +86,7 @@ export function PlanTaskRow({
           rel="noopener noreferrer"
           aria-label={`Open ${task.name} in a new tab`}
           title={`Open ${task.name}`}
-          className="inline-flex items-center gap-1 rounded-pill border border-rule-soft px-2 py-0.5 text-[10px] font-medium text-accent transition-colors hover:border-accent/60"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-primary shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
         >
           Start <PlainIcon name="arrowUpRight" size={11} />
         </a>
@@ -101,13 +101,13 @@ export function PlanTaskRow({
           size={15}
           className={cn(
             "mt-0.5 shrink-0",
-            task.completed ? "text-muted" : "text-accent",
+            task.completed ? "text-muted-foreground" : "text-primary",
           )}
         />
       ) : (
         <span
           className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-control border border-transparent",
+            "grid size-10 shrink-0 place-items-center rounded-lg",
             taskTile(task.type),
           )}
           aria-hidden="true"
@@ -120,14 +120,14 @@ export function PlanTaskRow({
           className={cn(
             "block break-words font-medium leading-snug",
             compact ? "text-[13px]" : "text-[14px]",
-            task.completed ? "text-muted line-through" : "text-ink",
+            task.completed ? "text-muted-foreground line-through" : "text-foreground",
           )}
         >
           {task.name}
         </span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
           <CategoryChip type={task.type} />
-          <span className="tabular">
+          <span className="tabular-nums">
             {task.questions} Q · {task.marks} marks
           </span>
           <ResultLine task={task} />

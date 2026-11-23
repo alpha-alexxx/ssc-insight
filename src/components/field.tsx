@@ -32,7 +32,7 @@ export type FieldSize = "sm" | "md";
 /** The surface of a text control: a hairline that darkens on hover and turns to the ring on focus. */
 export function fieldSurface({ invalid, disabled, round = true }: { invalid?: boolean; disabled?: boolean; round?: boolean }) {
   const ring = invalid
-    ? "shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_55%,transparent)] focus-within:shadow-[inset_0_0_0_1px_var(--color-red-500),0_0_0_3px_color-mix(in_oklab,var(--color-red-500)_14%,transparent)]"
+    ? "shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_55%,transparent)] focus-within:shadow-[inset_0_0_0_1px_var(--color-destructive),0_0_0_3px_color-mix(in_oklab,var(--color-destructive)_14%,transparent)]"
     : "shadow-[inset_0_0_0_1px_var(--border)] [&:not(:focus-within)]:hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_24%,var(--border))] focus-within:shadow-[inset_0_0_0_1px_var(--ring),0_0_0_3px_color-mix(in_oklab,var(--ring)_16%,transparent)]";
   return `relative flex w-full items-center bg-background text-foreground transition-[box-shadow,background-color,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${round ? "rounded-full" : "rounded-[14px]"} ${ring} ${
     disabled ? "pointer-events-none opacity-50" : ""
@@ -118,7 +118,7 @@ export function Field({ id, label, aside, hint, error, required, className = "",
       <Line show={!error && !!hint} id={ids.hint} tone="text-muted-foreground" reduced={reduced}>
         {hint}
       </Line>
-      <Line show={!!error} id={ids.error} tone="text-red-600 dark:text-red-400" reduced={reduced}>
+      <Line show={!!error} id={ids.error} tone="text-destructive" reduced={reduced}>
         {error}
       </Line>
     </div>

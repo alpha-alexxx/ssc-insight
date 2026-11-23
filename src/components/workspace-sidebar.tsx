@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
 import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
-import { Icon, PlainIcon } from "@/components/icon";
+import { PlainIcon } from "@/components/icon";
 import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
 import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
 import { Tooltip } from "@/components/tooltip";

@@ -1,25 +1,13 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { Search } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/button";
+import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
+import { Input } from "@/components/input";
 import { PlainIcon } from "@/components/icon";
-import { cn } from "@/lib/utils";
+import { Select } from "@/components/select";
+import { SegmentedControl } from "@/components/segmented-control";
+import { Sheet } from "@/components/sheet";
 import type {
   TaskFilters,
   TaskLayout,
@@ -47,26 +35,6 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: "Low",
 };
 
-function MenuOption({
-  active,
-  onSelect,
-  children,
-}: {
-  active: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <DropdownMenuItem
-      onSelect={onSelect}
-      className={cn("justify-between", active && "font-medium text-ink")}
-    >
-      <span>{children}</span>
-      {active && <PlainIcon name="check" size={13} className="text-accent" />}
-    </DropdownMenuItem>
-  );
-}
-
 export function filterCount(filters: TaskFilters): number {
   return (
     (filters.status !== "all" ? 1 : 0) +
@@ -75,10 +43,30 @@ export function filterCount(filters: TaskFilters): number {
   );
 }
 
+/** An option row that carries a drawn check when it is the active choice. */
+function menuOption(
+  id: string,
+  label: string,
+  active: boolean,
+  onSelect: () => void,
+): MenuEntry {
+  return {
+    type: "item",
+    id,
+    label,
+    icon: active ? <PlainIcon name="check" size={13} /> : undefined,
+    onSelect,
+  };
+}
+
 /**
  * Search, sort, filters, layout, and select mode in one control row.
  * Desktop uses labeled dropdowns; below md the filter controls collapse
  * into a single "Filters (n)" bottom sheet with the same options.
+ *
+ * Hairline rebuild: search is the Hairline Input (leading icon), the
+ * dropdowns are the declarative DropdownMenu, the layout switch is the
+ * SegmentedControl, and the mobile filter surface is the Hairline Sheet.
  */
 export function TaskToolbar({
   tab,
@@ -112,101 +100,74 @@ export function TaskToolbar({
   const [sheetOpen, setSheetOpen] = useState(false);
   const active = filterCount(filters);
 
-  const filtersMenu = (
-    <DropdownMenuContent align="end" className="w-52">
-      {tab === "all" && (
-        <>
-          <DropdownMenuLabel>Status</DropdownMenuLabel>
-          {(
-            [
-              "all",
-              "todo",
-              "in_progress",
-              "completed",
-            ] as TaskStatusFilter[]
-          ).map((value) => (
-            <MenuOption
-              key={value}
-              active={filters.status === value}
-              onSelect={() => onPatchFilters({ status: value })}
-            >
-              {STATUS_LABELS[value]}
-            </MenuOption>
-          ))}
-          <DropdownMenuSeparator />
-        </>
-      )}
-      <DropdownMenuLabel>Priority</DropdownMenuLabel>
-      {(["all", "high", "normal", "low"] as const).map((value) => (
-        <MenuOption
-          key={value}
-          active={filters.priority === value}
-          onSelect={() => onPatchFilters({ priority: value })}
-        >
-          {PRIORITY_LABELS[value]}
-        </MenuOption>
-      ))}
-      <DropdownMenuSeparator />
-      <DropdownMenuLabel>Group</DropdownMenuLabel>
-      <div className="max-h-52 overflow-y-auto">
-        <MenuOption
-          active={filters.group === "all"}
-          onSelect={() => onPatchFilters({ group: "all" })}
-        >
-          All groups
-        </MenuOption>
-        <MenuOption
-          active={filters.group === "ungrouped"}
-          onSelect={() => onPatchFilters({ group: "ungrouped" })}
-        >
-          Ungrouped
-        </MenuOption>
-        {groups.map((group) => (
-          <MenuOption
-            key={group.id}
-            active={filters.group === group.id}
-            onSelect={() => onPatchFilters({ group: group.id })}
-          >
-            {group.name}
-          </MenuOption>
-        ))}
-      </div>
-      {active > 0 && (
-        <>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onClearFilters}>
-            Clear all filters
-          </DropdownMenuItem>
-        </>
-      )}
-    </DropdownMenuContent>
-  );
+  const filtersItems: MenuEntry[] = [
+    ...(tab === "all"
+      ? ([
+          { type: "label", label: "Status" } as MenuEntry,
+          ...(["all", "todo", "in_progress", "completed"] as TaskStatusFilter[]).map((value) =>
+            menuOption(
+              `status-${value}`,
+              STATUS_LABELS[value],
+              filters.status === value,
+              () => onPatchFilters({ status: value }),
+            ),
+          ),
+          { type: "separator" } as MenuEntry,
+        ])
+      : []),
+    { type: "label", label: "Priority" } as MenuEntry,
+    ...(["all", "high", "normal", "low"] as const).map((value) =>
+      menuOption(
+        `priority-${value}`,
+        PRIORITY_LABELS[value],
+        filters.priority === value,
+        () => onPatchFilters({ priority: value }),
+      ),
+    ),
+    { type: "separator" } as MenuEntry,
+    { type: "label", label: "Group" } as MenuEntry,
+    menuOption("group-all", "All groups", filters.group === "all", () =>
+      onPatchFilters({ group: "all" }),
+    ),
+    menuOption("group-ungrouped", "Ungrouped", filters.group === "ungrouped", () =>
+      onPatchFilters({ group: "ungrouped" }),
+    ),
+    ...groups.map((group) =>
+      menuOption(`group-${group.id}`, group.name, filters.group === group.id, () =>
+        onPatchFilters({ group: group.id }),
+      ),
+    ),
+    ...(active > 0
+      ? ([
+          { type: "separator" } as MenuEntry,
+          {
+            type: "item",
+            id: "clear-filters",
+            label: "Clear all filters",
+            onSelect: onClearFilters,
+          } as MenuEntry,
+        ])
+      : []),
+  ];
 
   const layoutSegment = (
-    <div role="group" aria-label="Layout" className="segment-group shrink-0">
-      <button
-        type="button"
-        aria-pressed={layout === "list"}
-        className="segment"
-        onClick={() => onLayout("list")}
-      >
-        List
-      </button>
-      <button
-        type="button"
-        aria-pressed={layout === "board"}
-        className="segment"
-        onClick={() => onLayout("board")}
-      >
-        Board
-      </button>
-    </div>
+    <SegmentedControl
+      label="Layout"
+      value={layout}
+      onValueChange={(value) => onLayout(value as TaskLayout)}
+      size="sm"
+      className="shrink-0"
+      options={[
+        { value: "list", label: "List" },
+        { value: "board", label: "Board" },
+      ]}
+    />
   );
 
   const selectButton = hasItems ? (
     <Button
       type="button"
-      variant={selecting ? "default" : "outline"}
+      variant={selecting ? "primary" : "outline"}
       size="sm"
       aria-pressed={selecting}
       onClick={onToggleSelect}
@@ -221,55 +182,50 @@ export function TaskToolbar({
     <>
       <div className="@container/tasks-toolbar flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 basis-52">
-          <Search
-            size={14}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <input
+          <Input
             ref={searchRef}
             aria-label="Search tasks"
             value={search}
             maxLength={200}
             placeholder="Search tasks…"
-            onChange={(e) => onSearch(e.target.value)}
-            className="pl-9!"
+            leading={<PlainIcon name="search" size={14} />}
+            onValueChange={onSearch}
           />
         </div>
         <div className="hidden items-center gap-2 @lg/tasks-toolbar:flex">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <DropdownMenu
+            trigger={
               <Button type="button" variant="outline" size="sm">
                 Sort: {SORT_LABELS[filters.sort]}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              {(["priority", "date", "newest", "title"] as TaskSort[]).map(
-                (value) => (
-                  <MenuOption
-                    key={value}
-                    active={filters.sort === value}
-                    onSelect={() => onPatchFilters({ sort: value })}
-                  >
-                    {SORT_LABELS[value]}
-                  </MenuOption>
+            }
+            align="end"
+            label="Sort tasks"
+            items={(["priority", "date", "newest", "title"] as TaskSort[]).map(
+              (value) =>
+                menuOption(
+                  `sort-${value}`,
+                  SORT_LABELS[value],
+                  filters.sort === value,
+                  () => onPatchFilters({ sort: value }),
                 ),
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            )}
+          />
+          <DropdownMenu
+            trigger={
               <Button type="button" variant="outline" size="sm">
                 Filters
                 {active > 0 && (
-                  <span className="rounded-pill bg-accent px-1.5 text-[length:var(--type-label)] font-semibold leading-4 text-paper">
+                  <span className="ml-1 rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-4 text-primary-foreground">
                     {active}
                   </span>
                 )}
               </Button>
-            </DropdownMenuTrigger>
-            {filtersMenu}
-          </DropdownMenu>
+            }
+            align="end"
+            label="Filter tasks"
+            items={filtersItems}
+          />
           {selectButton}
         </div>
         <div className="flex items-center gap-2 @lg/tasks-toolbar:hidden">
@@ -281,7 +237,7 @@ export function TaskToolbar({
           >
             Filters
             {active > 0 && (
-              <span className="rounded-pill bg-accent px-1.5 text-[length:var(--type-label)] font-semibold leading-4 text-paper">
+              <span className="ml-1 rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-4 text-primary-foreground">
                 {active}
               </span>
             )}
@@ -290,87 +246,14 @@ export function TaskToolbar({
         </div>
         {layoutSegment}
       </div>
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[85dvh] gap-0 overflow-y-auto pb-[max(12px,env(safe-area-inset-bottom))]"
-        >
-          <div className="mx-auto mt-2 h-1 w-10 rounded-pill bg-rule-soft" aria-hidden="true" />
-          <SheetHeader className="pr-12">
-            <SheetTitle>Filters &amp; sorting</SheetTitle>
-            <SheetDescription>
-              Applied to the current list immediately.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="grid grid-cols-2 gap-3 px-4 pb-4">
-            {tab === "all" && (
-              <label className="text-xs">
-                Status
-                <select
-                  aria-label="Status filter"
-                  value={filters.status}
-                  onChange={(e) =>
-                    onPatchFilters({ status: e.target.value as TaskStatusFilter })
-                  }
-                >
-                  {(
-                    ["all", "todo", "in_progress", "completed"] as TaskStatusFilter[]
-                  ).map((value) => (
-                    <option key={value} value={value}>
-                      {STATUS_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="text-xs">
-              Priority
-              <select
-                aria-label="Priority filter"
-                value={filters.priority}
-                onChange={(e) => onPatchFilters({ priority: e.target.value as TaskFilters["priority"] })}
-              >
-                {(["all", "high", "normal", "low"] as const).map((value) => (
-                  <option key={value} value={value}>
-                    {PRIORITY_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs">
-              Group
-              <select
-                aria-label="Group filter"
-                value={filters.group}
-                onChange={(e) => onPatchFilters({ group: e.target.value })}
-              >
-                <option value="all">All groups</option>
-                <option value="ungrouped">Ungrouped</option>
-                {groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs">
-              Sort
-              <select
-                aria-label="Sort"
-                value={filters.sort}
-                onChange={(e) => onPatchFilters({ sort: e.target.value as TaskSort })}
-              >
-                {(["priority", "date", "newest", "title"] as TaskSort[]).map(
-                  (value) => (
-                    <option key={value} value={value}>
-                      {SORT_LABELS[value]}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
-          </div>
-          <div className="flex justify-between gap-2 px-4 pb-2">
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        side="bottom"
+        title="Filters & sorting"
+        description="Applied to the current list immediately."
+        footer={
+          <div className="flex w-full justify-between gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -384,7 +267,53 @@ export function TaskToolbar({
               Done
             </Button>
           </div>
-        </SheetContent>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3 pb-2">
+          {tab === "all" && (
+            <Select
+              hideLabel
+              label="Status filter"
+              value={filters.status}
+              onValueChange={(value) =>
+                onPatchFilters({ status: value as TaskStatusFilter })
+              }
+              options={(["all", "todo", "in_progress", "completed"] as TaskStatusFilter[]).map(
+                (value) => ({ value, label: STATUS_LABELS[value] }),
+              )}
+            />
+          )}
+          <Select
+            hideLabel
+            label="Priority filter"
+            value={filters.priority}
+            onValueChange={(value) => onPatchFilters({ priority: value as TaskFilters["priority"] })}
+            options={(["all", "high", "normal", "low"] as const).map((value) => ({
+              value,
+              label: PRIORITY_LABELS[value],
+            }))}
+          />
+          <Select
+            hideLabel
+            label="Group filter"
+            value={filters.group}
+            onValueChange={(value) => onPatchFilters({ group: value })}
+            options={[
+              { value: "all", label: "All groups" },
+              { value: "ungrouped", label: "Ungrouped" },
+              ...groups.map((group) => ({ value: group.id, label: group.name })),
+            ]}
+          />
+          <Select
+            hideLabel
+            label="Sort"
+            value={filters.sort}
+            onValueChange={(value) => onPatchFilters({ sort: value as TaskSort })}
+            options={(["priority", "date", "newest", "title"] as TaskSort[]).map(
+              (value) => ({ value, label: SORT_LABELS[value] }),
+            )}
+          />
+        </div>
       </Sheet>
     </>
   );

@@ -170,11 +170,11 @@ export function ChatNotice({
 
   const iconKey = kind === "rate-limit" && ready ? "ready" : kind;
   const icons: Record<string, React.ReactNode> = {
-    error: <AlertCircle className="size-4 text-red-500" />,
+    error: <AlertCircle className="size-4 text-destructive" />,
     offline: <WifiOff className="size-4 text-muted-foreground" />,
-    "rate-limit": <Hourglass className="size-4 text-amber-500" />,
+    "rate-limit": <Hourglass className="size-4 text-warning" />,
     ready: (
-      <svg viewBox="0 0 16 16" fill="none" className="size-4 text-emerald-600 dark:text-emerald-400">
+      <svg viewBox="0 0 16 16" fill="none" className="size-4 text-success">
         <path
           d="M3.5 8.5 6.5 11.5 12.5 4.5"
           stroke="currentColor"
@@ -232,7 +232,7 @@ export function ChatNotice({
                     <span className="ml-1.5 inline-flex items-center gap-1.5 text-foreground/70">
                       <span
                         aria-hidden="true"
-                        className={`size-1.5 rounded-full bg-amber-500 motion-reduce:animate-none ${retrying ? "animate-[ui-breathe_1.4s_ease-in-out_infinite]" : ""}`}
+                        className={`size-1.5 rounded-full bg-warning motion-reduce:animate-none ${retrying ? "animate-[ui-breathe_1.4s_ease-in-out_infinite]" : ""}`}
                       />
                       Reconnecting
                     </span>

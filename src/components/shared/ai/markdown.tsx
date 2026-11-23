@@ -3,32 +3,59 @@
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CopyButton } from "./copy-button";
+import { CodeBlock } from "@/components/code-block";
 import { cn } from "@/lib/utils";
 
 /**
- * The AI surfaces' markdown reader: GitHub-flavored markdown rendered into
- * the paper-and-ink grammar — serif headings, ruled tables with tabular
- * figures, quiet paper code blocks with their own copy affordance.
+ * The AI surfaces' markdown reader — the custom renderer handed to Hairline
+ * `StreamingText` as children (the approved react-markdown integration).
  *
- * No rehype-raw: raw HTML stays escaped, so model output can never inject
- * markup. Links open externally with the standard guard.
+ * GitHub-flavored markdown typeset in the app's grammar: serif headings, ruled
+ * tables with tabular figures, and Hairline `CodeBlock` for fenced code with
+ * its own copy affordance. No rehype-raw: raw HTML stays escaped, so model
+ * output can never inject markup. Links open externally with the standard
+ * guard.
  */
 
-function codeText(node: unknown): string {
-  // Extract the raw source from the hast element's code child.
+type HastNode = {
+  children?: unknown[];
+  properties?: { className?: unknown };
+};
+
+/** The `code` element inside a `pre`, if the shape matches. */
+function codeElementOf(node: unknown): HastNode | null {
   if (node && typeof node === "object" && "children" in node) {
-    const children = (node as { children?: unknown[] }).children;
-    const first = children?.[0];
-    if (
-      first &&
-      typeof first === "object" &&
-      "value" in first &&
-      typeof (first as { value?: unknown }).value === "string"
-    )
-      return (first as { value: string }).value;
+    const children = (node as HastNode).children;
+    const first = Array.isArray(children) ? children[0] : null;
+    if (first && typeof first === "object" && "children" in first) return first as HastNode;
   }
-  return "";
+  return null;
+}
+
+/** Extract the raw source: pre > code > text. */
+function textValue(node: unknown): string {
+  const code = codeElementOf(node);
+  const text =
+    code && Array.isArray(code.children)
+      ? (code.children[0] as HastNode | undefined)
+      : undefined;
+  const value = text && "value" in text ? (text as { value?: unknown }).value : null;
+  return typeof value === "string" ? value : "";
+}
+
+/** Extract `language-xyz` from the code element's class list. */
+function languageOf(node: unknown): string | undefined {
+  const code = codeElementOf(node);
+  const className = code?.properties?.className;
+  const classes = Array.isArray(className)
+    ? className
+    : typeof className === "string"
+      ? [className]
+      : [];
+  const lang = classes.find(
+    (entry) => typeof entry === "string" && entry.startsWith("language-"),
+  );
+  return lang ? lang.slice("language-".length) : undefined;
 }
 
 export const Markdown = memo(function Markdown({
@@ -38,14 +65,13 @@ export const Markdown = memo(function Markdown({
 }: {
   content: string;
   className?: string;
-  /** Appends the blinking stream caret to the last rendered block. */
+  /** Appends a quiet blinking caret under the last rendered block. */
   streaming?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "ai-answer min-w-0 font-[var(--font-heading)] text-[0.9375rem] leading-[1.7] text-ink",
-        streaming && "is-streaming",
+        "min-w-0 font-serif text-[0.9375rem] leading-[1.7] text-foreground",
         className,
       )}
     >
@@ -53,35 +79,27 @@ export const Markdown = memo(function Markdown({
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h3 className="mt-5 mb-2 font-serif text-lg font-medium first:mt-0">
-              {children}
-            </h3>
+            <h3 className="mt-5 mb-2 font-serif text-lg font-medium first:mt-0">{children}</h3>
           ),
           h2: ({ children }) => (
-            <h3 className="mt-5 mb-2 font-serif text-lg font-medium first:mt-0">
-              {children}
-            </h3>
+            <h3 className="mt-5 mb-2 font-serif text-lg font-medium first:mt-0">{children}</h3>
           ),
           h3: ({ children }) => (
-            <h4 className="mt-4 mb-1.5 font-serif text-[15px] font-medium first:mt-0">
-              {children}
-            </h4>
+            <h4 className="mt-4 mb-1.5 font-serif text-[15px] font-medium first:mt-0">{children}</h4>
           ),
           h4: ({ children }) => (
-            <h5 className="mt-4 mb-1 font-serif text-sm font-medium first:mt-0">
-              {children}
-            </h5>
+            <h5 className="mt-4 mb-1 font-serif text-sm font-medium first:mt-0">{children}</h5>
           ),
           p: ({ children }) => (
             <p className="my-3 first:mt-0 last:mb-0">{children}</p>
           ),
           ul: ({ children }) => (
-            <ul className="my-3 list-disc space-y-1 pl-5 first:mt-0 last:mb-0 marker:text-muted">
+            <ul className="my-3 list-disc space-y-1 pl-5 first:mt-0 last:mb-0 marker:text-muted-foreground">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="my-3 list-decimal space-y-1 pl-5 first:mt-0 last:mb-0 marker:text-muted">
+            <ol className="my-3 list-decimal space-y-1 pl-5 first:mt-0 last:mb-0 marker:text-muted-foreground">
               {children}
             </ol>
           ),
@@ -89,26 +107,26 @@ export const Markdown = memo(function Markdown({
             <li className="leading-relaxed pl-1">{children}</li>
           ),
           strong: ({ children }) => (
-            <strong className="font-semibold text-ink">{children}</strong>
+            <strong className="font-semibold text-foreground">{children}</strong>
           ),
           em: ({ children }) => <em>{children}</em>,
-          del: ({ children }) => <del className="text-muted">{children}</del>,
+          del: ({ children }) => <del className="text-muted-foreground">{children}</del>,
           a: ({ href, children }) => (
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="font-medium text-accent underline underline-offset-2 hover:text-accent-hover"
+              className="font-medium text-primary underline underline-offset-2"
             >
               {children}
             </a>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="my-3 border-l-2 border-rule pl-3 text-muted italic">
+            <blockquote className="my-3 border-l-2 border-border pl-3 text-muted-foreground italic">
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-4 border-0 border-t border-rule-soft" />,
+          hr: () => <hr className="my-4 border-0 border-t border-border" />,
           code: ({ className, children, ...rest }) => {
             const isBlock = /language-/.test(className ?? "");
             if (isBlock) {
@@ -119,44 +137,43 @@ export const Markdown = memo(function Markdown({
               );
             }
             return (
-              <code className="rounded-control border border-rule-soft bg-canvas px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+              <code className="rounded-[5px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
                 {children}
               </code>
             );
           },
           pre: ({ children, node }) => {
-            const raw = codeText(node);
+            const raw = textValue(node);
+            const language = languageOf(node);
+            if (!raw) {
+              // Safety net: an unexpected hast shape still renders the code.
+              return <pre className="my-3 overflow-x-auto font-mono text-xs">{children}</pre>;
+            }
             return (
-              <div className="ai-answer-code my-3 overflow-hidden rounded-control border border-rule-soft bg-canvas first:mt-0 last:mb-0">
-                <div className="flex items-center justify-between border-b border-rule-soft px-3 py-1.5">
-                  <span className="font-mono text-[10px] tracking-wide text-muted">
-                    CODE
-                  </span>
-                  {raw ? <CopyButton value={raw} compact /> : null}
-                </div>
-                <pre className="overflow-x-auto p-3 font-mono text-xs leading-relaxed">
-                  {children}
-                </pre>
-              </div>
+              <CodeBlock
+                code={raw}
+                language={language}
+                streaming={streaming}
+                lineNumbers={false}
+                className="my-3 first:mt-0 last:mb-0"
+              />
             );
           },
           table: ({ children }) => (
-            <div className="ai-answer-table my-3 overflow-x-auto rounded-control border border-rule-soft first:mt-0 last:mb-0">
-              <table className="w-full border-collapse text-[length:var(--type-body)]">
-                {children}
-              </table>
+            <div className="my-3 overflow-x-auto rounded-xl border border-border first:mt-0 last:mb-0">
+              <table className="w-full border-collapse text-[13px]">{children}</table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-canvas">{children}</thead>
+            <thead className="bg-muted">{children}</thead>
           ),
           th: ({ children }) => (
-            <th className="border-b border-rule px-3 py-2 text-left font-medium text-ink">
+            <th className="border-b border-border px-3 py-2 text-left font-medium text-foreground">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border-b border-rule-soft px-3 py-2 align-top tabular-nums last:border-b-0">
+            <td className="border-b border-border/60 px-3 py-2 align-top tabular-nums last:border-b-0">
               {children}
             </td>
           ),
@@ -166,13 +183,21 @@ export const Markdown = memo(function Markdown({
               src={typeof src === "string" ? src : ""}
               alt={alt ?? ""}
               loading="lazy"
-              className="my-3 max-w-full rounded-control border border-rule-soft"
+              className="my-3 max-w-full rounded-lg border border-border"
             />
           ),
         }}
       >
         {content}
       </ReactMarkdown>
+      {/* The stream caret: the kit's StreamingText caret only rides its own
+          token paragraphs, so the custom renderer ends with its own. */}
+      {streaming ? (
+        <span
+          aria-hidden="true"
+          className="mt-1 inline-block h-3.5 w-[2px] rounded-full bg-foreground/70 motion-safe:animate-pulse"
+        />
+      ) : null}
     </div>
   );
 });

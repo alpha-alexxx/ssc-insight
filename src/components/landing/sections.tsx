@@ -1,17 +1,15 @@
-import { DuotoneIcon, DuotoneTile } from "@/components/icon";
+import Link from "next/link";
+import { PlainIcon } from "@/components/icon";
+import { FlutedFooter } from "@/components/fluted-footer";
 import { shortDate } from "@/lib/format";
 import { totals } from "@/lib/domain";
 import { LANDING_ATTEMPTS, LANDING_FULL_MOCKS, LANDING_SUMMARY } from "./fixtures";
 import type { LandingPlanData } from "./plan-facts";
 import { Faq } from "./faq";
 import { PlanGrid, PlanLegend } from "./planner-section";
-import { Reveal } from "./reveal";
 import { ScopeDiagram } from "./scope-diagram";
-import { Section, SectionHead } from "./section";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { LiquidButton } from "@/components/animate-ui/buttons/liquid";
-import { Petals } from "./atoms";
+import { EYEBROW, Section, SectionHead } from "./section";
+import { LINK_BUTTON } from "./atoms";
 import { AiPanel } from "./mockups/ai-panel";
 import { BrowserFrame, MockupCaption } from "./mockups/browser-frame";
 import { CompareScreen } from "./mockups/compare-screen";
@@ -22,7 +20,7 @@ import { DayWorkspaceScreen } from "./mockups/day-workspace-screen";
  *
  * All server components: copy, the fact strip, the scope diagram and the plan
  * grid are static HTML, and only the small interactive islands inside them
- * (the diagram's one-shot draw, the FAQ accordion) ship JavaScript.
+ * (the FAQ accordion, the mockups' tabs) ship JavaScript.
  */
 
 /* ---------- 03 · Analytical scopes ---------- */
@@ -39,7 +37,7 @@ export function ScopesSection() {
         <ScopeDiagram />
       </div>
 
-      <div className="mt-12 grid gap-6 border-t border-rule-soft pt-8 sm:grid-cols-3">
+      <div className="mt-12 grid gap-6 border-t border-border pt-8 sm:grid-cols-3">
         {[
           {
             title: "A full mock is never counted twice",
@@ -53,13 +51,13 @@ export function ScopesSection() {
             title: "Missing stays missing",
             body: "A subject you never attempted draws no line. It is never plotted as zero, and no value is borrowed from another attempt to fill the gap.",
           },
-        ].map((item, index) => (
-          <Reveal key={item.title} distance={8 + index * 6}>
-            <h3 className="font-serif text-[1.0625rem] leading-tight tracking-[-0.02em]">
+        ].map((item) => (
+          <div key={item.title}>
+            <h3 className="font-serif text-[1.0625rem] leading-tight tracking-[-0.01em] text-foreground">
               {item.title}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
-          </Reveal>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+          </div>
         ))}
       </div>
     </Section>
@@ -77,35 +75,33 @@ export function PlanSection({ plan }: { plan: LandingPlanData }) {
         lede="Built from the RBE daily targets: three phases, every test dated, every source link kept. Recording progress never rewrites the plan."
       />
 
-      <Reveal className="mt-12">
+      <div className="mt-12">
         <PlanGrid plan={plan} />
         <PlanLegend plan={plan} />
-      </Reveal>
+      </div>
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)] lg:items-start">
-        <Reveal>
-          <figure className="m-0">
-            <BrowserFrame url={`sscinsight.app/plan/${plan.sampleDay.date}`}>
-              <DayWorkspaceScreen plan={plan} />
-            </BrowserFrame>
-            <MockupCaption>
-              Day {plan.sampleDay.day} of 50 · {plan.sampleDay.dayType} — the
-              day&apos;s assignments, the four habits, and the revision block.
-            </MockupCaption>
-          </figure>
-        </Reveal>
+        <figure className="m-0">
+          <BrowserFrame url={`sscinsight.app/plan/${plan.sampleDay.date}`}>
+            <DayWorkspaceScreen plan={plan} />
+          </BrowserFrame>
+          <MockupCaption>
+            Day {plan.sampleDay.day} of 50 · {plan.sampleDay.dayType} — the
+            day&apos;s assignments, the four habits, and the revision block.
+          </MockupCaption>
+        </figure>
 
-        <Reveal className="lg:pt-2">
-          <h3 className="font-serif text-[1.375rem] leading-tight tracking-[-0.025em]">
+        <div className="lg:pt-2">
+          <h3 className="font-serif text-[1.375rem] leading-tight tracking-[-0.02em] text-foreground">
             Every day opens into its own workspace.
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-muted">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             {plan.taskCount} scheduled tasks across {plan.days.length} days,{" "}
             {plan.mockDayCount} of them carrying a full-length mock. Each day
             lists its assignments with the original source link, the four daily
             habits, and its revision block.
           </p>
-          <dl className="mt-7 divide-y divide-rule-soft border-y border-rule-soft">
+          <dl className="mt-7 divide-y divide-border border-y border-border">
             {[
               ["Attempt date", "what the tracker records and charts use"],
               ["Scheduled date", "the plan's own day, which never moves"],
@@ -113,14 +109,14 @@ export function PlanSection({ plan }: { plan: LandingPlanData }) {
               ["Source link", "every test keeps its original RBE link"],
             ].map(([term, detail]) => (
               <div key={term} className="py-3">
-                <dt className="text-[0.8125rem] font-medium">{term}</dt>
-                <dd className="mt-0.5 text-xs leading-relaxed text-muted">
+                <dt className="text-[13px] font-medium text-foreground">{term}</dt>
+                <dd className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {detail}
                 </dd>
               </div>
             ))}
           </dl>
-        </Reveal>
+        </div>
       </div>
     </Section>
   );
@@ -146,8 +142,8 @@ export function CompareSection() {
       />
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
-        <Reveal className="lg:sticky lg:top-24">
-          <dl className="divide-y divide-rule-soft border-y border-rule-soft">
+        <div className="lg:sticky lg:top-24">
+          <dl className="divide-y divide-border border-y border-border">
             {[
               { term: "Score", detail: `${before.score} → ${later.score} of ${later.maxScore}` },
               { term: "Difference", detail: `${delta > 0 ? "+" : ""}${delta} marks` },
@@ -165,33 +161,31 @@ export function CompareSection() {
               },
             ].map((row) => (
               <div key={row.term} className="flex items-baseline justify-between gap-4 py-3">
-                <dt className="section-label">{row.term}</dt>
-                <dd className="text-right text-sm tabular">{row.detail}</dd>
+                <dt className={EYEBROW}>{row.term}</dt>
+                <dd className="text-right text-sm tabular-nums text-foreground">{row.detail}</dd>
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-sm leading-relaxed text-muted">
+          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
             Where two records have different maximums, percentages stand in for
             marks. Percentile only appears when a platform actually published
             one — it is never inferred.
           </p>
-          <p className="mt-4 text-xs text-muted">
+          <p className="mt-4 text-xs text-muted-foreground">
             Comparing {LANDING_ATTEMPTS.filter((a) => a.type !== "full").length}{" "}
             sectional and subject results works the same way.
           </p>
-        </Reveal>
+        </div>
 
-        <Reveal>
-          <figure className="m-0">
-            <BrowserFrame url="sscinsight.app/compare">
-              <CompareScreen />
-            </BrowserFrame>
-            <MockupCaption>
-              Two full mocks compared across every metric, with a subject-level
-              breakdown and a difference column in percentage points.
-            </MockupCaption>
-          </figure>
-        </Reveal>
+        <figure className="m-0">
+          <BrowserFrame url="sscinsight.app/compare">
+            <CompareScreen />
+          </BrowserFrame>
+          <MockupCaption>
+            Two full mocks compared across every metric, with a subject-level
+            breakdown and a difference column in percentage points.
+          </MockupCaption>
+        </figure>
       </div>
     </Section>
   );
@@ -201,18 +195,20 @@ export function CompareSection() {
 
 export function AiSection() {
   return (
-    <div className="pb-14 pt-16 sm:pb-16">
+    <div className="pb-14 pt-6 sm:pb-16">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
         <div>
-          <p className="plate-label">Optional · AI coach</p>
-          <h2 className="plate-title mt-3">A second reading, if you want one.</h2>
-          <p className="plate-body mt-4">
+          <p className={EYEBROW}>Optional · AI coach</p>
+          <h2 className="mt-3 text-balance font-serif text-[clamp(1.5rem,2.6vw,2.25rem)] font-[450] leading-[1.1] tracking-[-0.02em] text-foreground">
+            A second reading, if you want one.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
             Point the coach at any OpenAI-compatible endpoint with your own key
             and it returns a structured read of your recent mocks: strengths,
             focus areas and next actions. Bring a key, or skip it — the tracker
             behaves the same either way.
           </p>
-          <ul className="mt-7 divide-y divide-[var(--plate-rule-soft)] border-y border-[var(--plate-rule-soft)]">
+          <ul className="mt-7 divide-y divide-border border-y border-border">
             {[
               "Read-only: it cannot create, edit or schedule a mock.",
               "Sends aggregates and your latest 20 full mocks — no notes, email or identity.",
@@ -220,17 +216,17 @@ export function AiSection() {
             ].map((line) => (
               <li
                 key={line}
-                className="flex items-start gap-3 py-3 text-sm leading-relaxed text-[var(--plate-muted)]"
+                className="flex items-start gap-3 py-3 text-sm leading-relaxed text-muted-foreground"
               >
                 <span
                   aria-hidden="true"
-                  className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-[var(--plate-rule)]"
+                  className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-primary"
                 />
                 {line}
               </li>
             ))}
           </ul>
-          <p className="mt-5 text-xs text-[var(--plate-muted)]">
+          <p className="mt-5 text-xs text-muted-foreground">
             Hidden entirely when no provider is configured.
           </p>
         </div>
@@ -247,19 +243,21 @@ export function PrivacySection() {
   return (
     <div
       id="privacy"
-      className="landing-section grid gap-10 border-t border-[var(--plate-rule)] py-16 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
+      className="grid gap-10 border-t border-border py-16 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
     >
       <div>
-        <p className="plate-label">Private by construction</p>
-        <h2 className="plate-title mt-3">Your account is the boundary.</h2>
-        <p className="plate-body mt-4">
+        <p className={EYEBROW}>Private by construction</p>
+        <h2 className="mt-3 text-balance font-serif text-[clamp(1.5rem,2.6vw,2.25rem)] font-[450] leading-[1.1] tracking-[-0.02em] text-foreground">
+          Your account is the boundary.
+        </h2>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
           Google sign-in, isolated records, and no shared surface anywhere. Every
           read and write is scoped to the verified user — there is no guest
           record and no administrator view.
         </p>
-        <div className="mt-7 flex items-start gap-3 rounded-control border border-[var(--plate-rule-soft)] bg-[var(--plate-surface)] p-4">
-          <DuotoneTile name="shield" tile="ink" size={20} className="shrink-0" />
-          <p className="text-xs leading-relaxed text-[var(--plate-muted)]">
+        <div className="mt-7 flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]">
+          <PlainIcon name="shield" size={20} tone="foreground" className="mt-0.5 shrink-0" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Account changes remount the workspace, so a different Google account
             never sees a stale session&apos;s data.
           </p>
@@ -267,12 +265,12 @@ export function PrivacySection() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-card border border-[var(--plate-rule-soft)] bg-[var(--plate-card)] p-5 text-ink">
-          <p className="section-label flex items-center gap-2">
-            <DuotoneIcon name="download" size={13} tone="accent" />
+        <div className="rounded-2xl bg-card p-5 shadow-[inset_0_0_0_1px_var(--border)]">
+          <p className={`${EYEBROW} flex items-center gap-2`}>
+            <PlainIcon name="download" size={14} tone="primary" />
             In the file
           </p>
-          <ul className="mt-3 space-y-1.5 text-[0.8125rem] leading-relaxed">
+          <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed">
             {[
               "Every attempt and subject result",
               "Notes, rank, participants, percentile",
@@ -280,20 +278,20 @@ export function PrivacySection() {
               "Your target score",
             ].map((line) => (
               <li key={line} className="flex gap-2">
-                <span aria-hidden="true" className="text-positive">
+                <span aria-hidden="true" className="text-success">
                   +
                 </span>
-                <span className="text-muted">{line}</span>
+                <span className="text-muted-foreground">{line}</span>
               </li>
             ))}
           </ul>
         </div>
-        <div className="rounded-card border border-[var(--plate-rule-soft)] bg-[var(--plate-card)] p-5 text-ink">
-          <p className="section-label flex items-center gap-2">
-            <DuotoneIcon name="shield" size={13} tone="accent" />
+        <div className="rounded-2xl bg-card p-5 shadow-[inset_0_0_0_1px_var(--border)]">
+          <p className={`${EYEBROW} flex items-center gap-2`}>
+            <PlainIcon name="shield" size={14} tone="primary" />
             Never in the file
           </p>
-          <ul className="mt-3 space-y-1.5 text-[0.8125rem] leading-relaxed">
+          <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed">
             {[
               "Email address or user ID",
               "Sign-in credentials",
@@ -301,17 +299,17 @@ export function PrivacySection() {
               "Anything from another account",
             ].map((line) => (
               <li key={line} className="flex gap-2">
-                <span aria-hidden="true" className="text-danger">
+                <span aria-hidden="true" className="text-destructive">
                   −
                 </span>
-                <span className="text-muted">{line}</span>
+                <span className="text-muted-foreground">{line}</span>
               </li>
             ))}
           </ul>
         </div>
         <div className="sm:col-span-2">
-          <p className="text-xs leading-relaxed text-[var(--plate-muted)]">
-            One JSON file, <span className="tabular">ssc-insight-backup</span>{" "}
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            One JSON file, <span className="tabular-nums">ssc-insight-backup</span>{" "}
             version 2, imports into a different Google account — merge or
             replace, atomically. Your AI key is sealed with AES-256-GCM before
             it is stored and is shown back only as its last four characters.
@@ -343,156 +341,129 @@ export function FinalCta({ authAvailable }: { authAvailable: boolean }) {
   const summary = LANDING_SUMMARY;
   return (
     <Section id="start" number="07" bordered={false} className="py-20 sm:py-28">
-      <Reveal>
-        <div className="relative overflow-hidden rounded-card border border-rule-soft bg-paper px-6 py-14 sm:px-12">
-          <div
-            aria-hidden="true"
-            className="landing-blob absolute -right-24 -top-24 size-[22rem] bg-accent-soft opacity-70"
-          />
-          <Petals count={24} />
-          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div>
-              <p className="section-label">Start here</p>
-              <h2 className="mt-3 max-w-xl font-serif text-[clamp(1.875rem,3.6vw,2.875rem)] font-[450] leading-[1.08] tracking-[-0.03em] text-balance">
-                Start with the mock you already took.
-              </h2>
-              <p className="mt-4 max-w-lg text-[0.9375rem] leading-relaxed text-muted">
-                Create a free account, log one result, and the ledger begins —
-                trend, target gap and plan position from a single attempt.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                {authAvailable ? (
-                  <>
-                    <LiquidButton
-                      asChild
-                      className="inline-flex h-auto items-center justify-center gap-2.5 px-6 py-3 text-[0.9375rem] font-medium rounded-control bg-accent text-paper hover:bg-accent-hover"
-                    >
-                      <Link href="/sign-up">Start For Free</Link>
-                    </LiquidButton>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="h-auto gap-2.5 px-4 py-3 text-[0.9375rem]"
-                    >
-                      <Link href="/sign-in">I already have an account</Link>
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    className="h-auto gap-2.5 px-6 py-3 text-[0.9375rem]"
-                    disabled
-                  >
-                    Sign-in unavailable
-                  </Button>
-                )}
-              </div>
-              <p className="mt-4 text-xs text-muted">
-                Google or email · no card, no test series, nothing shared.
-              </p>
+      <div className="relative overflow-hidden rounded-[28px] bg-card px-6 py-14 shadow-[inset_0_0_0_1px_var(--border)] sm:px-12">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 size-[22rem] rounded-full bg-primary/10 blur-3xl"
+        />
+        <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div>
+            <p className={EYEBROW}>Start here</p>
+            <h2 className="mt-3 max-w-xl text-balance font-serif text-[clamp(1.875rem,3.6vw,2.875rem)] font-[450] leading-[1.08] tracking-[-0.02em] text-foreground">
+              Start with the mock you already took.
+            </h2>
+            <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+              Create a free account, log one result, and the ledger begins —
+              trend, target gap and plan position from a single attempt.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              {authAvailable ? (
+                <>
+                  <Link href="/sign-up" className={LINK_BUTTON.primary}>
+                    Start For Free
+                  </Link>
+                  <Link href="/sign-in" className={LINK_BUTTON.ghost}>
+                    I already have an account
+                  </Link>
+                </>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className={`${LINK_BUTTON.primary} pointer-events-none opacity-45`}
+                >
+                  Sign-in unavailable
+                </span>
+              )}
             </div>
-
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-4 border-t border-rule-soft pt-5 lg:min-w-[16rem] lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
-              {[
-                { label: "Marks in a paper", value: "390" },
-                { label: "Target reference", value: `${Math.round(summary.targetPercentage)}%` },
-                { label: "Plan length", value: "50 days" },
-                { label: "Export", value: "JSON" },
-              ].map((row) => (
-                <div key={row.label}>
-                  <dt className="section-label">{row.label}</dt>
-                  <dd className="mt-1 font-serif text-2xl leading-none tracking-[-0.02em] tabular">
-                    {row.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Google or email · no card, no test series, nothing shared.
+            </p>
           </div>
+
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-4 border-t border-border pt-5 lg:min-w-[16rem] lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+            {[
+              { label: "Marks in a paper", value: "390" },
+              { label: "Target reference", value: `${Math.round(summary.targetPercentage)}%` },
+              { label: "Plan length", value: "50 days" },
+              { label: "Export", value: "JSON" },
+            ].map((row) => (
+              <div key={row.label}>
+                <dt className={EYEBROW}>{row.label}</dt>
+                <dd className="mt-1 font-serif text-2xl leading-none tracking-[-0.02em] tabular-nums text-foreground">
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
-      </Reveal>
+      </div>
     </Section>
   );
 }
 
 export function LandingFooter() {
+  const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-rule-soft bg-canvas">
-      <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-auto w-full bg-background">
+      {/* The paper-and-plan facts, kept as the small print above the footer. */}
+      <div className="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
+        <div className="grid gap-x-10 gap-y-9 pb-14 sm:grid-cols-2">
           <div>
-            <p className="landing-wordmark text-xl text-ink">
-              ssc<span className="text-accent">insight</span>
-              <span className="text-accent">.</span>
-            </p>
-            <p className="mt-3 max-w-[16rem] text-xs leading-relaxed text-muted">
-              A private mock tracker for SSC CGL Tier 2. One account, one
-              workspace.
-            </p>
-          </div>
-
-          {[
-            {
-              title: "This page",
-              links: [
-                ["#workspace", "The workspace"],
-                ["#scopes", "Analytical scopes"],
-                ["#plan", "The 50-day plan"],
-                ["#compare", "Compare"],
-                ["#faq", "Questions"],
-              ],
-            },
-            {
-              title: "The paper",
-              links: [],
-              rows: [
+            <p className={EYEBROW}>The paper</p>
+            <ul className="mt-3 space-y-1.5 text-[13px]">
+              {[
                 ["Full mock", "130 Q · 390 marks"],
                 ["Section I", "Quant + Reasoning · 180"],
                 ["Section II", "English + GA · 210"],
                 ["Marking", "+3 correct · −1 wrong"],
-              ],
-            },
-            {
-              title: "The plan",
-              links: [],
-              rows: [
+              ].map(([term, detail]) => (
+                <li key={term} className="flex flex-wrap justify-between gap-x-3">
+                  <span className="text-foreground">{term}</span>
+                  <span className="text-muted-foreground">{detail}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className={EYEBROW}>The plan</p>
+            <ul className="mt-3 space-y-1.5 text-[13px]">
+              {[
                 ["Window", "26 Oct – 14 Dec 2026"],
                 ["Phase 1", "Build · days 1–20"],
                 ["Phase 2", "Speed & Accuracy · 21–45"],
                 ["Phase 3", "Final Revision · 46–50"],
-              ],
-            },
-          ].map((column) => (
-            <div key={column.title}>
-              <p className="section-label">{column.title}</p>
-              <ul className="mt-3 space-y-1.5 text-[0.8125rem]">
-                {column.links?.map(([href, label]) => (
-                  <li key={href}>
-                    <a
-                      href={href}
-                      className="text-muted transition-colors hover:text-ink"
-                    >
-                      {label}
-                    </a>
-                  </li>
-                ))}
-                {column.rows?.map(([term, detail]) => (
-                  <li key={term} className="flex flex-wrap justify-between gap-x-3">
-                    <span className="text-ink">{term}</span>
-                    <span className="text-muted">{detail}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 flex flex-col gap-2 border-t border-rule-soft pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            Dates in India Standard Time · SSC CGL Tier 2 · {new Date().getFullYear()}
-          </p>
-          <p>Not affiliated with the Staff Selection Commission.</p>
+              ].map(([term, detail]) => (
+                <li key={term} className="flex flex-wrap justify-between gap-x-3">
+                  <span className="text-foreground">{term}</span>
+                  <span className="text-muted-foreground">{detail}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
-    </footer>
+
+      <div className="mx-auto w-full max-w-[1240px] px-4 pb-10 sm:px-6">
+        <FlutedFooter
+          wordmark="SSC Insight"
+          tagline="A private mock tracker for SSC CGL Tier 2. One account, one workspace."
+          columns={[
+            {
+              title: "This page",
+              links: [
+                { label: "The workspace", href: "#workspace" },
+                { label: "Analytical scopes", href: "#scopes" },
+                { label: "The 50-day plan", href: "#plan" },
+                { label: "Compare", href: "#compare" },
+                { label: "Questions", href: "#faq" },
+              ],
+            },
+          ]}
+          accent="var(--primary)"
+          legal={`Dates in India Standard Time · SSC CGL Tier 2 · ${year} · Not affiliated with the Staff Selection Commission.`}
+        />
+      </div>
+    </div>
   );
 }
 

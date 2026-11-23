@@ -1,17 +1,23 @@
 "use client";
-import { memo } from "react";
-import { PlainIcon, DuotoneTile } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { memo, useMemo } from "react";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Input } from "@/components/input";
 import { Panel } from "@/components/dashboard-panels";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/skeleton";
+import { EmptyState } from "@/components/empty-state";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableSort,
+} from "@/components/data-table";
 import { AttemptPagination } from "@/components/attempt-pagination";
-import { AttemptRecordCard } from "@/components/attempt-outcome-card";
+import { MetricBand, MetricCell } from "@/components/metric-strip";
 import {
   accuracyTone,
   scoreBarTone,
   typeChip,
 } from "@/components/attempt-display";
-import { MetricCell } from "@/components/metric-strip";
 import {
   totals,
   formatNumber as n,
@@ -38,39 +44,13 @@ import { cn } from "@/lib/utils";
  *  2. The KPI "delta" slot rendered an absolute average under a green
  *     up-arrow. Each metric now carries its own honest reference.
  *
- * Below `lg` the table becomes the same `AttemptRecordCard` the dashboard
- * uses, instead of a nine-column horizontal scroll on a phone.
+ * The table itself is Hairline's DataTable: sortable headers drive the
+ * server sort (the page is server-owned), and a narrow container gets one
+ * card per row instead of a nine-column scroll. The search field stays in
+ * the panel header because the search is server-side too (two-character
+ * gate, debounce, URL mirror) — DataTable's own search only filters the
+ * rows in front of it.
  */
-
-function SortHeader({
-  label,
-  sortKey,
-  sort,
-  onSort,
-}: {
-  label: string;
-  sortKey: SortKey;
-  sort: { key: SortKey; dir: "asc" | "desc" };
-  onSort: (key: SortKey) => void;
-}) {
-  const active = sort.key === sortKey;
-  return (
-    <button
-      type="button"
-      onClick={() => onSort(sortKey)}
-      className={cn(
-        "inline-flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:text-ink",
-        active ? "text-ink" : "text-muted",
-      )}
-      aria-label={`Sort by ${label}${active ? (sort.dir === "asc" ? ", ascending" : ", descending") : ""}`}
-    >
-      {label}
-      <span aria-hidden="true" className="text-[0.625rem] leading-none">
-        {active ? (sort.dir === "asc" ? "▲" : "▼") : "⇅"}
-      </span>
-    </button>
-  );
-}
 
 /** Memoized: the shell re-renders per chat token/keystroke; rows don't need to. */
 export const HistoryPanel = memo(function HistoryPanel({
@@ -113,6 +93,213 @@ export const HistoryPanel = memo(function HistoryPanel({
   const firstLoad = data === undefined && !error;
   const stats = data?.stats;
 
+  /* One column set for the whole table; the value functions give the
+     server's sort keys their client-side ordering (already applied to the
+     page by the server, so the local sort is a stable no-op). */
+  const columns = useMemo<DataTableColumn<Attempt>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Mock",
+        width: "minmax(0,1.7fr)",
+        card: "title",
+        sortable: true,
+        searchable: true,
+        value: (a) => a.name,
+        /* Not itself a button: the narrow card wraps the title cell in its
+           own row control, and a button cannot nest in a button. The row's
+           open action lives in the trailing actions column instead. */
+        cell: (a) => (
+          <span
+            className="flex items-center gap-2.5"
+            title={`Open ${a.name}`}
+          >
+            <span
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-[10px]",
+                typeChip(a.type),
+              )}
+              aria-hidden="true"
+            >
+              <PlainIcon name="file" size={15} />
+            </span>
+            <span className="min-w-0">
+              <span className="block max-w-56 truncate text-[13px] font-medium">
+                {a.name}
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                {mockTypeLabel(a.type)}
+              </span>
+            </span>
+          </span>
+        ),
+      },
+      {
+        key: "type",
+        header: "Type",
+        sortable: true,
+        searchable: true,
+        card: "subtitle",
+        value: (a) => a.type,
+        cell: (a) => (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[11px] font-medium",
+              typeChip(a.type),
+            )}
+          >
+            {mockTypeLabel(a.type)}
+          </span>
+        ),
+      },
+      {
+        key: "platform",
+        header: "Platform",
+        sortable: true,
+        searchable: true,
+        card: "subtitle",
+        value: (a) => a.platform,
+        cell: (a) => (
+          <span className="rounded-[8px] bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+            {a.platform}
+          </span>
+        ),
+      },
+      {
+        key: "date",
+        header: "Attempt date",
+        sortable: true,
+        searchable: true,
+        card: "subtitle",
+        value: (a) => a.completedAt,
+        cell: (a) => (
+          <span className="text-[12px] text-muted-foreground">
+            <time
+              dateTime={a.completedAt}
+              title={longDate(a.completedAt)}
+              className="block"
+            >
+              {shortDate(a.completedAt)}
+            </time>
+            <span className="block text-[10px]">
+              {istTimeLabel(a.completedAt)}
+            </span>
+          </span>
+        ),
+      },
+      {
+        key: "score",
+        header: "Score",
+        sortable: true,
+        card: "trailing",
+        width: "minmax(5.5rem,0.9fr)",
+        value: (a) => {
+          const t = totals(a);
+          return t.maxScore ? t.score / t.maxScore : 0;
+        },
+        cell: (a) => {
+          const t = totals(a);
+          const pct = t.maxScore ? (t.score / t.maxScore) * 100 : 0;
+          return (
+            <span className="inline-flex min-w-32 flex-col items-end">
+              <span className="text-[13px] font-medium tabular-nums text-foreground">
+                {n(t.score)}
+                <span className="text-[11px] font-normal text-muted-foreground">
+                  {" "}/ {t.maxScore}
+                </span>
+              </span>
+              <span className="mt-1 block h-0.5 w-24 bg-muted">
+                <span
+                  className={cn("block h-full", scoreBarTone(pct))}
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+              </span>
+            </span>
+          );
+        },
+      },
+      {
+        key: "accuracy",
+        header: "Accuracy",
+        sortable: true,
+        card: "trailing",
+        value: (a) => totals(a).accuracy ?? null,
+        cell: (a) => {
+          const t = totals(a);
+          return (
+            <span
+              className={cn(
+                "rounded-[8px] px-2 py-1 text-[12px] tabular-nums",
+                accuracyTone(t.accuracy),
+              )}
+            >
+              {t.accuracy == null ? "—" : `${n(t.accuracy)}%`}
+            </span>
+          );
+        },
+      },
+      {
+        key: "percentile",
+        header: "Percentile",
+        sortable: true,
+        card: "hidden",
+        value: (a) => a.percentile ?? null,
+        cell: (a) => (
+          <span className="text-[12px] tabular-nums text-muted-foreground">
+            {a.percentile == null ? "—" : `${n(a.percentile)}%`}
+          </span>
+        ),
+      },
+      {
+        key: "time",
+        header: "Time",
+        sortable: true,
+        card: "hidden",
+        value: (a) => totals(a).timeSeconds ?? null,
+        cell: (a) => (
+          <span className="text-[12px] tabular-nums text-muted-foreground">
+            {formatTime(totals(a).timeSeconds)}
+          </span>
+        ),
+      },
+      {
+        key: "actions",
+        header: "",
+        sortable: false,
+        searchable: false,
+        width: "6rem",
+        card: "trailing",
+        value: () => null,
+        cell: (a) => (
+          <span className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+              aria-label={`Add ${a.name} to the comparison`}
+              onClick={() => onCompare(a)}
+            >
+              <PlainIcon name="compare" size={14} />
+            </button>
+            <button
+              type="button"
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+              aria-label={`Open ${a.name}`}
+              onClick={() => onOpen(a)}
+            >
+              <PlainIcon name="arrowRight" size={14} />
+            </button>
+          </span>
+        ),
+      },
+    ],
+    [onOpen, onCompare],
+  );
+
+  const controlledSort: DataTableSort | null = {
+    key: sort.key,
+    dir: sort.dir,
+  };
+
   return (
     <div className="min-w-0">
       {stats && <HistoryStats stats={stats} />}
@@ -126,269 +313,116 @@ export const HistoryPanel = memo(function HistoryPanel({
             : `${n(data?.total ?? 0)} result${(data?.total ?? 0) === 1 ? "" : "s"} · sorted by ${sortLabel(sort.key)}`
         }
         action={
-          <div className="relative">
-            <PlainIcon
-              name="search"
-              size={14}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
-            />
-            <input
-              aria-label="Search mocks"
-              placeholder="Search mocks…  /"
-              className="w-full py-2 pl-8 text-xs sm:w-56"
-              value={search}
-              onChange={(e) => onSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && search) {
-                  e.stopPropagation();
-                  onSearch("");
-                }
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => onSearch("")}
-                className="tap-target absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
-              >
-                <PlainIcon name="close" size={13} />
-              </button>
-            )}
-          </div>
+          <Input
+            value={search}
+            onValueChange={onSearch}
+            aria-label="Search mocks"
+            placeholder="Search mocks…  /"
+            leading={<PlainIcon name="search" size={14} tone="muted" />}
+            clearable
+            className="w-full sm:w-56"
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && search) {
+                e.stopPropagation();
+                onSearch("");
+              }
+            }}
+          />
         }
       >
         {search.length === 1 && (
-          <p className="border-b border-rule-soft px-4 py-2 text-[0.6875rem] text-muted">
+          <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
             Keep typing — search starts at two characters.
           </p>
         )}
 
         {error ? (
-          <div className="px-5 py-10 text-center" role="alert">
-            <p className="font-serif text-[1.125rem]">
-              Your results could not be loaded.
-            </p>
-            <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted">
-              {error.message || "Check your connection, then try again."}
-            </p>
-            {onRetry && (
-              <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>
-                <PlainIcon name="refresh" size={13} /> Try again
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            scene="offline"
+            title="Your results could not be loaded."
+            description={error.message || "Check your connection, then try again."}
+            action={
+              onRetry ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onRetry}
+                  icon={<PlainIcon name="refresh" size={13} />}
+                >
+                  Try again
+                </Button>
+              ) : undefined
+            }
+          />
         ) : firstLoad ? (
           <div className="space-y-2 p-4" role="status" aria-label="Loading results">
+            <span className="sr-only">Loading results</span>
             {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <Skeleton key={i} height={48} />
             ))}
           </div>
         ) : items.length ? (
           <div
             className={cn(
-              "transition-opacity",
+              "px-4 pb-4 transition-opacity sm:px-5",
               isFetching && !firstLoad && "opacity-60",
             )}
           >
-            {/* Phones: the record card, not a nine-column scroll. */}
-            <ul className="divide-y divide-rule-soft px-3 lg:hidden">
-              {items.map((a) => (
-                <li key={a.id} className="py-2.5">
-                  <AttemptRecordCard attempt={a} onOpen={onOpen} />
-                  <div className="mt-1.5 flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onCompare(a)}
-                      aria-label={`Add ${a.name} to the comparison`}
-                    >
-                      <PlainIcon name="compare" size={13} /> Compare
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop: the full table. */}
-            <div className="table-scroll hidden lg:block">
-              <table className="w-full whitespace-nowrap tabular">
-                <caption className="sr-only">
-                  Saved mock results, sortable by column
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col" className="sticky-col">
-                      <SortHeader label="Mock" sortKey="name" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Type" sortKey="type" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Platform" sortKey="platform" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Attempt date" sortKey="date" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Score" sortKey="score" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Accuracy" sortKey="accuracy" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Percentile" sortKey="percentile" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <SortHeader label="Time" sortKey="time" sort={sort} onSort={onSort} />
-                    </th>
-                    <th scope="col">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((a) => {
-                    const t = totals(a);
-                    const pct = t.maxScore ? (t.score / t.maxScore) * 100 : 0;
-                    return (
-                      <tr key={a.id}>
-                        <th scope="row" className="sticky-col text-left">
-                          <button
-                            onClick={() => onOpen(a)}
-                            className="flex items-center gap-2.5 text-left"
-                            title={`Open ${a.name}`}
-                          >
-                            <span
-                              className={cn(
-                                "flex size-9 shrink-0 items-center justify-center rounded-control",
-                                typeChip(a.type),
-                              )}
-                              aria-hidden="true"
-                            >
-                              <PlainIcon name="file" size={15} />
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block max-w-56 truncate text-[0.8125rem] font-medium">
-                                {a.name}
-                              </span>
-                              <span className="mt-0.5 block text-[0.6875rem] text-muted">
-                                {mockTypeLabel(a.type)}
-                              </span>
-                            </span>
-                          </button>
-                        </th>
-                        <td>
-                          <span
-                            className={cn(
-                              "rounded-control px-2 py-1 text-[0.6875rem] font-medium",
-                              typeChip(a.type),
-                            )}
-                          >
-                            {mockTypeLabel(a.type)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="rounded-control bg-soft px-2 py-1 text-[0.6875rem] text-muted">
-                            {a.platform}
-                          </span>
-                        </td>
-                        <td className="text-xs text-muted">
-                          <time
-                            dateTime={a.completedAt}
-                            title={longDate(a.completedAt)}
-                            className="block"
-                          >
-                            {shortDate(a.completedAt)}
-                          </time>
-                          <span className="block text-[0.625rem]">
-                            {istTimeLabel(a.completedAt)}
-                          </span>
-                        </td>
-                        <td className="min-w-32">
-                          <span className="text-[0.8125rem] font-medium">
-                            {n(t.score)}
-                            <span className="text-xs font-normal text-muted">
-                              {" "}/ {t.maxScore}
-                            </span>
-                          </span>
-                          <span className="mt-1 block h-[2px] w-24 bg-soft">
-                            <span
-                              className={cn("block h-full", scoreBarTone(pct))}
-                              style={{ width: `${Math.min(100, pct)}%` }}
-                            />
-                          </span>
-                        </td>
-                        <td className="text-xs">
-                          <span
-                            className={cn(
-                              "rounded-control px-2 py-1",
-                              accuracyTone(t.accuracy),
-                            )}
-                          >
-                            {t.accuracy == null ? "—" : `${n(t.accuracy)}%`}
-                          </span>
-                        </td>
-                        <td className="text-xs text-muted">
-                          {a.percentile == null ? "—" : `${n(a.percentile)}%`}
-                        </td>
-                        <td className="text-xs text-muted">
-                          {formatTime(t.timeSeconds)}
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              className="inline-flex size-8 tap-target items-center justify-center rounded-control border border-rule-soft text-muted transition-colors hover:border-accent/50 hover:text-accent"
-                              aria-label={`Add ${a.name} to the comparison`}
-                              onClick={() => onCompare(a)}
-                            >
-                              <PlainIcon name="compare" size={14} />
-                            </button>
-                            <button
-                              className="inline-flex size-8 tap-target items-center justify-center rounded-control border border-rule-soft text-muted transition-colors hover:border-accent/50 hover:text-accent"
-                              aria-label={`Open ${a.name}`}
-                              onClick={() => onOpen(a)}
-                            >
-                              <PlainIcon name="arrowRight" size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {/* Desktop: the full table; a narrow container gets one card per
+                row instead of a nine-column horizontal scroll. */}
+            <DataTable
+              columns={columns}
+              rows={items}
+              getRowId={(a) => a.id}
+              rowLabel={(a) => a.name}
+              noun={["mock", "mocks"]}
+              label="Saved mock results, sortable by column"
+              searchable={false}
+              selectable={false}
+              sort={controlledSort}
+              onSortChange={(next) => {
+                // The direction is the pager's canonical rule, not the
+                // table's local guess: same key flips, new key starts asc
+                // for text and desc for numbers.
+                if (next) onSort(next.key as SortKey);
+              }}
+              pageSize={data?.pageSize ?? 10}
+            />
           </div>
         ) : accountTotal > 0 ? (
           // Filtered empty — the branch the old version could never reach.
-          <div className="px-5 py-10 text-center">
-            <DuotoneTile name="search" tile="ink" className="mx-auto mb-3" />
-            <h3 className="font-serif text-[1.125rem] leading-snug">
-              No results match these filters.
-            </h3>
-            <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted">
-              You have {n(accountTotal)} saved result
-              {accountTotal === 1 ? "" : "s"}. Widen the platform, subject or
-              date range — or clear the search — to see them.
-            </p>
-            <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>
-              <PlainIcon name="refresh" size={13} /> Reset filters
-            </Button>
-          </div>
+          <EmptyState
+            scene="search"
+            title="No results match these filters."
+            description={`You have ${n(accountTotal)} saved result${
+              accountTotal === 1 ? "" : "s"
+            }. Widen the platform, subject or date range — or clear the search — to see them.`}
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onRetry}
+                icon={<PlainIcon name="refresh" size={13} />}
+              >
+                Reset filters
+              </Button>
+            }
+          />
         ) : (
-          <div className="px-5 py-10 text-center">
-            <DuotoneTile name="history" tile="accent" className="mx-auto mb-3" />
-            <h3 className="font-serif text-[1.25rem] leading-tight">
-              Your next chapter starts with one mock.
-            </h3>
-            <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted">
-              Add your first result to start building your track record.
-            </p>
-            <Button size="sm" className="mt-4" onClick={onAdd}>
-              <PlainIcon name="plus" size={15} /> Log your first mock
-            </Button>
-          </div>
+          <EmptyState
+            scene="inbox"
+            title="Your next chapter starts with one mock."
+            description="Add your first result to start building your track record."
+            action={
+              <Button
+                size="sm"
+                onClick={onAdd}
+                icon={<PlainIcon name="plus" size={14} />}
+              >
+                Log your first mock
+              </Button>
+            }
+          />
         )}
 
         {data && data.total > 0 && (
@@ -427,61 +461,77 @@ function sortLabel(key: SortKey): string {
  */
 function HistoryStats({ stats }: { stats: AttemptStats }) {
   return (
-    <div className="strip-frame mb-4">
-      <div className="metric-strip">
-        <MetricCell
-          icon="history"
-          label="Total mocks"
-          value={n(stats.totalMocks)}
-          hint={
-            stats.newThisMonth
-              ? `${stats.newThisMonth} added this month`
-              : "None added this month"
-          }
-          pct={null}
-        />
-        <MetricCell
-          icon="target"
-          label="Average score"
-          value={
-            stats.avgScore != null
-              ? n(Math.round(stats.avgScore * 100) / 100)
-              : "—"
-          }
-          hint={
-            stats.avgScoreMax != null
-              ? `out of ${stats.avgScoreMax} · ${n(stats.avgScorePct)}%`
-              : stats.avgScorePct != null
-                ? `${n(stats.avgScorePct)}% average across mixed papers`
-                : "No scored results yet"
-          }
-          pct={
-            stats.avgScorePct != null ? stats.avgScorePct / 100 : null
-          }
-        />
-        <MetricCell
-          icon="success"
-          label="Average accuracy"
-          value={stats.avgAccuracy != null ? `${n(stats.avgAccuracy)}%` : "—"}
-          hint={
-            stats.accuracyDelta != null
-              ? `${stats.accuracyDelta >= 0 ? "+" : ""}${n(stats.accuracyDelta)} pp vs earlier`
-              : "No earlier window to compare"
-          }
-          pct={stats.avgAccuracy != null ? stats.avgAccuracy / 100 : null}
-        />
-        <MetricCell
-          icon="clock"
-          label="Average time"
-          value={stats.avgTime != null ? formatTime(stats.avgTime) : "—"}
-          hint={
-            stats.timeDelta != null
-              ? `${stats.timeDelta > 0 ? "+" : ""}${Math.round(stats.timeDelta * 100)}% vs earlier`
-              : "No earlier window to compare"
-          }
-          pct={null}
-        />
-      </div>
-    </div>
+    <MetricBand className="mb-4">
+      <MetricCell
+        icon="history"
+        label="Total mocks"
+        value={n(stats.totalMocks)}
+        roll={{ value: stats.totalMocks }}
+        hint={
+          stats.newThisMonth
+            ? `${stats.newThisMonth} added this month`
+            : "None added this month"
+        }
+        pct={null}
+      />
+      <MetricCell
+        icon="target"
+        label="Average score"
+        value={
+          stats.avgScore != null
+            ? n(Math.round(stats.avgScore * 100) / 100)
+            : "—"
+        }
+        roll={
+          stats.avgScore != null
+            ? {
+                value: Math.round(stats.avgScore * 100) / 100,
+                format: { maximumFractionDigits: 1 },
+                locales: "en-IN",
+              }
+            : null
+        }
+        hint={
+          stats.avgScoreMax != null
+            ? `out of ${stats.avgScoreMax} · ${n(stats.avgScorePct)}%`
+            : stats.avgScorePct != null
+              ? `${n(stats.avgScorePct)}% average across mixed papers`
+              : "No scored results yet"
+        }
+        pct={stats.avgScorePct != null ? stats.avgScorePct / 100 : null}
+      />
+      <MetricCell
+        icon="success"
+        label="Average accuracy"
+        value={stats.avgAccuracy != null ? `${n(stats.avgAccuracy)}%` : "—"}
+        roll={
+          stats.avgAccuracy != null
+            ? {
+                value: stats.avgAccuracy,
+                suffix: "%",
+                format: { maximumFractionDigits: 1 },
+                locales: "en-IN",
+              }
+            : null
+        }
+        hint={
+          stats.accuracyDelta != null
+            ? `${stats.accuracyDelta >= 0 ? "+" : ""}${n(stats.accuracyDelta)} pp vs earlier`
+            : "No earlier window to compare"
+        }
+        pct={stats.avgAccuracy != null ? stats.avgAccuracy / 100 : null}
+      />
+      <MetricCell
+        icon="clock"
+        label="Average time"
+        value={stats.avgTime != null ? formatTime(stats.avgTime) : "—"}
+        hint={
+          stats.timeDelta != null
+            ? `${stats.timeDelta > 0 ? "+" : ""}${Math.round(stats.timeDelta * 100)}% vs earlier`
+            : "No earlier window to compare"
+        }
+        pct={null}
+      />
+    </MetricBand>
   );
 }

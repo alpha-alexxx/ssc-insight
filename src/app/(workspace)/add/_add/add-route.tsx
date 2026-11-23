@@ -2,7 +2,8 @@
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/toast";
+import { toast } from "@/components/toast-stack";
+import { Skeleton } from "@/components/skeleton";
 import { safeWorkspaceReturnTo } from "@/lib/filters-url";
 import { attemptKeys } from "@/lib/queries/attempts";
 import { planKeys } from "@/lib/queries/plan";
@@ -11,7 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "@/stores/ui-store";
 import { useAllAttempts } from "@/components/shared/use-analytics-data";
 import { attemptDetailQueryOptions } from "@/lib/queries/attempts";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AddMockView } from "./add-mock-view";
 import type { LogMockPayload } from "@/components/ai-chat-sheet";
 
@@ -28,8 +28,8 @@ export function AddRoute() {
     <Suspense
       fallback={
         <div className="mx-auto max-w-6xl">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="mt-4 h-64 w-full" />
+          <Skeleton shape="block" width="12rem" height={32} />
+          <Skeleton className="mt-4" shape="block" width="100%" height={256} />
         </div>
       }
     >
@@ -42,7 +42,6 @@ function AddRouteInner() {
   const router = useRouter();
   const params = useSearchParams();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const knownAttempts = useAllAttempts();
   // The AI draft is SUBSCRIBED to, not read once in an initializer:
   //  - the sheet's Log tab is reachable while already on /add, and pushing the
@@ -77,7 +76,9 @@ function AddRouteInner() {
             queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
             queryClient.invalidateQueries({ queryKey: planKeys.all }),
           ]);
-          toast.success("Mock saved", "Your progress is up to date.");
+          toast.success("Mock saved", {
+            description: "Your progress is up to date.",
+          });
           // `safeWorkspaceReturnTo` (not a bare startsWith("/")) — a value like
           // "//evil.example" is a protocol-relative navigation, not a path.
           const returnTo = safeWorkspaceReturnTo(params.get("returnTo"));

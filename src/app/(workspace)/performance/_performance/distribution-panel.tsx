@@ -6,15 +6,20 @@ import { EASE } from "@/lib/motion";
 import { formatNumber as n } from "@/lib/domain";
 import type { Analytics } from "@/lib/analytics";
 import { distributionBuckets } from "@/lib/performance-metrics";
-import { Panel } from "@/components/dashboard-panels";
+import { Panel } from "./panel";
 
 /**
  * Score distribution: ten fixed 10-point bands over the scope's results.
  *
  * Buckets are fixed, not data-derived (see `distributionBuckets()`), so two
  * filtered views stay comparable. The modal band — the bucket holding the
- * most results — fills in accent once there is more than one result to
- * compare; hover deepens any bar and a `<title>` reads every bar aloud.
+ * most results — fills in the chart hue once there is more than one result
+ * to compare; hover deepens any bar and a `<title>` reads every bar aloud.
+ *
+ * A fixed-band histogram is not in the Hairline chart set, so this one is
+ * composed from the tokens directly (the same documented-gap treatment as
+ * the radar): the score series carries --chart-1, the grid and axis labels
+ * the border and muted-foreground tokens.
  */
 const HEIGHT = 248;
 const PAD = { l: 26, r: 10, t: 18, b: 26 };
@@ -49,7 +54,7 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
       }
     >
       {total === 0 ? (
-        <p className="px-1 py-8 text-[0.8125rem] leading-relaxed text-muted">
+        <p className="px-1 py-8 text-[13px] leading-relaxed text-muted-foreground">
           No scored results in this scope yet — bands fill in as mocks arrive.
         </p>
       ) : (
@@ -76,7 +81,7 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
                       x2={100}
                       y1={y}
                       y2={y}
-                      stroke="var(--rule-soft)"
+                      stroke="var(--border)"
                       strokeWidth={tick === 0 ? 0.5 : 0.3}
                       strokeOpacity={tick === 0 ? 1 : 0.6}
                       vectorEffect="non-scaling-stroke"
@@ -84,7 +89,7 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
                     <text
                       x={0}
                       y={y - 1.5}
-                      className="tabular-nums fill-[var(--muted)]"
+                      className="tabular-nums fill-muted-foreground"
                       style={{ fontSize: 7 }}
                     >
                       {tick}
@@ -105,7 +110,7 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
                   width={barW * 0.72}
                   y={PAD.t + innerH - barH}
                   height={barH}
-                  fill="var(--chart-score)"
+                  fill="var(--chart-1)"
                   fillOpacity={isHover ? 0.95 : isModal ? 0.85 : 0.42}
                   initial={reduced ? undefined : { scaleY: 0 }}
                   animate={{ scaleY: 1 }}
@@ -129,7 +134,7 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
                   x={i * barW + barW / 2}
                   y={PAD.t + innerH - (bucket.count / yMax) * innerH - 2}
                   textAnchor="middle"
-                  className="tabular-nums fill-[var(--muted)]"
+                  className="tabular-nums fill-muted-foreground"
                   style={{
                     fontSize: 7,
                     fontWeight: hover === i || modalIndex === i ? 600 : 400,
@@ -150,14 +155,14 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
                 x={(bound / 100) * 100}
                 y={HEIGHT - 10}
                 textAnchor={bound === 0 ? "start" : bound === 100 ? "end" : "middle"}
-                className="tabular-nums fill-[var(--muted)]"
+                className="tabular-nums fill-muted-foreground"
                 style={{ fontSize: 7 }}
               >
                 {bound}
               </text>
             ))}
           </svg>
-          <p className="mt-2 text-[0.6875rem] leading-relaxed text-muted">
+          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
             Percentage of the paper, 0–100. The accent band is where most
             results land.
           </p>

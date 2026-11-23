@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Spinner } from "@/components/spinner";
 import { ScopeFilters } from "@/components/scope-filters";
 import { useExamScope } from "@/components/exam-context";
 import { useFiltersState } from "@/components/shared/use-filters-state";
@@ -146,8 +147,8 @@ export function CompareRoute() {
         />
       </div>
       {list.isFetching && (
-        <p role="status" className="mb-3 flex items-center gap-2 text-xs text-muted">
-          <PlainIcon name="refresh" size={12} className="animate-spin" /> Updating
+        <p role="status" className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <Spinner size="xs" /> Updating
           your results…
         </p>
       )}

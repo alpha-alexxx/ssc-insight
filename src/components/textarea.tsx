@@ -169,7 +169,7 @@ export function Textarea({
       className={className}
       aside={
         maxLength && showCount ? (
-          <span className={full ? "text-red-600 dark:text-red-400" : near ? "text-amber-600 dark:text-amber-400" : ""} style={{ transition: "color 200ms" }}>
+          <span className={full ? "text-destructive" : near ? "text-warning" : ""} style={{ transition: "color 200ms" }}>
             <NumberRoll value={count} /> / {maxLength}
           </span>
         ) : undefined

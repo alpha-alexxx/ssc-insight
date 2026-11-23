@@ -24,6 +24,13 @@ function columnFor(task: Task, today: string): TaskStatus {
  * Three-column board with drag-and-drop between columns. Dropping a card
  * PATCHes its status; the status button on every card does the same thing
  * by keyboard or touch, so dragging is a convenience, never the only path.
+ *
+ * Hairline rebuild: the columns and cards are composed from tokens
+ * (rounded-2xl/rounded-xl cards with inset hairline borders, the drop
+ * target lit with the primary ring). The installed `task-card` component is
+ * a self-contained multi-list tray (its own pagination and data model), so
+ * it cannot host this board's drag-and-drop cards — recorded as a gap and
+ * composed here instead.
  */
 export function BoardView({
   tasks,
@@ -87,23 +94,23 @@ export function BoardView({
               handleDrop(column.id);
             }}
             className={cn(
-              "flex min-w-0 flex-col rounded-panel border bg-canvas/50 p-2.5 transition-colors",
+              "flex min-w-0 flex-col rounded-2xl bg-muted/40 p-2.5 transition-colors",
               highlighted
-                ? "border-accent bg-accent-soft/40"
-                : "border-rule-soft",
+                ? "bg-primary/5 ring-1 ring-primary/50"
+                : "shadow-[inset_0_0_0_1px_var(--border)]",
             )}
           >
             <header className="flex items-center gap-2 px-1.5 pb-2.5 pt-1">
               <StatusDot status={column.id} size={9} />
-              <h3 className="text-xs font-semibold text-ink">{column.label}</h3>
-              <span className="text-[length:var(--type-label)] tabular text-muted">{items.length}</span>
+              <h3 className="text-xs font-semibold text-foreground">{column.label}</h3>
+              <span className="text-[11px] tabular-nums text-muted-foreground">{items.length}</span>
             </header>
             <ul className="flex min-h-20 flex-col gap-2">
               {items.length === 0 && (
                 <li
                   className={cn(
-                    "rounded-control border border-dashed border-rule px-3 py-5 text-center text-[length:var(--type-label)] text-muted",
-                    highlighted && "border-accent text-accent",
+                    "rounded-xl border border-dashed border-border px-3 py-5 text-center text-[11px] text-muted-foreground",
+                    highlighted && "border-primary text-primary",
                   )}
                 >
                   {highlighted ? "Drop to move here" : "Nothing here yet"}
@@ -130,7 +137,7 @@ export function BoardView({
                       setOverColumn(null);
                     }}
                     className={cn(
-                      "rounded-control border border-rule-soft bg-paper px-3 py-2.5",
+                      "rounded-xl bg-card px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--border)]",
                       dragId === task.id && "opacity-50",
                       pending && "opacity-60",
                     )}
@@ -151,35 +158,35 @@ export function BoardView({
                       >
                         <span
                           className={cn(
-                            "line-clamp-2 break-words text-[length:var(--type-secondary)] font-medium leading-snug",
-                            done && "text-muted line-through",
+                            "line-clamp-2 break-words text-[13px] font-medium leading-snug",
+                            done && "text-muted-foreground line-through",
                           )}
                         >
                           {task.title}
                         </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--type-label)] text-muted">
+                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                           {overdue && task.dueDate && (
-                            <span className="font-medium tabular text-danger">
+                            <span className="font-medium tabular-nums text-destructive">
                               Overdue · {shortDate(task.dueDate)}
                             </span>
                           )}
                           {!overdue && task.dueDate && (
-                            <span className="tabular">
+                            <span className="tabular-nums">
                               {task.dueDate === today && !done
                                 ? "Today"
                                 : shortDate(task.dueDate)}
                             </span>
                           )}
                           {task.priority === "high" && !done && (
-                            <span className="font-medium text-accent">High</span>
+                            <span className="font-medium text-primary">High</span>
                           )}
                           {groupNameOf(task) && (
-                            <span className="max-w-28 truncate rounded-pill border border-rule-soft px-1.5 py-0.5">
+                            <span className="max-w-28 truncate rounded-full px-2 py-0.5 shadow-[inset_0_0_0_1px_var(--border)]">
                               {groupNameOf(task)}
                             </span>
                           )}
                           {task.subtasks.length > 0 && (
-                            <span className="inline-flex items-center gap-1 tabular">
+                            <span className="inline-flex items-center gap-1 tabular-nums">
                               {subtasksDone}/{task.subtasks.length}
                               <ProgressRule
                                 done={subtasksDone}
@@ -190,9 +197,9 @@ export function BoardView({
                             </span>
                           )}
                           {host && (
-                            <span className="inline-flex max-w-24 items-center gap-1 truncate rounded-pill border border-rule-soft px-1.5 py-0.5">
+                            <span className="inline-flex max-w-24 items-center gap-1 truncate rounded-full px-2 py-0.5 shadow-[inset_0_0_0_1px_var(--border)]">
                               <span
-                                className="flex size-3 items-center justify-center rounded-[2px] bg-soft text-[7px] font-semibold uppercase"
+                                className="flex size-3 items-center justify-center rounded-[2px] bg-muted text-[7px] font-semibold uppercase"
                                 aria-hidden="true"
                               >
                                 {host.charAt(0)}

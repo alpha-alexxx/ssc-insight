@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
  * own schema, counts derived from actual rows), so the art repeats what the
  * product's planner genuinely schedules.
  *
- * The plate never remaps semantic tokens; it reads the `--plate-*` variables
- * in every palette × style × light/dark combination.
+ * The plate never remaps semantic tokens; it reads them — cells and rules
+ * are primary-foreground opacities over the primary plate — in every
+ * palette × style × light/dark combination.
  */
 
 export function SignUpPlateArt() {
@@ -20,7 +21,7 @@ export function SignUpPlateArt() {
   return (
     <div className="flex w-full max-w-[26rem] flex-col gap-9">
       <div>
-        <p className="auth-plate-title">
+        <p className="font-serif text-2xl leading-tight tracking-[-0.02em] text-primary-foreground">
           A schedule that doesn&apos;t move —
           <span className="block">built before you sign in.</span>
         </p>
@@ -34,28 +35,29 @@ export function SignUpPlateArt() {
             key={day.day}
             className={cn(
               "aspect-square rounded-[2px]",
-              day.phase === 1 && "bg-[var(--plate-fg)] opacity-25",
-              day.phase === 2 && "bg-[var(--plate-fg)] opacity-55",
-              day.phase === 3 && "bg-[var(--plate-fg)] opacity-90",
-              day.hasMock && "ring-1 ring-accent ring-offset-1 ring-offset-[var(--plate-bg)]",
+              day.phase === 1 && "bg-primary-foreground opacity-25",
+              day.phase === 2 && "bg-primary-foreground opacity-55",
+              day.phase === 3 && "bg-primary-foreground opacity-90",
+              day.hasMock &&
+                "ring-1 ring-primary-foreground ring-offset-1 ring-offset-primary",
             )}
           />
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--plate-rule-soft)] pt-5">
+      <div className="flex flex-col gap-3 border-t border-primary-foreground/20 pt-5">
         {phases.map((phase) => (
           <div
             key={phase.phase}
             className="flex items-baseline justify-between gap-4"
           >
-            <p className="text-sm text-[var(--plate-fg)]">
+            <p className="text-sm text-primary-foreground">
               <span className="font-medium">{phase.name}</span>
-              <span className="ml-2 text-xs text-[var(--plate-muted)] tabular-nums">
+              <span className="ml-2 text-xs text-primary-foreground/70 tabular-nums">
                 days {phase.from}–{phase.to}
               </span>
             </p>
-            <p className="text-xs text-[var(--plate-muted)] tabular-nums">
+            <p className="text-xs text-primary-foreground/70 tabular-nums">
               {days.filter((day) => day.phase === phase.phase && day.hasMock).length}{" "}
               mock days
             </p>
@@ -63,7 +65,7 @@ export function SignUpPlateArt() {
         ))}
       </div>
 
-      <p className="text-xs leading-relaxed text-[var(--plate-muted)]">
+      <p className="text-xs leading-relaxed text-primary-foreground/70">
         {taskCount} scheduled tasks · {mockDayCount} full-length mock days ·
         every day keeps its source link
       </p>

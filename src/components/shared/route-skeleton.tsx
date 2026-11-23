@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,7 +26,7 @@ export function RouteSkeleton({ children }: { children?: React.ReactNode }) {
 /** Page header: icon tile + serif title + description + one action button. */
 export function SkeletonHeader({ action = true }: { action?: boolean }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-rule-soft pb-4">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
       <div className="min-w-0">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="mt-2 h-3 w-72 max-w-full" />
@@ -46,7 +46,7 @@ export function SkeletonPanel({
 }) {
   if (rows) {
     return (
-      <div className={cn("rounded-card border border-rule-soft bg-paper p-5", className)}>
+      <div className={cn("rounded-2xl bg-card p-5 shadow-[inset_0_0_0_1px_var(--border)]", className)}>
         <Skeleton className="h-3.5 w-28" />
         <div className="mt-4 space-y-3">
           {Array.from({ length: rows }, (_, i) => (
@@ -57,7 +57,7 @@ export function SkeletonPanel({
     );
   }
   return (
-    <div className={cn("rounded-card border border-rule-soft bg-paper p-5", className)}>
+    <div className={cn("rounded-2xl bg-card p-5 shadow-[inset_0_0_0_1px_var(--border)]", className)}>
       <Skeleton className="h-3.5 w-28" />
       <Skeleton className="mt-4 h-40 w-full" />
     </div>
@@ -67,9 +67,9 @@ export function SkeletonPanel({
 /** The divided metric strip used by the dashboard, tasks and calendar. */
 export function SkeletonMetricStrip({ cells = 4 }: { cells?: number }) {
   return (
-    <div className="metric-strip mb-5 grid grid-cols-2 border border-rule-soft bg-paper md:grid-cols-4">
+    <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-border md:grid-cols-4">
       {Array.from({ length: cells }, (_, i) => (
-        <div key={i} className="border-rule-soft p-4 not-last:border-r">
+        <div key={i} className="bg-card p-4">
           <Skeleton className="h-2.5 w-20" />
           <Skeleton className="mt-2.5 h-8 w-20" />
           <Skeleton className="mt-2 h-2.5 w-24" />
@@ -94,8 +94,8 @@ export function SkeletonFilterRow() {
 /** Rows of list results with a pagination footer. */
 export function SkeletonList({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="rounded-card border border-rule-soft bg-paper">
-      <div className="space-y-0 divide-y divide-rule-soft">
+    <div className="rounded-2xl bg-card shadow-[inset_0_0_0_1px_var(--border)]">
+      <div className="space-y-0 divide-y divide-border">
         {Array.from({ length: rows }, (_, i) => (
           <div key={i} className="flex items-center gap-4 px-4 py-3">
             <Skeleton className="h-3.5 w-24" />
@@ -105,7 +105,7 @@ export function SkeletonList({ rows = 10 }: { rows?: number }) {
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between border-t border-rule-soft px-4 py-3">
+      <div className="flex items-center justify-between border-t border-border px-4 py-3">
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-3.5 w-32" />
         <Skeleton className="h-8 w-24" />

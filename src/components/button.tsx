@@ -41,7 +41,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   outline: "bg-transparent text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
   ghost: "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
   destructive:
-    "bg-red-500/10 text-red-600 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] dark:text-red-400 hover:bg-red-500/15",
+    "bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)] hover:bg-destructive/15",
   link: "bg-transparent text-primary underline-offset-4 hover:underline p-0 h-auto font-normal",
 };
 
@@ -223,12 +223,12 @@ export function Button({
       />
     ),
     success: (
-      <span className={variant === "primary" ? "text-primary-foreground" : "text-emerald-600 dark:text-emerald-400"}>
+      <span className={variant === "primary" ? "text-primary-foreground" : "text-success"}>
         <SelfDrawingCheck drawn={currentStatus === "success"} reduced={reduced} size={cfg.iconSize} />
       </span>
     ),
     error: (
-      <span className="text-red-600 dark:text-red-400">
+      <span className="text-destructive">
         <StatusAlert size={cfg.iconSize} />
       </span>
     ),
@@ -245,7 +245,7 @@ export function Button({
   // Tone shifts for error states
   const toneClass =
     currentStatus === "error"
-      ? "bg-red-500/10 text-red-600 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] dark:text-red-400"
+      ? "bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)]"
       : variantStyles[variant];
 
   return (

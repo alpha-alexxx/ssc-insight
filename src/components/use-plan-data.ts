@@ -1,7 +1,7 @@
 "use client";
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "./toast";
+import { toast } from "./toast-stack";
 import { api } from "@/lib/api-client";
 import { useInvalidateTodos, useTodoTasks } from "./use-todos-data";
 import {
@@ -80,7 +80,6 @@ function usePlanOptimistic<TVars>(
   optimistic: (plan: PlanPayloadWithToday, vars: TVars) => PlanPayloadWithToday,
   request: (vars: TVars) => Promise<unknown>,
 ) {
-  const toast = useToast();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: request,
@@ -98,17 +97,15 @@ function usePlanOptimistic<TVars>(
     onError: (error: unknown, _vars: TVars, context) => {
       if (context?.previous)
         queryClient.setQueryData(planKeys.current(), context.previous);
-      toast.error(
-        failureTitle,
-        error instanceof Error ? error.message : "Could not save — retrying.",
-      );
+      toast.error(failureTitle, {
+        description: error instanceof Error ? error.message : "Could not save — retrying.",
+      });
       void queryClient.invalidateQueries({ queryKey: planKeys.all });
     },
   });
 }
 
 export function usePlanData() {
-  const toast = useToast();
   const queryClient = useQueryClient();
   const planQuery = useQuery(planQueryOptions);
   const plan = planQuery.data ?? null;
@@ -230,16 +227,15 @@ export function usePlanData() {
         await api(`/api/tasks/${id}`, { method: "DELETE" });
         await invalidateTodos();
       } catch (e) {
-        toast.error(
-          "Couldn't delete the task",
-          e instanceof Error ? e.message : undefined,
-        );
+        toast.error("Couldn't delete the task", {
+          description: e instanceof Error ? e.message : undefined,
+        });
         // The failed delete may have changed nothing, but the plan cache is
         // the authoritative copy this hook owns — revalidate it.
         void refresh();
       }
     },
-    [invalidateTodos, refresh, toast],
+    [invalidateTodos, refresh],
   );
 
   return {

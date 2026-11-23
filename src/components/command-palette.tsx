@@ -270,7 +270,7 @@ function Results({
                 <span aria-hidden="true" className="absolute inset-y-0 right-0 flex items-center" style={swap(state === "pending", reduced)}>
                   <span className={`size-3.5 rounded-full border-[1.5px] border-border border-t-foreground/70 motion-reduce:animate-none ${state === "pending" ? "animate-spin" : ""}`} />
                 </span>
-                <span aria-hidden="true" className="absolute inset-y-0 right-0 flex items-center text-emerald-600 dark:text-emerald-400" style={swap(state === "done", reduced)}>
+                <span aria-hidden="true" className="absolute inset-y-0 right-0 flex items-center text-success" style={swap(state === "done", reduced)}>
                   <Check drawn={state === "done"} reduced={reduced} />
                 </span>
               </span>

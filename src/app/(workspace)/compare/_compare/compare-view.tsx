@@ -1,17 +1,17 @@
 "use client";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/dashboard-panels";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AttemptPagination } from "@/components/attempt-pagination";
+import { Button } from "@/components/button";
+import { Badge, type BadgeTone } from "@/components/badge";
+import { Skeleton } from "@/components/skeleton";
+import { Alert } from "@/components/alert";
+import { Checkbox } from "@/components/checkbox";
+import { CompareBars, type CompareBarsDatum } from "@/components/compare-bars";
 import {
-  Delta,
-  accuracyTone,
-  comparablePercentage,
-  scoreBarTone,
-  typeChip,
-} from "@/components/attempt-display";
+  ThresholdLine,
+  type ThresholdLineDatum,
+} from "@/components/threshold-line";
+import { AttemptPagination } from "@/components/attempt-pagination";
 import {
   SUBJECTS,
   sectionIds,
@@ -41,6 +41,12 @@ import { cn } from "@/lib/utils";
  * Deltas are measured on percentages, because the selected mocks may have
  * different maxima; raw marks are only compared when the maxima match, and
  * the table says so when they do not.
+ *
+ * The insight stack's figures stay in the tables; Hairline's CompareBars
+ * pairs the first and last selected mocks subject-by-subject (the same
+ * pair the Change column reads), and ThresholdLine reads the selected
+ * mocks against your filtered average — drag the line to see how many
+ * sit above any score you care to test.
  */
 
 const dateLabel = shortDate;
@@ -53,6 +59,81 @@ export type CompareReference = {
   averagePercentage: number | null;
   averageCount: number | null;
 };
+
+/* ------------------------------------------------------------------ */
+/* Token tone helpers (mock type / score meter / accuracy)             */
+/* ------------------------------------------------------------------ */
+
+/** Mock-type chip tones, one mapping for this route. */
+function typeChip(type: string): string {
+  if (type === "full") return "bg-accent text-accent-foreground";
+  if (type === "subject") return "bg-success/10 text-success";
+  if (type === "sectional") return "bg-warning/10 text-warning";
+  return "bg-muted text-muted-foreground";
+}
+
+/** Score-meter tone. Thresholds are the documented ones: ≥70 success,
+ * ≥50 primary, below warning. Color never carries the value alone — the
+ * number is always printed beside it. */
+function scoreBarTone(pct: number): string {
+  if (pct >= 70) return "bg-success";
+  if (pct >= 50) return "bg-primary";
+  return "bg-warning";
+}
+
+/** Accuracy chip tone: null reads as "not recorded", never as zero. */
+function accuracyTone(accuracy: number | null): string {
+  if (accuracy == null) return "bg-muted text-muted-foreground";
+  if (accuracy >= 70) return "bg-success/10 text-success";
+  if (accuracy >= 50) return "bg-muted text-muted-foreground";
+  return "bg-warning/10 text-warning";
+}
+
+/** A signed delta on a Hairline badge, with exactly ONE sign. */
+function DeltaBadge({
+  value,
+  unit = "pp",
+  better = "up",
+}: {
+  value: number;
+  unit?: string;
+  /** Which direction is an improvement. Lower is better for time. */
+  better?: "up" | "down";
+}) {
+  const flat = Math.abs(value) < 0.05;
+  const rising = value > 0;
+  const improved = flat ? null : better === "up" ? rising : !rising;
+  const tone: BadgeTone = flat ? "neutral" : improved ? "success" : "danger";
+  const text = flat
+    ? "No change"
+    : `${Math.round(Math.abs(value) * 10) / 10} ${unit}`;
+  return (
+    <Badge
+      tone={tone}
+      size="sm"
+      icon={
+        flat ? undefined : (
+          <PlainIcon
+            name={rising ? "arrowUpRight" : "arrowDownRight"}
+            size={12}
+            aria-hidden
+          />
+        )
+      }
+      aria-label={
+        flat
+          ? "No change"
+          : `${text} ${improved ? "(improved)" : "(worse)"}`
+      }
+    >
+      {text}
+    </Badge>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* The view                                                            */
+/* ------------------------------------------------------------------ */
 
 /** Memoized: the shell re-renders per chat token/keystroke; the ledger doesn't. */
 export const CompareView = memo(function CompareView({
@@ -94,25 +175,37 @@ export const CompareView = memo(function CompareView({
 
   return (
     <>
-      <Panel
-        icon="compare"
-        title={`Choose your mocks (${compared.length}/4)`}
-        description="Select two to four results. Filters and search narrow the list."
-      >
+      <section className="rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+        <div className="flex items-start gap-3 px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+          <span
+            aria-hidden="true"
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+          >
+            <PlainIcon name="compare" size={16} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">
+              Choose your mocks ({compared.length}/4)
+            </h2>
+            <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
+              Select two to four results. Filters and search narrow the list.
+            </p>
+          </div>
+        </div>
         {error ? (
           <ErrorState error={error} onRetry={onRetry} />
         ) : (
           <>
             <div
               className={cn(
-                "divide-y divide-rule-soft transition-opacity",
+                "divide-y divide-border transition-opacity",
                 isFetching && !firstLoad && "opacity-60",
               )}
             >
               {firstLoad ? (
                 <div className="space-y-2 p-4" role="status" aria-label="Loading mocks">
                   {Array.from({ length: 5 }, (_, i) => (
-                    <Skeleton key={i} className="h-14 w-full" />
+                    <Skeleton key={i} shape="block" className="h-14 w-full" />
                   ))}
                 </div>
               ) : attempts.length ? (
@@ -128,10 +221,10 @@ export const CompareView = memo(function CompareView({
                 ))
               ) : (
                 <div className="py-10 px-5 text-center">
-                  <p className="font-serif text-[1.125rem] leading-snug">
+                  <p className="text-lg font-semibold text-foreground">
                     No mocks match these filters.
                   </p>
-                  <p className="mt-1.5 text-xs text-muted">
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     Widen the platform, subject or date range to find the
                     results you want to compare.
                   </p>
@@ -150,7 +243,7 @@ export const CompareView = memo(function CompareView({
             )}
           </>
         )}
-      </Panel>
+      </section>
 
       {selected.length > 0 && (
         <SelectionBar
@@ -161,15 +254,15 @@ export const CompareView = memo(function CompareView({
       )}
 
       {compared.length >= 2 ? (
-        <ComparisonLedger comparison={comparison} />
+        <ComparisonLedger comparison={comparison} reference={reference} />
       ) : (
-        <div className="mt-4 panel px-5 py-10 text-center">
-          <p className="font-serif text-[1.125rem]">
+        <div className="mt-4 rounded-2xl bg-card px-5 py-10 text-center text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+          <p className="text-lg font-semibold text-foreground">
             {compared.length === 1
               ? "One more to go."
               : "Pick two mocks to compare."}
           </p>
-          <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted">
+          <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
             Comparing shows the score against each paper&apos;s target, the move
             from the previous attempt, and a subject-by-subject breakdown —
             with percentages wherever the maxima differ.
@@ -194,24 +287,24 @@ function PickerRow({
   onOpen?: (attempt: Attempt) => void;
 }) {
   const t = totals(attempt);
-  const pct = comparablePercentage(t);
+  const pct = comparable(t);
   return (
     <div
       className={cn(
         "flex flex-wrap items-center gap-3 px-4 py-3 transition-colors sm:px-6 lg:flex-nowrap",
-        checked ? "bg-accent-soft/50" : "hover:bg-canvas",
+        checked ? "bg-accent/70" : "hover:bg-accent/50",
       )}
     >
-      <input
-        type="checkbox"
+      <Checkbox
         checked={checked}
         disabled={disabled}
-        onChange={onToggle}
+        onCheckedChange={onToggle}
         aria-label={`Select ${attempt.name} for comparison`}
+        className="shrink-0"
       />
       <span
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-control",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
           typeChip(attempt.type),
         )}
         aria-hidden="true"
@@ -219,10 +312,10 @@ function PickerRow({
         <PlainIcon name="file" size={15} />
       </span>
       <span className="min-w-0 flex-1 basis-40">
-        <span className="block truncate text-sm font-medium text-ink">
+        <span className="block truncate text-sm font-medium text-foreground">
           {attempt.name}
         </span>
-        <span className="block truncate text-[0.6875rem] text-muted">
+        <span className="block truncate text-[11px] text-muted-foreground">
           {attempt.platform} · {dateLabel(attempt.completedAt)} ·{" "}
           {istTimeLabel(attempt.completedAt)} · {typeName(attempt.type)}
         </span>
@@ -230,7 +323,7 @@ function PickerRow({
       <span className="hidden sm:inline">
         <span
           className={cn(
-            "rounded-control px-2 py-1 text-[0.6875rem] font-medium",
+            "rounded-full px-2 py-1 text-[11px] font-medium",
             typeChip(attempt.type),
           )}
         >
@@ -238,13 +331,13 @@ function PickerRow({
         </span>
       </span>
       <span className="w-28 shrink-0">
-        <span className="block text-[0.8125rem] font-medium tabular text-ink">
+        <span className="block text-[13px] font-medium tabular-nums text-foreground">
           {n(t.score)}
-          <span className="text-xs font-normal text-muted"> / {t.maxScore}</span>
+          <span className="text-xs font-normal text-muted-foreground"> / {t.maxScore}</span>
         </span>
-        <span className="mt-1 block h-[2px] w-full bg-soft">
+        <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-muted">
           <span
-            className={cn("block h-full", scoreBarTone(pct))}
+            className={cn("block h-full rounded-full", scoreBarTone(pct))}
             style={{ width: `${Math.min(100, pct)}%` }}
           />
         </span>
@@ -252,7 +345,7 @@ function PickerRow({
       <span className="hidden md:inline">
         <span
           className={cn(
-            "rounded-control px-2 py-1 text-[0.6875rem]",
+            "rounded-full px-2 py-1 text-[11px] tabular-nums",
             accuracyTone(t.accuracy),
           )}
         >
@@ -283,12 +376,12 @@ function SelectionBar({
   onClear: () => void;
 }) {
   return (
-    <div className="panel mt-4 flex flex-wrap items-center gap-3 p-4">
+    <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-ink">
+        <p className="text-sm font-semibold text-foreground">
           {compared.length} of 4 selected
         </p>
-        <p className="text-[0.6875rem] text-muted">
+        <p className="text-[11px] text-muted-foreground">
           Add up to two more results to widen the comparison.
         </p>
       </div>
@@ -296,14 +389,14 @@ function SelectionBar({
         {compared.map((a) => (
           <span
             key={a.id}
-            className="inline-flex max-w-64 items-center gap-2 rounded-control border border-rule-soft bg-canvas px-2.5 py-1.5 text-xs"
+            className="inline-flex max-w-64 items-center gap-2 rounded-full bg-muted px-2.5 py-1.5 text-xs text-foreground"
           >
-            <span className="truncate font-medium text-ink">{a.name}</span>
+            <span className="truncate font-medium">{a.name}</span>
             <button
               type="button"
               aria-label={`Remove ${a.name} from the comparison`}
               onClick={() => onToggle(a.id)}
-              className="tap-target text-muted transition-colors hover:text-danger"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
             >
               <PlainIcon name="close" size={12} />
             </button>
@@ -360,6 +453,11 @@ type Comparison = {
   targetHint: string | null;
 };
 
+/** The comparable percentage — score ÷ maximum, the only cross-paper figure. */
+function comparable(t: ReturnType<typeof totals>): number {
+  return t.maxScore ? (t.score / t.maxScore) * 100 : 0;
+}
+
 function buildComparison(
   attempts: Attempt[],
   reference?: CompareReference,
@@ -367,7 +465,7 @@ function buildComparison(
   const tt = attempts.map((a) => totals(a));
   const sameMax =
     attempts.length > 0 && tt.every((t) => t.maxScore === tt[0]!.maxScore);
-  const pct = tt.map(comparablePercentage);
+  const pct = tt.map(comparable);
 
   const targetRows: (number | null)[] = attempts.map((a) => {
     const target = reference?.targetFor(a);
@@ -393,7 +491,7 @@ function buildComparison(
       key: "score",
       label: "Score",
       hint: sameMax ? undefined : "Different papers — read the percentage",
-      values: tt.map((t) => `${n(t.score)} / ${t.maxScore}`),
+      values: tt.map((t) => `${n(t.score)} / ${n(t.maxScore)}`),
       numeric: tt.map((t) => t.score),
       unit: "marks",
       diffable: sameMax,
@@ -606,11 +704,30 @@ function buildSectionRows(attempts: Attempt[]) {
     .filter((row): row is NonNullable<typeof row> => row != null);
 }
 
-function ComparisonLedger({ comparison }: { comparison: Comparison }) {
+/* ------------------------------------------------------------------ */
+/* The insight stack                                                   */
+/* ------------------------------------------------------------------ */
+
+function ComparisonLedger({
+  comparison,
+  reference,
+}: {
+  comparison: Comparison;
+  reference?: CompareReference;
+}) {
   const { attempts, rows, sameMax } = comparison;
 
   return (
     <div className="mt-4 space-y-4">
+      {/* Subject shape, first vs last — the same pair the Change column reads. */}
+      <SubjectComparisonBars comparison={comparison} />
+
+      {/* The selected mocks read against your filtered average. */}
+      <AverageThreshold
+        attempts={attempts}
+        average={reference?.averagePercentage ?? null}
+      />
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {(["percentage", "accuracy", "vs-target", "pace"] as const).map(
           (key) => {
@@ -619,18 +736,18 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
             return (
               <div
                 key={key}
-                className="rounded-panel border border-rule-soft bg-paper p-4"
+                className="rounded-xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
               >
-                <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   {row.label}
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {attempts.map((a, i) => (
                     <li key={a.id} className="flex items-baseline justify-between gap-2">
-                      <span className="min-w-0 truncate text-[0.6875rem] text-muted">
+                      <span className="min-w-0 truncate text-[11px] text-muted-foreground">
                         {a.platform}
                       </span>
-                      <span className="shrink-0 font-serif text-base leading-none tabular text-ink">
+                      <span className="shrink-0 text-base font-semibold leading-none tabular-nums text-foreground">
                         {row.values[i]}
                       </span>
                     </li>
@@ -642,58 +759,58 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
         )}
       </div>
 
-      <div className="panel overflow-hidden">
+      <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-4">
-          <h2 className="font-serif text-lg font-medium">Attempt comparison</h2>
+          <h2 className="text-base font-semibold text-foreground">Attempt comparison</h2>
           {!sameMax && (
-            <p className="text-[0.6875rem] text-muted">
+            <p className="text-[11px] text-muted-foreground">
               These mocks have different maxima, so percentages carry the
               comparison.
             </p>
           )}
         </div>
-        <div className="table-scroll">
-          <table className="w-full tabular">
+        <div className="overflow-x-auto">
+          <table className="w-full tabular-nums">
             <caption className="sr-only">
               Selected mock results compared side by side
             </caption>
             <thead>
-              <tr>
-                <th scope="col" className="sticky-col text-left text-xs font-medium text-muted">
+              <tr className="border-y border-border">
+                <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
                   Metric
                 </th>
                 {attempts.map((a) => (
-                  <th key={a.id} scope="col" className="min-w-40 text-left">
-                    <span className="block text-xs font-semibold text-ink">
+                  <th key={a.id} scope="col" className="min-w-40 px-3 py-2 text-left">
+                    <span className="block text-xs font-semibold text-foreground">
                       {a.name}
                     </span>
-                    <span className="text-[0.625rem] font-normal text-muted">
+                    <span className="text-[11px] font-normal text-muted-foreground">
                       {typeName(a.type)} · {dateLabel(a.completedAt)}
                     </span>
                   </th>
                 ))}
-                <th scope="col" className="min-w-28 text-left text-xs font-medium text-muted">
+                <th scope="col" className="min-w-28 px-5 py-2 text-left text-xs font-medium text-muted-foreground">
                   Change
                 </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.key}>
-                  <th scope="row" className="sticky-col text-left text-xs font-normal text-muted">
+                <tr key={row.key} className="border-b border-border last:border-b-0">
+                  <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-muted-foreground">
                     {row.label}
                     {row.hint && (
-                      <span className="mt-0.5 block text-[0.625rem] text-muted/80">
+                      <span className="mt-0.5 block text-[11px] text-muted-foreground/80">
                         {row.hint}
                       </span>
                     )}
                   </th>
                   {attempts.map((a, i) => (
-                    <td key={a.id} className="text-[0.8125rem]">
+                    <td key={a.id} className="px-3 py-2.5 text-[13px] text-foreground">
                       {row.values[i]}
                     </td>
                   ))}
-                  <td>
+                  <td className="px-5 py-2.5">
                     <ChangeCell
                       row={row}
                       firstIndex={0}
@@ -707,23 +824,23 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
         </div>
       </div>
 
-      <div className="panel overflow-hidden">
-        <h2 className="px-5 pb-3 pt-4 font-serif text-lg font-medium">
+      <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+        <h2 className="px-5 pb-3 pt-4 text-base font-semibold text-foreground">
           Subject comparison
         </h2>
-        <div className="table-scroll">
-          <table className="w-full tabular">
+        <div className="overflow-x-auto">
+          <table className="w-full tabular-nums">
             <caption className="sr-only">
               Subject-wise comparison for the selected mocks
             </caption>
             <thead>
-              <tr>
-                <th scope="col" className="sticky-col text-left text-xs font-medium text-muted">
+              <tr className="border-y border-border">
+                <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
                   Subject
                 </th>
                 {attempts.map((a) => (
-                  <th key={a.id} scope="col" className="min-w-36 text-left">
-                    <span className="block text-xs font-semibold text-ink">
+                  <th key={a.id} scope="col" className="min-w-36 px-3 py-2 text-left">
+                    <span className="block text-xs font-semibold text-foreground">
                       {a.name}
                     </span>
                   </th>
@@ -732,38 +849,38 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
             </thead>
             <tbody>
               {comparison.subjectRows.map((row) => (
-                <tr key={row.id}>
-                  <th scope="row" className="sticky-col text-left text-xs font-medium">
+                <tr key={row.id} className="border-b border-border last:border-b-0">
+                  <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-medium text-foreground">
                     {row.label}
                     {row.qualifying && (
-                      <span className="ml-1.5 text-[0.625rem] font-normal uppercase tracking-wide text-muted">
+                      <span className="ml-1.5 text-[11px] font-normal uppercase tracking-wide text-muted-foreground">
                         qualifying
                       </span>
                     )}
                   </th>
                   {row.values.map((value, index) => (
-                    <td key={attempts[index]!.id} className="min-w-36">
+                    <td key={attempts[index]!.id} className="min-w-36 px-3 py-2.5">
                       {value == null ? (
-                        <span className="text-xs text-muted">
+                        <span className="text-xs text-muted-foreground">
                           Not in this mock
                         </span>
                       ) : (
                         <>
-                          <p className="text-[0.8125rem]">
+                          <p className="text-[13px] text-foreground">
                             <span className="font-medium">
                               {n(value.score)} / {n(value.maxScore)}
                             </span>{" "}
-                            <span className="text-xs text-muted">
+                            <span className="text-xs text-muted-foreground">
                               ({n(value.percentage)}%)
                             </span>
                           </p>
-                          <span className="mt-1 block h-[2px] w-24 bg-soft">
+                          <span className="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-muted">
                             <span
-                              className={cn("block h-full", scoreBarTone(value.percentage))}
+                              className={cn("block h-full rounded-full", scoreBarTone(value.percentage))}
                               style={{ width: `${Math.min(100, Math.max(0, value.percentage))}%` }}
                             />
                           </span>
-                          <p className="mt-1 text-[0.625rem] text-muted">
+                          <p className="mt-1 text-[11px] text-muted-foreground">
                             {n(value.attempted)} attempted ·{" "}
                             {value.accuracy == null ? "—" : `${n(value.accuracy)}% accuracy`}
                           </p>
@@ -779,26 +896,26 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
       </div>
 
       {comparison.sectionRows.length > 0 && (
-        <div className="panel overflow-hidden">
+        <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
           <div className="px-5 pb-3 pt-4">
-            <h2 className="font-serif text-lg font-medium">Section comparison</h2>
-            <p className="mt-0.5 text-[0.6875rem] text-muted">
+            <h2 className="text-base font-semibold text-foreground">Section comparison</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               Section I and II are summed from each full mock&apos;s subject
               results. A qualifying section is never included.
             </p>
           </div>
-          <div className="table-scroll">
-            <table className="w-full tabular">
+          <div className="overflow-x-auto">
+            <table className="w-full tabular-nums">
               <caption className="sr-only">
                 Section-wise score percentages for the selected mocks
               </caption>
               <thead>
-                <tr>
-                  <th scope="col" className="sticky-col text-left text-xs font-medium text-muted">
+                <tr className="border-y border-border">
+                  <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
                     Section
                   </th>
                   {attempts.map((a) => (
-                    <th key={a.id} scope="col" className="text-left text-xs font-semibold text-ink">
+                    <th key={a.id} scope="col" className="px-5 py-2 text-left text-xs font-semibold text-foreground">
                       {a.name}
                     </th>
                   ))}
@@ -806,12 +923,12 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
               </thead>
               <tbody>
                 {comparison.sectionRows.map((row) => (
-                  <tr key={row.id}>
-                    <th scope="row" className="sticky-col text-left text-xs font-normal">
+                  <tr key={row.id} className="border-b border-border last:border-b-0">
+                    <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-foreground">
                       {row.label}
                     </th>
                     {row.values.map((value, index) => (
-                      <td key={attempts[index]!.id} className="text-[0.8125rem]">
+                      <td key={attempts[index]!.id} className="px-5 py-2.5 text-[13px] text-foreground">
                         {value == null ? "—" : `${n(value)}%`}
                       </td>
                     ))}
@@ -823,12 +940,85 @@ function ComparisonLedger({ comparison }: { comparison: Comparison }) {
         </div>
       )}
 
-      <p className="text-[0.6875rem] leading-relaxed text-muted">
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
         {attempts.length === 2
           ? `Change compares ${attempts[1]!.name} with ${attempts[0]!.name}.`
           : `Change compares the last selected mock (${attempts[attempts.length - 1]!.name}) with the first (${attempts[0]!.name}).`}
       </p>
     </div>
+  );
+}
+
+/** CompareBars over the subjects both end-mocks share: the later mock
+ * against the earlier one, the pair the Change column also reads. */
+function SubjectComparisonBars({ comparison }: { comparison: Comparison }) {
+  const { attempts, subjectRows } = comparison;
+  const first = attempts[0]!;
+  const last = attempts[attempts.length - 1]!;
+
+  // Only subjects both end-mocks actually contain — a missing subject is
+  // not a zero, and the table beside this chart carries the gaps.
+  const data: CompareBarsDatum[] = [];
+  for (const row of subjectRows) {
+    const firstValue = row.values[0];
+    const lastValue = row.values[attempts.length - 1];
+    if (!firstValue || !lastValue) continue;
+    data.push({
+      key: row.id,
+      label: row.label,
+      title: SUBJECTS[row.id as keyof typeof SUBJECTS]?.name ?? row.label,
+      current: lastValue.percentage,
+      previous: firstValue.percentage,
+    });
+  }
+
+  if (!data.length) return null;
+
+  return (
+    <CompareBars
+      data={data}
+      title="Score percentage by subject"
+      currentLabel={last.name}
+      previousLabel={first.name}
+      format={{ maximumFractionDigits: 1 }}
+    />
+  );
+}
+
+/** ThresholdLine over the selected mocks' percentages, seeded at the
+ * filtered average; the line drags so any cut-off can be tested. */
+function AverageThreshold({
+  attempts,
+  average,
+}: {
+  attempts: Attempt[];
+  average: number | null;
+}) {
+  const [line, setLine] = useState<number | null>(null);
+  if (average == null || attempts.length < 2) return null;
+
+  const data: ThresholdLineDatum[] = attempts.map((a) => {
+    const t = totals(a);
+    return {
+      key: a.id,
+      value: comparable(t),
+      label: a.name,
+      tick: dateLabel(a.completedAt),
+    };
+  });
+
+  return (
+    <ThresholdLine
+      data={data}
+      value={line ?? average}
+      onValueChange={setLine}
+      onValueCommit={setLine}
+      direction="above"
+      title="Score percentage, against the line"
+      period={`of the ${attempts.length} selected mocks sit above it — drag to test any cut-off`}
+      label="score percentage threshold"
+      format={{ maximumFractionDigits: 1 }}
+    />
   );
 }
 
@@ -843,14 +1033,14 @@ function ChangeCell({
 }) {
   // Two-way compares first vs second; a wider selection compares the FIRST
   // and LAST columns, which is the overall movement across the comparison.
-  // Rendering "\u2014" for every 3-4 way row made the column look broken.
-  if (!row.diffable) return <span className="text-xs text-muted">\u2014</span>;
+  // Rendering "—" for every 3-4 way row made the column look broken.
+  if (!row.diffable) return <span className="text-xs text-muted-foreground">—</span>;
   const a = row.numeric[firstIndex];
   const b = row.numeric[secondIndex];
-  if (a == null || b == null) return <span className="text-xs text-muted">\u2014</span>;
+  if (a == null || b == null) return <span className="text-xs text-muted-foreground">—</span>;
   const value = row.unit === "s" ? (b - a) / 60 : b - a;
   const unit = row.unit === "s" ? "min" : row.unit;
-  return <Delta value={value} unit={unit} better={row.better ?? "up"} />;
+  return <DeltaBadge value={value} unit={unit} better={row.better ?? "up"} />;
 }
 
 function ErrorState({
@@ -861,18 +1051,19 @@ function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="px-5 py-10 text-center" role="alert">
-      <p className="font-serif text-[1.125rem]">
-        The mock list could not be loaded.
-      </p>
-      <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted">
-        {error.message || "Check your connection, then try again."}
-      </p>
-      {onRetry && (
-        <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>
-          <PlainIcon name="refresh" size={13} /> Try again
-        </Button>
-      )}
-    </div>
+    <Alert
+      tone="danger"
+      title="The mock list could not be loaded."
+      action={
+        onRetry && (
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            <PlainIcon name="refresh" size={13} /> Try again
+          </Button>
+        )
+      }
+      className="m-4"
+    >
+      {error.message || "Check your connection, then try again."}
+    </Alert>
   );
 }

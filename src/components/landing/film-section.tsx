@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
-import { Check, Pause, Play, RotateCcw, TrendingUp } from "@/components/ui/icons";
+import { Icon } from "@/components/icon";
+import { PauseIcon } from "@/components/animate-ui/icons/hugeicons/pause";
+import { PlayIcon } from "@/components/animate-ui/icons/hugeicons/play";
+import { RefreshIcon } from "@/components/animate-ui/icons/hugeicons/refresh";
 import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { TypedLine } from "./atoms";
+import { EYEBROW } from "./section";
 import {
   LANDING_FULL_MOCKS,
   LANDING_LATEST,
@@ -69,20 +73,18 @@ export function FilmSection({ plan }: { plan: LandingPlanData }) {
     <section id="film" aria-labelledby="film-title" className="relative">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <header className="max-w-2xl">
-          <p className="section-label flex items-center gap-2.5">
-            <span aria-hidden="true" className="h-px w-8 shrink-0 bg-accent" />
-            <span className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-[0.14em] tabular-nums text-accent">
-              02
-            </span>
+          <p className={`${EYEBROW} flex items-center gap-2.5`}>
+            <span aria-hidden="true" className="h-px w-8 shrink-0 bg-primary" />
+            <span className="shrink-0 tabular-nums text-primary">02</span>
             The film
           </p>
           <h2
             id="film-title"
-            className="mt-5 max-w-[22ch] text-balance font-serif text-[clamp(1.75rem,3.2vw,2.75rem)] font-[450] leading-[1.05] tracking-[-0.03em]"
+            className="mt-5 max-w-[22ch] text-balance font-serif text-[clamp(1.75rem,3.2vw,2.75rem)] font-[450] leading-[1.05] tracking-[-0.02em] text-foreground"
           >
             See it move. Twenty-four seconds of the real thing, looped.
           </h2>
-          <p className="mt-4 max-w-prose text-[0.9375rem] leading-relaxed text-muted">
+          <p className="mt-4 max-w-prose text-[15px] leading-relaxed text-muted-foreground">
             A live rendering of the workspace, drawn with the app&apos;s own
             tokens and the sample data — not a screenshot, not a video file.
           </p>
@@ -90,16 +92,16 @@ export function FilmSection({ plan }: { plan: LandingPlanData }) {
         <FilmPlayer plan={plan} />
         <ol className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
           {CHAPTERS.map((chapter) => (
-            <li key={chapter.no} className="border-t border-rule-soft pt-4">
+            <li key={chapter.no} className="border-t border-border pt-4">
               <p className="flex items-baseline gap-2">
-                <span className="tabular-nums text-[0.625rem] font-semibold tracking-[0.14em] text-accent">
+                <span className="tabular-nums text-[10px] font-semibold tracking-[0.14em] text-primary">
                   {chapter.no}
                 </span>
-                <span className="font-serif text-[0.9375rem] font-[500] tracking-[-0.01em] text-ink">
+                <span className="font-serif text-[15px] font-[500] tracking-[-0.01em] text-foreground">
                   {chapter.title}
                 </span>
               </p>
-              <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-muted">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                 {chapter.body}
               </p>
             </li>
@@ -126,7 +128,7 @@ function TransportButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="inline-flex items-center gap-1.5 rounded-pill border border-rule px-3.5 py-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {children}
     </button>
@@ -169,19 +171,19 @@ function FilmPlayer({ plan }: { plan: LandingPlanData }) {
       {/* transport row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {reduced ? (
-          <p className="tabular-nums inline-flex items-center gap-2.5 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+          <p className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
             Static preview · motion reduced
           </p>
         ) : (
-          <p className="tabular-nums inline-flex items-center gap-2.5 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+          <p className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
             <span aria-hidden="true" className="relative flex size-2">
               <span
                 className={cn(
-                  "absolute inline-flex size-full rounded-full bg-accent opacity-75",
+                  "absolute inline-flex size-full rounded-full bg-primary opacity-75",
                   playing ? "animate-ping motion-reduce:animate-none" : "opacity-40",
                 )}
               />
-              <span className="relative inline-flex size-2 rounded-full bg-accent" />
+              <span className="relative inline-flex size-2 rounded-full bg-primary" />
             </span>
             Live demo · 00:{String(elapsed).padStart(2, "0")} / 00:24 · looped
           </p>
@@ -193,11 +195,15 @@ function FilmPlayer({ plan }: { plan: LandingPlanData }) {
               onClick={() => setPlaying((p) => !p)}
               label={playing ? "Pause the film" : "Play the film"}
             >
-              {playing ? <Pause size={12} /> : <Play size={12} />}
+              {playing ? (
+                <PauseIcon size={14} animateOnHover animateOnTap aria-hidden />
+              ) : (
+                <PlayIcon size={14} animateOnHover animateOnTap aria-hidden />
+              )}
               {playing ? "Pause" : "Play"}
             </TransportButton>
             <TransportButton onClick={restart} label="Restart the film from scene one">
-              <RotateCcw size={12} />
+              <RefreshIcon size={14} animateOnHover animateOnTap aria-hidden />
               Restart
             </TransportButton>
           </div>
@@ -205,21 +211,21 @@ function FilmPlayer({ plan }: { plan: LandingPlanData }) {
       </div>
 
       {/* the frame */}
-      <div className="relative mt-4 overflow-hidden rounded-[var(--radius-panel)] border border-rule-soft bg-ink text-paper">
+      <div className="relative mt-4 overflow-hidden rounded-[28px] bg-card shadow-[inset_0_0_0_1px_var(--border)]">
         <div className="aspect-[16/9] w-full">
           {/* window bar */}
-          <div className="flex h-8 items-center gap-2 border-b border-paper/15 px-3 sm:h-9 sm:px-4">
+          <div className="flex h-8 items-center gap-2 border-b border-border bg-muted/60 px-3 sm:h-9 sm:px-4">
             <span aria-hidden="true" className="flex gap-1.5">
-              <span className="size-1.5 rounded-[1px] bg-paper/25" />
-              <span className="size-1.5 rounded-[1px] bg-paper/25" />
-              <span className="size-1.5 rounded-[1px] bg-paper/25" />
+              <span className="size-1.5 rounded-[1px] bg-muted-foreground/40" />
+              <span className="size-1.5 rounded-[1px] bg-muted-foreground/40" />
+              <span className="size-1.5 rounded-[1px] bg-muted-foreground/40" />
             </span>
-            <span className="truncate font-mono text-[0.625rem] text-paper/60">
+            <span className="truncate font-mono text-[10px] text-muted-foreground">
               ssc insight · {SCENES[scene]?.label.toLowerCase()}
             </span>
             <span
               aria-hidden="true"
-              className="tabular-nums ml-auto hidden items-center gap-1.5 font-mono text-[0.5625rem] tracking-[0.14em] text-paper/50 sm:flex"
+              className="ml-auto hidden items-center gap-1.5 font-mono text-[9px] tracking-[0.14em] tabular-nums text-muted-foreground sm:flex"
             >
               {SCENES[scene]?.caption} / 04
             </span>
@@ -250,16 +256,16 @@ function FilmPlayer({ plan }: { plan: LandingPlanData }) {
             {/* scene caption */}
             <p
               aria-hidden="true"
-              className="pointer-events-none absolute bottom-3 left-3 font-mono text-[0.5625rem] tracking-[0.16em] text-paper/60 sm:left-5"
+              className="pointer-events-none absolute bottom-3 left-3 font-mono text-[9px] tracking-[0.16em] text-muted-foreground sm:left-5"
             >
               {SCENES[reduced ? 0 : scene]?.caption}
             </p>
 
             {/* loop timeline */}
-            <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-paper/10">
+            <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-muted">
               <div
                 className={cn(
-                  "h-full bg-accent",
+                  "h-full bg-primary",
                   reduced ? "hidden" : "transition-[width] duration-1000 ease-linear",
                 )}
                 style={reduced ? undefined : { width: `${((elapsed + 1) / LOOP_S) * 100}%` }}
@@ -313,7 +319,7 @@ function CountNumber({
 
 function SceneLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-paper/50">
+    <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
       {children}
     </p>
   );
@@ -329,12 +335,12 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
       <div className="flex min-w-0 flex-col">
         <div className="flex items-baseline justify-between gap-2">
           <SceneLabel>Full mocks</SceneLabel>
-          <p className="tabular-nums text-[0.5625rem] text-paper/50">
+          <p className="tabular-nums text-[9px] text-muted-foreground">
             target {Math.round(TARGET_PCT)}%
           </p>
         </div>
 
-        <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1.5 border-y border-paper/25 py-2 @[560px]:grid-cols-4">
+        <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1.5 border-y border-border py-2 @[560px]:grid-cols-4">
           {FILM_METRICS.map((metric, i) => (
             <motion.div
               key={metric.label}
@@ -342,10 +348,10 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.12, ease: EASE }}
             >
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.12em] text-paper/50">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 {metric.label}
               </p>
-              <p className="mt-0.5 font-serif text-[0.875rem] leading-none tracking-[-0.02em] text-paper sm:text-[1rem]">
+              <p className="mt-0.5 font-serif text-[0.875rem] leading-none tracking-[-0.02em] text-foreground sm:text-[1rem]">
                 <CountNumber to={metric.value} decimals={1} delay={0.25 + i * 0.12} suffix="%" />
               </p>
             </motion.div>
@@ -371,8 +377,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
                 y2={filmYAt(
                   (FILM_SCALE_MAX - FILM_SCALE_MIN) * (tick / 100) + FILM_SCALE_MIN,
                 )}
-                stroke="var(--paper)"
-                strokeOpacity="0.08"
+                stroke="var(--border)"
                 strokeWidth="0.75"
               />
             ))}
@@ -381,7 +386,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
               x2={FILM_W - FILM_PAD_X}
               y1={FILM_TARGET_Y}
               y2={FILM_TARGET_Y}
-              stroke="var(--accent)"
+              stroke="var(--muted-foreground)"
               strokeWidth="1"
               strokeDasharray="3 3"
               initial={reduced ? undefined : { pathLength: 0, opacity: 0 }}
@@ -391,7 +396,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
             <motion.path
               d={FILM_TREND_PATH}
               fill="none"
-              stroke="var(--paper)"
+              stroke="var(--primary)"
               strokeWidth="1.75"
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -405,7 +410,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
                 cx={filmXAt(FILM_TREND_VALUES.length - 1)}
                 cy={filmYAt(FILM_TREND_VALUES[FILM_TREND_VALUES.length - 1] ?? 0)}
                 r="3"
-                fill="var(--paper)"
+                fill="var(--primary)"
                 initial={reduced ? undefined : { opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 2, ease: EASE }}
@@ -416,7 +421,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
       </div>
 
       {/* today's assignments, checking themselves off */}
-      <div className="flex min-w-0 flex-col border-l border-paper/15 pl-3">
+      <div className="flex min-w-0 flex-col border-l border-border pl-3">
         <SceneLabel>
           Day {plan.sampleDay.day} · {plan.sampleDay.phaseName}
         </SceneLabel>
@@ -434,7 +439,7 @@ function SceneOverview({ plan }: { plan: LandingPlanData }) {
           initial={reduced ? undefined : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 3.6, ease: EASE }}
-          className="mt-3 hidden w-fit items-center gap-1.5 rounded-pill border border-accent/40 bg-accent/15 px-2.5 py-1 text-[0.5625rem] font-semibold uppercase tracking-[0.1em] text-accent @[560px]:inline-flex"
+          className="mt-3 hidden w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)] @[560px]:inline-flex"
         >
           Gap to target · {FILM_GAP_PTS} pts
         </motion.p>
@@ -452,21 +457,21 @@ function FilmTaskRow({ name, meta, delay }: { name: string; meta: string; delay:
       transition={{ duration: 0.35, delay, ease: EASE }}
       className="flex items-center gap-2"
     >
-      <span className="grid size-3.5 shrink-0 place-items-center rounded-[3px] border border-paper/40">
+      <span className="grid size-4 shrink-0 place-items-center rounded-[3px] border border-border">
         <motion.span
           initial={reduced ? undefined : { opacity: 0, scale: 0.4 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: delay + 0.3, ease: EASE }}
-          className="text-accent"
+          className="text-primary"
         >
-          <Check size={9} strokeWidth={2.5} aria-hidden />
+          <Icon name="check" size={14} strokeWidth={2.5} />
         </motion.span>
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.6875rem] leading-snug text-paper/90">
+        <span className="block truncate text-[11px] leading-snug text-foreground">
           {name}
         </span>
-        <span className="tabular-nums block truncate text-[0.5625rem] leading-snug text-paper/50">
+        <span className="block truncate text-[9px] leading-snug tabular-nums text-muted-foreground">
           {meta}
         </span>
       </span>
@@ -494,9 +499,9 @@ function ScenePlan({ plan }: { plan: LandingPlanData }) {
         </ul>
 
         <div className="mt-auto pt-3">
-          <div className="h-1 w-full bg-paper/10" aria-hidden="true">
+          <div className="h-1 w-full rounded-full bg-muted" aria-hidden="true">
             <motion.div
-              className="h-full origin-left bg-accent"
+              className="h-full origin-left rounded-full bg-primary"
               initial={reduced ? undefined : { scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.9, delay: 2.3, ease: EASE }}
@@ -504,16 +509,16 @@ function ScenePlan({ plan }: { plan: LandingPlanData }) {
             />
           </div>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="tabular-nums text-[0.5625rem] text-paper/50">
+            <p className="tabular-nums text-[9px] text-muted-foreground">
               {tasks.length} of {tasks.length} assignments
             </p>
             <motion.p
               initial={reduced ? undefined : { opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.35, delay: 3.3, ease: EASE }}
-              className="inline-flex items-center gap-1 rounded-pill border border-accent/40 bg-accent/15 px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-[0.1em] text-accent"
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
             >
-              <Check size={9} strokeWidth={2.5} aria-hidden />
+              <Icon name="check" size={14} strokeWidth={2.5} />
               Day clear
             </motion.p>
           </div>
@@ -537,19 +542,19 @@ function ScenePlan({ plan }: { plan: LandingPlanData }) {
                 transition={{ duration: 0.3, delay: 0.2 + (day.day - 1) * 0.045, ease: EASE }}
                 className={cn(
                   "aspect-square w-full rounded-[2px]",
-                  isToday ? "bg-accent" : isPast ? "bg-paper/60" : "bg-paper/15",
+                  isToday ? "bg-primary" : isPast ? "bg-foreground/50" : "bg-muted",
                 )}
               />
             );
           })}
         </div>
-        <div className="tabular-nums mt-2 flex items-center justify-between text-[0.5625rem] text-paper/50">
+        <div className="mt-2 flex items-center justify-between tabular-nums text-[9px] text-muted-foreground">
           <span>day 01</span>
           <motion.span
             initial={reduced ? undefined : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 2.6, ease: EASE }}
-            className="text-accent"
+            className="text-primary"
           >
             today · day {today}
           </motion.span>
@@ -574,7 +579,7 @@ function ScenePerformance() {
       <div className="flex min-w-0 flex-col">
         <div className="flex items-baseline justify-between gap-2">
           <SceneLabel>Subject standings · latest full mock</SceneLabel>
-          <p className="tabular-nums text-[0.5625rem] text-paper/50">
+          <p className="tabular-nums text-[9px] text-muted-foreground">
             target {Math.round(TARGET_PCT)}%
           </p>
         </div>
@@ -583,14 +588,14 @@ function ScenePerformance() {
           {/* the target marker */}
           <span
             aria-hidden="true"
-            className="absolute inset-y-0 hidden border-l border-dashed border-accent/70 @[380px]:block"
+            className="absolute inset-y-0 hidden border-l border-dashed border-primary/70 @[380px]:block"
             style={{ left: `${Math.min(96, Math.max(4, TARGET_PCT))}%` }}
           >
             <motion.span
               initial={reduced ? undefined : { opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: 2, ease: EASE }}
-              className="absolute -top-1 right-1 whitespace-nowrap font-mono text-[0.5rem] tracking-[0.1em] text-accent"
+              className="absolute -top-1 right-1 whitespace-nowrap font-mono text-[8px] tracking-[0.1em] text-primary"
             >
               TARGET
             </motion.span>
@@ -608,16 +613,16 @@ function ScenePerformance() {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-col justify-center gap-2 border-l border-paper/15 pl-3">
+      <div className="flex min-w-0 flex-col justify-center gap-2 border-l border-border pl-3">
         <motion.p
           initial={reduced ? undefined : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 2.1, ease: EASE }}
         >
-          <span className="font-serif text-[1.25rem] leading-none tracking-[-0.02em] text-paper @[560px]:text-[1.75rem]">
+          <span className="font-serif text-[1.25rem] leading-none tracking-[-0.02em] text-foreground @[560px]:text-[1.75rem]">
             <CountNumber to={FILM_PCT_DELTA} decimals={1} delay={2.2} suffix=" pts" />
           </span>
-          <span className="mt-1 block text-[0.5625rem] text-paper/50">
+          <span className="mt-1 block text-[9px] text-muted-foreground">
             vs the previous full mock
           </span>
         </motion.p>
@@ -625,18 +630,18 @@ function ScenePerformance() {
           initial={reduced ? undefined : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 2.7, ease: EASE }}
-          className="inline-flex w-fit items-center gap-1.5 rounded-pill border border-accent/40 bg-accent/15 px-2.5 py-1 text-[0.5625rem] font-semibold uppercase tracking-[0.1em] text-accent"
+          className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
         >
-          <TrendingUp size={10} aria-hidden />
+          <Icon name="trend" size={14} tone="primary" />
           {FILM_WEAKEST_LABEL} is the widest gap
         </motion.p>
         <motion.p
           initial={reduced ? undefined : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.45, delay: 3.2, ease: EASE }}
-          className="text-[0.5625rem] leading-relaxed text-paper/50"
+          className="text-[9px] leading-relaxed text-muted-foreground"
         >
-          The bar in accent is the widest gap — the next sectional targets it.
+          The bar in primary is the widest gap — the next sectional targets it.
         </motion.p>
       </div>
     </div>
@@ -657,13 +662,13 @@ function SubjectBar({
   const reduced = useReducedMotion();
   return (
     <div>
-      <div className="tabular-nums flex items-baseline justify-between gap-2 text-[0.625rem]">
-        <span className="text-paper/70">{label}</span>
-        <CountNumber to={value} delay={delay} suffix="%" className="text-paper" />
+      <div className="flex items-baseline justify-between gap-2 text-[10px] tabular-nums">
+        <span className="text-muted-foreground">{label}</span>
+        <CountNumber to={value} delay={delay} suffix="%" className="text-foreground" />
       </div>
-      <div className="mt-1 h-1.5 w-full bg-paper/10" aria-hidden="true">
+      <div className="mt-1 h-1.5 w-full rounded-full bg-muted" aria-hidden="true">
         <motion.div
-          className={cn("h-full origin-left", tone === "accent" ? "bg-accent" : "bg-paper/80")}
+          className={cn("h-full origin-left rounded-full", tone === "accent" ? "bg-primary" : "bg-foreground/70")}
           initial={reduced ? undefined : { scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 0.9, delay, ease: EASE }}
@@ -689,7 +694,7 @@ function SceneCoach() {
     <div className="flex h-full flex-col px-3 pt-2.5 pb-7 sm:px-5 sm:pt-4 sm:pb-9">
       <div className="flex items-baseline justify-between gap-2">
         <SceneLabel>Ask AI · session only</SceneLabel>
-        <p className="text-[0.5625rem] text-paper/50">reads aggregates only</p>
+        <p className="text-[9px] text-muted-foreground">reads aggregates only</p>
       </div>
 
       <div className="mt-1.5 flex min-h-0 flex-1 flex-col gap-1.5">
@@ -697,7 +702,7 @@ function SceneCoach() {
           initial={reduced ? undefined : { opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.3, ease: EASE }}
-          className="max-w-[85%] self-end rounded-[10px] bg-paper/15 px-3 py-1.5 text-[0.6875rem] leading-snug text-paper"
+          className="max-w-[85%] self-end rounded-[10px] bg-muted px-3 py-1.5 text-[11px] leading-snug text-foreground"
         >
           What should I revise tonight?
         </motion.p>
@@ -713,27 +718,25 @@ function SceneCoach() {
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="size-1 rounded-full bg-paper/60"
+              className="size-1 rounded-full bg-muted-foreground"
               animate={reduced ? undefined : { y: [0, -3, 0] }}
               transition={{ duration: 0.7, repeat: 3, delay: 0.9 + i * 0.15, ease: "easeInOut" }}
             />
           ))}
         </motion.div>
 
-        <div className="max-w-[96%] self-start rounded-[10px] border border-paper/15 bg-paper/5 px-2.5 py-2">
+        <div className="max-w-[96%] self-start rounded-[10px] border border-border bg-muted/60 px-2.5 py-2">
           {COACH_ANSWER.map((line, i) => (
             <p
               key={line}
               className={cn(
-                "font-mono text-[0.625rem] leading-snug text-paper/85",
+                "font-mono text-[10px] leading-snug text-foreground/85",
                 i > 0 && "mt-1",
               )}
             >
               <TypedLine
                 text={line}
-                duration={1.5}
-                delay={1.4 + i * 1.7}
-                caretClassName={i === COACH_ANSWER.length - 1 ? "bg-paper/70" : "bg-transparent"}
+                caretClassName={i === COACH_ANSWER.length - 1 ? undefined : "bg-transparent"}
               />
             </p>
           ))}
@@ -742,10 +745,10 @@ function SceneCoach() {
 
       {/* the read-only pledge, where the prototype flashed a fake quota */}
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-[0.5625rem] uppercase tracking-[0.14em] text-paper/50">
+        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
           reads
         </span>
-        <span className="tabular-nums text-[0.5625rem] text-paper/60">
+        <span className="tabular-nums text-[9px] text-muted-foreground">
           4 sources · 0 writes
         </span>
       </div>

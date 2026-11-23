@@ -5,13 +5,18 @@ import { motion, useReducedMotion } from "motion/react";
 import { EASE } from "@/lib/motion";
 import { formatNumber as n } from "@/lib/domain";
 import type { Analytics } from "@/lib/analytics";
-import { Panel } from "@/components/dashboard-panels";
+import { Panel, subjectColor } from "./panel";
 import { InsightCallout } from "./insight-callout";
 
 /**
  * The subject shape: one five-axis radar of the scoped profile, drawn by
  * hand so the polygon can grow from the centre under reduced-motion-aware
  * springs and honest blanks.
+ *
+ * A radar is a documented gap in the Hairline chart set, so this one is
+ * composed from the tokens: subject vertices carry the global chart hues
+ * (--chart-1..5), the rings/axes draw in the border token and their labels
+ * in muted-foreground, and the scope polygon fills in primary.
  *
  * Reads `analytics.radial` (the scoped stacks) via `subjectRanking()`'s
  * population rule: a stack with no results sits at radius 0 — an honest
@@ -21,14 +26,6 @@ import { InsightCallout } from "./insight-callout";
  * Note: this radar is the SCOPE's shape. The dashboard's `whereYouStand`
  * radar stays global; here the scope switcher is the point.
  */
-
-const SUBJECT_TOKENS: Record<string, string> = {
-  quant: "var(--chart-quant)",
-  reasoning: "var(--chart-reasoning)",
-  english: "var(--chart-english)",
-  ga: "var(--chart-ga)",
-  computer: "var(--chart-computer)",
-};
 
 const CX = 170;
 const CY = 178;
@@ -43,7 +40,7 @@ type Axis = {
 
 export function RadarPanel({ analytics }: { analytics: Analytics }) {
   const reduced = useReducedMotion();
-  const [active, setActive] = useState<string | null>(null);
+  const [active] = useState<string | null>(null);
 
   const axes: Axis[] = analytics.radial.map((stack) => ({
     id: stack.id,
@@ -96,7 +93,7 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
               cy={CY}
               r={(ring / 100) * R}
               fill="none"
-              stroke="var(--rule-soft)"
+              stroke="var(--border)"
               strokeWidth="0.75"
               strokeDasharray="3 4"
             />
@@ -106,21 +103,21 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
             cy={CY}
             r={R}
             fill="none"
-            stroke="var(--rule)"
+            stroke="var(--border)"
             strokeWidth="1"
           />
           {/* scale labels on the top axis */}
           <text
             x={CX + 4}
             y={CY - R + 12}
-            className="tabular-nums fill-[var(--muted)] text-[9px]"
+            className="tabular-nums fill-muted-foreground text-[9px]"
           >
             100
           </text>
           <text
             x={CX + 4}
             y={CY - R / 2 + 4}
-            className="tabular-nums fill-[var(--muted)] text-[9px]"
+            className="tabular-nums fill-muted-foreground text-[9px]"
           >
             50
           </text>
@@ -135,7 +132,7 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
                 y1={CY}
                 x2={x}
                 y2={y}
-                stroke="var(--rule-soft)"
+                stroke="var(--border)"
                 strokeWidth="0.75"
               />
             );
@@ -145,9 +142,9 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
           {populated.length > 0 ? (
             <motion.polygon
               points={polygon}
-              fill="var(--accent)"
+              fill="var(--primary)"
               fillOpacity={0.14}
-              stroke="var(--accent)"
+              stroke="var(--primary)"
               strokeWidth="1.5"
               strokeLinejoin="round"
               initial={
@@ -172,8 +169,8 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
                     cx={vx}
                     cy={vy}
                     r={active === axis.id ? 4.5 : 3}
-                    fill={SUBJECT_TOKENS[axis.id] ?? "var(--chart-score)"}
-                    stroke="var(--paper)"
+                    fill={subjectColor(axis.id)}
+                    stroke="var(--background)"
                     strokeWidth="1.5"
                     initial={reduced ? undefined : { opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -185,7 +182,8 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
                     cy={pointAt(i, 3)[1]}
                     r="2"
                     fill="none"
-                    stroke="var(--rule)"
+                    stroke="var(--foreground)"
+                    strokeOpacity={0.4}
                     strokeWidth="1"
                   />
                 )}
@@ -193,7 +191,7 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
                   x={lx}
                   y={ly + 3}
                   textAnchor={Math.abs(cos) < 0.3 ? "middle" : cos > 0 ? "start" : "end"}
-                  className="fill-[var(--muted)] text-[10px] font-medium"
+                  className="fill-muted-foreground text-[10px] font-medium"
                 >
                   {axis.short}
                   {axis.percentage != null ? (
@@ -230,7 +228,7 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
             )}
           </InsightCallout>
           {empty.length > 0 ? (
-            <p className="text-[0.6875rem] leading-relaxed text-muted">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               No results yet for {empty.map((axis) => axis.short).join(", ")} —
               drawn as an honest blank, never a zero.
             </p>

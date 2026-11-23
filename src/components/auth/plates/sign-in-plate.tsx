@@ -7,14 +7,16 @@ import { shortDate } from "@/lib/format";
 /**
  * The sign-in plate: the ledger reading.
  *
- * A quiet token-art composition over the paper tokens — the full-mock trend
- * drawn as ink bars with an accent target rule, and the ledger facts set as
- * editorial figures. Every number derives through the app's own scoring and
- * analytics code (`landing/fixtures.ts` → `totals()`/`analyze()`), so the art
- * cannot claim a figure the product cannot produce.
+ * A quiet token-art composition over the tone-inverted primary plate — the
+ * full-mock trend drawn as ink bars with the accent target rule, and the
+ * ledger facts set as editorial figures. Every number derives through the
+ * app's own scoring and analytics code (`landing/fixtures.ts` →
+ * `totals()`/`analyze()`), so the art cannot claim a figure the product
+ * cannot produce.
  *
- * The plate never remaps semantic tokens; it reads them, in every palette ×
- * style × light/dark combination.
+ * The plate never remaps semantic tokens; it reads them — figures and rules
+ * are primary-foreground opacities over primary — in every palette × style
+ * × light/dark combination.
  */
 
 export function SignInPlateArt() {
@@ -26,7 +28,7 @@ export function SignInPlateArt() {
   return (
     <div className="flex w-full max-w-[26rem] flex-col gap-10">
       <div>
-        <p className="auth-plate-title">
+        <p className="font-serif text-2xl leading-tight tracking-[-0.02em] text-primary-foreground">
           The trend, the target, the gap —
           <span className="block">from one saved result.</span>
         </p>
@@ -43,7 +45,7 @@ export function SignInPlateArt() {
               className="flex h-full flex-1 flex-col justify-end"
             >
               <span
-                className="w-full rounded-t-[3px] bg-[var(--plate-fg)]"
+                className="w-full rounded-t-[3px] bg-primary-foreground"
                 style={{
                   height: `${Math.max(8, point.percentage)}%`,
                   opacity: 0.45 + 0.55 * (index / (trend.length - 1)),
@@ -53,32 +55,34 @@ export function SignInPlateArt() {
           ))}
           {/* the target rule at its true height (320/390) */}
           <div
-            className="pointer-events-none absolute inset-x-0 h-px bg-accent"
+            className="pointer-events-none absolute inset-x-0 h-px bg-primary-foreground/80"
             style={{ bottom: `${(target / 390) * 100}%` }}
           />
         </div>
-        <figcaption className="mt-3 flex justify-between text-[0.6875rem] text-[var(--plate-muted)] tabular-nums">
+        <figcaption className="mt-3 flex justify-between text-[0.6875rem] text-primary-foreground/70 tabular-nums">
           <span>{shortDate(trend[0]!.date)}</span>
           <span>{shortDate(latest.date)}</span>
         </figcaption>
       </figure>
 
-      <dl className="grid grid-cols-3 gap-x-6 border-t border-[var(--plate-rule-soft)] pt-5">
+      <dl className="grid grid-cols-3 gap-x-6 border-t border-primary-foreground/20 pt-5">
         {[
           { label: "Last mock", value: `${LANDING_SUMMARY.latestScore}` },
           { label: "Average", value: average == null ? "—" : `${Math.round(average)}%` },
           { label: "Target", value: `${target}` },
         ].map((row) => (
           <div key={row.label}>
-            <dt className="auth-plate-fact-label">{row.label}</dt>
-            <dd className="mt-1 font-serif text-2xl leading-none tracking-[-0.02em] tabular-nums text-[var(--plate-fg)]">
+            <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">
+              {row.label}
+            </dt>
+            <dd className="mt-1 font-serif text-2xl leading-none tracking-[-0.02em] tabular-nums text-primary-foreground">
               {row.value}
             </dd>
           </div>
         ))}
       </dl>
 
-      <p className="text-xs leading-relaxed text-[var(--plate-muted)]">
+      <p className="text-xs leading-relaxed text-primary-foreground/70">
         {LANDING_SUMMARY.mockCount} saved attempts · {trend.length} full mocks ·
         target {target}/390
       </p>

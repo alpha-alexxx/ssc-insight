@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useToast } from "@/components/toast";
+import { toast } from "@/components/toast-stack";
 
 const ERROR_COPY: Record<string, { title: string; detail: string }> = {
   oauth: {
@@ -27,18 +27,17 @@ const ERROR_COPY: Record<string, { title: string; detail: string }> = {
  * strips `?error` via history.replaceState.
  */
 export function AuthErrorAnnouncer({ errorCode }: { errorCode?: string }) {
-  const toast = useToast();
   const announced = useRef(false);
 
   useEffect(() => {
     if (announced.current || !errorCode) return;
     announced.current = true;
     const copy = ERROR_COPY[errorCode] ?? ERROR_COPY.oauth!;
-    toast.error(copy.title, copy.detail);
+    toast.error(copy.title, { description: copy.detail });
     const url = new URL(window.location.href);
     url.searchParams.delete("error");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }, [errorCode, toast]);
+  }, [errorCode]);
 
   return null;
 }

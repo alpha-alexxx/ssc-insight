@@ -17,7 +17,7 @@ import {
   type CalendarLayer,
   type EntryCounts,
 } from "@/lib/plan/calendar-entries";
-import { LAYER_META, TASK_LEGEND, planTickClass } from "./visuals";
+import { LAYER_META, TASK_LEGEND, planPillClass, planTickClass } from "./visuals";
 import { categoryLabel } from "./entry-rows";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -36,6 +36,13 @@ const MAX_ROWS = 3;
  * Keyboard: a roving tabindex makes the grid one tab stop; arrows, Home/End
  * and PageUp/PageDown move focus without selecting. Enter or Space is the
  * native click, because every cell is a button.
+ *
+ * Hairline rebuild (the documented month-grid gap): the grid is composed from
+ * tokens — day cells are `rounded-2xl bg-card` with an inset hairline border,
+ * the selected day carries a `ring-2 ring-primary`, and the wide/narrow cell
+ * switch is Tailwind v4 container queries on the grid itself. Plan entries are
+ * token-tinted pills carrying the subject's global chart hue
+ * (text-chart-1..5); the tick inside the pill is the same hue, solid.
  */
 export const MonthGrid = memo(function MonthGrid({
   index,
@@ -111,7 +118,7 @@ export const MonthGrid = memo(function MonthGrid({
 
   return (
     <div
-      className="cal-month"
+      className="@container min-w-0"
       role="group"
       aria-label={`${monthDate(selected)} schedule`}
       onKeyDown={onKeyDown}
@@ -121,10 +128,10 @@ export const MonthGrid = memo(function MonthGrid({
           <div
             key={name}
             aria-hidden="true"
-            className="px-1 pb-1 text-center text-[length:var(--type-label)] font-medium text-muted"
+            className="px-1 pb-1 text-center text-[11px] font-medium text-muted-foreground"
           >
-            <span className="cal-weekday-full">{name}</span>
-            <span className="cal-weekday-initial">{name[0]}</span>
+            <span className="@max-[559px]:hidden">{name}</span>
+            <span className="hidden @max-[559px]:inline">{name[0]}</span>
           </div>
         ))}
       </div>
@@ -215,36 +222,36 @@ function MonthCell({
       onFocus={onFocus}
       onClick={onSelect}
       className={cn(
-        "cal-cell flex min-w-0 flex-col gap-1 rounded-control border p-1.5 text-left transition-colors",
+        "flex min-h-14 min-w-0 flex-col gap-1 rounded-2xl p-1.5 text-left transition-colors sm:min-h-20",
         inPlan
-          ? "border-rule-soft bg-paper hover:border-accent/50 hover:bg-soft"
-          : "border-dashed border-rule-soft/70 bg-canvas text-muted",
+          ? "bg-card shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent"
+          : "border border-dashed border-border/60 bg-background text-muted-foreground",
         !inMonth && "opacity-60",
-        isToday && !isSelected && "border-accent/60",
+        isToday && !isSelected && "ring-2 ring-primary",
         isSelected &&
-          "border-accent bg-accent-soft hover:border-accent hover:bg-accent-soft opacity-100 ring-1 ring-accent/40",
+          "bg-primary/5 ring-2 ring-primary hover:bg-primary/5 opacity-100",
       )}
     >
       <span className="flex items-center justify-between gap-1">
         <span
           className={cn(
-            "font-serif tabular leading-none",
+            "font-serif tabular-nums leading-none",
             "text-[15px] sm:text-base",
             isSelected
-              ? "font-semibold text-ink"
+              ? "font-semibold text-foreground"
               : isToday
-                ? "font-semibold text-accent"
+                ? "font-semibold text-primary"
                 : inPlan
-                  ? "text-ink"
-                  : "text-muted",
+                  ? "text-foreground"
+                  : "text-muted-foreground",
           )}
         >
           {Number(iso.slice(8))}
         </span>
         {counts.plan.total > 0 && (
-          <span className="text-[length:var(--type-label)] tabular text-muted">
+          <span className="text-[11px] tabular-nums text-muted-foreground">
             {done ? (
-              <PlainIcon name="check" size={10} className="text-positive" />
+              <PlainIcon name="check" size={10} className="text-success" />
             ) : (
               `${counts.plan.done}/${counts.plan.total}`
             )}
@@ -254,12 +261,12 @@ function MonthCell({
 
       {/* Wide cell: three ruled rows, one per layer — the three-ink grammar. */}
       {entries.length > 0 && (
-        <span className="cal-cell-rows mt-auto flex-col gap-0.5">
+        <span className="mt-auto hidden flex-col gap-0.5 @min-[560px]:flex">
           {entries.slice(0, MAX_ROWS).map((entry) => (
             <CellRow key={entry.id} entry={entry} />
           ))}
           {entries.length > MAX_ROWS && (
-            <span className="px-1 text-[length:var(--type-label)] leading-tight text-muted">
+            <span className="px-1 text-[11px] leading-tight text-muted-foreground">
               +{entries.length - MAX_ROWS} more
             </span>
           )}
@@ -268,7 +275,7 @@ function MonthCell({
 
       {/* Narrow cell: one square tick per occupied layer plus a count. */}
       {entries.length > 0 && (
-        <span className="cal-cell-ticks mt-auto items-center gap-1">
+        <span className="mt-auto flex items-center gap-1 @min-[560px]:hidden">
           {(["plan", "tasks", "mocks"] as const).map((layer) => {
             const present =
               layer === "mocks"
@@ -282,7 +289,7 @@ function MonthCell({
               />
             ) : null;
           })}
-          <span className="ml-auto text-[length:var(--type-label)] tabular leading-none text-muted">
+          <span className="ml-auto text-[11px] tabular-nums leading-none text-muted-foreground">
             {entries.length}
           </span>
         </span>
@@ -297,11 +304,9 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[length:var(--type-label)] font-medium leading-tight",
-          planTickClass(entry.task),
-          entry.task.completed
-            ? "text-muted line-through"
-            : "text-ink",
+          "flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[11px] font-medium leading-tight",
+          planPillClass(entry.task),
+          entry.task.completed && "line-through",
         )}
       >
         <span
@@ -313,8 +318,8 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     );
   if (entry.kind === "revision")
     return (
-      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[length:var(--type-label)] leading-tight text-muted">
-        <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-rule" aria-hidden="true" />
+      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 pr-1 text-[11px] leading-tight text-muted-foreground">
+        <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-border" aria-hidden="true" />
         <span className="truncate">{entry.label}</span>
       </span>
     );
@@ -322,17 +327,17 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft bg-paper px-1 py-0.5 text-[length:var(--type-label)] leading-tight",
-          entry.status === "completed" ? "text-muted line-through" : "text-ink",
+          "flex items-center gap-1 truncate rounded-[2px] bg-background px-1 py-0.5 text-[11px] leading-tight shadow-[inset_0_0_0_1px_var(--border)]",
+          entry.status === "completed" ? "text-muted-foreground line-through" : "text-foreground",
         )}
       >
         <span className="truncate">{entry.task.title}</span>
       </span>
     );
   return (
-    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight text-ink">
+    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-foreground/60 bg-muted px-1 py-0.5 text-[11px] leading-tight text-foreground">
       <span className="truncate">{entry.attempt.name}</span>
-      <span className="ml-auto tabular text-muted">{entry.scorePct}</span>
+      <span className="ml-auto tabular-nums text-muted-foreground">{entry.scorePct}</span>
     </span>
   );
 }
@@ -344,7 +349,7 @@ function CellRow({ entry }: { entry: CalendarEntry }) {
  */
 export function CalendarLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pt-3 text-[length:var(--type-label)] text-muted">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pt-3 text-[11px] text-muted-foreground">
       {(["plan", "tasks", "mocks"] as const).map((layer) => (
         <span key={layer} className="inline-flex items-center gap-1.5">
           <span
@@ -359,13 +364,13 @@ export function CalendarLegend() {
       ))}
       <span className="inline-flex items-center gap-1.5">
         <span
-          className="inline-block size-2.5 rounded-[1px] border border-accent"
+          className="inline-block size-2.5 rounded-[1px] border border-primary"
           aria-hidden="true"
         />
         Selected
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="font-serif text-[11px] font-semibold text-accent" aria-hidden="true">
+        <span className="font-serif text-[11px] font-semibold text-primary" aria-hidden="true">
           1
         </span>
         Today
@@ -377,7 +382,7 @@ export function CalendarLegend() {
 /** Plan-category key, shown under the grid in the plan layer. */
 export function PlanCategoryLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pb-1 text-[length:var(--type-label)] text-muted">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 pb-1 text-[11px] text-muted-foreground">
       {TASK_LEGEND.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-1.5">
           <span
@@ -390,4 +395,3 @@ export function PlanCategoryLegend() {
     </div>
   );
 }
-

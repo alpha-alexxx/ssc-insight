@@ -18,6 +18,9 @@ import { LAYER_META } from "./visuals";
  * The last visible layer cannot be turned off — an empty calendar reads as a
  * broken calendar, and there is no "show all" recovery gesture that a
  * first-time user would find.
+ *
+ * Hairline rebuild: the toggles are token-composed pill buttons that keep the
+ * aria-pressed semantics (a multi-select, not a radiogroup).
  */
 export function LayerToggles({
   layers,
@@ -42,7 +45,7 @@ export function LayerToggles({
     <div
       role="group"
       aria-label="Calendar layers"
-      className="segment-group grid w-full grid-cols-3 gap-0.5 @lg/cal-toolbar:inline-flex @lg/cal-toolbar:w-auto [&_.segment]:min-w-0 [&_.segment]:flex-1 @lg/cal-toolbar:[&_.segment]:flex-none"
+      className="grid w-full grid-cols-3 gap-1 @lg/cal-toolbar:inline-flex @lg/cal-toolbar:w-auto @lg/cal-toolbar:flex-none [&>button]:min-w-0 [&>button]:flex-1 @lg/cal-toolbar:[&>button]:flex-none"
     >
       {CALENDAR_LAYERS.map((layer) => {
         const active = on.has(layer);
@@ -56,16 +59,24 @@ export function LayerToggles({
             disabled={last}
             title={last ? "Keep at least one layer visible" : undefined}
             onClick={() => onToggle(layer, !active)}
-            className={cn("segment", last && "cursor-not-allowed opacity-70")}
+            className={cn(
+              "inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium transition-colors duration-200",
+              active
+                ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                : "text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent hover:text-foreground",
+              last && "cursor-not-allowed opacity-70",
+            )}
           >
             <PlainIcon
               name={LAYER_META[layer].icon}
               size={13}
-              className={cn("shrink-0", !active && "text-muted")}
+              className={cn("shrink-0", !active && "text-muted-foreground")}
             />
             <span className="truncate">{LAYER_META[layer].label}</span>
             {count > 0 && (
-              <span className="tabular text-[length:var(--type-label)] text-muted">{count}</span>
+              <span className="tabular-nums text-[11px] text-muted-foreground">
+                {count}
+              </span>
             )}
           </button>
         );

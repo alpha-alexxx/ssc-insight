@@ -1,29 +1,31 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { EmptyState, type EmptyStateScene } from "@/components/empty-state";
 
 /**
  * Per-view empty states. Words do the work: each one names the situation and
  * offers the next action instead of decorating an empty box.
+ *
+ * Hairline rebuild: built on the Hairline EmptyState (the scene draws itself
+ * in the theme's own colours); callers pass the same title/detail/actions as
+ * before, plus an optional scene when the situation is a search miss.
  */
 export function TasksEmptyState({
   title,
   detail,
   children,
+  scene = "inbox",
 }: {
   title: string;
   detail: string;
   children?: ReactNode;
+  /** "search" for filter/search misses; "inbox" (default) for nothing yet. */
+  scene?: EmptyStateScene;
 }) {
   return (
-    <div className="border-y border-rule-soft px-4 py-10 text-center">
-      <h3 className="font-serif text-lg">{title}</h3>
-      <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted">
-        {detail}
-      </p>
-      {children && (
-        <div className="mt-4 flex flex-wrap justify-center gap-2">{children}</div>
-      )}
-    </div>
+    <EmptyState scene={scene} title={title} description={detail}>
+      {children}
+    </EmptyState>
   );
 }

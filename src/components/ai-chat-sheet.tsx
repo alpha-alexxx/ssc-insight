@@ -1,23 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import {
-  ClipboardPaste,
-  History,
-  ListTodo,
-  MessageSquare,
-  SquarePen,
-  Trash2,
-} from "@/components/ui/icons";
-import { cn } from "@/lib/utils";
-import { useOverlayViewport, useOverlayFocus } from "./use-overlay-viewport";
-import { Button } from "./ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "./ui/sheet";
+import { useState } from "react";
+import { Icon } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Sheet } from "@/components/sheet";
+import { SegmentedControl } from "@/components/segmented-control";
 import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
 import { AiSettingsForm } from "./ai-settings-form";
 import type { AiCredentialSummary, ChatMessage } from "@/lib/ai/client-types";
@@ -34,13 +20,14 @@ import { LogMockFlow, type LogMockPayload } from "@/components/shared/ai/log-moc
 export type { LogMockPayload };
 
 /**
- * The AI panel: a tabbed right Sheet — Ask, Todos, Log. Ask renders the
- * shared chat transcript and composer (the same components the /ask page
- * uses, over the same live state); Todos and Log keep their own flows.
- * Desktop keeps the workspace visible; mobile is a full-width Sheet with a
- * dvh flex layout so the composer stays above the keyboard. Conversation
- * state lives in the shell hook: finished turns persist to the device, the
- * in-flight stream aborts on close, and the transcript survives reopening.
+ * The AI panel: a tabbed right Sheet (Hairline `sheet`, side right) — Ask,
+ * Todos, Log. Ask renders the shared chat transcript and composer (the same
+ * components the /ask page uses, over the same live state); Todos and Log
+ * keep their own flows. Desktop keeps the workspace visible; mobile is a
+ * full-width sheet whose panel fills the viewport height, so the composer
+ * stays in reach. Conversation state lives in the shell hook: finished turns
+ * persist to the device, the in-flight stream aborts on close, and the
+ * transcript survives reopening.
  */
 export function AiChatSheet({
   open,
@@ -130,91 +117,46 @@ export function AiChatSheet({
     setMountedTabs((current) => ({ ...current, [next]: true }));
     setTab(next);
   };
-  const viewport = useOverlayViewport(open);
-  const overlayFocus = useOverlayFocus();
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        {...overlayFocus}
-        side="right"
-        className="ai-workspace-sheet w-full gap-0 sm:max-w-[520px] flex flex-col"
-        style={
-          viewport
-            ? { height: viewport.height, top: viewport.top, bottom: "auto" }
-            : undefined
-        }
-        overlayClassName="bg-ink/20"
-        aria-describedby="ai-sheet-description"
-      >
-        <SheetHeader className="shrink-0 gap-1.5 border-b border-rule-soft px-4 pb-3 pt-4 pr-14 sm:px-5">
-          <SheetTitle className="font-serif text-xl font-medium leading-tight text-ink">
-            Study coach
-          </SheetTitle>
-          <SheetDescription
-            id="ai-sheet-description"
-            className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-muted"
-          >
-            {contextLabel && (
-              <span className="section-label rounded-control border border-rule-soft px-1.5 py-0.5">
-                {contextLabel}
-              </span>
-            )}
-            {usageLabel && <span className="tabular">{usageLabel}</span>}
-            <span>Chats are saved on this device.</span>
-          </SheetDescription>
-        </SheetHeader>
-        <div
-          className="flex shrink-0 items-center gap-2 border-b border-rule-soft px-3 py-2.5 sm:px-4"
-        >
-          <div
-            className="min-w-0 flex-1"
-            role="tablist"
-            aria-label="AI mode"
-          >
-            {/* The app's one segmented-control grammar, not a bespoke tab bar. */}
-            <div className="segment-group is-block w-full">
-              {(
-                [
-                  { id: "chat", label: "Ask", icon: MessageSquare },
-                  { id: "todos", label: "Todos", icon: ListTodo },
-                  { id: "log", label: "Log", icon: ClipboardPaste },
-                ] as const
-              ).map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  id={`ai-tab-${item.id}`}
-                  aria-controls={`ai-panel-${item.id}`}
-                  aria-selected={tab === item.id}
-                  tabIndex={tab === item.id ? 0 : -1}
-                  onClick={() => switchTab(item.id)}
-                  onKeyDown={(event) => {
-                    const ids = ["chat", "todos", "log"] as const;
-                    const next =
-                      event.key === "ArrowRight"
-                        ? (index + 1) % 3
-                        : event.key === "ArrowLeft"
-                          ? (index + 2) % 3
-                          : event.key === "Home"
-                            ? 0
-                            : event.key === "End"
-                              ? 2
-                              : null;
-                    if (next !== null) {
-                      event.preventDefault();
-                      switchTab(ids[next]);
-                      document.getElementById(`ai-tab-${ids[next]}`)?.focus();
-                    }
-                  }}
-                  className="segment min-w-0 flex-1 justify-center"
-                >
-                  <item.icon size={15} className="shrink-0" />
-                  {item.label}
-                </button>
-              ))}
-            </div>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      side="right"
+      width={520}
+      title="Study coach"
+      description={
+        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {contextLabel && (
+            <span className="rounded-lg border border-border px-1.5 py-0.5">
+              {contextLabel}
+            </span>
+          )}
+          {usageLabel && <span className="tabular-nums">{usageLabel}</span>}
+          <span>Chats are saved on this device.</span>
+        </span>
+      }
+    >
+      {/* One full-bleed column: the sheet's content area is neutralized
+          (negative margins against its padding) so the tab row, the
+          transcript and the pinned composer divide the panel exactly. */}
+      <div className="-mx-5 -mb-4 flex h-[calc(100%+1rem)] min-h-0 flex-col">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
+          <div className="min-w-0 flex-1">
+            {/* The app's one segmented-control grammar, not a bespoke tab bar:
+                arrows/Home/End roving, one tab stop, select-on-move. */}
+            <SegmentedControl
+              block
+              size="md"
+              label="AI mode"
+              value={tab}
+              onValueChange={(value) => switchTab(value as "chat" | "todos" | "log")}
+              options={[
+                { value: "chat", label: "Ask", icon: <Icon name="chat" size={14} /> },
+                { value: "todos", label: "Todos", icon: <Icon name="list" size={14} /> },
+                { value: "log", label: "Log", icon: <Icon name="paste" size={14} /> },
+              ]}
+            />
           </div>
           {/* Conversation controls ride the tab row on the chat tab only:
               a clean slate and the saved-history list. */}
@@ -224,14 +166,14 @@ export function AiChatSheet({
                 type="button"
                 aria-label="New chat"
                 title="New chat"
-                className="tap-target inline-flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink"
+                className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 onClick={() => {
                   onStop();
                   setHistoryOpen(false);
                   history.newChat();
                 }}
               >
-                <SquarePen size={16} />
+                <Icon name="edit" size={16} />
               </button>
               <button
                 type="button"
@@ -239,18 +181,17 @@ export function AiChatSheet({
                 title="Conversation history"
                 aria-expanded={historyOpen}
                 aria-pressed={historyOpen}
-                className={cn(
-                  "tap-target inline-flex size-10 items-center justify-center rounded-control transition-colors",
+                className={`flex size-10 items-center justify-center rounded-full transition-colors ${
                   historyOpen
-                    ? "bg-soft text-ink"
-                    : "text-muted hover:bg-soft hover:text-ink",
-                )}
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                }`}
                 onClick={() => {
                   onStop();
                   setHistoryOpen((value) => !value);
                 }}
               >
-                <History size={16} />
+                <Icon name="history" size={16} />
               </button>
             </div>
           )}
@@ -259,14 +200,8 @@ export function AiChatSheet({
             so a Todos draft or a pasted report survives switching tabs. */}
         {mountedTabs.chat && (
           <div
-            role="tabpanel"
-            id="ai-panel-chat"
-            aria-labelledby="ai-tab-chat"
             hidden={tab !== "chat"}
-            className={cn(
-              "flex min-h-0 flex-1 flex-col",
-              tab !== "chat" && "hidden",
-            )}
+            className={`flex min-h-0 flex-1 flex-col ${tab !== "chat" ? "hidden" : ""}`}
           >
             <AskChatTab
               messages={messages}
@@ -293,14 +228,8 @@ export function AiChatSheet({
         )}
         {mountedTabs.todos && (
           <div
-            role="tabpanel"
-            id="ai-panel-todos"
-            aria-labelledby="ai-tab-todos"
             hidden={tab !== "todos"}
-            className={cn(
-              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5",
-              tab !== "todos" && "hidden",
-            )}
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5 ${tab !== "todos" ? "hidden" : ""}`}
           >
             <TodoAiComposer
               compact
@@ -311,14 +240,8 @@ export function AiChatSheet({
         )}
         {mountedTabs.log && (
           <div
-            role="tabpanel"
-            id="ai-panel-log"
-            aria-labelledby="ai-tab-log"
             hidden={tab !== "log"}
-            className={cn(
-              "flex min-h-0 flex-1 flex-col",
-              tab !== "log" && "hidden",
-            )}
+            className={`flex min-h-0 flex-1 flex-col ${tab !== "log" ? "hidden" : ""}`}
           >
             <LogMockFlow
               configured={configured}
@@ -331,7 +254,7 @@ export function AiChatSheet({
             />
           </div>
         )}
-      </SheetContent>
+      </div>
     </Sheet>
   );
 }
@@ -376,7 +299,7 @@ function AskChatTab({
   history?: ChatHistoryApi;
   historyOpen: boolean;
   onHistoryClose: () => void;
-  onSend: (text: string) => void;
+  onSend: (text: string, images?: string[]) => void;
   onStop: () => void;
   onClear: () => void;
   onRetry?: () => void;
@@ -399,13 +322,15 @@ function AskChatTab({
           className="flex-1"
         />
         <SheetUsageFooter className="-mx-4 mt-3 sm:-mx-5" />
-        <button
+        <Button
           type="button"
-          className="mt-2 min-h-9 text-xs font-medium text-muted underline underline-offset-4 hover:text-ink"
+          variant="link"
+          size="sm"
+          className="mt-2 self-start"
           onClick={onHistoryClose}
         >
           Back to the conversation
-        </button>
+        </Button>
       </div>
     );
   }
@@ -429,8 +354,8 @@ function AskChatTab({
           configured ? (
             <ChatEmptyState onSend={(text) => onSend(text)} />
           ) : (
-            <div className="rounded-control border border-rule bg-canvas p-4">
-              <p className="text-xs leading-relaxed text-muted">
+            <div className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 Add a provider and API key to start asking questions. Your key
                 is encrypted before storage and never returned to this page.
               </p>
@@ -446,12 +371,12 @@ function AskChatTab({
         }
       />
       {configured && (
-        <div className="shrink-0 bg-paper px-4 pb-3 sm:px-5 sm:pb-4">
+        <div className="shrink-0 bg-background px-4 pb-3 pt-2 sm:px-5 sm:pb-4">
           <ChatComposer
             value={input}
             onChange={setInput}
-            onSubmit={(text) => {
-              onSend(text);
+            onSubmit={(text, images) => {
+              onSend(text, images);
               setInput("");
             }}
             onStop={onStop}

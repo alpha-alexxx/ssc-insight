@@ -2,8 +2,10 @@
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { ScoreBand } from "@/components/shared/charts/score-band";
+import { Button } from "@/components/button";
+import { Spinner } from "@/components/spinner";
+import { EmptyState } from "@/components/empty-state";
+import { ScoreMetrics } from "./score-metrics";
 import { FindingsPanel } from "./findings-panel";
 import { TrendPanel } from "./trend-panel";
 import { RadarPanel } from "./radar-panel";
@@ -12,7 +14,6 @@ import { DistributionPanel } from "./distribution-panel";
 import { SubjectDeepDive } from "./subject-deep-dive";
 import { useExamScope } from "@/components/exam-context";
 import { Swap } from "@/components/motion-swap";
-import { EmptyChart } from "@/components/dashboard-panels";
 import { findings, isSingleResult } from "@/lib/performance-metrics";
 import type { Analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -77,16 +78,18 @@ export function PerformanceView({
         }
       />
 
-      <div className="panel mb-4 px-4 py-3 sm:px-5">{controls}</div>
+      <div className="mb-4 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:px-5">
+        {controls}
+      </div>
 
       {/* A scope change re-fetches analytics; say so, rather than letting the
           charts quietly swap under the heading. */}
       {loading && analytics && (
         <p
           role="status"
-          className="mb-3 flex items-center gap-1.5 text-[0.6875rem] text-muted"
+          className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground"
         >
-          <PlainIcon name="refresh" size={12} className="animate-spin" />
+          <Spinner size="xs" />
           Updating your results…
         </p>
       )}
@@ -99,21 +102,20 @@ export function PerformanceView({
       >
         <Swap swapKey={analytics?.scope ?? "none"}>
           {empty ? (
-            <div className="panel">
-              <EmptyChart>
-                No saved result matches this view. Log a mock, or widen the
-                filters above.
-              </EmptyChart>
-            </div>
+            <EmptyState
+              scene="chart"
+              title="No saved result matches this view"
+              description="Log a mock, or widen the filters above."
+            />
           ) : analytics ? (
             <>
-              <ScoreBand analytics={analytics} target={analytics.target.percentage} />
+              <ScoreMetrics analytics={analytics} />
               <FindingsPanel
                 findings={findings(analytics)}
                 className="mt-4"
               />
               {isSingleResult(analytics) && (
-                <p className="mt-4 rounded-control border border-rule-soft bg-canvas px-4 py-3 text-[0.6875rem] leading-relaxed text-muted">
+                <p className="mt-4 rounded-xl bg-muted px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
                   One result is saved in this view. The summary above is
                   exact, but trends, distributions and subject comparisons need
                   a second attempt before they can say anything honest.
@@ -134,9 +136,7 @@ export function PerformanceView({
               </div>
             </>
           ) : (
-            <div className="panel">
-              <EmptyChart>Loading your preparation…</EmptyChart>
-            </div>
+            <EmptyState scene="chart" title="Loading your preparation…" />
           )}
         </Swap>
       </div>

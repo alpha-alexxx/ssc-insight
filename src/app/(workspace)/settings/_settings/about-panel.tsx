@@ -1,8 +1,8 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Panel } from "@/components/dashboard-panels";
+import { PanelCard } from "./_lib/panel";
+import { Avatar } from "@/components/avatar";
+import { Badge } from "@/components/badge";
 import { useExamScope } from "@/components/exam-context";
 import { CATALOG_VERSION } from "@/lib/exams";
 
@@ -45,43 +45,36 @@ export function AboutPanel({
     : null;
   const duration = (tier as { durationMinutes?: number } | undefined)
     ?.durationMinutes;
-  const initials =
-    (userName.trim() || "SSC")
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((word) => word[0]?.toUpperCase() ?? "")
-      .join("") || "SSC";
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel dense icon="user" title="Account" description="Your private workspace.">
-        <div className="px-4 pb-4">
-          <div className="flex items-center gap-3 rounded-control border border-rule-soft bg-canvas p-3">
-            <Avatar aria-hidden="true">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-muted">
-                Signed in as
-              </p>
-              <p className="truncate text-sm font-medium text-ink">
-                {userName || "Private workspace"}
-              </p>
-              <p className="truncate text-[0.6875rem] text-muted">
-                {userEmail || "Account email unavailable"}
-              </p>
-            </div>
+      <PanelCard icon="user" title="Account" description="Your private workspace.">
+        <div className="flex items-center gap-3 rounded-[14px] border border-border bg-muted p-3">
+          <Avatar
+            aria-hidden="true"
+            name={userName || "SSC"}
+            size="lg"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Signed in as
+            </p>
+            <p className="truncate text-sm font-medium text-foreground">
+              {userName || "Private workspace"}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {userEmail || "Account email unavailable"}
+            </p>
           </div>
-          <p className="mt-3 text-[0.75rem] leading-relaxed text-muted">
-            Mocks, comparisons, targets and planner work are private to your
-            Google account. A different Google account is a separate workspace
-            — to move data, export a JSON backup here and import it there.
-          </p>
         </div>
-      </Panel>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          Mocks, comparisons, targets and planner work are private to your
+          Google account. A different Google account is a separate workspace
+          — to move data, export a JSON backup here and import it there.
+        </p>
+      </PanelCard>
 
-      <Panel
-        dense
+      <PanelCard
         icon="book"
         title="Your exam"
         description={
@@ -92,26 +85,26 @@ export function AboutPanel({
               : "Nothing enabled yet"
         }
       >
-        <div className="px-4 pb-4 text-[0.75rem] leading-relaxed text-muted">
+        <div className="text-xs leading-relaxed text-muted-foreground">
           {tier ? (
             <dl className="grid gap-2 sm:grid-cols-2">
               <div>
-                <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                <dt className="text-xs uppercase tracking-[0.1em]">
                   Paper
                 </dt>
-                <dd className="text-ink">{tier.label}</dd>
+                <dd className="text-foreground">{tier.label}</dd>
               </div>
               <div>
-                <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                <dt className="text-xs uppercase tracking-[0.1em]">
                   Maximum
                 </dt>
-                <dd className="text-ink tabular">{maxScore} marks</dd>
+                <dd className="text-foreground tabular-nums">{maxScore} marks</dd>
               </div>
               <div>
-                <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                <dt className="text-xs uppercase tracking-[0.1em]">
                   Marking
                 </dt>
-                <dd className="text-ink tabular">
+                <dd className="text-foreground tabular-nums">
                   +{tier.marking.correct} correct
                   {tier.marking.incorrect
                     ? ` · −${tier.marking.incorrect} incorrect`
@@ -119,18 +112,18 @@ export function AboutPanel({
                 </dd>
               </div>
               <div>
-                <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                <dt className="text-xs uppercase tracking-[0.1em]">
                   Duration
                 </dt>
-                <dd className="text-ink tabular">
+                <dd className="text-foreground tabular-nums">
                   {duration ? `${duration} minutes` : "—"}
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                <dt className="text-xs uppercase tracking-[0.1em]">
                   Merit subjects
                 </dt>
-                <dd className="text-ink">
+                <dd className="text-foreground">
                   {merit
                     .map(
                       (s) =>
@@ -141,10 +134,10 @@ export function AboutPanel({
               </div>
               {qualifying.length > 0 && (
                 <div className="sm:col-span-2">
-                  <dt className="text-[0.625rem] uppercase tracking-[0.1em]">
+                  <dt className="text-xs uppercase tracking-[0.1em]">
                     Qualifying (excluded from the merit total)
                   </dt>
-                  <dd className="text-ink">
+                  <dd className="text-foreground">
                     {qualifying
                       .map((s) => `${subjectLabel(s)} ${s.questions}Q`)
                       .join(" · ")}
@@ -160,14 +153,14 @@ export function AboutPanel({
           )}
 
           {exam && (
-            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-rule-soft pt-3 text-[0.6875rem] leading-relaxed">
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border pt-3 text-xs leading-relaxed">
               <span>
                 Pattern read from the{" "}
                 <a
                   href={exam.source.url}
                   target="_blank"
                   rel="noopener noreferrer nofollow"
-                  className="underline decoration-rule-soft underline-offset-2 hover:text-accent"
+                  className="underline decoration-border underline-offset-2 hover:text-primary"
                 >
                   official {exam.source.cycle} notice
                 </a>{" "}
@@ -175,27 +168,26 @@ export function AboutPanel({
                 cycles, so a correction ships as a new catalog version rather
                 than rewriting saved history.
               </span>
-              <Badge variant="secondary">Catalog v{CATALOG_VERSION}</Badge>
+              <Badge tone="neutral">{`Catalog v${CATALOG_VERSION}`}</Badge>
             </p>
           )}
 
           {custom && (
-            <p className="mt-3 border-t border-rule-soft pt-3 text-[0.6875rem] leading-relaxed">
+            <p className="mt-3 border-t border-border pt-3 text-xs leading-relaxed">
               This is a custom exam you defined. Its tiers, marks and marking
               are exactly what you entered — they are not official SSC
               patterns.
             </p>
           )}
         </div>
-      </Panel>
+      </PanelCard>
 
-      <Panel
-        dense
+      <PanelCard
         icon="shield"
         title="How scoring works"
         description="Derived values are never stored."
       >
-        <div className="px-4 pb-4 text-[0.75rem] leading-relaxed text-muted">
+        <div className="text-xs leading-relaxed text-muted-foreground">
           <p>
             A score is derived from the counts you enter: correct × marks per
             correct − incorrect × penalty. Accuracy is correct ÷ attempted.
@@ -209,7 +201,7 @@ export function AboutPanel({
             the app never estimates either.
           </p>
         </div>
-      </Panel>
+      </PanelCard>
     </div>
   );
 }

@@ -70,8 +70,10 @@ export function DaySections({
       entry.kind === "attempt",
   );
 
+  /* The empty rule: the hint owns its own surface (an EmptyState, or any
+     quiet node), so this wrapper adds breathing room, not typography. */
   if (!entries.length) {
-    return emptyHint ? <div className="px-4 py-6 text-sm text-muted">{emptyHint}</div> : null;
+    return emptyHint ? <div className="py-2">{emptyHint}</div> : null;
   }
 
   return (
@@ -79,7 +81,7 @@ export function DaySections({
       {plan.length > 0 && (
         <section aria-label="Scheduled">
           <SectionHead label="Scheduled" count={plan.length} />
-          <ul className="border-t border-rule-soft">
+          <ul className="border-t border-border">
             {plan.map((entry) => (
               <PlanEntryRow
                 key={entry.id}
@@ -100,7 +102,7 @@ export function DaySections({
             label="Revision"
             count={`${counts.rev.done}/${counts.rev.total}`}
           />
-          <ul className="border-t border-rule-soft">
+          <ul className="border-t border-border">
             {revisions.map((entry) => (
               <RevisionEntryRow
                 key={entry.id}
@@ -118,7 +120,7 @@ export function DaySections({
       {personal.length > 0 && (
         <section aria-label="Personal tasks">
           <SectionHead label="Personal" count={personal.length} />
-          <ul className="border-t border-rule-soft">
+          <ul className="border-t border-border">
             {personal.map((entry) => (
               <PersonalEntryRow
                 key={entry.id}
@@ -134,7 +136,7 @@ export function DaySections({
       {attempts.length > 0 && (
         <section aria-label="Logged results">
           <SectionHead label="Logged" count={attempts.length} />
-          <ul className="flex flex-col gap-2 border-t border-rule-soft px-4 py-3">
+          <ul className="flex flex-col gap-2 border-t border-border px-4 py-3">
             {attempts.map((entry) =>
               attemptStyle === "card" ? (
                 <li key={entry.id}>

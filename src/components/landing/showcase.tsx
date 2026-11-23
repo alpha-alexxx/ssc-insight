@@ -1,23 +1,20 @@
-"use client";
-import { useState } from "react";
-import { Tabs } from "radix-ui";
-import { motion, useReducedMotion } from "motion/react";
+import { FeatureTabs } from "@/components/feature-tabs";
 import { BrowserFrame, MockupCaption } from "./mockups/browser-frame";
 import { CompareScreen } from "./mockups/compare-screen";
 import { DashboardScreen } from "./mockups/dashboard-screen";
 import { HistoryScreen } from "./mockups/history-screen";
 import { PlannerScreen } from "./mockups/planner-screen";
 import type { LandingPlanData } from "./plan-facts";
-import { EASE } from "./motion";
+import { EYEBROW } from "./section";
 
 /**
- * Plate I: the product showcase.
+ * Plate I: the product showcase, on Hairline's FeatureTabs.
  *
- * The tabs are a printed index, not a segmented control — they sit on the
- * plate above the specimen frame and each one swaps a full rendered screen.
- * Radix supplies the a11y contract (arrow keys, roving tabindex, the right
- * roles); the visual grammar is the landing's own, so the panel reads like
- * turning a page rather than switching a dashboard filter.
+ * The tablist is a real tablist (arrow keys, Home and End), the hairline under
+ * the chosen tab slides over with a little give, and the panel's height eases
+ * to the new content while it slides in through a light blur — the whole
+ * specimen reads like turning a page rather than switching a dashboard
+ * filter.
  */
 
 type TabId = "dashboard" | "history" | "compare" | "planner";
@@ -54,63 +51,41 @@ const TABS: { id: TabId; label: string; url: string; caption: string }[] = [
 ];
 
 export function Showcase({ plan }: { plan: LandingPlanData }) {
-  const [tab, setTab] = useState<TabId>("dashboard");
-  const reduced = useReducedMotion();
-  const current = TABS.find((item) => item.id === tab) ?? TABS[0]!;
+  const tabs = TABS.map((item) => ({
+    id: item.id,
+    label: item.label,
+    content: (
+      <figure className="m-0">
+        <BrowserFrame url={item.url}>
+          {item.id === "dashboard" ? <DashboardScreen /> : null}
+          {item.id === "history" ? <HistoryScreen /> : null}
+          {item.id === "compare" ? <CompareScreen /> : null}
+          {item.id === "planner" ? <PlannerScreen plan={plan} /> : null}
+        </BrowserFrame>
+        <MockupCaption>{item.caption}</MockupCaption>
+      </figure>
+    ),
+  }));
 
   return (
-    <Tabs.Root
-      value={tab}
-      onValueChange={(value) => setTab(value as TabId)}
-      className="relative"
-    >
+    <div className="relative">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-xl">
-          <p className="plate-label">The workspace</p>
-          <h2 className="plate-title mt-3">The tracker you sign into.</h2>
-          <p className="plate-body mt-4">
+          <p className={EYEBROW}>The workspace</p>
+          <h2 className="mt-3 text-balance font-serif text-[clamp(1.5rem,2.6vw,2.25rem)] font-[450] leading-[1.1] tracking-[-0.02em] text-foreground">
+            The tracker you sign into.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
             Every screen below is a rendering of the real workspace — drawn
             with the app&apos;s own design tokens and populated with sample
             data. Nothing here is a stock dashboard screenshot.
           </p>
         </div>
-        <Tabs.List
-          aria-label="Workspace screens"
-          className="specimen-tabs shrink-0 self-stretch lg:self-auto"
-        >
-          {TABS.map((item) => (
-            <Tabs.Trigger key={item.id} value={item.id} className="specimen-tab">
-              {item.label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
       </div>
 
-      {TABS.map((item) => (
-        <Tabs.Content
-          key={item.id}
-          value={item.id}
-          className="mt-7 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--plate-fg)]"
-        >
-          <motion.figure
-            key={item.id}
-            className="m-0"
-            initial={
-              reduced || tab !== item.id ? false : { opacity: 0, y: 6 }
-            }
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.32, ease: [...EASE] }}
-          >
-            <BrowserFrame url={item.url}>
-              {item.id === "dashboard" ? <DashboardScreen /> : null}
-              {item.id === "history" ? <HistoryScreen /> : null}
-              {item.id === "compare" ? <CompareScreen /> : null}
-              {item.id === "planner" ? <PlannerScreen plan={plan} /> : null}
-            </BrowserFrame>
-            <MockupCaption>{current.caption}</MockupCaption>
-          </motion.figure>
-        </Tabs.Content>
-      ))}
-    </Tabs.Root>
+      <div className="mt-8">
+        <FeatureTabs tabs={tabs} />
+      </div>
+    </div>
   );
 }

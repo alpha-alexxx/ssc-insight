@@ -1,7 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 import { PlainIcon } from "@/components/icon";
+import { Input } from "@/components/input";
+import { Select, type SelectOption } from "@/components/select";
+import { Checkbox } from "@/components/checkbox";
+import { Textarea } from "@/components/textarea";
+import { DatePicker } from "@/components/date-picker";
+import { SegmentedControl } from "@/components/segmented-control";
+import { StepperInput } from "@/components/stepper-input";
+import { Alert } from "@/components/alert";
+import { Collapsible } from "@/components/collapsible";
+import { Add01Icon } from "@/components/animate-ui/icons/hugeicons/add-01";
 import {
   attemptSchemaFor,
   sectionForSubjects,
@@ -87,6 +97,23 @@ function defaultTierId(
 /** Merit-bearing (non-qualifying) subject ids of a pattern, in order. */
 function meritSubjectIds(shape: PatternShape): SubjectId[] {
   return shape.subjects.filter((s) => !s.qualifying).map((s) => s.subjectId);
+}
+
+/** Visible caption column for controls whose own label is aria-only
+ * (StepperInput, SegmentedControl); matches the Field label row. */
+function Labeled({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex w-full flex-col">
+      <p className="px-3 pb-1.5 text-[13px] font-medium text-foreground">{label}</p>
+      {children}
+    </div>
+  );
 }
 
 export function MockForm({
@@ -229,7 +256,7 @@ export function MockForm({
         values.notes,
     ),
   );
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
   const [aiStatusChecked, setAiStatusChecked] = useState(false);
   const [aiDraft, setAiDraft] = useState<ExtractionDraft | null>(null);
@@ -498,59 +525,56 @@ export function MockForm({
   }
   return (
     <div className="mx-auto max-w-6xl">
-      <button
-        className="mb-4 flex items-center gap-2 text-sm muted hover:text-accent transition-colors"
-        onClick={onClose}
-      >
+      <Button variant="ghost" size="sm" onClick={onClose} className="mb-4">
         <PlainIcon name="arrowLeft" size={16} /> {backLabel}
-      </button>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
+      </Button>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h1 className="page-title">{attempt ? "Edit mock" : "Log a mock"}</h1>
-          <p className="mt-1 text-sm muted">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            {attempt ? "Edit mock" : "Log a mock"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Record the result now; refine the details before saving.
           </p>
         </div>
-        <div
-          role="group"
-          aria-label="Entry method"
-          className="segment-group"
-        >
-          <button
-            type="button"
-            aria-pressed={mode === "form"}
-            className="segment"
-            onClick={() => setMode("form")}
-          >
-            Manual
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "paste"}
-            className="segment inline-flex items-center gap-1.5"
-            onClick={() => setMode("paste")}
-          >
-            <PlainIcon name="paste" size={14} /> Paste report
-          </button>
-        </div>
+        <SegmentedControl
+          label="Entry method"
+          size="sm"
+          value={mode}
+          onValueChange={(value) => setMode(value as "form" | "paste")}
+          options={[
+            { value: "form", label: "Manual" },
+            {
+              value: "paste",
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  <PlainIcon name="paste" size={14} /> Paste report
+                </span>
+              ),
+            },
+          ]}
+        />
       </div>
       {mode === "paste" ? (
-        <section className="panel p-4 sm:p-6">
+        <section className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="panel-title">
+              <h2 className="text-base font-semibold text-foreground">
                 {aiDraft && aiReviewing ? "Review AI draft" : "Paste a scorecard"}
               </h2>
-              <p className="mt-1 text-sm muted">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {aiDraft && aiReviewing
                   ? "Check the extracted values before copying them into the form."
                   : "Paste the report text, then choose a standard or AI-assisted import."}
               </p>
             </div>
-            <ol className="flex items-center gap-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted" aria-label="Import progress">
-              <li className={!aiReviewing ? "text-ink" : ""}>1 Paste</li>
+            <ol
+              className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"
+              aria-label="Import progress"
+            >
+              <li className={!aiReviewing ? "text-foreground" : ""}>1 Paste</li>
               <li aria-hidden="true">/</li>
-              <li className={aiReviewing ? "text-ink" : ""}>2 Review</li>
+              <li className={aiReviewing ? "text-foreground" : ""}>2 Review</li>
               <li aria-hidden="true">/</li>
               <li>3 Save</li>
             </ol>
@@ -570,23 +594,23 @@ export function MockForm({
             />
           ) : (
             <>
-              <label>
-                Result report
-                <textarea
-                  rows={12}
-                  placeholder="Your Score… Sectional Summary…"
-                  value={paste}
-                  disabled={aiBusy}
-                  onChange={(e) => {
-                    setPaste(e.target.value);
-                    setAiDraft(null);
-                    setAiReviewing(false);
-                    setAiError("");
-                  }}
-                  maxLength={100000}
-                />
-              </label>
-              <div className="mt-2 flex flex-wrap justify-between gap-2 text-[length:var(--type-secondary)] text-muted">
+              <Textarea
+                label="Result report"
+                minRows={12}
+                maxRows={12}
+                showCount={false}
+                placeholder="Your Score… Sectional Summary…"
+                value={paste}
+                disabled={aiBusy}
+                maxLength={100000}
+                onValueChange={(value) => {
+                  setPaste(value);
+                  setAiDraft(null);
+                  setAiReviewing(false);
+                  setAiError("");
+                }}
+              />
+              <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                 <span>
                   AI can arrange up to {MAX_EXTRACT_CHARS.toLocaleString("en-IN")} characters. The manual parser accepts longer reports.
                 </span>
@@ -594,9 +618,13 @@ export function MockForm({
                   {paste.length.toLocaleString("en-IN")} / {MAX_EXTRACT_CHARS.toLocaleString("en-IN")} for AI
                 </span>
               </div>
-              <div className="action-row mt-5 gap-3">
-                <Button disabled={!paste.trim() || aiBusy} onClick={importPaste}>
-                  Import with standard parser <PlainIcon name="check" size={15} />
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button
+                  disabled={!paste.trim() || aiBusy}
+                  onClick={importPaste}
+                  trailingIcon={<PlainIcon name="check" size={15} />}
+                >
+                  Import with standard parser
                 </Button>
                 <Button
                   variant="outline"
@@ -606,6 +634,9 @@ export function MockForm({
                     aiBusy ||
                     !aiStatus?.enabled
                   }
+                  loading={aiBusy}
+                  statusLabels={{ pending: "Arranging…" }}
+                  icon={<PlainIcon name="sparkles" size={15} />}
                   title={
                     aiStatus && !aiStatus.enabled
                       ? "AI is not configured on this server."
@@ -615,12 +646,7 @@ export function MockForm({
                   }
                   onClick={() => void importWithAi()}
                 >
-                  {aiBusy ? (
-                    <PlainIcon name="refresh" size={15} className="animate-spin" />
-                  ) : (
-                    <PlainIcon name="sparkles" size={15} />
-                  )}
-                  {aiBusy ? "Arranging…" : "Arrange with AI"}
+                  Arrange with AI
                 </Button>
                 {aiDraft && (
                   <Button variant="outline" onClick={() => setAiReviewing(true)}>
@@ -629,7 +655,7 @@ export function MockForm({
                 )}
               </div>
               {!aiStatusChecked && (
-                <p className="mt-3 text-xs muted">Checking AI availability…</p>
+                <p className="mt-3 text-xs text-muted-foreground">Checking AI availability…</p>
               )}
               {aiStatusChecked && !aiStatus && (
                 <p className="mt-3 text-xs text-warning">
@@ -637,22 +663,17 @@ export function MockForm({
                 </p>
               )}
               {aiStatus && !aiStatus.enabled && (
-                <p className="mt-3 text-xs muted">
+                <p className="mt-3 text-xs text-muted-foreground">
                   {aiStatus.state === "personal-invalid"
                     ? "Your saved AI provider cannot be used. Review it in Settings → AI provider; the standard parser still works."
                     : "AI is not configured. Automatic review and manual entry still work."}
                 </p>
               )}
-              <p className="mt-3 text-[length:var(--type-secondary)] text-muted">
+              <p className="mt-3 text-xs text-muted-foreground">
                 AI maps the pasted report into an editable draft but never saves. You will review every field before copying it to the form.
               </p>
               {aiError && (
-                <p
-                  role="alert"
-                  className="mt-4 border border-warning bg-warning-soft rounded-control px-4 py-3 text-xs text-warning"
-                >
-                  {aiError}
-                </p>
+                <Alert tone="warning" title={aiError} className="mt-4" />
               )}
             </>
           )}
@@ -660,218 +681,177 @@ export function MockForm({
       ) : (
         <form onSubmit={save} className="space-y-6">
           {warnings.length > 0 && (
-            <div
-              role="status"
-              className="rounded-control bg-warning-soft p-4 text-warning text-sm"
-            >
-              <strong>Review your report</strong>
+            <Alert tone="warning" title="Review your report">
               {warnings.map((w, i) => (
                 <p key={i} className="mt-1">
                   {w}
                 </p>
               ))}
-            </div>
+            </Alert>
           )}
           {error && (
-            <p
-              ref={errorRef}
-              role="alert"
-              className="flex gap-2 items-start bg-danger-soft text-danger rounded-control p-4 text-sm whitespace-pre-wrap break-words"
-            >
-              <PlainIcon name="danger" size={18} className="shrink-0 mt-0.5" />
-              {error}
-            </p>
+            <div ref={errorRef}>
+              <Alert tone="danger" title={error} />
+            </div>
           )}
-          <section className="panel p-4 sm:p-6">
-            <h2 className="panel-title mb-1">Mock details</h2>
-            <p className="text-xs muted mb-5">
-              Fields marked <span className="req" aria-hidden="true">*</span> are
+          <section className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-6">
+            <h2 className="mb-1 text-base font-semibold text-foreground">Mock details</h2>
+            <p className="mb-5 text-xs text-muted-foreground">
+              Fields marked <span aria-hidden="true" className="text-muted-foreground">*</span> are
               required.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label>
-                <span>
-                  Mock name <span className="req" aria-hidden="true">*</span>
-                </span>
-                <input
-                  required
-                  maxLength={150}
-                  placeholder={`e.g. ${examName} — Mock 12`}
-                  value={values.name}
-                  onChange={(e) => set("name", e.target.value)}
-                />
-              </label>
-              <label>
-                <span>
-                  Platform <span className="req" aria-hidden="true">*</span>
-                </span>
-                <select
-                  required
-                  value={platformChoice}
-                  onChange={(e) => {
-                    setPlatformChoice(e.target.value);
-                    set(
-                      "platform",
-                      e.target.value === "other" ? "" : e.target.value,
-                    );
-                  }}
-                >
-                  <option value="" disabled>
-                    Select platform
-                  </option>
-                  {MOCK_PLATFORMS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                  <option value="other">Others</option>
-                </select>
-              </label>
+              <Input
+                label="Mock name"
+                required
+                maxLength={150}
+                placeholder={`e.g. ${examName} — Mock 12`}
+                value={values.name}
+                onValueChange={(value) => set("name", value)}
+              />
+              <Select
+                label="Platform"
+                placeholder="Select platform"
+                value={platformChoice || null}
+                options={[
+                  ...MOCK_PLATFORMS.map<SelectOption>((p) => ({
+                    value: p,
+                    label: p,
+                  })),
+                  { value: "other", label: "Others" },
+                ]}
+                onValueChange={(value) => {
+                  setPlatformChoice(value);
+                  set("platform", value === "other" ? "" : value);
+                }}
+              />
               {platformChoice === "other" && (
-                <label>
-                  Other platform
-                  <input
-                    type="text"
-                    required
-                    maxLength={80}
-                    placeholder="Enter the platform name"
-                    value={values.platform}
-                    onChange={(e) => set("platform", e.target.value)}
-                  />
-                </label>
-              )}
-              <label>
-                <span>
-                  Attempt date <span className="req" aria-hidden="true">*</span>
-                </span>
-                <input
+                <Input
+                  label="Other platform"
                   required
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  maxLength={80}
+                  placeholder="Enter the platform name"
+                  value={values.platform}
+                  onValueChange={(value) => set("platform", value)}
                 />
-              </label>
-              {!attempt && tierOptions.length > 1 && (
-                <label>
-                  Tier / paper
-                  <select
-                    value={effectiveTierId}
-                    onChange={(e) => chooseTier(e.target.value)}
-                  >
-                    {tierOptions.map((tier) => (
-                      <option key={tier.id} value={tier.id}>
-                        {tier.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               )}
-              <label>
-                Mock type
-                <select
-                  value={values.type}
-                  onChange={(e) =>
-                    chooseType(e.target.value as AttemptInput["type"])
-                  }
-                >
-                  <option value="full">
-                    Full mock ·{" "}
-                    {meritSubjectIds(shape).reduce(
-                      (sum, id) =>
-                        sum +
-                        (shape.subjects.find((s) => s.subjectId === id)
-                          ?.questions ?? 0),
-                      0,
-                    ) * shape.marking.correct}{" "}
-                    marks
-                  </option>
-                  <option value="subject">Subject mock</option>
-                  {shape.sections.length > 0 && (
-                    <option value="sectional">Sectional mock</option>
-                  )}
-                </select>
-              </label>
+              <DatePicker
+                label={
+                  <>
+                    Attempt date{" "}
+                    <span aria-hidden="true" className="text-muted-foreground">*</span>
+                  </>
+                }
+                value={date}
+                onValueChange={(value) => setDate(value ?? "")}
+              />
+              {!attempt && tierOptions.length > 1 && (
+                <Select
+                  label="Tier / paper"
+                  value={effectiveTierId}
+                  options={tierOptions.map((tier) => ({
+                    value: tier.id,
+                    label: tier.label,
+                  }))}
+                  onValueChange={chooseTier}
+                />
+              )}
+              <Select
+                label="Mock type"
+                value={values.type}
+                options={[
+                  {
+                    value: "full",
+                    label: `Full mock · ${
+                      meritSubjectIds(shape).reduce(
+                        (sum, id) =>
+                          sum +
+                          (shape.subjects.find((s) => s.subjectId === id)
+                            ?.questions ?? 0),
+                        0,
+                      ) * shape.marking.correct
+                    } marks`,
+                  },
+                  { value: "subject", label: "Subject mock" },
+                  ...(shape.sections.length > 0
+                    ? [{ value: "sectional", label: "Sectional mock" }]
+                    : []),
+                ]}
+                onValueChange={(value) =>
+                  chooseType(value as AttemptInput["type"])
+                }
+              />
               {values.type === "subject" && (
-                <label>
-                  Subject
-                  <select
-                    value={values.subjects[0]?.subjectId}
-                    onChange={(e) =>
-                      set("subjects", [
-                        blankSubject(e.target.value as SubjectId, shape),
-                      ])
-                    }
-                  >
-                    {shape.subjects.map((s) => (
-                      <option key={s.subjectId} value={s.subjectId}>
-                        {SUBJECTS[s.subjectId].name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Subject"
+                  value={values.subjects[0]?.subjectId ?? null}
+                  options={shape.subjects.map((s) => ({
+                    value: s.subjectId,
+                    label: SUBJECTS[s.subjectId].name,
+                  }))}
+                  onValueChange={(value) =>
+                    set("subjects", [
+                      blankSubject(value as SubjectId, shape),
+                    ])
+                  }
+                />
               )}
               {values.type === "sectional" && (
-                <label>
-                  Section
-                  <select
-                    value={
-                      sectionForSubjects(values.subjects, shape.sections)
-                        ?.id ?? shape.sections[0]?.id
-                    }
-                    onChange={(e) => {
-                      const section = shape.sections.find(
-                        (s) => s.id === e.target.value,
-                      );
-                      if (!section) return;
-                      set(
-                        "subjects",
-                        section.subjectIds.map((id) =>
-                          blankSubject(id, shape),
-                        ),
-                      );
-                    }}
-                  >
-                    {shape.sections.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.name} · {section.description} ·{" "}
-                        {section.subjectIds.reduce(
-                          (sum, id) =>
-                            sum +
-                            (shape.subjects.find((s) => s.subjectId === id)
-                              ?.questions ?? 0),
-                          0,
-                        ) * shape.marking.correct}{" "}
-                        marks
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Section"
+                  value={
+                    sectionForSubjects(values.subjects, shape.sections)?.id ??
+                    shape.sections[0]?.id ??
+                    null
+                  }
+                  options={shape.sections.map((section) => ({
+                    value: section.id,
+                    label: `${section.name} · ${section.description} · ${
+                      section.subjectIds.reduce(
+                        (sum, id) =>
+                          sum +
+                          (shape.subjects.find((s) => s.subjectId === id)
+                            ?.questions ?? 0),
+                        0,
+                      ) * shape.marking.correct
+                    } marks`,
+                  }))}
+                  onValueChange={(value) => {
+                    const section = shape.sections.find(
+                      (s) => s.id === value,
+                    );
+                    if (!section) return;
+                    set(
+                      "subjects",
+                      section.subjectIds.map((id) =>
+                        blankSubject(id, shape),
+                      ),
+                    );
+                  }}
+                />
               )}
             </div>
             {values.type === "full" && qualifyingSubject && (
-              <div className="mt-5 border-t border-rule-soft pt-4">
-                <label className="!flex flex-row items-center gap-3 text-sm text-ink">
-                  <input
-                    type="checkbox"
-                    checked={includesQualifying}
-                    onChange={(e) =>
-                      set(
-                        "subjects",
-                        e.target.checked
-                          ? [
-                              ...values.subjects,
-                              blankSubject(qualifyingSubject.subjectId, shape),
-                            ]
-                          : values.subjects.filter(
-                              (s) =>
-                                s.subjectId !== qualifyingSubject.subjectId,
-                            ),
-                      )
-                    }
-                  />
-                  Include {SUBJECTS[qualifyingSubject.subjectId].name}
-                </label>
-                <p className="text-xs muted mt-2">
+              <div className="mt-5 border-t border-border pt-4">
+                <Checkbox
+                  checked={includesQualifying}
+                  onCheckedChange={(checked) =>
+                    set(
+                      "subjects",
+                      checked
+                        ? [
+                            ...values.subjects,
+                            blankSubject(qualifyingSubject.subjectId, shape),
+                          ]
+                        : values.subjects.filter(
+                            (s) =>
+                              s.subjectId !== qualifyingSubject.subjectId,
+                          ),
+                    )
+                  }
+                  label={`Include ${SUBJECTS[qualifyingSubject.subjectId].name}`}
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
                   {SUBJECTS[qualifyingSubject.subjectId].short} is scored
                   separately from the main{" "}
                   {formatNumber(
@@ -889,10 +869,10 @@ export function MockForm({
               </div>
             )}
           </section>
-          <section className="panel p-4 sm:p-6">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6">
-              <h2 className="panel-title">Subject results</h2>
-              <p className="text-xs muted">
+          <section className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-6">
+            <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold text-foreground">Subject results</h2>
+              <p className="text-xs text-muted-foreground">
                 +{shape.marking.correct} correct ·{" "}
                 {shape.marking.incorrect > 0
                   ? `−${shape.marking.incorrect} incorrect`
@@ -909,72 +889,66 @@ export function MockForm({
                 return (
                 <div key={s.subjectId}>
                   {sectionHeading && (
-                    <p className="mb-4 border-b border-rule-soft pb-2 text-sm font-medium">
+                    <p className="mb-4 border-b border-border pb-2 text-sm font-medium text-foreground">
                       {sectionHeading}
                     </p>
                   )}
-                  <h3 className="font-medium text-sm mb-3">
+                  <h3 className="mb-3 text-sm font-medium text-foreground">
                     {SUBJECTS[s.subjectId].name}
                   </h3>
                   {/* Three columns until lg: 768-1023 with the sidebar open
                       leaves ~490px, and five ~78px columns wrap the labels
                       and pinch the number fields. */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    <label>
-                      Questions
-                      <input
-                        type="number"
-                        className="no-spin"
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                    <Labeled label="Questions">
+                      <StepperInput
+                        label="Questions"
+                        variant="field"
+                        className="w-full"
+                        value={s.questions}
                         min={1}
                         max={500}
-                        required
-                        readOnly={values.type === "full"}
-                        value={s.questions}
-                        onChange={(e) =>
-                          updateSubject(i, {
-                            questions: Number(e.target.value),
-                          })
+                        onValueChange={(value) =>
+                          updateSubject(i, { questions: value })
                         }
+                        disabled={values.type === "full"}
                       />
-                    </label>
-                    <label>
-                      Correct
-                      <input
-                        type="number"
-                        className="no-spin bg-positive-soft/50"
-                        min={0}
-                        max={s.questions}
-                        required
+                    </Labeled>
+                    <Labeled label="Correct">
+                      <StepperInput
+                        label="Correct"
+                        variant="field"
+                        className="w-full"
                         value={s.correct}
-                        onChange={(e) =>
-                          updateSubject(i, { correct: Number(e.target.value) })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Incorrect
-                      <input
-                        type="number"
-                        className="no-spin bg-danger-soft/50"
                         min={0}
                         max={s.questions}
-                        required
-                        value={s.incorrect}
-                        onChange={(e) =>
-                          updateSubject(i, {
-                            incorrect: Number(e.target.value),
-                          })
+                        onValueChange={(value) =>
+                          updateSubject(i, { correct: value })
                         }
                       />
-                    </label>
-                    <label>
-                      Score
-                      <input
-                        type="number"
-                        readOnly
-                        value={s.correct * 3 - s.incorrect}
+                    </Labeled>
+                    <Labeled label="Incorrect">
+                      <StepperInput
+                        label="Incorrect"
+                        variant="field"
+                        className="w-full"
+                        value={s.incorrect}
+                        min={0}
+                        max={s.questions}
+                        onValueChange={(value) =>
+                          updateSubject(i, { incorrect: value })
+                        }
                       />
-                    </label>
+                    </Labeled>
+                    <Labeled label="Score">
+                      <StepperInput
+                        label="Score"
+                        variant="field"
+                        className="w-full"
+                        value={s.correct * 3 - s.incorrect}
+                        disabled
+                      />
+                    </Labeled>
                     <DurationInput
                       key={`${s.subjectId}-${importVersion}`}
                       subjectName={SUBJECTS[s.subjectId].short}
@@ -984,7 +958,7 @@ export function MockForm({
                       }
                     />
                   </div>
-                  <p className="text-xs muted mt-3">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     {s.correct + s.incorrect} attempted ·{" "}
                     {s.questions - s.correct - s.incorrect} unattempted ·{" "}
                     {formatNumber(s.correct * 3 - s.incorrect)} calculated marks
@@ -994,75 +968,71 @@ export function MockForm({
               })}
             </div>
           </section>
-          <details
-            className="panel group"
-            open={additionalOpen}
-            onToggle={(event) => setAdditionalOpen(event.currentTarget.open)}
-          >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:px-6 sm:py-5">
-              <span className="panel-title">
+          <section className="rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+            <div className="px-4 pt-4 sm:px-6">
+              <h2 className="text-base font-semibold text-foreground">
                 Additional results{" "}
-                <span className="font-normal muted text-base">· optional</span>
-              </span>
-              <span className="text-xs muted group-open:hidden">Expand</span>
-              <span className="hidden text-xs muted group-open:inline">Collapse</span>
-            </summary>
-            <div className="border-t border-rule-soft p-4 sm:p-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <span className="text-sm font-normal text-muted-foreground">· optional</span>
+              </h2>
+            </div>
+            <Collapsible
+              open={additionalOpen}
+              onOpenChange={setAdditionalOpen}
+              labels={{ closed: "Expand", open: "Collapse" }}
+              placement="top"
+              className="px-4 pb-4 sm:px-6 sm:pb-6"
+            >
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {(["rank", "participants", "percentile"] as const).map((key) => (
-                  <label key={key}>
-                    {
+                  <Input
+                    key={key}
+                    type="number"
+                    label={
                       {
                         rank: "Rank",
                         participants: "Participants",
                         percentile: "Percentile (%)",
                       }[key]
                     }
-                    <input
-                      type="number"
-                      step={key === "percentile" ? "0.01" : "1"}
-                      value={values[key] ?? ""}
-                      onChange={(e) =>
-                        set(
-                          key,
-                          e.target.value === "" ? null : Number(e.target.value),
-                        )
-                      }
-                    />
-                  </label>
-                ))}
-                <label>
-                  Overall time (hh:mm:ss)
-                  <input
-                    readOnly
-                    value={formatTime(computedValues.overallTimeSeconds).padStart(
-                      8,
-                      "0",
-                    )}
+                    step={key === "percentile" ? "0.01" : "1"}
+                    value={values[key] ?? ""}
+                    onValueChange={(value) =>
+                      set(
+                        key,
+                        value === "" ? null : Number(value),
+                      )
+                    }
                   />
-                </label>
-              </div>
-              <label className="mt-5">
-                Notes
-                <textarea
-                  rows={3}
-                  maxLength={5000}
-                  placeholder="What went well? What needs another look?"
-                  value={values.notes}
-                  onChange={(e) => set("notes", e.target.value)}
+                ))}
+                <Input
+                  label="Overall time (hh:mm:ss)"
+                  readOnly
+                  value={formatTime(computedValues.overallTimeSeconds).padStart(
+                    8,
+                    "0",
+                  )}
                 />
-              </label>
-            </div>
-          </details>
-          <div className="panel sticky bottom-0 z-20 shadow-pop flex flex-wrap items-center justify-between gap-5 p-4 sm:p-5">
-            <div className="tabular" aria-live="polite" aria-atomic="true">
-              <strong className="text-xl">
+              </div>
+              <Textarea
+                className="mt-5"
+                label="Notes"
+                minRows={3}
+                maxLength={5000}
+                placeholder="What went well? What needs another look?"
+                value={values.notes}
+                onValueChange={(value) => set("notes", value)}
+              />
+            </Collapsible>
+          </section>
+          <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-5">
+            <div className="tabular-nums" aria-live="polite" aria-atomic="true">
+              <strong className="text-xl font-semibold text-foreground">
                 {formatNumber(stats.score)}{" "}
-                <span className="text-sm font-normal muted">
+                <span className="text-sm font-normal text-muted-foreground">
                   / {stats.maxScore}
                 </span>
               </strong>
-              <p className="text-xs muted mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {stats.attempted} attempted · {formatNumber(stats.accuracy, 2)}
                 {stats.accuracy == null ? "" : "%"} accuracy · {formatTime(computedValues.overallTimeSeconds)} total
               </p>
@@ -1073,7 +1043,7 @@ export function MockForm({
                   );
                   if (!row) return null;
                   return (
-                    <p className="text-xs muted mt-2">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {SUBJECTS[qualifyingSubject.subjectId].short}:{" "}
                       {formatScore(
                         row.scoreOverride ??
@@ -1087,19 +1057,28 @@ export function MockForm({
                   );
                 })()}
             </div>
-            <div className="action-row-stack gap-3 sm:w-auto">
+            <div className="flex flex-wrap gap-3 sm:w-auto">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={busy}>
-                <PlainIcon name="save" size={16} />
-                {busy
-                  ? "Saving…"
-                  : duplicateReviewed
-                    ? "Save repeat mock"
-                    : attempt
-                      ? "Update mock"
-                      : "Save mock"}
+              <Button
+                type="submit"
+                loading={busy}
+                statusLabels={{ pending: "Saving…" }}
+                icon={
+                  <Add01Icon
+                    size={16}
+                    color="var(--primary-foreground)"
+                    animateOnHover
+                    animateOnTap
+                  />
+                }
+              >
+                {duplicateReviewed
+                  ? "Save repeat mock"
+                  : attempt
+                    ? "Update mock"
+                    : "Save mock"}
               </Button>
             </div>
           </div>

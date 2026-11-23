@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Button } from "@/components/button";
 
 /**
  * Shared presentation for every route-level `error.tsx`.
@@ -36,14 +37,14 @@ export function RouteError({
 
   return (
     <div role="alert" className="mx-auto w-full max-w-lg px-5 py-16">
-      <div className="rounded-card border border-rule-soft bg-paper p-8 shadow-pop">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+      <div className="rounded-2xl bg-card p-8 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Something went wrong
         </p>
-        <h1 className="mt-2 font-serif text-2xl leading-tight text-ink">{title}</h1>
-        <p className="mt-4 text-sm leading-6 text-muted">{description}</p>
+        <h1 className="mt-2 font-serif text-2xl leading-tight text-foreground">{title}</h1>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">{description}</p>
         {message ? (
-          <p className="mt-4 rounded-control border border-rule-soft bg-soft px-3 py-2 text-xs leading-5 text-muted">
+          <p className="mt-4 rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]">
             {message}
             {digest ? (
               <span className="mt-1 block opacity-70">Reference: {digest}</span>
@@ -51,21 +52,17 @@ export function RouteError({
           </p>
         ) : null}
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={retry}
-            className="inline-flex items-center justify-center rounded-control bg-accent px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-accent-hover"
-          >
+          <Button variant="primary" size="lg" onClick={retry}>
             Try again
-          </button>
+          </Button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center rounded-control border border-rule-soft px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-soft"
+            className="inline-flex h-10 items-center justify-center rounded-full px-5 text-[14px] font-medium text-foreground transition-colors hover:bg-accent"
           >
             Go to dashboard
           </Link>
         </div>
-        <p className="mt-6 text-xs text-muted">
+        <p className="mt-6 text-xs text-muted-foreground">
           Your saved mocks, plan progress and settings are untouched.
         </p>
       </div>

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { PlainIcon, type IconName } from "./icon";
 import type { AnswerStack } from "@/lib/analytics";
 import {
@@ -32,6 +33,18 @@ const subjectIcons: Record<string, IconName> = {
   english: "english",
   ga: "ga",
   computer: "computer",
+};
+
+/* Subject identity is global and never re-themed per palette: quant is
+ * chart-1 terracotta, reasoning chart-2 blue, english chart-3 green, ga
+ * chart-4 gold, computer chart-5 graphite. Non-subject stacks fall back to
+ * the score series (chart-1) in the CSS. */
+const subjectSeries: Record<string, string> = {
+  quant: "var(--chart-1)",
+  reasoning: "var(--chart-2)",
+  english: "var(--chart-3)",
+  ga: "var(--chart-4)",
+  computer: "var(--chart-5)",
 };
 const radius = 40;
 const circumference = 2 * Math.PI * radius;
@@ -89,6 +102,7 @@ export function AttemptOutcomeCard({
         ? "Subject mocks"
         : stack.label;
   const iconName = subjectIcons[stack.id] ?? "layers";
+  const seriesColor = subjectSeries[stack.id];
   const missingPercentile =
     scope === "subject"
       ? "No standalone subject percentile"
@@ -99,8 +113,15 @@ export function AttemptOutcomeCard({
   return (
     <article className={styles.card} aria-label={`${label} question breakdown`}>
       <header className={styles.header}>
-        <span className={styles.subjectIcon}>
-          <PlainIcon name={iconName} size={19} tone="mono" />
+        <span
+          className={styles.subjectIcon}
+          style={
+            seriesColor
+              ? ({ "--outcome-color": seriesColor } as CSSProperties)
+              : undefined
+          }
+        >
+          <PlainIcon name={iconName} size={19} />
         </span>
         <div className={styles.headerText}>
           <h3 title={label}>{label}</h3>
@@ -239,7 +260,7 @@ export function AttemptRecordCard({
             {tierSuffix(attempt.examId, attempt.tierId) && (
               <>
                 {" "}
-                <span className="text-[0.625rem] uppercase tracking-wide text-muted">
+                <span className="text-[0.625rem] uppercase tracking-wide text-muted-foreground">
                   {tierSuffix(attempt.examId, attempt.tierId)}
                 </span>
               </>
@@ -267,7 +288,7 @@ export function AttemptRecordCard({
         </dl>
         <button
           type="button"
-          className={`${styles.recordAction} tap-target`}
+          className={`${styles.recordAction}`}
           aria-label={`View result for ${attempt.name}`}
           onClick={() => onOpen(attempt)}
         >

@@ -2,33 +2,17 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Check,
-  History,
-  ListChecks,
-  MessageSquare,
-  ScanLine,
-  Shield,
-  Sparkles,
-  SquarePen,
-  Trash2,
-} from "@/components/ui/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Icon, type IconName } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Sheet } from "@/components/sheet";
+import { Tooltip } from "@/components/tooltip";
+import { toast } from "@/components/toast-stack";
 import { aiUsageLabel, useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";
-import { useToast } from "@/components/toast";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
 import { LogMockFlow } from "@/components/shared/ai/log-mock-flow";
 import { useUiStore } from "@/stores/ui-store";
-import {
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerHandle,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { ChatTranscript } from "@/components/shared/ai/chat-transcript";
 import { ChatComposer } from "@/components/shared/ai/chat-composer";
 import { ChatEmptyState } from "@/components/shared/ai/chat-empty-state";
@@ -38,18 +22,12 @@ import { AiActivity } from "./ai-activity";
 import { istTodayIso } from "@/lib/plan/view-model";
 import { cn } from "@/lib/utils";
 
-const FOLLOW_UPS = [
-  "Show my weakest subject",
-  "How is my trend?",
-  "Plan my revision",
-];
-
 /** The composer's modes, surfaced as chips: Chat, Todos (AI task drafts),
  * Mock (AI report parsing that hands off to /add). */
 const MODES = [
-  { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "todos", label: "Todos", icon: ListChecks },
-  { id: "mock", label: "Mock", icon: ScanLine },
+  { id: "chat", label: "Chat", icon: "chat" },
+  { id: "todos", label: "Todos", icon: "list" },
+  { id: "mock", label: "Mock", icon: "paste" },
 ] as const;
 
 type ComposerMode = (typeof MODES)[number]["id"];
@@ -60,13 +38,12 @@ type ComposerMode = (typeof MODES)[number]["id"];
  * middle, and the read ledger in its own right rail from xl up (lg parks a
  * compact copy under the list). One conversation with the sheet — asking
  * here, then opening the side panel, keeps the same turns. Below lg the rail
- * becomes a bottom drawer (the calendar's phone pattern), so history is
+ * becomes a bottom sheet (the calendar's phone pattern), so history is
  * reachable at every width.
  */
 export function AskView({ firstName }: { firstName?: string }) {
   const ai = useAiWorkspace();
   const planApi = usePlanData();
-  const toast = useToast();
   const router = useRouter();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<ComposerMode>("chat");
@@ -99,12 +76,12 @@ export function AskView({ firstName }: { firstName?: string }) {
       {toolNotes.map((note) => (
         <p
           key={note.id}
-          className="flex items-center gap-1.5 text-[0.6875rem] text-muted"
+          className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
         >
           {note.icon === "check" ? (
-            <Check size={11} aria-hidden className="text-positive" />
+            <Icon name="check" size={11} tone="success" />
           ) : (
-            <ArrowRight size={11} aria-hidden className="text-accent" />
+            <Icon name="arrowRight" size={11} tone="primary" />
           )}
           {note.text}
           <span aria-hidden="true">·</span>
@@ -122,36 +99,6 @@ export function AskView({ firstName }: { firstName?: string }) {
 
   const usage = aiUsageLabel(ai.aiStatus ?? null);
 
-  const composerMeta = (
-    <>
-      <button
-        type="button"
-        aria-label="Clear conversation"
-        title="Clear conversation"
-        className="tap-target inline-flex size-8 items-center justify-center rounded-control text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
-        disabled={ai.chat.streaming || !ai.chat.messages.length}
-        onClick={ai.chat.clear}
-      >
-        <Trash2 size={14} aria-hidden />
-      </button>
-      {ai.aiStatus?.credential ? (
-        <span className="max-w-[24ch] truncate rounded-pill border border-rule-soft px-2 py-0.5 text-[11px] text-muted">
-          {ai.aiStatus.credential.model} · read-only
-        </span>
-      ) : null}
-      {usage ? (
-        <span className="tabular-nums text-[11px] text-muted">{usage}</span>
-      ) : null}
-    </>
-  );
-
-  const conversationList = (
-    <ConversationList
-      history={ai.chat.history}
-      streaming={ai.chat.streaming}
-    />
-  );
-
   // The header names WHERE you are: the active conversation's title, or the
   // fresh-conversation state until the first message lands.
   const conversationTitle = useMemo(() => {
@@ -161,6 +108,51 @@ export function AskView({ firstName }: { firstName?: string }) {
     );
     return active?.title ?? "Conversation";
   }, [ai.chat.messages.length, ai.chat.history]);
+
+  const conversationList = (
+    <ConversationList
+      history={ai.chat.history}
+      streaming={ai.chat.streaming}
+    />
+  );
+
+  const modeChips = (
+    <div
+      role="tablist"
+      aria-label="Assistant mode"
+      className="mb-2 flex items-center gap-1.5"
+    >
+      {MODES.map((item) => {
+        const pending =
+          (item.id === "todos" && todosTakeover) ||
+          (item.id === "mock" && mockTakeover);
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === item.id}
+            onClick={() => setMode(item.id)}
+            className={cn(
+              "relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+              mode === item.id
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Icon name={item.icon as IconName} size={12} />
+            {item.label}
+            {pending && mode !== item.id ? (
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-primary"
+              />
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     // The exact height the workspace frame leaves this page: the sticky app
@@ -172,85 +164,89 @@ export function AskView({ firstName }: { firstName?: string }) {
           (new chat, history) without leaving the keyboard. The grounding
           sentence rides a styled tooltip on the Read-only chip; the full
           pledge lives in the empty state and the usage footer. */}
-      <TooltipProvider delayDuration={250}>
-        <header className="mb-3 flex items-center justify-between gap-3 border-b border-rule-soft pb-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className="grid size-8 shrink-0 place-items-center rounded-control bg-accent-soft text-accent"
-            >
-              <Sparkles size={15} />
-            </span>
-            <h1 className="shrink-0 font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.01em] text-ink">
-              Ask AI
-            </h1>
-            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-rule-soft" />
-            {/* The title opens history: the inline rail on desktop, the
-                drawer below lg — two buttons, no viewport guessing. */}
-            <button
-              type="button"
-              onClick={() => setRailOpen(true)}
-              className="hidden min-w-0 truncate rounded-control px-1.5 py-0.5 text-sm text-muted transition-colors hover:bg-soft hover:text-ink lg:block"
-              title={`${conversationTitle} — open history`}
-            >
-              {conversationTitle}
-            </button>
-            <button
-              type="button"
-              onClick={() => setRailDrawerOpen(true)}
-              className="min-w-0 truncate rounded-control px-1.5 py-0.5 text-sm text-muted transition-colors hover:bg-soft hover:text-ink lg:hidden"
-              title={`${conversationTitle} — open history`}
-            >
-              {conversationTitle}
-            </button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  tabIndex={0}
-                  className="hidden shrink-0 items-center gap-1 rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
-                >
-                  <Shield size={10} aria-hidden className="text-accent" />
-                  Read-only
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-64">
+      <header className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Icon name="sparkles" size={15} />
+          </span>
+          <h1 className="shrink-0 font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.01em] text-foreground">
+            Ask AI
+          </h1>
+          <span aria-hidden="true" className="h-4 w-px shrink-0 bg-border" />
+          {/* The title opens history: the inline rail on desktop, the
+              bottom sheet below lg — two buttons, no viewport guessing. */}
+          <button
+            type="button"
+            onClick={() => setRailOpen(true)}
+            className="hidden min-w-0 truncate rounded-lg px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:block"
+            title={`${conversationTitle} — open history`}
+          >
+            {conversationTitle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRailDrawerOpen(true)}
+            className="min-w-0 truncate rounded-lg px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+            title={`${conversationTitle} — open history`}
+          >
+            {conversationTitle}
+          </button>
+          <Tooltip
+            content={
+              <span className="block max-w-64 whitespace-normal text-left">
                 Answers read your aggregates and latest 20 full mocks — never
                 notes or identity.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => ai.chat.history.newChat()}
-              className="tap-target inline-flex items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink"
-              title="Start a new conversation"
+              </span>
+            }
+          >
+            <span
+              tabIndex={0}
+              className="hidden shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:inline-flex"
             >
-              <SquarePen size={14} aria-hidden />
-              <span className="hidden md:inline">New chat</span>
-            </button>
-            {/* Desktop toggles the inline rail; below lg the same content
-                opens as a bottom drawer, so no width ships a dead toggle. */}
-            <button
-              type="button"
-              aria-expanded={railOpen}
-              className="tap-target hidden items-center gap-1.5 rounded-control border border-rule px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink lg:inline-flex"
-              onClick={() => setRailOpen((open) => !open)}
-            >
-              <History size={14} aria-hidden />
-              {railOpen ? "Hide history" : "Show history"}
-            </button>
-            <button
-              type="button"
-              aria-label="Conversation history"
-              className="tap-target inline-flex size-9 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink lg:hidden"
-              onClick={() => setRailDrawerOpen(true)}
-            >
-              <History size={15} aria-hidden />
-            </button>
-          </div>
-        </header>
-      </TooltipProvider>
+              <Icon name="shield" size={10} tone="primary" />
+              Read-only
+            </span>
+          </Tooltip>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => ai.chat.history.newChat()}
+            title="Start a new conversation"
+            icon={<Icon name="edit" size={14} />}
+          >
+            <span className="hidden md:inline">New chat</span>
+          </Button>
+          {/* Desktop toggles the inline rail; below lg the same content
+              opens as a bottom sheet, so no width ships a dead toggle. */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-expanded={railOpen}
+            className="hidden lg:inline-flex"
+            onClick={() => setRailOpen((open) => !open)}
+            icon={<Icon name="history" size={14} />}
+          >
+            {railOpen ? "Hide history" : "Show history"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Conversation history"
+            className="lg:hidden"
+            onClick={() => setRailDrawerOpen(true)}
+          >
+            <Icon name="history" size={15} />
+          </Button>
+        </div>
+      </header>
       <div
         className={cn(
           "min-h-0 flex-1",
@@ -262,7 +258,7 @@ export function AskView({ firstName }: { firstName?: string }) {
         {railOpen && (
           <aside
             aria-label="Conversation history and AI activity"
-            className="hidden min-h-0 flex-col border-r border-rule-soft pr-4 lg:flex"
+            className="hidden min-h-0 flex-col border-r border-border pr-4 lg:flex"
           >
             <ConversationList
               history={ai.chat.history}
@@ -301,14 +297,15 @@ export function AskView({ firstName }: { firstName?: string }) {
               emptyState={
                 enabled ? (
                   <ChatEmptyState
+                    firstName={firstName}
                     onSend={(text) => ai.chat.send(text, screenContext, false)}
                   />
                 ) : (
-                  <div className="mx-auto max-w-xl rounded-control border border-rule bg-canvas p-5">
-                    <h3 className="font-serif text-lg font-medium text-ink">
+                  <div className="mx-auto max-w-xl rounded-2xl bg-card p-5 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+                    <h3 className="text-base font-semibold text-foreground">
                       Set up your AI provider
                     </h3>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted">
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                       Ask AI runs on your own provider key. It is encrypted
                       before storage and never returned to this page.
                     </p>
@@ -336,44 +333,8 @@ export function AskView({ firstName }: { firstName?: string }) {
                 {/* Mode chips — visible in every non-takeover state; they
                     hide while a ledger/roster owns the column (its back
                     arrow is the way out). A pending draft in a background
-                    mode marks its chip with an accent dot. */}
-                {!todosTakeover && !mockTakeover ? (
-                  <div
-                    role="tablist"
-                    aria-label="Assistant mode"
-                    className="mb-2 flex items-center gap-1.5"
-                  >
-                    {MODES.map((item) => {
-                      const pending =
-                        (item.id === "todos" && todosTakeover) ||
-                        (item.id === "mock" && mockTakeover);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          role="tab"
-                          aria-selected={mode === item.id}
-                          onClick={() => setMode(item.id)}
-                          className={cn(
-                            "tap-target relative inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
-                            mode === item.id
-                              ? "border-accent/30 bg-accent-soft text-accent"
-                              : "border-transparent text-muted hover:bg-soft hover:text-ink",
-                          )}
-                        >
-                          <item.icon size={12} aria-hidden />
-                          {item.label}
-                          {pending && mode !== item.id ? (
-                            <span
-                              aria-hidden="true"
-                              className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-accent"
-                            />
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                    mode marks its chip with a primary dot. */}
+                {!todosTakeover && !mockTakeover ? modeChips : null}
 
                 {mode === "chat" ? (
                   <>
@@ -394,7 +355,7 @@ export function AskView({ firstName }: { firstName?: string }) {
                       onModeChange={setMode}
                       onClear={ai.chat.clear}
                     />
-                    <p className="mt-2 text-center text-[0.6875rem] text-muted">
+                    <p className="mt-2 text-center text-[11px] text-muted-foreground">
                       Answers are generated from your tracker snapshot and can
                       be wrong.
                     </p>
@@ -424,8 +385,8 @@ export function AskView({ firstName }: { firstName?: string }) {
                       }
                     />
                   ) : (
-                    <div className="rounded-2xl border border-rule-soft bg-paper p-4 shadow-input">
-                      <p className="text-sm leading-relaxed text-muted">
+                    <div className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         Todo planning runs on AI. Set up a provider below to
                         draft revision todos here.
                       </p>
@@ -467,8 +428,8 @@ export function AskView({ firstName }: { firstName?: string }) {
                       }}
                     />
                   ) : (
-                    <div className="rounded-2xl border border-rule-soft bg-paper p-4 shadow-input">
-                      <p className="text-sm leading-relaxed text-muted">
+                    <div className="rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         Mock parsing works without AI for standard scorecards.
                         Set up a provider below to parse with AI and attach
                         screenshots.
@@ -489,7 +450,7 @@ export function AskView({ firstName }: { firstName?: string }) {
         </section>
         <aside
           aria-label="AI read ledger"
-          className="hidden min-h-0 flex-col border-l border-rule-soft pl-4 xl:flex"
+          className="hidden min-h-0 flex-col border-l border-border pl-4 xl:flex"
         >
           <AiActivity
             refreshKey={ai.chat.messages.length}
@@ -498,21 +459,22 @@ export function AskView({ firstName }: { firstName?: string }) {
         </aside>
       </div>
 
-      <Drawer open={railDrawerOpen} onOpenChange={setRailDrawerOpen}>
-        <DrawerContent className="h-[72dvh]">
-          <DrawerHandle />
-          <DrawerTitle className="sr-only">
-            Conversation history and AI activity
-          </DrawerTitle>
-          <DrawerBody className="flex flex-col gap-5">
-            {conversationList}
-            <AiActivity
-              refreshKey={ai.chat.messages.length}
-              className="min-h-0 flex-1"
-            />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      {/* Below lg the rail opens as a bottom sheet (the calendar's phone
+          pattern): the same history list and read ledger, drag-to-dismiss. */}
+      <Sheet
+        open={railDrawerOpen}
+        onOpenChange={setRailDrawerOpen}
+        side="bottom"
+        title="Conversation history and AI activity"
+      >
+        <div className="flex h-[70dvh] min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain">
+          {conversationList}
+          <AiActivity
+            refreshKey={ai.chat.messages.length}
+            className="min-h-0 flex-1"
+          />
+        </div>
+      </Sheet>
     </div>
   );
 }

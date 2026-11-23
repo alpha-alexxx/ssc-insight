@@ -1,16 +1,13 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Button } from "@/components/button";
+import { Skeleton } from "@/components/skeleton";
+import { Tooltip } from "@/components/tooltip";
+import { SegmentedControl } from "@/components/segmented-control";
 import { Swap } from "@/components/motion-swap";
+import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { AttemptRecordCard } from "@/components/attempt-outcome-card";
 import { PerformancePreview } from "@/components/performance-preview";
@@ -35,7 +32,7 @@ import { longDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * Dashboard composition. The metric strip answers "where am I?", Today's Plan
+ * Dashboard composition. The metric band answers "where am I?", Today's Plan
  * pairs the study day with the personal task column side by side (tabbed
  * below xl), the week strip replaces the full calendar, and the pipeline
  * column keeps progress, revision and the coach in view. Performance analysis
@@ -97,7 +94,7 @@ export function DashboardView({
       />
 
       <section
-        className="mt-8 border-t border-rule pt-5"
+        className="mt-8 border-t border-border pt-5"
         aria-labelledby="today-plan-heading"
       >
         {/* An editorial head rather than a card: a small-caps dateline carries
@@ -109,18 +106,18 @@ export function DashboardView({
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
             <p
-              className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted"
+              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
               aria-live="polite"
             >
               {activeDay ? (
                 <>
-                  <span className="tabular text-ink">
+                  <span className="tabular-nums text-foreground">
                     Day {activeDay.day} of {totalDays}
                   </span>
                   <span aria-hidden="true"> · </span>
                   <span
                     className={cn(
-                      activeDay.dayType.includes("MOCK") && "text-accent",
+                      activeDay.dayType.includes("MOCK") && "text-primary",
                     )}
                   >
                     {dayTypeLabel(activeDay.dayType)}
@@ -131,7 +128,10 @@ export function DashboardView({
               )}
             </p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h2 id="today-plan-heading" className="section-title text-ink">
+              <h2
+                id="today-plan-heading"
+                className="font-serif text-[26px] leading-none tracking-[-0.01em] text-foreground"
+              >
                 What&apos;s the Plan!
               </h2>
               {/* The return control sits beside the title, not in the arrow
@@ -141,7 +141,7 @@ export function DashboardView({
                 <button
                   type="button"
                   onClick={() => setFocusDate(null)}
-                  className="text-[0.6875rem] font-medium text-accent underline decoration-accent/40 underline-offset-[3px] transition-colors hover:decoration-accent motion-reduce:transition-none"
+                  className="text-[11px] font-medium text-primary underline decoration-primary/40 underline-offset-[3px] transition-colors hover:decoration-primary motion-reduce:transition-none"
                 >
                   Back to today
                 </button>
@@ -152,50 +152,44 @@ export function DashboardView({
             <div
               role="group"
               aria-label="Change the plan day"
-              className="flex h-[var(--day-nav-size)] w-full items-stretch divide-x divide-rule-soft overflow-hidden rounded-control border border-rule-soft bg-paper sm:w-auto sm:shrink-0"
+              className="flex h-9 w-full items-stretch divide-x divide-border overflow-hidden rounded-[12px] border border-border bg-card sm:w-auto sm:shrink-0"
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Previous day"
-                    disabled={activeDate <= plan.startDate}
-                    onClick={() => shiftFocus(-1)}
-                    className="flex w-[var(--day-nav-size)] items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
-                  >
-                    <ChevronLeft size={15} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Previous day</TooltipContent>
+              <Tooltip content="Previous day">
+                <button
+                  type="button"
+                  aria-label="Previous day"
+                  disabled={activeDate <= plan.startDate}
+                  onClick={() => shiftFocus(-1)}
+                  className="flex size-9 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
+                >
+                  <PlainIcon name="chevronRight" size={15} className="rotate-180" />
+                </button>
               </Tooltip>
               {/* The dateline is the head's only live region: repeating it on
                   the title block would announce the same day change twice. */}
               <p
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 px-3 font-serif text-[0.9375rem] font-medium tabular tracking-[-0.01em] sm:flex-none",
-                  activeDate === today ? "text-ink" : "text-accent",
+                  "flex flex-1 items-center justify-center gap-1.5 px-3 font-serif text-[15px] font-medium tabular-nums tracking-[-0.01em] sm:flex-none",
+                  activeDate === today ? "text-foreground" : "text-primary",
                 )}
               >
                 {isoWeekdayShort(activeDate)}, {longDate(activeDate)}
                 {activeDate === today && (
-                  <span className="rounded-pill bg-ink px-1.5 py-px font-sans text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-paper">
+                  <span className="rounded-full bg-primary px-1.5 py-px font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-foreground">
                     Today
                   </span>
                 )}
               </p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Next day"
-                    disabled={activeDate >= plan.endDate}
-                    onClick={() => shiftFocus(1)}
-                    className="flex w-[var(--day-nav-size)] items-center justify-center text-muted transition-colors hover:bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
-                  >
-                    <ChevronRight size={15} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Next day</TooltipContent>
+              <Tooltip content="Next day">
+                <button
+                  type="button"
+                  aria-label="Next day"
+                  disabled={activeDate >= plan.endDate}
+                  onClick={() => shiftFocus(1)}
+                  className="flex size-9 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none"
+                >
+                  <PlainIcon name="chevronRight" size={15} />
+                </button>
               </Tooltip>
             </div>
           )}
@@ -205,33 +199,20 @@ export function DashboardView({
             the canvas as a third stacked bar between the title and the
             panels. It is full-width until the two panes can sit side by side
             (xl), which is exactly when the switch stops being needed. */}
-        <div
-          role="group"
-          aria-label="Switch between the study plan and personal tasks"
-          className="segment-group is-block mt-3 xl:hidden"
-        >
-          <button
-            type="button"
-            id="pane-tab-study"
-            className="segment"
-            aria-pressed={mobilePane === "study"}
-            aria-controls="pane-study"
-            onClick={() => setMobilePane("study")}
-          >
-            Study
-          </button>
-          <button
-            type="button"
-            id="pane-tab-personal"
-            className="segment"
-            aria-pressed={mobilePane === "personal"}
-            aria-controls="pane-personal"
-            onClick={() => setMobilePane("personal")}
-          >
-            Personal
-          </button>
-        </div>
-        <div className="mt-4 h-px bg-rule-soft" aria-hidden="true" />
+        <SegmentedControl
+          className="mt-3 xl:hidden"
+          block
+          label="Switch between the study plan and personal tasks"
+          value={mobilePane}
+          onValueChange={(value) =>
+            setMobilePane(value === "personal" ? "personal" : "study")
+          }
+          options={[
+            { value: "study", label: "Study" },
+            { value: "personal", label: "Personal" },
+          ]}
+        />
+        <div className="mt-4 h-px bg-border" aria-hidden="true" />
         <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div
             id="pane-study"
@@ -247,8 +228,8 @@ export function DashboardView({
               />
             ) : !plan ? (
               <div className="flex flex-col gap-4">
-                <Skeleton className="h-52 w-full" />
-                <Skeleton className="h-24 w-full" />
+                <Skeleton height={208} />
+                <Skeleton height={96} />
               </div>
             ) : (
               <Swap swapKey={activeDate}>
@@ -340,7 +321,7 @@ function RecentAttemptsPanel({
         <button
           type="button"
           onClick={onViewAll}
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[0.625rem] font-medium text-accent hover:text-accent-hover"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
         >
           View all <PlainIcon name="arrowRight" size={12} />
         </button>
@@ -356,16 +337,20 @@ function RecentAttemptsPanel({
             ))}
           </ul>
         ) : (
-          <div className="rounded-control border border-rule-soft bg-canvas px-4 py-4 text-center">
-            <p className="text-xs text-muted">
+          <div className="rounded-[14px] bg-background px-4 py-4 text-center shadow-[inset_0_0_0_1px_var(--border)]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               No saved attempts match this view.
             </p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               <Button size="sm" variant="outline" onClick={onViewAll}>
                 Open history
               </Button>
-              <Button size="sm" onClick={onAdd}>
-                <PlainIcon name="plus" size={13} /> Log a mock
+              <Button
+                size="sm"
+                onClick={onAdd}
+                icon={<PlusSignIcon size={13} animateOnHover animateOnTap />}
+              >
+                Log a mock
               </Button>
             </div>
           </div>

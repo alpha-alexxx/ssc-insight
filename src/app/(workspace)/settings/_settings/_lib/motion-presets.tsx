@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, useReducedMotion, type Transition, type Variants } from "motion/react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 
 /**
  * Motion presets for Settings — the one documented exception to the

@@ -1,5 +1,8 @@
 "use client";
 import { PlainIcon, type IconName } from "./icon";
+import { Badge } from "./badge";
+import { Button } from "./button";
+import { Select } from "./select";
 import { DateRangeFilter } from "./date-range-filter";
 import { useExamScope } from "./exam-context";
 import { SUBJECTS, subjectIds, type DashboardScope, type Filters } from "@/lib/domain";
@@ -70,14 +73,14 @@ export function ScopeFilters({
     <div className="flex w-full min-w-0 flex-col gap-2">
       <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
         {/* The four scope options share one row from sm up; on phones they
-            become a 2×2 pill grid (.scope-tabs) so every option stays visible
-            with no scrolling and no ragged wrap point. */}
+            become a 2×2 pill grid so every option stays visible with no
+            scrolling and no ragged wrap point. */}
         <div
           role="group"
           aria-label={
             mode === "scope" ? "Analytical scope" : "Filter by mock type"
           }
-          className="segment-group scope-tabs w-full sm:w-auto"
+          className="grid w-full grid-cols-2 gap-1 rounded-[14px] border border-border bg-background p-1 sm:flex sm:w-auto"
         >
           {SCOPES.map((option) => {
             const active =
@@ -89,7 +92,12 @@ export function ScopeFilters({
                 key={option.id}
                 type="button"
                 aria-pressed={active}
-                className="segment"
+                className={cn(
+                  "inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-2.5 text-[12px] font-medium transition-colors duration-200 cursor-pointer",
+                  active
+                    ? "bg-[color-mix(in_oklab,var(--foreground)_9%,var(--background))] font-semibold text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
                 onClick={() =>
                   mode === "scope"
                     ? setScope(option.id)
@@ -99,7 +107,7 @@ export function ScopeFilters({
                 <PlainIcon
                   name={option.icon}
                   size={14}
-                  className={active ? "" : "text-muted"}
+                  className={active ? "" : "text-muted-foreground"}
                 />
                 {option.label}
               </button>
@@ -107,55 +115,56 @@ export function ScopeFilters({
           })}
         </div>
         {/* Filters close the control group: one full-width row per filter on
-            phones. A 2-up grid was the earlier choice, but a 16px field font
-            plus the chevron padding no longer fits "All platforms" in half of
-            a 375px panel — stacking keeps the label readable and the target
-            full width. Right-aligned inline from sm up. */}
+            phones (stacked, so the label stays readable and the target full
+            width), right-aligned inline from sm up. */}
         <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:ml-auto sm:flex sm:w-auto sm:justify-end">
-          <select
-            aria-label="Filter by platform"
-            className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
+          <Select
+            label="Filter by platform"
+            hideLabel
+            className="w-full sm:w-auto sm:max-w-[11.5rem]"
             value={filters.platform ?? "all"}
-            onChange={(e) => changeFilter("platform", e.target.value)}
-          >
-            <option value="all">All platforms</option>
-            {platforms.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
+            onValueChange={(value) => changeFilter("platform", value)}
+            options={[
+              { value: "all", label: "All platforms" },
+              ...platforms.map((p) => ({ value: p, label: p })),
+            ]}
+          />
           {mode === "type" && (
-            <select
-              aria-label="Filter by subject"
-              className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
+            <Select
+              label="Filter by subject"
+              hideLabel
+              className="w-full sm:w-auto sm:max-w-[11.5rem]"
               value={filters.subject ?? "all"}
-              onChange={(e) => changeFilter("subject", e.target.value)}
-            >
-              <option value="all">All subjects</option>
-              {subjectIds.map((id) => (
-                <option key={id} value={id}>
-                  {SUBJECTS[id].short}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => changeFilter("subject", value)}
+              options={[
+                { value: "all", label: "All subjects" },
+                ...subjectIds.map((id) => ({
+                  value: id,
+                  label: SUBJECTS[id].short,
+                })),
+              ]}
+            />
           )}
           {tiers.length > 1 && mode === "type" && (
-            <select
-              aria-label="Filter by tier"
-              className="w-full min-w-0 truncate rounded-control py-[var(--control-pad-y)] pl-3 pr-7 text-xs min-h-[var(--control-height)] sm:w-auto sm:max-w-[11.5rem]"
+            <Select
+              label="Filter by tier"
+              hideLabel
+              className="w-full sm:w-auto sm:max-w-[11.5rem]"
               value={filters.tier ?? "all"}
-              onChange={(e) => changeFilter("tier", e.target.value)}
-            >
-              <option value="all">All tiers</option>
-              {tiers.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.label}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => changeFilter("tier", value)}
+              options={[
+                { value: "all", label: "All tiers" },
+                ...tiers.map((tier) => ({
+                  value: tier.id,
+                  label: tier.label,
+                })),
+              ]}
+            />
           )}
           <div
             className={cn(
-              "min-w-0 [&>button]:w-full sm:[&>button]:w-auto",
+              "flex min-h-9 items-center",
+              "[&>span]:w-full sm:[&>span]:w-auto",
               mode === "type" && "max-sm:col-span-2",
             )}
           >
@@ -170,7 +179,7 @@ export function ScopeFilters({
       {/* Active filters stay visible and reversible: a figure the user cannot
           explain is worse than no figure. */}
       {filterActive && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.6875rem] text-muted">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-muted-foreground">
           <span>Filtered</span>
           {[
             filters.platform && filters.platform !== "all"
@@ -187,21 +196,14 @@ export function ScopeFilters({
           ]
             .filter(Boolean)
             .map((label) => (
-              <span
-                key={String(label)}
-                className="rounded-control border border-rule-soft bg-soft px-2 py-0.5 text-ink"
-              >
-                {label}
-              </span>
+              <Badge key={String(label)} tone="neutral" size="sm">
+                {String(label)}
+              </Badge>
             ))}
           {onReset && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="font-medium text-accent underline decoration-accent/40 underline-offset-[3px] transition-colors hover:decoration-accent motion-reduce:transition-none"
-            >
+            <Button variant="link" size="sm" onClick={onReset}>
               Reset
-            </button>
+            </Button>
           )}
         </div>
       )}

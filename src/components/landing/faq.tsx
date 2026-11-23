@@ -1,23 +1,13 @@
 "use client";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
+import { FaqAccordion } from "@/components/faq-accordion";
 
 /**
  * Questions, answered with the shipped behaviour rather than marketing.
  *
- * Radix supplies the a11y contract (button headers, `aria-expanded`,
- * `aria-controls`, arrow-key movement). The height animation reads
- * `--radix-accordion-content-height`, which is the only way to animate an
- * unknown content height without measuring it in JS — and the reason the
- * project does not need `tw-animate-css`.
- *
- * The trigger wrapper injects a default chevron after the children; the
- * landing section keeps its own plus/minus `.faq-mark` glyph, so the
- * chevron is hidden via `[&>svg]:hidden` (the mark is a <span>, not an svg).
+ * Hairline's FaqAccordion supplies the a11y contract: button headers with
+ * `aria-expanded`/`aria-controls`, the answer regions, arrow-key movement
+ * between questions, and one-open-at-a-time — the same contract the old Radix
+ * accordion gave this section.
  */
 
 export const FAQ_ITEMS: { question: string; answer: string }[] = [
@@ -60,22 +50,10 @@ export const FAQ_ITEMS: { question: string; answer: string }[] = [
 
 export function Faq() {
   return (
-    <Accordion type="single" collapsible className="mt-10">
-      {FAQ_ITEMS.map((item) => (
-        <AccordionItem
-          key={item.question}
-          value={item.question}
-          className="faq-item border-b-0"
-        >
-          <AccordionTrigger className="faq-trigger [&>svg]:hidden">
-            <span>{item.question}</span>
-            <span className="faq-mark" aria-hidden="true" />
-          </AccordionTrigger>
-          <AccordionContent className="faq-content">
-            <div className="faq-answer">{item.answer}</div>
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+    <FaqAccordion
+      type="single"
+      className="mt-10"
+      items={FAQ_ITEMS}
+    />
   );
 }

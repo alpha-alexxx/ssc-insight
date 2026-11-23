@@ -1,15 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Input } from "@/components/input";
 import { PlainIcon } from "@/components/icon";
-import { useToast } from "@/components/toast";
+import { Textarea } from "@/components/textarea";
+import { toast } from "@/components/toast-stack";
 import { totals, type Attempt } from "@/lib/domain";
 import type { usePlanData } from "@/components/use-plan-data";
 import { fillFromAttempt, matchAttemptForTask } from "@/lib/plan/attempt-match";
 import type { PlanTaskView } from "@/lib/plan/view-model";
 
 type NumberField = "score" | "wrong" | "unattempted" | "percentile";
+
+/** Hides the browser's number spinners (the old `no-spin` utility). */
+const NO_SPIN =
+  "tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 /**
  * The plan task's record-result step — the "record" half of the day's
@@ -18,6 +25,9 @@ type NumberField = "score" | "wrong" | "unattempted" | "percentile";
  * "Save result" call; blanks stay unknown (never zero). When the tracker has
  * a matching attempt for this task, one click prefills the draft from it —
  * nothing writes until Save.
+ *
+ * Hairline rebuild: the fields are the Hairline Input/Textarea/Checkbox; the
+ * save toast is the toast-stack API.
  */
 export function ResultEditor({
   task,
@@ -31,7 +41,6 @@ export function ResultEditor({
   onClose: () => void;
 }) {
   const { updateTask } = planApi;
-  const toast = useToast();
   const [score, setScore] = useState(task.score?.toString() ?? "");
   const [wrong, setWrong] = useState(task.wrong?.toString() ?? "");
   const [unattempted, setUnattempted] = useState(
@@ -100,7 +109,7 @@ export function ResultEditor({
       rev3,
       notes,
     });
-    toast.success("Result saved", task.name);
+    toast.success("Result saved", { description: task.name });
     onClose();
   }
 
@@ -112,27 +121,25 @@ export function ResultEditor({
     max?: number,
     step?: string,
   ) => (
-    <label>
-      {label}
-      <input
-        type="number"
-        className="no-spin max-sm:text-base"
-        min={0}
-        max={max}
-        step={step}
-        value={value}
-        placeholder="—"
-        aria-invalid={parse(value, max) === "invalid"}
-        onChange={(e) => set(e.target.value)}
-      />
-    </label>
+    <Input
+      label={label}
+      type="number"
+      min={0}
+      max={max}
+      step={step}
+      value={value}
+      placeholder="—"
+      aria-invalid={parse(value, max) === "invalid"}
+      onChange={(e) => set(e.target.value)}
+      inputClassName={NO_SPIN}
+    />
   );
 
   return (
-    <div className="mt-3 ml-0 rounded-control border border-rule-soft bg-canvas p-4 sm:ml-[52px]">
+    <div className="mt-3 ml-0 rounded-2xl bg-muted/40 p-4 shadow-[inset_0_0_0_1px_var(--border)] sm:ml-[52px]">
       {matched && (
-        <div className="mb-3 flex flex-col gap-2 rounded-control border border-accent/30 bg-accent-soft/50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-ink">
+        <div className="mb-3 flex flex-col gap-2 rounded-xl bg-primary/10 px-3 py-2 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_30%,transparent)] sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-foreground">
             <span className="font-medium">Matched attempt:</span>{" "}
             {matched.name} · {totals(matched).score}/{totals(matched).maxScore}
             {matched.percentile != null
@@ -150,7 +157,7 @@ export function ResultEditor({
           </Button>
         </div>
       )}
-      <p className="mb-3 text-xs font-medium text-ink">
+      <p className="mb-3 text-xs font-medium text-foreground">
         How did “{task.name}” go?
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -173,34 +180,33 @@ export function ResultEditor({
             ["Rev-3 done", rev3, setRev3] as const,
           ]
         ).map(([label, value, set]) => (
-          <label key={label} className="check-row text-xs">
-            <input
-              type="checkbox"
-              checked={value}
-              onChange={(e) => set(e.target.checked)}
-            />
-            {label}
-          </label>
+          <Checkbox
+            key={label}
+            size="sm"
+            checked={value}
+            label={label}
+            onCheckedChange={(checked) => set(checked)}
+          />
         ))}
       </div>
-      <label className="mt-3">
-        Weak areas / notes for this test
-        <textarea
-          rows={2}
+      <div className="mt-3">
+        <Textarea
+          label="Weak areas / notes for this test"
+          minRows={2}
+          maxRows={8}
           maxLength={2000}
           value={notes}
-          className="max-sm:text-base"
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Tricks, formulas, mistakes to revisit"
         />
-      </label>
+      </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] text-muted">
+        <p className="text-[11px] text-muted-foreground">
           Empty fields stay unknown — a blank score is never counted as zero.
         </p>
         <div className="flex items-center gap-2">
           {invalid && (
-            <span role="alert" className="text-[10px] text-danger">
+            <span role="alert" className="text-[11px] text-destructive">
               Check the highlighted numbers.
             </span>
           )}

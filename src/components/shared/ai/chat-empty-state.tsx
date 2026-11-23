@@ -2,48 +2,44 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import {
-  ArrowRight,
-  BarChart3,
-  BookOpen,
-  GitCompare,
-  Sparkles,
-  Target,
-} from "@/components/ui/icons";
+import { Icon, type IconName } from "@/components/icon";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-const SUGGESTIONS = [
+const SUGGESTIONS: {
+  text: string;
+  label: string;
+  hint: string;
+  icon: IconName;
+  tile: string;
+}[] = [
   {
     text: "What should I focus on this week?",
     label: "Plan this week",
     hint: "A plan from your recent trend",
-    icon: Target,
-    tone: { bg: "var(--accent-soft)", fg: "var(--accent)" },
+    icon: "target",
+    tile: "bg-primary/10 text-primary",
   },
   {
     text: "Which subject has the weakest accuracy?",
     label: "Find the weak subject",
     hint: "Spot topics that need more work",
-    icon: BarChart3,
-    tone: {
-      bg: "color-mix(in oklab, var(--chart-reasoning) 14%, transparent)",
-      fg: "var(--chart-reasoning)",
-    },
+    icon: "chart",
+    tile: "bg-chart-2/10 text-chart-2",
   },
   {
     text: "Compare my last five mocks",
     label: "Compare recent mocks",
     hint: "See your progress side by side",
-    icon: GitCompare,
-    tone: { bg: "var(--warning-soft)", fg: "var(--warning)" },
+    icon: "compare",
+    tile: "bg-warning/10 text-warning",
   },
   {
     text: "Suggest a study plan based on my weak topics",
     label: "Build a revision plan",
     hint: "Turn insights into action",
-    icon: BookOpen,
-    tone: { bg: "var(--positive-soft)", fg: "var(--positive)" },
+    icon: "book",
+    tile: "bg-success/10 text-success",
   },
 ];
 
@@ -93,7 +89,10 @@ export function ChatEmptyState({
       variants={reduced ? undefined : staggerContainer(0.07)}
       initial={reduced ? undefined : "hidden"}
       animate={reduced ? undefined : "show"}
-      className={cn("flex flex-col items-center gap-5 pt-6 text-center", className)}
+      className={cn(
+        "flex flex-col items-center gap-5 pt-6 text-center",
+        className,
+      )}
     >
       <motion.div
         variants={reduced ? undefined : staggerItem}
@@ -101,14 +100,14 @@ export function ChatEmptyState({
       >
         <span
           aria-hidden="true"
-          className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent"
+          className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary"
         >
-          <Sparkles size={20} />
+          <Icon name="sparkles" size={20} />
         </span>
-        <h3 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+        <h3 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
           {greeting}
         </h3>
-        <p className="max-w-sm text-[0.8125rem] leading-relaxed text-muted">
+        <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
           Answers read your aggregates and latest 20 full mocks — never your
           notes or identity.
         </p>
@@ -121,27 +120,29 @@ export function ChatEmptyState({
             variants={reduced ? undefined : staggerItem}
             type="button"
             onClick={() => onSend(suggestion.text)}
-            className="group flex min-h-14 items-center gap-3 rounded-card border border-rule-soft bg-paper px-3 py-2.5 text-left transition-colors hover:border-accent/40"
+            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-primary/40"
           >
             <span
               aria-hidden="true"
-              className="grid size-9 shrink-0 place-items-center rounded-[0.625rem]"
-              style={{ background: suggestion.tone.bg, color: suggestion.tone.fg }}
+              className={cn(
+                "grid size-9 shrink-0 place-items-center rounded-[0.625rem]",
+                suggestion.tile,
+              )}
             >
-              <suggestion.icon size={16} />
+              <Icon name={suggestion.icon} size={16} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold leading-tight text-ink">
+              <span className="block truncate text-sm font-semibold leading-tight text-foreground">
                 {suggestion.label}
               </span>
-              <span className="block truncate text-[0.6875rem] leading-snug text-muted">
+              <span className="block truncate text-[11px] leading-snug text-muted-foreground">
                 {suggestion.hint}
               </span>
             </span>
-            <ArrowRight
+            <Icon
+              name="arrowRight"
               size={14}
-              aria-hidden
-              className="shrink-0 text-muted transition-all group-hover:translate-x-0.5 group-hover:text-accent motion-reduce:transition-none"
+              className="shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none"
             />
           </motion.button>
         ))}
@@ -149,7 +150,7 @@ export function ChatEmptyState({
 
       <motion.p
         variants={reduced ? undefined : staggerItem}
-        className="text-[0.6875rem] text-muted"
+        className="text-[11px] text-muted-foreground"
       >
         Chats stay on this device; the server stores no conversations.
       </motion.p>

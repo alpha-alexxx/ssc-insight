@@ -107,8 +107,8 @@ export function Sparkline({
   const colorClass = React.useMemo(() => {
     if (color === "auto") {
       return isPositive
-        ? "text-emerald-600 dark:text-emerald-400"
-        : "text-rose-600 dark:text-rose-400";
+        ? "text-success"
+        : "text-destructive";
     }
     if (color === "primary") return "text-primary";
     if (color === "muted") return "text-muted-foreground";

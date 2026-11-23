@@ -1,32 +1,34 @@
-/** Mirrors the split-ledger geometry: the plate's block on lg, the form's
- * column on the right — never a bare spinner. */
+import { Skeleton } from "@/components/skeleton";
+
+/** Mirrors the split auth-card geometry: the form column on the left, the
+ *  tone-inverted plate block on md+ — never a bare spinner. */
 export default function AuthPageLoading() {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-2">
-      <div
-        aria-hidden="true"
-        className="plate hidden items-center justify-center p-10 lg:flex xl:p-14"
-      >
-        <div className="aspect-[4/5] w-full max-w-[26rem] animate-pulse rounded-[var(--radius-panel)] bg-[var(--plate-surface)]" />
-      </div>
-      <div className="flex min-h-dvh flex-col">
+    <div className="grid min-h-screen md:grid-cols-2">
+      <div className="flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-5 py-5 sm:px-8">
-          <div className="h-5 w-28 animate-pulse rounded-control bg-soft" />
-          <div className="size-7 animate-pulse rounded-full bg-soft" />
+          <Skeleton shape="line" width={112} height={20} />
+          <Skeleton shape="circle" width={28} height={28} />
         </header>
         <main className="flex flex-1 items-center justify-center px-5 pb-16 sm:px-8">
           <div className="w-full max-w-sm space-y-4">
-            <div className="h-8 w-44 animate-pulse rounded-control bg-soft" />
-            <div className="h-4 w-60 animate-pulse rounded-control bg-soft" />
-            <div className="h-11 w-full animate-pulse rounded-control bg-soft" />
-            <div className="h-3 w-28 animate-pulse rounded-control bg-soft" />
+            <Skeleton shape="block" width={176} height={32} />
+            <Skeleton shape="line" width={240} />
+            <Skeleton shape="block" width="100%" height={44} />
+            <Skeleton shape="line" width={112} />
             <div className="space-y-3 pt-2">
-              <div className="h-10 w-full animate-pulse rounded-control bg-soft" />
-              <div className="h-10 w-full animate-pulse rounded-control bg-soft" />
-              <div className="h-11 w-full animate-pulse rounded-control bg-soft" />
+              <Skeleton shape="block" width="100%" height={40} />
+              <Skeleton shape="block" width="100%" height={40} />
+              <Skeleton shape="block" width="100%" height={44} />
             </div>
           </div>
         </main>
+      </div>
+      <div
+        aria-hidden="true"
+        className="hidden items-center justify-center bg-primary p-10 md:flex xl:p-14"
+      >
+        <div className="aspect-[4/5] w-full max-w-[26rem] animate-pulse rounded-2xl bg-primary-foreground/10" />
       </div>
     </div>
   );

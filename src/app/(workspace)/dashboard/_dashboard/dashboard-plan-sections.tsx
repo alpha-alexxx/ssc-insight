@@ -1,10 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Flag } from "@/components/ui/icons";
 import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 import { CategoryChip } from "@/components/shared/plan/plan-shared";
 import { longDate, shortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -90,8 +89,9 @@ export function TodayFocusPanel({
           variant="outline"
           size="sm"
           onClick={() => onOpenDay(shownDay?.date ?? plan.startDate)}
+          trailingIcon={<PlainIcon name="arrowUpRight" size={12} />}
         >
-          Open day <PlainIcon name="arrowUpRight" size={12} />
+          Open day
         </Button>
       }
     >
@@ -106,7 +106,7 @@ export function TodayFocusPanel({
                   caption="assignments done"
                 />
               </div>
-              <div className="h-10 w-px bg-rule-soft" aria-hidden="true" />
+              <div className="h-10 w-px bg-border" aria-hidden="true" />
               <div className="flex flex-1 items-center justify-center py-1">
                 <ProgressRing
                   value={checklistDone}
@@ -116,15 +116,15 @@ export function TodayFocusPanel({
               </div>
             </div>
             {shownDay.tasks.length === 0 ? (
-              <p className="py-2 text-xs text-muted">
+              <p className="py-2 text-xs text-muted-foreground">
                 Nothing is scheduled for this day.
               </p>
             ) : (
-              <ul className="divide-y divide-rule-soft overflow-hidden rounded-control border border-rule-soft">
+              <ul className="divide-y divide-border overflow-hidden rounded-[10px] shadow-[inset_0_0_0_1px_var(--border)]">
                 {visibleTasks.map((task) => (
                   <li
                     key={task.key}
-                    className="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-soft motion-reduce:transition-none"
+                    className="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-accent motion-reduce:transition-none"
                   >
                     <button
                       type="button"
@@ -138,15 +138,15 @@ export function TodayFocusPanel({
                       }
                       className={`flex size-4.5 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${
                         task.completed
-                          ? "border-positive bg-positive-soft text-positive"
-                          : "border-rule bg-paper hover:border-ink"
+                          ? "border-success bg-success/10 text-success"
+                          : "border-border bg-card hover:border-foreground"
                       }`}
                     >
-                      {task.completed && <PlainIcon name="check" size={10} />}
+                      {task.completed && <PlainIcon name="check" size={10} tone="success" />}
                     </button>
                     <span
                       className={`min-w-0 flex-1 truncate text-xs ${
-                        task.completed ? "text-muted line-through" : ""
+                        task.completed ? "text-muted-foreground line-through" : ""
                       }`}
                     >
                       {task.name}
@@ -156,7 +156,7 @@ export function TodayFocusPanel({
                       type="button"
                       aria-label={`Open ${task.name}`}
                       onClick={() => openTask(task)}
-                      className="shrink-0 text-muted transition-colors hover:text-accent"
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
                     >
                       <PlainIcon name="chevronRight" size={14} />
                     </button>
@@ -169,12 +169,13 @@ export function TodayFocusPanel({
                 type="button"
                 onClick={() => setExpanded(!expanded)}
                 aria-expanded={expanded}
-                className="mt-2 inline-flex items-center gap-1 text-[0.625rem] font-medium text-muted transition-colors hover:text-ink"
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {expanded
                   ? "Show fewer"
                   : `+${shownDay.tasks.length - 5} more on ${focusDate === today ? "today's" : "this day's"} plan`}
-                <ChevronDown
+                <PlainIcon
+                  name="chevronDown"
                   size={12}
                   className={cn(
                     "transition-transform",
@@ -185,31 +186,31 @@ export function TodayFocusPanel({
             )}
           </>
         ) : (
-          <p className="py-2 text-xs text-muted">
+          <p className="py-2 text-xs text-muted-foreground">
             Browse the calendar to revisit the plan, or log a mock in the
             tracker.
           </p>
         )}
 
         {focus && (
-          <div className="callout-accent mt-3">
-            <span className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-accent">
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] bg-primary/10 px-3 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
               Next up
             </span>
-            <PlainIcon name="file" size={13} className="text-accent" />
-            <span className="min-w-0 flex-1 truncate text-xs font-medium">
+            <PlainIcon name="file" size={13} tone="primary" />
+            <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
               {focus.task.name}
             </span>
             <button
               type="button"
               onClick={() => onOpenDay(focus.task.date)}
-              className="inline-flex items-center gap-1.5 text-[0.625rem] font-medium text-accent hover:text-accent-hover"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
             >
               <PlainIcon name="calendar" size={12} />
               {shortDate(focus.task.date)}
               {focus.overdue ? " · overdue" : ""}
             </button>
-            <PlainIcon name="chevronRight" size={13} className="text-accent" />
+            <PlainIcon name="chevronRight" size={13} tone="primary" />
           </div>
         )}
       </div>
@@ -242,7 +243,7 @@ function ProgressRing({
           r={radius}
           fill="none"
           strokeWidth="4"
-          style={{ stroke: "var(--rule-soft)" }}
+          style={{ stroke: "color-mix(in oklab, var(--foreground) 10%, transparent)" }}
         />
         <circle
           cx="20"
@@ -252,16 +253,16 @@ function ProgressRing({
           strokeWidth="4"
           strokeLinecap="round"
           style={{
-            stroke: "var(--accent)",
+            stroke: "var(--primary)",
             strokeDasharray: `${circumference * ratio} ${circumference}`,
           }}
         />
       </svg>
       <div className="min-w-0">
-        <p className="font-serif text-xl leading-none tabular">
+        <p className="font-serif text-xl leading-none tabular-nums text-foreground">
           {value}/{total}
         </p>
-        <p className="mt-1 text-[0.625rem] text-muted">{caption}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{caption}</p>
       </div>
     </div>
   );
@@ -290,8 +291,12 @@ export function StudyPipelinePanel({
       className="min-w-0"
       action={
         todayPlan ? (
-          <Button variant="outline" size="sm" onClick={() => onOpenDay(today)}>
-            <PlainIcon name="target" size={12} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenDay(today)}
+            icon={<PlainIcon name="target" size={12} />}
+          >
             Plan day {todayPlan.day} of 50
           </Button>
         ) : null
@@ -334,24 +339,27 @@ function PipelineProgressSection({
   return (
     <section aria-label="Plan progress">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Progress
         </h3>
       </div>
       <div>
-        {/* Same square 2px progress rule as the metric strip — the pill
+        {/* Same square 2px progress rule as the metric band — the pill
             progress bar was the one off-idiom gauge left on the dashboard. */}
         <div
-          className="metric-rule"
+          className="block h-0.5 w-full bg-muted"
           role="progressbar"
           aria-valuenow={stats.completionPct}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label="Plan completion"
         >
-          <span style={{ width: `${stats.completionPct}%` }} />
+          <span
+            className="block h-full bg-primary transition-[width] duration-300"
+            style={{ width: `${stats.completionPct}%` }}
+          />
         </div>
-        <div className="mt-2 flex items-center justify-between text-[0.625rem] text-muted">
+        <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
           <span>{stats.completionPct}% complete</span>
           <span>
             {todayStats
@@ -375,14 +383,15 @@ function PipelineProgressSection({
               <PlainIcon
                 name={icon}
                 size={15}
-                className="shrink-0 text-accent"
+                tone="primary"
+                className="shrink-0"
                 aria-hidden="true"
               />
               <div className="min-w-0">
-                <p className="font-serif text-lg leading-none tabular">
+                <p className="font-serif text-lg leading-none tabular-nums text-foreground">
                   {value}
                 </p>
-                <p className="mt-0.5 text-[0.625rem] uppercase tracking-[0.08em] text-muted">
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                   {label}
                 </p>
               </div>
@@ -391,7 +400,7 @@ function PipelineProgressSection({
         </div>
         {/* Mobile: stacked list — the chevron strip truncates to a few
             characters per phase at phone widths. */}
-        <div className="mt-3 flex flex-col divide-y divide-rule-soft rounded-control border border-rule-soft sm:hidden" aria-label="Plan phases">
+        <div className="mt-3 flex flex-col divide-y divide-border rounded-[10px] shadow-[inset_0_0_0_1px_var(--border)] sm:hidden" aria-label="Plan phases">
           {plan.phases.map((phase) => {
             const active = todayPlan?.phase === phase.phase;
             const past = todayPlan
@@ -403,20 +412,20 @@ function PipelineProgressSection({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2",
                   active
-                    ? "bg-accent-soft"
+                    ? "bg-primary/10"
                     : past
-                      ? "bg-positive-soft"
-                      : "bg-canvas",
+                      ? "bg-success/10"
+                      : "bg-background",
                 )}
               >
                 <span
                   className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-semibold tabular",
+                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
                     active
-                      ? "bg-accent text-paper"
+                      ? "bg-primary text-primary-foreground"
                       : past
-                        ? "bg-positive text-paper"
-                        : "bg-soft text-muted",
+                        ? "bg-success text-success-foreground"
+                        : "bg-muted text-muted-foreground",
                   )}
                   aria-hidden="true"
                 >
@@ -424,17 +433,17 @@ function PipelineProgressSection({
                 </span>
                 <span
                   className={cn(
-                    "min-w-0 flex-1 truncate text-[0.6875rem] font-medium",
+                    "min-w-0 flex-1 truncate text-[11px] font-medium",
                     active
-                      ? "text-accent"
+                      ? "text-primary"
                       : past
-                        ? "text-positive"
-                        : "text-ink",
+                        ? "text-success"
+                        : "text-foreground",
                   )}
                 >
                   {phase.name}
                 </span>
-                <span className="shrink-0 text-[0.625rem] leading-tight text-muted">
+                <span className="shrink-0 text-[11px] leading-tight text-muted-foreground">
                   Days {phase.days}
                 </span>
               </div>
@@ -455,10 +464,10 @@ function PipelineProgressSection({
                 className={cn(
                   "min-w-0 flex-1 py-2 pl-3 pr-4",
                   active
-                    ? "bg-accent-soft"
+                    ? "bg-primary/10"
                     : past
-                      ? "bg-positive-soft"
-                      : "bg-canvas",
+                      ? "bg-success/10"
+                      : "bg-background",
                 )}
                 style={{
                   clipPath: first
@@ -471,12 +480,12 @@ function PipelineProgressSection({
                 <div className="flex items-center gap-2">
                   <span
                     className={cn(
-                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-semibold tabular",
+                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
                       active
-                        ? "bg-accent text-paper"
+                        ? "bg-primary text-primary-foreground"
                         : past
-                          ? "bg-positive text-paper"
-                          : "bg-soft text-muted",
+                          ? "bg-success text-success-foreground"
+                          : "bg-muted text-muted-foreground",
                     )}
                     aria-hidden="true"
                   >
@@ -485,17 +494,17 @@ function PipelineProgressSection({
                   <span className="min-w-0">
                     <span
                       className={cn(
-                        "block truncate text-[0.625rem] font-medium",
+                        "block truncate text-[11px] font-medium",
                         active
-                          ? "text-accent"
+                          ? "text-primary"
                           : past
-                            ? "text-positive"
-                            : "text-ink",
+                            ? "text-success"
+                            : "text-foreground",
                       )}
                     >
                       {phase.name}
                     </span>
-                    <span className="block text-[0.625rem] leading-tight text-muted">
+                    <span className="block text-[11px] leading-tight text-muted-foreground">
                       Days {phase.days}
                     </span>
                   </span>
@@ -504,12 +513,12 @@ function PipelineProgressSection({
             );
           })}
         </div>
-        <div className="callout-accent mt-3">
-          <Flag size={13} className="shrink-0 text-accent" aria-hidden="true" />
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-accent">
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] bg-primary/10 px-3 py-2">
+          <PlainIcon name="flag" size={13} tone="primary" className="shrink-0" aria-hidden="true" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
             Next milestone
           </span>
-          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
             {focus
               ? `${focus.task.name} · ${shortDate(focus.task.date)}`
               : "Every scheduled assignment is complete."}
@@ -518,10 +527,11 @@ function PipelineProgressSection({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-[0.625rem]"
+              className="h-7 px-2 text-[11px]"
               onClick={() => onOpenDay(focus.task.date)}
+              trailingIcon={<PlainIcon name="arrowRight" size={12} />}
             >
-              View plan <PlainIcon name="arrowRight" size={12} />
+              View plan
             </Button>
           )}
         </div>
@@ -543,43 +553,43 @@ function PipelineUpcomingSection({
   return (
     <section
       aria-label="Upcoming tests"
-      className="mt-3 border-t border-rule-soft pt-3"
+      className="mt-3 border-t border-border pt-3"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Upcoming tests
         </h3>
         <Link
           href="/calendar"
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[0.625rem] font-medium text-accent hover:text-accent-hover"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
         >
           View all <PlainIcon name="arrowRight" size={12} />
         </Link>
       </div>
       <div>
         {upcoming.length === 0 ? (
-          <p className="py-2 text-xs text-muted">
+          <p className="py-2 text-xs text-muted-foreground">
             No scheduled tests left in the plan.
           </p>
         ) : (
-          <ul className="divide-y divide-rule-soft overflow-hidden rounded-control border border-rule-soft">
+          <ul className="divide-y divide-border overflow-hidden rounded-[10px] shadow-[inset_0_0_0_1px_var(--border)]">
             {upcoming.map(({ task, day }) => (
               <li key={task.key} className="px-3 py-2">
                 <div className="flex items-center gap-2.5">
                   <PlainIcon
                     name="file"
                     size={14}
-                    className="shrink-0 text-muted"
+                    className="shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
-                  <p className="min-w-0 flex-1 truncate text-xs font-medium">
+                  <p className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                     {task.name}
                   </p>
                   <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
                     <button
                       type="button"
                       onClick={() => onOpenDay(day.date)}
-                      className="text-[0.625rem] tabular text-muted hover:text-accent"
+                      className="text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-primary"
                     >
                       {longDate(day.date)}
                     </button>
@@ -593,7 +603,7 @@ function PipelineUpcomingSection({
                         ? window.open(task.url, "_blank", "noopener,noreferrer")
                         : onOpenDay(day.date)
                     }
-                    className="shrink-0 text-muted transition-colors hover:text-accent"
+                    className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
                   >
                     <PlainIcon name="chevronRight" size={14} />
                   </button>
@@ -602,7 +612,7 @@ function PipelineUpcomingSection({
                   <button
                     type="button"
                     onClick={() => onOpenDay(day.date)}
-                    className="text-[0.625rem] tabular text-muted hover:text-accent"
+                    className="text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-primary"
                   >
                     {shortDate(day.date)}
                   </button>
@@ -633,15 +643,15 @@ function PipelineRevisionSection({
   return (
     <section
       aria-label="Revision queue"
-      className="mt-3 border-t border-rule-soft pt-3"
+      className="mt-3 border-t border-border pt-3"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Revision queue
         </h3>
         <span
-          className={`text-[0.625rem] tabular ${
-            revision.total > 0 ? "text-accent" : "text-positive"
+          className={`text-[11px] tabular-nums ${
+            revision.total > 0 ? "text-primary" : "text-success"
           }`}
         >
           {revision.total > 0
@@ -651,40 +661,40 @@ function PipelineRevisionSection({
       </div>
       <div>
         {revision.total === 0 ? (
-          <p className="py-2 text-xs text-positive">
+          <p className="py-2 text-xs text-success">
             Nothing to revisit right now — new entries appear as you complete
             assignments.
           </p>
         ) : (
-          <ul className="divide-y divide-rule-soft overflow-hidden rounded-control border border-rule-soft">
+          <ul className="divide-y divide-border overflow-hidden rounded-[10px] shadow-[inset_0_0_0_1px_var(--border)]">
             {visible.map((item) => (
               <li key={`${item.kind}:${item.id}`}>
                 <button
                   type="button"
                   onClick={() => onOpenDay(item.date)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-soft"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-accent"
                 >
                   <span
-                    className={`inline-flex shrink-0 items-center rounded-pill border px-2 py-0.5 text-[0.625rem] font-medium ${
+                    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       item.kind === "rev1"
-                        ? "border-accent/40 bg-accent-soft text-accent"
+                        ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
                         : item.kind === "rev2"
-                          ? "border-rule-soft bg-soft text-muted"
-                          : "border-positive/40 bg-positive-soft text-positive"
+                          ? "bg-muted text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+                          : "bg-success/10 text-success shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--success)_40%,transparent)]"
                     }`}
                   >
                     Rev-{item.kind === "rev1" ? 1 : item.kind === "rev2" ? 2 : 3}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                     {item.label}
                   </span>
-                  <span className="shrink-0 text-[0.625rem] tabular text-muted">
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                     {shortDate(item.date)}
                   </span>
                   <PlainIcon
                     name="chevronRight"
                     size={14}
-                    className="shrink-0 text-muted"
+                    className="shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
                 </button>
@@ -697,18 +707,19 @@ function PipelineRevisionSection({
             type="button"
             onClick={() => setExpanded(!expanded)}
             aria-expanded={expanded}
-            className="mt-2 inline-flex items-center gap-1 text-[0.625rem] font-medium text-muted transition-colors hover:text-ink"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {expanded
               ? "Show fewer"
               : `+${revision.total - visible.length} more pending`}
-            <ChevronDown
+            <PlainIcon
+              name="chevronDown"
               size={12}
               className={cn("transition-transform", expanded && "rotate-180")}
             />
           </button>
         )}
-        <p className="mt-2 text-[0.625rem] leading-relaxed text-muted">
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
           Completion is manual; attempting a test never marks revision done.
         </p>
       </div>
@@ -748,7 +759,7 @@ export function PersonalTasksPanel({
       action={
         <Link
           href="/my-tasks"
-          className="whitespace-nowrap text-[0.625rem] font-medium text-accent hover:text-accent-hover"
+          className="whitespace-nowrap text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
         >
           All tasks
         </Link>
@@ -756,31 +767,31 @@ export function PersonalTasksPanel({
     >
       <div className="px-4 pb-4">
         {total === 0 ? (
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             Nothing outstanding.{" "}
-            <Link href="/my-tasks" className="text-accent hover:underline">
+            <Link href="/my-tasks" className="text-primary hover:underline">
               Add a personal task
             </Link>
             .
           </p>
         ) : (
-          <ul className="space-y-1.5 text-[0.6875rem]">
+          <ul className="space-y-1.5 text-[11px] text-foreground">
             {overdue.slice(0, 2).map((task) => (
               <li key={task.id} className="flex justify-between gap-2">
                 <span className="truncate">{task.title}</span>
-                <span className="whitespace-nowrap text-danger">Overdue</span>
+                <span className="whitespace-nowrap text-destructive">Overdue</span>
               </li>
             ))}
             {dueToday.slice(0, 2).map((task) => (
               <li key={task.id} className="flex justify-between gap-2">
                 <span className="truncate">{task.title}</span>
-                <span className="whitespace-nowrap text-muted">Due today</span>
+                <span className="whitespace-nowrap text-muted-foreground">Due today</span>
               </li>
             ))}
             {high.map((task) => (
               <li key={task.id} className="flex justify-between gap-2">
                 <span className="truncate">{task.title}</span>
-                <span className="whitespace-nowrap text-accent">High</span>
+                <span className="whitespace-nowrap text-primary">High</span>
               </li>
             ))}
           </ul>

@@ -11,7 +11,6 @@ import {
   DEFAULT_THEME,
   PALETTE_STORAGE_KEY,
   normalizeTheme,
-  THEMES,
   type ThemeId,
 } from "@/lib/theme-style";
 

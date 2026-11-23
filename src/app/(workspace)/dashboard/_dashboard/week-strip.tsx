@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/skeleton";
 import {
   addIsoDays,
   dayAssignmentStats,
@@ -56,7 +56,7 @@ export function WeekStripPanel({
         <Link
           href="/calendar"
           aria-label="Open the full calendar"
-          className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-rule-soft px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent/40 hover:bg-accent-soft sm:min-h-0 sm:min-w-0 sm:px-3"
+          className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-medium text-primary shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent sm:min-h-0 sm:min-w-0 sm:px-3"
         >
           <PlainIcon name="calendar" size={13} />
           <span className="hidden sm:inline">Full calendar</span>
@@ -92,18 +92,18 @@ export function WeekStripPanel({
       </div>
       {/* The legend reads as a caption row under the strip on every width:
           it never competes with the title again. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-rule-soft px-3 py-2.5 text-[0.625rem] text-muted sm:px-6 sm:py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border px-3 py-2.5 text-[11px] text-muted-foreground sm:px-6 sm:py-3">
         <span className="inline-flex items-center gap-1.5">
-          <DoneDot className="border-positive bg-positive" /> done
+          <DoneDot className="border-success bg-success" /> done
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <DoneDot className="border-accent bg-accent" /> in progress
+          <DoneDot className="border-primary bg-primary" /> in progress
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <DoneDot className="border-rule bg-paper" /> pending
+          <DoneDot className="border-border bg-card" /> pending
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-accent" /> mock day
+          <span className="size-2.5 rounded-full bg-primary" /> mock day
         </span>
       </div>
     </Panel>
@@ -134,26 +134,27 @@ function WeekCell({
         /* Phones: a borderless centered type rail — no card chrome, so seven
            columns breathe at 390px; today is carried by the accent wash.
            sm+: the original left-aligned bordered day card. */
-        "flex min-w-0 flex-col items-center gap-1 rounded-panel px-0.5 py-2 text-center transition-colors duration-150 active:translate-y-px motion-reduce:active:translate-y-0 sm:items-start sm:gap-2 sm:px-3 sm:py-3.5 sm:text-left",
+        "flex min-h-11 min-w-0 flex-col items-center gap-1 rounded-[14px] px-0.5 py-2 text-center transition-colors duration-150 active:translate-y-px motion-reduce:active:translate-y-0 sm:items-start sm:gap-2 sm:px-3 sm:py-3.5 sm:text-left",
         isToday
-          ? "bg-accent-soft sm:border sm:border-accent"
+          ? "bg-primary/10 sm:shadow-[inset_0_0_0_1px_var(--primary)]"
           : past
-            ? "sm:border sm:border-rule-soft/60 sm:bg-canvas sm:hover:border-accent/60"
-            : "sm:border sm:border-rule-soft sm:bg-paper sm:hover:border-accent/60 sm:hover:bg-soft",
+            ? "bg-background sm:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_12%,transparent)] sm:hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_50%,transparent)]"
+            : "bg-card sm:shadow-[inset_0_0_0_1px_var(--border)] sm:hover:bg-accent sm:hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_50%,transparent)]",
       )}
     >
       <span
         className={cn(
-          "text-[0.625rem] uppercase tracking-[0.1em] sm:text-[0.625rem] sm:tracking-[0.12em]",
-          isToday ? "font-semibold text-accent" : "text-muted",
+          "text-[10px] uppercase tracking-[0.1em] sm:text-[11px] sm:tracking-[0.12em]",
+          isToday ? "font-semibold text-primary" : "text-muted-foreground",
         )}
       >
         {isoWeekdayShort(day.date)}
       </span>
       <span
         className={cn(
-          "font-serif text-[1.0625rem] leading-none tabular text-ink sm:text-[1.5rem]",
-          isToday && "underline decoration-accent decoration-2 underline-offset-4",
+          "font-serif text-[17px] leading-none tabular-nums text-foreground sm:text-[24px]",
+          isToday &&
+            "underline decoration-primary decoration-2 underline-offset-4",
         )}
       >
         {Number(day.date.slice(-2))}
@@ -167,16 +168,16 @@ function WeekCell({
             <DoneDot
               className={
                 stats.allTasksDone
-                  ? "border-positive bg-positive"
+                  ? "border-success bg-success"
                   : stats.completed > 0
-                    ? "border-accent bg-accent"
-                    : "border-rule bg-paper"
+                    ? "border-primary bg-primary"
+                    : "border-border bg-card"
               }
             />
           )}
-          {hasMock && <span className="size-2.5 rounded-full bg-accent" />}
+          {hasMock && <span className="size-2.5 rounded-full bg-primary" />}
         </span>
-        <span className="hidden text-[0.6875rem] tabular text-muted sm:block">
+        <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:block">
           {stats.total ? `${stats.completed}/${stats.total}` : "—"}
         </span>
       </span>
@@ -188,19 +189,19 @@ function EmptyCell({ date }: { date: string }) {
   return (
     <div
       aria-hidden="true"
-      className="flex min-w-0 flex-col items-center gap-1 rounded-panel px-0.5 py-2 text-center text-muted sm:items-start sm:gap-2 sm:px-3 sm:py-3.5 sm:text-left sm:border sm:border-rule-soft/60 sm:bg-canvas"
+      className="flex min-w-0 flex-col items-center gap-1 rounded-[14px] bg-background px-0.5 py-2 text-center text-muted-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_10%,transparent)] sm:items-start sm:gap-2 sm:px-3 sm:py-3.5 sm:text-left"
     >
-      <span className="text-[0.625rem] uppercase tracking-[0.1em] sm:text-[0.625rem] sm:tracking-[0.12em]">
+      <span className="text-[10px] uppercase tracking-[0.1em] sm:text-[11px] sm:tracking-[0.12em]">
         {isoWeekdayShort(date)}
       </span>
-      <span className="font-serif text-[1.0625rem] leading-none tabular sm:text-[1.5rem]">
+      <span className="font-serif text-[17px] leading-none tabular-nums sm:text-[24px]">
         {Number(date.slice(-2))}
       </span>
       <span className="flex h-2.5 items-center justify-center gap-1 sm:w-full sm:justify-between">
         <span className="flex items-center gap-1">
-          <DoneDot className="border-rule/50 bg-canvas" />
+          <DoneDot className="border-border/60 bg-background" />
         </span>
-        <span className="hidden text-[0.6875rem] tabular sm:block">—</span>
+        <span className="hidden text-[11px] tabular-nums sm:block">—</span>
       </span>
     </div>
   );
@@ -217,14 +218,16 @@ function DoneDot({ className = "" }: { className?: string }) {
 
 export function WeekStripSkeleton() {
   return (
-    <div className="panel px-3 pb-5 pt-4 sm:px-6 sm:pb-6">
+    <div className="rounded-2xl bg-card px-3 pb-5 pt-4 shadow-[inset_0_0_0_1px_var(--border)] sm:px-6 sm:pb-6">
       <div
         className="grid grid-cols-7 gap-1 sm:gap-3"
         aria-busy="true"
         aria-label="Loading the days around today"
       >
         {Array.from({ length: 7 }).map((_, index) => (
-          <Skeleton key={index} className="h-[72px] w-full sm:h-[112px]" />
+          <div key={index} className="h-[72px] sm:h-[112px]">
+            <Skeleton height="100%" />
+          </div>
         ))}
       </div>
     </div>

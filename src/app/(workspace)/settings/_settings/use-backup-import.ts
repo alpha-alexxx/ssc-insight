@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useRef, useState, type RefObject } from "react";
-import { useToast } from "@/components/toast";
+import { toast } from "@/components/toast-stack";
 import { api } from "@/lib/api-client";
 import {
   BACKUP_MAX_BYTES,
@@ -8,7 +8,6 @@ import {
   type ImportMode,
   type ImportResult,
 } from "@/lib/backup";
-import { formatNumber as n } from "@/lib/domain";
 
 /**
  * Backup preview/import workflow behind the settings page: file selection,
@@ -35,7 +34,6 @@ export function useBackupImport({
   setBusy: (busy: boolean) => void;
   fileRef: RefObject<HTMLInputElement | null>;
 }) {
-  const toast = useToast();
   const [backupFile, setBackupFile] = useState<unknown | null>(null);
   const [backupName, setBackupName] = useState("");
   const [preview, setPreview] = useState<BackupPreview | null>(null);
@@ -73,7 +71,7 @@ export function useBackupImport({
           setPreview(null);
           toast.error(
             "Could not preview backup",
-            e instanceof Error ? e.message : undefined,
+            { description: e instanceof Error ? e.message : undefined },
           );
         }
         return null;
@@ -81,7 +79,7 @@ export function useBackupImport({
         if (id === previewId.current) setBusy(false);
       }
     },
-    [setBusy, toast],
+    [setBusy],
   );
 
   const readBackup = useCallback(
@@ -91,12 +89,12 @@ export function useBackupImport({
         file.name.toLowerCase().endsWith(".csv") ||
         file.type === "text/csv"
       ) {
-        toast.info("CSV is read-only", "Choose the JSON backup file to import.");
+        toast.info("CSV is read-only", { description: "Choose the JSON backup file to import." });
         if (fileRef.current) fileRef.current.value = "";
         return;
       }
       if (file.size > BACKUP_MAX_BYTES) {
-        toast.error("Backup too large", "Backup must be under 4 MB");
+        toast.error("Backup too large", { description: "Backup must be under 4 MB" });
         if (fileRef.current) fileRef.current.value = "";
         return;
       }
@@ -117,19 +115,18 @@ export function useBackupImport({
           if (recommended) await runPreview(parsed, "merge", true);
         }
       } catch (e) {
-        toast.error(
-          "Invalid backup",
-          e instanceof SyntaxError
+        toast.error("Invalid backup", {
+          description: e instanceof SyntaxError
             ? "This is not a valid JSON backup file."
             : e instanceof Error
               ? e.message
               : "Invalid backup",
-        );
+        });
       } finally {
         if (fileRef.current) fileRef.current.value = "";
       }
     },
-    [fileRef, runPreview, toast],
+    [fileRef, runPreview],
   );
 
   const changeImportMode = useCallback(
@@ -152,11 +149,10 @@ export function useBackupImport({
     const saved = await download("json");
     if (!saved) return;
     setSafetyDownloaded(true);
-    toast.success(
-      "Backup downloaded",
-      "Verify it in your downloads before replacing.",
-    );
-  }, [download, toast]);
+    toast.success("Backup downloaded", {
+      description: "Verify it in your downloads before replacing.",
+    });
+  }, [download]);
 
   const resetImport = useCallback(() => {
     setBackupFile(null);
@@ -198,10 +194,9 @@ export function useBackupImport({
           parts.push(`${result.deleted} existing mocks removed`);
         if (result.settings.applied)
           parts.push("exam scope and targets applied");
-        toast.success(
-          "Backup imported",
-          parts.length ? parts.join(" · ") : undefined,
-        );
+        toast.success("Backup imported", {
+          description: parts.length ? parts.join(" · ") : undefined,
+        });
         resetImport();
         if (result.settings.applied) onTargetApplied();
         await refresh();
@@ -211,11 +206,11 @@ export function useBackupImport({
         if (/preview|workspace changed/i.test(message)) {
           setPreview(null);
           setSafetyDownloaded(false);
-          toast.warning("Re-previewing backup", message);
+          toast.warning("Re-previewing backup", { description: message });
           await runPreview(backupFile, importMode, applyTarget);
           return;
         }
-        toast.error("Import failed", message);
+        toast.error("Import failed", { description: message });
       } finally {
         setBusy(false);
       }
@@ -231,7 +226,6 @@ export function useBackupImport({
       runPreview,
       safetyDownloaded,
       setBusy,
-      toast,
     ],
   );
 

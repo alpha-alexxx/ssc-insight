@@ -23,15 +23,13 @@ import { Showcase } from "./showcase";
  * anonymous visitor sees.
  *
  * Structure: a server-rendered page with a handful of named client islands
- * (masthead, hero art, showcase tabs, the scope diagram, the FAQ accordion,
- * the reveal wrappers, the error announcer). Everything else — copy, section
- * heads, mockup markup, the fact strip, the plan grid — is static HTML, so the
- * page is fully readable before hydration and without JavaScript.
+ * (masthead, hero art and CTAs, the showcase tabs, the film player, the FAQ
+ * accordion, the error announcer). Everything else — copy, section heads,
+ * mockup markup, the fact strip, the plan grid — is static HTML, so the page
+ * is fully readable before hydration and without JavaScript.
  *
- * The two plates invert the surface to charcoal. Only the plate's own
- * custom properties change there; semantic tokens are untouched, which is
- * what lets a paper mockup sit on a plate and still look exactly like the
- * workspace.
+ * The root is `min-h-screen flex flex-col` with the footer pushed by
+ * `mt-auto`, so short viewports never float the footer mid-air.
  */
 export function Landing({
   authEnabled,
@@ -44,8 +42,14 @@ export function Landing({
 }) {
   const authAvailable = authEnabled || emailEnabled;
   return (
-    <div id="top" className="min-h-screen overflow-x-clip bg-canvas text-ink">
-      <a className="skip-link" href="#main-content">
+    <div
+      id="top"
+      className="flex min-h-screen flex-col overflow-x-clip bg-background text-foreground"
+    >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-[13px] focus:font-medium focus:text-primary-foreground focus:shadow-[inset_0_0_0_1px_var(--border)]"
+      >
         Skip to main content
       </a>
       <LandingError errorCode={errorCode} />
@@ -53,16 +57,12 @@ export function Landing({
       <SectionRail />
       <FloatingAsk />
 
-      <main id="main-content">
+      <main id="main-content" className="flex-1">
         <Hero authAvailable={authAvailable} plan={LANDING_PLAN} />
         <LedgerFacts plan={LANDING_PLAN} />
 
-        <Plate
-          id="workspace"
-          label="Plate I · The workspace"
-          art={{ src: "/landing/ink-compass.png", width: 896, height: 896 }}
-        >
-          <div className="pb-20 pt-14 sm:pb-24">
+        <Plate id="workspace" label="Plate I · The workspace">
+          <div className="pb-20 pt-6 sm:pb-24">
             <Showcase plan={LANDING_PLAN} />
           </div>
         </Plate>
@@ -73,15 +73,7 @@ export function Landing({
         <PlanSection plan={LANDING_PLAN} />
         <CompareSection />
 
-        <Plate
-          label="Plate II · Yours alone"
-          art={{
-            src: "/landing/ink-compass.png",
-            width: 896,
-            height: 896,
-            placement: "pointer-events-none absolute -left-20 bottom-0 w-64 opacity-90",
-          }}
-        >
+        <Plate label="Plate II · Yours alone">
           <AiSection />
           <PrivacySection />
         </Plate>

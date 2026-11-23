@@ -1,17 +1,18 @@
 import { LANDING_SCOPES, LANDING_SUMMARY } from "./fixtures";
+import { subjectChartColor } from "./mockups/data-parts";
+import { EYEBROW } from "./section";
 
 /**
  * The analytical-scope diagram: one saved record fanning into four readings.
  *
  * This is the least obvious and most important idea in the product, so it gets
  * its own drawing rather than a card grid. The counts are `analyze()` output —
- * the app's own projection counts — never typed by hand.
+ * the app's own projection counts, never typed by hand.
  *
- * Deliberately static markup. The connectors draw themselves with a
- * scroll-driven CSS animation (`.scope-fan` in `globals.css`) that only runs
- * where the browser supports `animation-timeline: view()` and the reader
- * allows motion; everywhere else the lines are simply drawn. A diagram that
- * explains the core idea must never depend on an observer firing.
+ * Deliberately static markup: the fan lines are simply drawn (the old
+ * scroll-driven draw was a keyframe effect that left with the retired
+ * stylesheet), so the diagram explains the core idea without depending on an
+ * observer firing.
  */
 
 const ORDER = ["full", "subject", "sectional", "all"] as const;
@@ -29,31 +30,31 @@ export function ScopeDiagram() {
   return (
     <div className="relative">
       {/* The source record. */}
-      <div className="mx-auto w-full max-w-sm rounded-card border border-ink bg-paper p-4">
+      <div className="mx-auto w-full max-w-sm rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="section-label">One saved record</p>
-          <p className="text-[0.6875rem] text-muted tabular">
+          <p className={EYEBROW}>One saved record</p>
+          <p className="tabular-nums text-[11px] text-muted-foreground">
             {source.latestScore} / {source.latestMax}
           </p>
         </div>
-        <p className="mt-1.5 font-serif text-lg leading-tight tracking-[-0.02em]">
+        <p className="mt-1.5 font-serif text-lg leading-tight tracking-[-0.02em] text-foreground">
           Testbook Full Mock 2
         </p>
-        <p className="mt-0.5 text-xs text-muted">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           25 Oct · 130 questions · 124 min
         </p>
-        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-rule-soft pt-2.5">
+        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border pt-2.5">
           {source.whereYouStand
             .filter((row) => row.subjectId !== "computer")
             .map((row) => (
               <div key={row.subjectId}>
-                <p className="truncate text-[0.625rem] text-muted">{row.label}</p>
-                <span className="mt-1 block h-0.5 bg-soft" aria-hidden="true">
+                <p className="truncate text-[10px] text-muted-foreground">{row.label}</p>
+                <span className="mt-1 block h-0.5 rounded-full bg-muted" aria-hidden="true">
                   <span
-                    className="block h-full"
+                    className="block h-full rounded-full"
                     style={{
                       width: `${Math.max(0, Math.min(100, row.averagePercentage ?? 0))}%`,
-                      background: `var(--chart-${row.subjectId})`,
+                      background: subjectChartColor(row.subjectId),
                     }}
                   />
                 </span>
@@ -72,13 +73,10 @@ export function ScopeDiagram() {
         {ORDER.map((scope, index) => (
           <path
             key={scope}
-            className="scope-fan"
             d={`M200 0 C200 30, ${50 + index * 100} 24, ${50 + index * 100} 64`}
             fill="none"
-            stroke="var(--rule)"
+            stroke="var(--border)"
             strokeWidth="1"
-            pathLength={1}
-            style={{ animationDelay: `${index * 70}ms` }}
           />
         ))}
       </svg>
@@ -90,16 +88,16 @@ export function ScopeDiagram() {
           return (
             <div
               key={scope}
-              className="rounded-control border border-rule-soft bg-paper p-4"
+              className="rounded-xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
             >
-              <p className="section-label">{data.label}</p>
-              <p className="mt-1 font-serif text-[2rem] leading-none tracking-[-0.03em] tabular">
+              <p className={EYEBROW}>{data.label}</p>
+              <p className="mt-1 font-serif text-[2rem] leading-none tracking-[-0.03em] tabular-nums text-foreground">
                 {data.pointCount}
               </p>
-              <p className="mt-0.5 text-xs text-muted">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {data.pointCount === 1 ? "point" : "points"}
               </p>
-              <p className="mt-2 border-t border-rule-soft pt-2 text-[0.6875rem] leading-snug text-muted">
+              <p className="mt-2 border-t border-border pt-2 text-[11px] leading-snug text-muted-foreground">
                 {NOTES[scope]}
               </p>
             </div>

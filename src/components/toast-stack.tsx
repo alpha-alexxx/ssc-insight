@@ -114,11 +114,11 @@ export function squirclePath(width: number, height: number, radius: number, smoo
 const TILE_CLIP = `path('${squirclePath(TILE, TILE, TILE_RADIUS, 1)}')`;
 
 const TONES: Record<Exclude<ToastType, "default">, string> = {
-  success: "bg-[#34C759] text-white dark:bg-[#30D158]",
-  error: "bg-[#FF3B30] text-white dark:bg-[#FF453A]",
-  warning: "bg-[#FF9500] text-white dark:bg-[#FF9F0A]",
-  info: "bg-[#007AFF] text-white dark:bg-[#0A84FF]",
-  loading: "bg-[#F4F4F9] text-[#868593] dark:bg-[#2C2C2E] dark:text-[#9B9AA7]",
+  success: "bg-success text-success-foreground",
+  error: "bg-destructive text-destructive-foreground",
+  warning: "bg-warning text-warning-foreground",
+  info: "bg-primary text-primary-foreground",
+  loading: "bg-muted text-muted-foreground",
 };
 
 /* ── Motion Springs & Timing ── */

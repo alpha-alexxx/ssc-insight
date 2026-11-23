@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import { ChevronDown, Plus, X } from "@/components/ui/icons";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useOverlayFocus, useOverlayViewport } from "@/components/use-overlay-viewport";
+import { useState } from "react";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Dialog } from "@/components/dialog";
+import { Input } from "@/components/input";
+import { PlainIcon } from "@/components/icon";
+import { SegmentedControl } from "@/components/segmented-control";
+import { Select } from "@/components/select";
+import { Textarea } from "@/components/textarea";
 import { safeHttpUrlCore } from "@/lib/plan/view-model";
-import { cn } from "@/lib/utils";
 import type {
   Subtask,
   Task,
@@ -36,12 +34,16 @@ const STATUSES: { id: TaskStatus; label: string }[] = [
  * Create/edit dialog with progressive disclosure: title, date, and priority
  * are always visible; group, link, notes, and subtasks live under
  * "More options". `onSave` resolves true when persisted, so "Save & add
- * another" can reset the form. Renders as a bottom sheet on phones via the
- * shared .task-editor-dialog CSS.
+ * another" can reset the form. On phones the panel anchors to the bottom of
+ * the screen (the Hairline Dialog's own responsive posture).
  *
  * The form body is exported separately as `TaskEditorForm` so a host that
- * already owns an overlay — the calendar's bottom drawer — can render the same
+ * already owns an overlay — the calendar's bottom sheet — can render the same
  * editor without nesting a second dialog.
+ *
+ * Hairline rebuild: the overlay is the Hairline Dialog; the fields are the
+ * Hairline Input/Select/Textarea/Checkbox; priority and status are
+ * SegmentedControl groups (radiogroup semantics, arrow-key navigation).
  */
 export function TaskEditor({
   todo,
@@ -52,40 +54,29 @@ export function TaskEditor({
   onCreateGroup,
   onClose,
 }: TaskEditorProps) {
-  const viewport = useOverlayViewport(true);
-  const overlayFocus = useOverlayFocus();
-
   return (
     <Dialog
       open
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
+      title={todo.id ? "Edit task" : "Add task"}
+      description={
+        todo.id
+          ? "Update the details below; status also cycles from the list."
+          : "Start with the essentials — subtasks and links can be added anytime."
+      }
     >
-      <DialogContent
-        {...overlayFocus}
-        style={
-          viewport
-            ? ({
-                "--task-viewport-height": `${viewport.height}px`,
-                "--task-viewport-top": `${viewport.top}px`,
-              } as CSSProperties)
-            : undefined
-        }
-        aria-describedby="task-editor-description"
-        className="task-editor-dialog block"
-      >
-        <TaskEditorForm
-          todo={todo}
-          groups={groups}
-          busy={busy}
-          error={error}
-          onSave={onSave}
-          onCreateGroup={onCreateGroup}
-          onClose={onClose}
-          variant="dialog"
-        />
-      </DialogContent>
+      <TaskEditorForm
+        todo={todo}
+        groups={groups}
+        busy={busy}
+        error={error}
+        onSave={onSave}
+        onCreateGroup={onCreateGroup}
+        onClose={onClose}
+        variant="dialog"
+      />
     </Dialog>
   );
 }
@@ -104,8 +95,8 @@ export type TaskEditorProps = {
 
 /**
  * The editor's actual controls, with no overlay of its own. `variant="dialog"`
- * keeps the dialog heading and close button; `"drawer"` defers the title to
- * the host so the drawer's handle and head stay the single chrome.
+ * defers the heading to the host dialog; `"drawer"` shows the description line
+ * only, so the drawer's handle and head stay the single chrome.
  */
 export function TaskEditorForm({
   todo,
@@ -213,337 +204,288 @@ export function TaskEditorForm({
 
   return (
     <>
-      {variant === "dialog" && (
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <DialogTitle className="font-serif text-2xl">
-              {editing ? "Edit task" : "Add task"}
-            </DialogTitle>
-            <DialogDescription
-              id="task-editor-description"
-              className="mt-1 text-xs text-muted"
-            >
-              {editing
-                ? "Update the details below; status also cycles from the list."
-                : "Start with the essentials — subtasks and links can be added anytime."}
-            </DialogDescription>
-          </div>
-        </div>
-      )}
       {variant === "drawer" && (
-        <p className="text-xs text-muted">
+        <p className="text-xs text-muted-foreground">
           {editing
             ? "Update the details below; status also cycles from the calendar row."
             : "Start with the essentials — subtasks and links can be added anytime."}
         </p>
       )}
       <form
-            className="mt-5 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save(true);
-            }}
-          >
-            <label>
-              Task
-              <input
-                value={title}
-                maxLength={200}
-                required
-                placeholder="e.g. Revise algebra — chapter 4"
-                onChange={(e) => setTitle(e.target.value)}
+        className="mt-4 space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save(true);
+        }}
+      >
+        <Input
+          label="Task"
+          value={title}
+          maxLength={200}
+          required
+          placeholder="e.g. Revise algebra — chapter 4"
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <Input
+            label="Due date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Priority
+            </p>
+            <SegmentedControl
+              label="Priority"
+              block
+              value={priority}
+              onValueChange={(value) => setPriority(value as TaskPriority)}
+              options={PRIORITIES.map((item) => ({
+                value: item.id,
+                label: item.label,
+              }))}
+            />
+          </div>
+        </div>
+        {editing && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Status
+            </p>
+            <SegmentedControl
+              label="Status"
+              block
+              value={status}
+              onValueChange={(value) => setStatus(value as TaskStatus)}
+              options={STATUSES.map((item) => ({
+                value: item.id,
+                label: item.label,
+              }))}
+            />
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(!moreOpen)}
+          aria-expanded={moreOpen}
+          className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <PlainIcon
+            name="chevronDown"
+            size={14}
+            className={
+              moreOpen ? "rotate-180 transition-transform" : "transition-transform"
+            }
+          />
+          More options
+          {hasMore && !moreOpen && (
+            <span
+              className="size-1.5 rounded-full bg-primary"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+        {moreOpen && (
+          <div className="space-y-4 rounded-xl bg-muted/40 p-3.5 shadow-[inset_0_0_0_1px_var(--border)]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Select
+                label="Group"
+                value={groupId}
+                onValueChange={(value) => setGroupId(value)}
+                options={[
+                  { value: "", label: "Ungrouped" },
+                  ...groups
+                    .filter((group) => group.id)
+                    .map((group) => ({ value: group.id, label: group.name })),
+                ]}
               />
-            </label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-              <label>
-                Due date
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </label>
-              <fieldset>
-                <legend className="mb-[var(--label-gap)] text-xs font-medium text-muted">
-                  Priority
-                </legend>
-                <div
-                  role="group"
-                  aria-label="Priority"
-                  className="segment-group w-full"
-                >
-                  {PRIORITIES.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-pressed={priority === item.id}
-                      className="segment flex-1 justify-center"
-                      onClick={() => setPriority(item.id)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            </div>
-            {editing && (
-              <fieldset>
-                <legend className="mb-[var(--label-gap)] text-xs font-medium text-muted">
-                  Status
-                </legend>
-                <div
-                  role="group"
-                  aria-label="Status"
-                  className="segment-group w-full"
-                >
-                  {STATUSES.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-pressed={status === item.id}
-                      className="segment flex-1 justify-center"
-                      onClick={() => setStatus(item.id)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-            <button
-              type="button"
-              onClick={() => setMoreOpen(!moreOpen)}
-              aria-expanded={moreOpen}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
-            >
-              <ChevronDown
-                size={14}
-                className={cn(
-                  "transition-transform motion-reduce:transition-none",
-                  moreOpen && "rotate-180",
-                )}
-              />
-              More options
-              {hasMore && !moreOpen && (
-                <span
-                  className="size-1.5 rounded-full bg-accent"
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-            {moreOpen && (
-              <div className="space-y-4 rounded-card border border-rule-soft bg-canvas/50 p-3.5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label>
-                    Group
-                    <select
-                      value={groupId}
-                      onChange={(e) => setGroupId(e.target.value)}
-                    >
-                      <option value="">Ungrouped</option>
-                      {groups
-                        .filter((group) => group.id)
-                        .map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <div className="min-w-0">
-                    {onCreateGroup && groupForm === null ? (
-                      <button
-                        type="button"
-                        onClick={() => setGroupForm("")}
-                        className="mt-[calc(1rem+var(--label-gap))] inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
-                      >
-                        <Plus size={12} /> New group
-                      </button>
-                    ) : onCreateGroup && groupForm !== null ? (
-                      <div>
-                        <label>
-                          New group name
-                          <input
-                            autoFocus
-                            value={groupForm}
-                            maxLength={80}
-                            placeholder="e.g. Maths revision"
-                            onChange={(e) => setGroupForm(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                void createGroup();
-                              }
-                            }}
-                          />
-                        </label>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={busy || !groupForm.trim()}
-                            onClick={() => void createGroup()}
-                          >
-                            Create
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setGroupForm(null);
-                              setGroupError("");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                        {groupError && (
-                          <p role="alert" className="mt-1 text-xs text-danger">
-                            {groupError}
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                <label>
-                  External link
-                  <input
-                    type="url"
-                    value={url}
-                    maxLength={2048}
-                    placeholder="https://…"
-                    onChange={(e) => setUrl(e.target.value)}
-                    aria-invalid={Boolean(urlProblem)}
-                  />
-                </label>
-                {urlProblem && (
-                  <p role="alert" className="text-xs text-danger">
-                    {urlProblem}
-                  </p>
-                )}
-                <label>
-                  Notes
-                  <textarea
-                    value={notes}
-                    maxLength={2000}
-                    rows={3}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </label>
-                <fieldset className="space-y-2.5">
-                  <legend className="mb-2 text-sm font-medium">
-                    Subtasks
-                  </legend>
-                  <p className="text-xs text-muted">
-                    Subtasks share this task&apos;s date. Completing all of
-                    them marks the task done.
-                  </p>
-                  {subtasks.map((sub, index) => (
-                    <div key={sub.id} className="flex items-center gap-2">
-                      <input
-                        aria-label={`Complete subtask ${sub.title}`}
-                        type="checkbox"
-                        checked={sub.completed}
-                        onChange={(e) =>
-                          setSubtasks(
-                            subtasks.map((item, n) =>
-                              n === index
-                                ? { ...item, completed: e.target.checked }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                      <input
-                        aria-label={`Subtask ${index + 1}`}
-                        value={sub.title}
-                        required
-                        maxLength={200}
-                        className="min-w-0 flex-1"
-                        onChange={(e) =>
-                          setSubtasks(
-                            subtasks.map((item, n) =>
-                              n === index
-                                ? { ...item, title: e.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={`Remove subtask ${sub.title}`}
-                        onClick={() =>
-                          setSubtasks(subtasks.filter((_, n) => n !== index))
-                        }
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <input
-                      aria-label="New subtask"
-                      placeholder="Add a subtask and press Enter…"
-                      value={newSub}
-                      maxLength={200}
-                      className="min-w-0 flex-1"
-                      onChange={(e) => setNewSub(e.target.value)}
+              <div className="min-w-0">
+                {onCreateGroup && groupForm === null ? (
+                  <button
+                    type="button"
+                    onClick={() => setGroupForm("")}
+                    className="mt-6 inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    <PlainIcon name="plus" size={12} /> New group
+                  </button>
+                ) : onCreateGroup && groupForm !== null ? (
+                  <div>
+                    <Input
+                      label="New group name"
+                      autoFocus
+                      value={groupForm}
+                      maxLength={80}
+                      placeholder="e.g. Maths revision"
+                      onChange={(e) => setGroupForm(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
-                          addSubtask();
+                          void createGroup();
                         }
                       }}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!newSub.trim()}
-                      onClick={addSubtask}
-                    >
-                      Add
-                    </Button>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busy || !groupForm.trim()}
+                        onClick={() => void createGroup()}
+                      >
+                        Create
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setGroupForm(null);
+                          setGroupError("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    {groupError && (
+                      <p role="alert" className="mt-1 text-xs text-destructive">
+                        {groupError}
+                      </p>
+                    )}
                   </div>
-                </fieldset>
-              </div>
-            )}
-            {(localError || error) && (
-              <p role="alert" className="text-sm text-danger">
-                {localError || error}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-2 border-t border-rule-soft pt-4">
-              {!editing && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void save(false)}
-                >
-                  Save &amp; add another
-                </Button>
-              )}
-              <div className="ml-auto flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={onClose}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={busy}>
-                  {busy ? "Saving…" : editing ? "Save changes" : "Add task"}
-                </Button>
+                ) : null}
               </div>
             </div>
-          </form>
+            <Input
+              label="External link"
+              type="url"
+              value={url}
+              maxLength={2048}
+              placeholder="https://…"
+              onChange={(e) => setUrl(e.target.value)}
+              aria-invalid={Boolean(urlProblem)}
+              error={urlProblem}
+            />
+            <Textarea
+              label="Notes"
+              value={notes}
+              maxLength={2000}
+              minRows={3}
+              maxRows={8}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+            <fieldset className="space-y-2.5">
+              <legend className="mb-2 text-sm font-medium text-foreground">
+                Subtasks
+              </legend>
+              <p className="text-xs text-muted-foreground">
+                Subtasks share this task&apos;s date. Completing all of
+                them marks the task done.
+              </p>
+              {subtasks.map((sub, index) => (
+                <div key={sub.id} className="flex items-center gap-2">
+                  <Checkbox
+                    size="sm"
+                    checked={sub.completed}
+                    aria-label={`Complete subtask ${sub.title}`}
+                    onCheckedChange={(checked) =>
+                      setSubtasks(
+                        subtasks.map((item, n) =>
+                          n === index
+                            ? { ...item, completed: checked }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    aria-label={`Subtask ${index + 1}`}
+                    value={sub.title}
+                    required
+                    maxLength={200}
+                    className="min-w-0 flex-1"
+                    onChange={(e) =>
+                      setSubtasks(
+                        subtasks.map((item, n) =>
+                          n === index
+                            ? { ...item, title: e.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={`Remove subtask ${sub.title}`}
+                    onClick={() =>
+                      setSubtasks(subtasks.filter((_, n) => n !== index))
+                    }
+                  >
+                    <PlainIcon name="close" size={14} />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Input
+                  aria-label="New subtask"
+                  placeholder="Add a subtask and press Enter…"
+                  value={newSub}
+                  maxLength={200}
+                  className="min-w-0 flex-1"
+                  onChange={(e) => setNewSub(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addSubtask();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!newSub.trim()}
+                  onClick={addSubtask}
+                >
+                  Add
+                </Button>
+              </div>
+            </fieldset>
+          </div>
+        )}
+        {(localError || error) && (
+          <p role="alert" className="text-sm text-destructive">
+            {localError || error}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          {!editing && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void save(false)}
+            >
+              Save &amp; add another
+            </Button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : editing ? "Save changes" : "Add task"}
+            </Button>
+          </div>
+        </div>
+      </form>
     </>
   );
 }

@@ -7,48 +7,37 @@ import { formatNumber as n } from "@/lib/domain";
 import { shortDate } from "@/lib/format";
 import type { Analytics } from "@/lib/analytics";
 import type { DeepDiveSubject } from "@/lib/analytics";
-import { Panel } from "@/components/dashboard-panels";
-import { Sparkline } from "@/components/shared/charts/sparkline";
-import { cn } from "@/lib/utils";
+import { Sparkline } from "@/components/sparkline";
+import { Badge, type BadgeTone } from "@/components/badge";
+import { Panel, subjectColor, subjectColorClass } from "./panel";
 import { useSize, smoothPath } from "./use-size";
+import { cn } from "@/lib/utils";
 
 /**
  * Per-subject deep-dive: one expandable card per series in scope.
  *
  * Collapsed, each card carries the series' population, its score percentage,
- * an accuracy chip and a sparkline of its own tail. Expanded (one at a time —
- * this is a ledger, not a dashboard of dashboards) it draws the series'
- * line with the same smoothing and hover tooltip grammar as the evidence
- * chart above. Series with no results stay disabled: one cannot expand
- * what has no numbers.
+ * an accuracy badge and a Hairline sparkline of its own tail — the sparkline
+ * carries the subject's fixed chart hue, so a reader can tell subjects apart
+ * before expanding. Expanded (one at a time — this is a ledger, not a
+ * dashboard of dashboards) it draws the series' line with the same
+ * smoothing and hover tooltip grammar as the evidence chart above; that
+ * per-subject line is composed from the tokens (the Hairline set has no
+ * sparse multi-date line chart). Series with no results stay disabled: one
+ * cannot expand what has no numbers.
  */
 
 const CHART_H = 172;
 const PAD = { l: 34, r: 14, t: 14, b: 22 };
 
-const SUBJECT_TOKENS: Record<string, string> = {
-  quant: "var(--chart-quant)",
-  reasoning: "var(--chart-reasoning)",
-  english: "var(--chart-english)",
-  ga: "var(--chart-ga)",
-  computer: "var(--chart-computer)",
-};
-
-const accuracyTone = (accuracy: number | null) =>
+const accuracyTone = (accuracy: number | null): BadgeTone =>
   accuracy == null
     ? "neutral"
     : accuracy >= 80
-      ? "positive"
+      ? "success"
       : accuracy >= 65
         ? "warning"
         : "danger";
-
-const TONE_CLASS: Record<string, string> = {
-  positive: "border-positive/40 text-positive",
-  warning: "border-warning/40 text-warning",
-  danger: "border-danger/40 text-danger",
-  neutral: "border-rule-soft text-muted",
-};
 
 export function SubjectDeepDive({ analytics }: { analytics: Analytics }) {
   const subjects = analytics.deepDive ?? [];
@@ -80,9 +69,14 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
           <article
             key={subject.id}
             className={cn(
-              "rounded-card border border-rule-soft bg-paper",
-              isOpen && "border-rule",
+              "rounded-xl bg-card",
+              isOpen ? "" : "shadow-[inset_0_0_0_1px_var(--border)]",
             )}
+            style={
+              isOpen
+                ? { boxShadow: `inset 0 0 0 1.5px ${subjectColor(subject.id)}` }
+                : undefined
+            }
           >
             <button
               type="button"
@@ -96,42 +90,45 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
                 aria-hidden
                 className="mt-1 inline-block size-2.5 shrink-0 rounded-[2px]"
                 style={{
-                  background: SUBJECT_TOKENS[subject.id] ?? "var(--chart-score)",
+                  background: subjectColor(subject.id),
                 }}
               />
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-ink">
+                  <span className="truncate text-sm font-medium text-foreground">
                     {subject.name}
                   </span>
-                  <span className="tabular-nums shrink-0 font-serif text-lg leading-none text-ink">
+                  <span className="shrink-0 text-lg font-semibold leading-none tabular-nums text-foreground">
                     {subject.percentage == null ? "—" : `${n(subject.percentage)}%`}
                   </span>
                 </span>
-                <span className="tabular-nums mt-1 flex items-center gap-2 text-[0.625rem] text-muted">
+                <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
                   <span>
                     {subject.count} result{subject.count === 1 ? "" : "s"} in view
                   </span>
-                  <span
-                    className={cn(
-                      "rounded-pill border px-1.5",
-                      TONE_CLASS[accuracyTone(subject.accuracy)],
-                    )}
-                  >
-                    {subject.accuracy == null ? "no accuracy" : `${n(subject.accuracy)}% accuracy`}
-                  </span>
+                  <Badge tone={accuracyTone(subject.accuracy)} size="sm">
+                    {subject.accuracy == null
+                      ? "no accuracy"
+                      : `${n(subject.accuracy)}% accuracy`}
+                  </Badge>
                 </span>
                 <span className="mt-2 block h-11">
                   {subject.trend.length >= 2 ? (
                     <Sparkline
-                      points={subject.trend.map((point) => ({
-                        date: point.date,
-                        percentage: point.percentage,
+                      data={subject.trend.map((point) => ({
+                        value: point.percentage,
+                        date: shortDate(point.date),
                       }))}
+                      height={44}
+                      color={subjectColorClass(subject.id)}
+                      variant="area"
+                      strokeWidth={1.5}
+                      suffix="%"
+                      label={`${subject.name} score trend`}
                       className="h-11 w-full"
                     />
                   ) : subject.trend.length === 1 ? (
-                    <span className="block text-[0.625rem] leading-[2.75rem] text-muted">
+                    <span className="block text-[11px] leading-[2.75rem] text-muted-foreground">
                       One result — a trend appears after the second.
                     </span>
                   ) : null}
@@ -147,7 +144,7 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.28, ease: EASE }}
-                  className="overflow-hidden border-t border-rule-soft"
+                  className="overflow-hidden border-t border-border"
                 >
                   <SubjectLineChart subject={subject} />
                 </motion.div>
@@ -180,7 +177,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
       : PAD.l + innerW / 2;
   const yAt = (v: number) => PAD.t + innerH * (1 - (v - min) / span);
 
-  const stroke = SUBJECT_TOKENS[subject.id] ?? "var(--chart-score)";
+  const stroke = subjectColor(subject.id);
 
   return (
     <div ref={ref} className="relative px-2 py-2">
@@ -212,14 +209,14 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
                   x2={width - PAD.r - 16}
                   y1={y}
                   y2={y}
-                  stroke="var(--rule-soft)"
+                  stroke="var(--border)"
                   strokeWidth={t === 0 ? 1 : 0.5}
                 />
                 <text
                   x={PAD.l - 6}
                   y={y + 3}
                   textAnchor="end"
-                  className="tabular-nums fill-[var(--muted)] text-[9px]"
+                  className="tabular-nums fill-muted-foreground text-[9px]"
                 >
                   {Math.round(value)}%
                 </text>
@@ -247,7 +244,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
               cx={xAt(i)}
               cy={yAt(point.percentage)}
               r={hoverIndex === i ? 4 : 2.75}
-              fill="var(--paper)"
+              fill="var(--background)"
               stroke={stroke}
               strokeWidth="1.75"
             />
@@ -255,7 +252,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
           <text
             x={PAD.l}
             y={CHART_H - 6}
-            className="tabular-nums fill-[var(--muted)] text-[9px]"
+            className="tabular-nums fill-muted-foreground text-[9px]"
           >
             {shortDate(points[0]!.date)}
           </text>
@@ -264,7 +261,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
               x={width - PAD.r - 16}
               y={CHART_H - 6}
               textAnchor="end"
-              className="tabular-nums fill-[var(--muted)] text-[9px]"
+              className="tabular-nums fill-muted-foreground text-[9px]"
             >
               {shortDate(points[points.length - 1]!.date)}
             </text>
@@ -274,12 +271,12 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
       {hoverIndex != null && points[hoverIndex] ? (
         <div
           role="status"
-          className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-card border border-rule-soft bg-paper px-2.5 py-1.5"
+          className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-xl bg-popover px-2.5 py-1.5 text-popover-foreground shadow-[0_0_0_1px_var(--border)]"
         >
-          <p className="truncate text-[0.6875rem] font-medium text-ink">
+          <p className="truncate text-[11px] font-medium text-foreground">
             {points[hoverIndex].name}
           </p>
-          <p className="tabular-nums text-[0.625rem] text-muted">
+          <p className="tabular-nums text-[11px] text-muted-foreground">
             {shortDate(points[hoverIndex].date)} ·{" "}
             {n(points[hoverIndex].percentage)}% ·{" "}
             {n(points[hoverIndex].score)}/{n(points[hoverIndex].maxScore)}

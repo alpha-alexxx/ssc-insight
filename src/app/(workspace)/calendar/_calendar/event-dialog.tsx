@@ -1,8 +1,9 @@
 "use client";
-import { Dialog } from "radix-ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Badge } from "@/components/badge";
+import { Dialog } from "@/components/dialog";
 import { PlainIcon } from "@/components/icon";
-import { cn } from "@/lib/utils";
 import { CategoryChip, ResultLine } from "@/components/shared/plan/plan-shared";
 import { longDate } from "@/lib/format";
 import type { PlanDayView, PlanTaskView } from "@/lib/plan/view-model";
@@ -13,6 +14,11 @@ import type { PlanDayView, PlanTaskView } from "@/lib/plan/view-model";
  * category, questions/marks, completion, recorded result, revision flags)
  * plus the day's checklist, with actions to toggle completion, open the
  * original RBE test in a new tab, and open the daily workspace.
+ *
+ * Hairline rebuild: the Radix parts are replaced by the Hairline Dialog
+ * (title/description/footer); the revision and checklist toggles are the
+ * Hairline Checkbox (a real <input type="checkbox">, so Space and screen
+ * readers behave as they always did).
  */
 export function EventDialog({
   task,
@@ -34,211 +40,169 @@ export function EventDialog({
   onToggleRevision?: (day: PlanDayView, revisionIndex: number, next: boolean) => void;
 }) {
   return (
-    <Dialog.Root open={!!task} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay fixed inset-0 bg-ink/40 z-40" />
-        <Dialog.Content className="event-dialog dialog-content @container/event-dialog fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-paper border border-rule rounded-panel w-[calc(100%-32px)] max-w-lg max-h-[85vh] overflow-auto p-6 shadow-pop">
-          {task && (
-            <>
-              <Dialog.Title className="font-serif text-2xl leading-tight pr-8">
-                {task.name}
-              </Dialog.Title>
-              <Dialog.Description className="muted text-xs mt-2 flex flex-wrap items-center gap-2">
-                <CategoryChip type={task.type} />
-                <span>
-                  {longDate(task.date)} · Plan day {task.day}
-                </span>
-                <span className="tabular">
-                  {task.questions} Q · {task.marks} marks
-                </span>
-              </Dialog.Description>
-              <Dialog.Close asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-5 right-5"
-                  aria-label="Close event"
-                >
-                  <PlainIcon name="close" size={20} />
-                </Button>
-              </Dialog.Close>
+    <Dialog
+      open={!!task}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={task ? task.name : "Scheduled work"}
+      description={
+        task && (
+          <span className="flex flex-wrap items-center gap-2">
+            <CategoryChip type={task.type} />
+            <span>
+              {longDate(task.date)} · Plan day {task.day}
+            </span>
+            <span className="tabular-nums">
+              {task.questions} Q · {task.marks} marks
+            </span>
+          </span>
+        )
+      }
+      footer={
+        task && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenPlanDay(task.date)}
+            >
+              Open daily plan
+            </Button>
+            <a
+              href={task.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-3 text-[12px] font-medium text-primary shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
+            >
+              <PlainIcon name="arrowUpRight" size={13} />
+              {task.linkLabel}
+            </a>
+            <Button size="sm" onClick={() => onToggleComplete(task)}>
+              {task.completed ? "Mark incomplete" : "Mark complete"}
+            </Button>
+          </>
+        )
+      }
+    >
+      {task && (
+        <>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+            <PlanDoneState completed={task.completed} />
+            <ResultLine task={task} />
+          </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
-                <PlanDoneState completed={task.completed} />
-                <ResultLine task={task} />
-              </div>
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+            <RevFlag label="Rev-1 same day" done={task.rev1} />
+            <RevFlag label="Rev-2 weekly" done={task.rev2} />
+            <RevFlag label="Rev-3 final" done={task.rev3} />
+          </dl>
 
-              <dl className="mt-4 grid grid-cols-2 gap-2 text-xs @sm/event-dialog:grid-cols-3">
-                <RevFlag label="Rev-1 same day" done={task.rev1} />
-                <RevFlag label="Rev-2 weekly" done={task.rev2} />
-                <RevFlag label="Rev-3 final" done={task.rev3} />
-              </dl>
-
-              {day && day.revisionTasks.length > 0 && (
-                <div className="mt-4 border-t border-rule-soft pt-4">
-                  <p className="section-label mb-2">Day revision</p>
-                  <ul className="space-y-1 text-xs">
-                    {day.revisionTasks.map((rt, revisionIndex) => (
-                      <li key={rt} className="flex items-start gap-2">
-                        {onToggleRevision ? (
-                          <button
-                            type="button"
-                            role="checkbox"
-                            aria-checked={day.revisionDone.includes(
-                              String(revisionIndex),
-                            )}
-                            aria-label={`Mark revision ${rt} ${day.revisionDone.includes(String(revisionIndex)) ? "incomplete" : "complete"}`}
-                            onClick={() =>
-                              // Send the real next value: this used to pass
-                              // `true` unconditionally, so a day revision
-                              // could be ticked but never unticked.
-                              onToggleRevision(
-                                day,
-                                revisionIndex,
-                                !day.revisionDone.includes(String(revisionIndex)),
-                              )
-                            }
-                            className="tap-target relative mt-0.5 flex size-4 shrink-0 items-center justify-center"
-                          >
-                            <span
-                              className={cn(
-                                "flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
-                                day.revisionDone.includes(String(revisionIndex))
-                                  ? "border-positive bg-positive-soft text-positive"
-                                  : "border-rule bg-paper hover:border-ink",
-                              )}
-                              aria-hidden="true"
-                            >
-                              {day.revisionDone.includes(String(revisionIndex)) && (
-                                <PlainIcon name="check" size={9} />
-                              )}
-                            </span>
-                          </button>
-                        ) : (
-                          <span
-                            className={cn(
-                              "mt-0.5 size-4 shrink-0 rounded-[3px] border",
-                              day.revisionDone.includes(String(revisionIndex))
-                                ? "border-positive bg-positive-soft"
-                                : "border-rule",
-                            )}
-                            aria-hidden="true"
-                          />
-                        )}
-                        <span
-                          className={cn(
-                            day.revisionDone.includes(String(revisionIndex))
-                              ? "text-muted line-through"
-                              : "",
-                          )}
-                        >
-                          {rt}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {day && (
-                <div className="mt-4 border-t border-rule-soft pt-4">
-                  <p className="section-label mb-2">Daily checklist</p>
-                  <ul className="space-y-1.5 text-xs">
-                    {day.checklist.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2">
-                        {onToggleChecklist ? (
-                          <button
-                            type="button"
-                            role="checkbox"
-                            aria-checked={item.done}
-                            aria-label={`Mark ${item.label} ${item.done ? "incomplete" : "complete"}`}
-                            onClick={() =>
-                              onToggleChecklist(day, item.id, !item.done)
-                            }
-                            className="tap-target relative flex size-4 shrink-0 items-center justify-center"
-                          >
-                            <span
-                              className={cn(
-                                "flex size-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
-                                item.done
-                                  ? "border-positive bg-positive-soft text-positive"
-                                  : "border-rule bg-paper hover:border-ink",
-                              )}
-                              aria-hidden="true"
-                            >
-                              {item.done && <PlainIcon name="check" size={9} />}
-                            </span>
-                          </button>
-                        ) : (
-                          <span
-                            className={cn(
-                              "flex size-4 items-center justify-center rounded-[3px] border",
-                              item.done
-                                ? "border-positive bg-positive-soft text-positive"
-                                : "border-rule",
-                            )}
-                            aria-hidden="true"
-                          >
-                            {item.done && <PlainIcon name="check" size={9} />}
-                          </span>
-                        )}
-                        <span className={item.done ? "text-muted line-through" : ""}>
-                          {item.label}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="action-row-stack mt-6 sm:justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onOpenPlanDay(task.date)}
-                >
-                  Open daily plan
-                </Button>
-                <a href={task.url} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm">
-                    <PlainIcon name="arrowUpRight" size={13} />
-                    {task.linkLabel}
-                  </Button>
-                </a>
-                <Button size="sm" onClick={() => onToggleComplete(task)}>
-                  {task.completed ? "Mark incomplete" : "Mark complete"}
-                </Button>
-              </div>
-            </>
+          {day && day.revisionTasks.length > 0 && (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Day revision
+              </p>
+              <ul className="space-y-1.5 text-xs">
+                {day.revisionTasks.map((rt, revisionIndex) => (
+                  <li key={rt} className="flex items-start gap-2">
+                    {onToggleRevision ? (
+                      <Checkbox
+                        size="sm"
+                        checked={day.revisionDone.includes(String(revisionIndex))}
+                        aria-label={`Mark revision ${rt} ${day.revisionDone.includes(String(revisionIndex)) ? "incomplete" : "complete"}`}
+                        onCheckedChange={() =>
+                          // Send the real next value: this used to pass
+                          // `true` unconditionally, so a day revision
+                          // could be ticked but never unticked.
+                          onToggleRevision(
+                            day,
+                            revisionIndex,
+                            !day.revisionDone.includes(String(revisionIndex)),
+                          )
+                        }
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="mt-0.5 size-4 shrink-0 rounded-[5px] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,var(--border))]"
+                      />
+                    )}
+                    <span
+                      className={
+                        day.revisionDone.includes(String(revisionIndex))
+                          ? "text-muted-foreground line-through"
+                          : ""
+                      }
+                    >
+                      {rt}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+
+          {day && (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Daily checklist
+              </p>
+              <ul className="space-y-1.5 text-xs">
+                {day.checklist.map((item) => (
+                  <li key={item.id} className="flex items-center gap-2">
+                    {onToggleChecklist ? (
+                      <Checkbox
+                        size="sm"
+                        checked={item.done}
+                        aria-label={`Mark ${item.label} ${item.done ? "incomplete" : "complete"}`}
+                        onCheckedChange={() =>
+                          onToggleChecklist(day, item.id, !item.done)
+                        }
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="size-4 shrink-0 rounded-[5px] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,var(--border))]"
+                      />
+                    )}
+                    <span className={item.done ? "text-muted-foreground line-through" : ""}>
+                      {item.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </Dialog>
   );
 }
 
 function PlanDoneState({ completed }: { completed: boolean }) {
   return completed ? (
-    <span className="inline-flex items-center gap-1 rounded-pill border border-positive/40 bg-positive-soft px-2 py-0.5 text-[length:var(--type-label)] font-medium text-positive">
-      <PlainIcon name="check" size={10} /> Completed
-    </span>
+    <Badge tone="success" size="sm" icon={<PlainIcon name="check" size={10} />}>
+      Completed
+    </Badge>
   ) : (
-    <span className="inline-flex items-center rounded-pill border border-rule-soft bg-soft px-2 py-0.5 text-[length:var(--type-label)] font-medium text-muted">
+    <Badge tone="neutral" size="sm">
       Not done yet
-    </span>
+    </Badge>
   );
 }
 
 function RevFlag({ label, done }: { label: string; done: boolean }) {
   return (
     <div
-      className={`rounded-control border px-2.5 py-1.5 ${
-        done ? "border-positive/40 bg-positive-soft text-positive" : "border-rule-soft bg-canvas text-muted"
-      }`}
+      className={
+        done
+          ? "rounded-lg bg-success/10 px-2.5 py-1.5 text-success shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_30%,transparent)]"
+          : "rounded-lg bg-muted px-2.5 py-1.5 text-muted-foreground"
+      }
     >
-      <dt className="text-[length:var(--type-label)] font-medium">{label}</dt>
-      <dd className="text-[length:var(--type-secondary)]">{done ? "Done" : "Pending"}</dd>
+      <dt className="text-[11px] font-medium">{label}</dt>
+      <dd className="text-[12px]">{done ? "Done" : "Pending"}</dd>
     </div>
   );
 }

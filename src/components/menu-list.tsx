@@ -145,7 +145,7 @@ export function MenuList({ items, onClose, autoFocus = "none", label }: MenuList
             onClick={() => !row.disabled && pick(row)}
             className={`relative flex h-8 select-none items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] outline-none ${
               row.disabled ? "cursor-default opacity-40" : "cursor-pointer"
-            } ${destructive ? "text-red-600 dark:text-red-400" : active === row.id ? "text-foreground" : "text-foreground/85"}`}
+            } ${destructive ? "text-destructive" : active === row.id ? "text-foreground" : "text-foreground/85"}`}
           >
             {check ? (
               <span className="flex size-4 items-center justify-center text-foreground">

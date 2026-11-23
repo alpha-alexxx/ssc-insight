@@ -1,19 +1,22 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { InkArt } from "./atoms";
 
 /**
- * The landing page's editorial grammar.
+ * The landing page's editorial grammar, composed from Hairline tokens.
  *
- * Every section after the hero opens the same way: a numbered margin rule
- * (the printed-ledger spine), a small-caps eyebrow, a serif headline, one
- * hairline, and an optional lede. The variety on this page comes from the
- * composition beneath the head — a layered hero, a tabbed specimen, a fan
- * diagram, a plan grid, a comparison ledger — never from restyling the head.
+ * Every section after the hero opens the same way: a small-caps eyebrow, a
+ * serif headline, one hairline, and an optional lede. The variety on this page
+ * comes from the composition beneath the head — a layered hero, a tabbed
+ * specimen, a fan diagram, a plan grid, a comparison ledger — never from
+ * restyling the head.
  *
  * These are server components on purpose: nothing here needs interactivity,
  * so nothing here ships JavaScript.
  */
+
+/** Small-caps eyebrow label, shared by every section head. */
+export const EYEBROW =
+  "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 
 export function Section({
   id,
@@ -33,12 +36,15 @@ export function Section({
   return (
     <section
       id={id}
-      className={cn("landing-section", bordered && "border-b border-rule-soft", className)}
+      className={cn(bordered && "border-b border-border", className)}
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         {number ? (
-          <div className="landing-spine">
-            <p className="landing-spine-no" aria-hidden="true">
+          <div className="grid gap-4 pt-2 sm:grid-cols-[2.75rem_minmax(0,1fr)] sm:gap-8">
+            <p
+              aria-hidden="true"
+              className="hidden pt-1 text-[11px] font-semibold tabular-nums tracking-[0.14em] text-primary sm:block"
+            >
               {number}
             </p>
             <div className="min-w-0">{children}</div>
@@ -67,19 +73,19 @@ export function SectionHead({
   return (
     <header
       className={cn(
-        "border-b border-rule-soft pb-8",
+        "border-b border-border pb-8",
         align === "center" && "text-center",
         className,
       )}
     >
-      <p className="section-label">{eyebrow}</p>
-      <h2 className="mt-3 max-w-3xl font-serif text-[clamp(1.75rem,3.4vw,2.75rem)] font-[450] leading-[1.1] tracking-[-0.03em] text-balance">
+      <p className={EYEBROW}>{eyebrow}</p>
+      <h2 className="mt-3 max-w-3xl text-balance font-serif text-[clamp(1.75rem,3.4vw,2.75rem)] font-[450] leading-[1.1] tracking-[-0.02em] text-foreground">
         {title}
       </h2>
       {lede ? (
         <p
           className={cn(
-            "mt-4 max-w-xl text-[0.9375rem] leading-relaxed text-muted",
+            "mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground",
             align === "center" && "mx-auto",
           )}
         >
@@ -91,56 +97,31 @@ export function SectionHead({
 }
 
 /**
- * The inverted band. Only the plate's own five custom properties are read
- * here — semantic tokens are deliberately untouched, which is what lets a
- * paper mockup sit on the plate and still look exactly like the workspace.
+ * A soft full-bleed band — the successor of the old inverted "plate". The
+ * token set has no inversion layer, so the plate is a muted band and the
+ * content inside keeps the standard semantic tokens.
  */
 export function Plate({
   id,
   label,
   children,
   className,
-  art,
-  dim = false,
 }: {
   id?: string;
   /** The plate's dateline, e.g. "Plate I · The workspace". */
   label?: string;
   children: ReactNode;
   className?: string;
-  /** An ink-wash asset rendered into the plate's corner, tone-inverted. */
-  art?: { src: string; width: number; height: number; placement?: string };
-  /** A secondary plate: no top rule, so it reads as continuous with the one above. */
-  dim?: boolean;
 }) {
   return (
     <div
       id={id}
-      className={cn(
-        "plate landing-section relative overflow-hidden",
-        dim && "border-t-0",
-        className,
-      )}
+      className={cn("relative border-y border-border bg-muted", className)}
     >
-      {art ? (
-        <div
-          className={
-            art.placement ??
-            "pointer-events-none absolute -right-16 -top-16 w-64 opacity-90"
-          }
-        >
-          <InkArt
-            src={art.src}
-            width={art.width}
-            height={art.height}
-            tone="ink"
-          />
-        </div>
-      ) : null}
-      <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="relative mx-auto max-w-6xl px-5 pt-16 sm:px-8 sm:pt-20">
         {label ? (
-          <p className="plate-label mb-6 flex items-center gap-3">
-            <span aria-hidden="true" className="h-px w-8 bg-[var(--plate-rule)]" />
+          <p className={cn(EYEBROW, "mb-6 flex items-center gap-3")}>
+            <span aria-hidden="true" className="h-px w-8 shrink-0 bg-primary" />
             {label}
           </p>
         ) : null}

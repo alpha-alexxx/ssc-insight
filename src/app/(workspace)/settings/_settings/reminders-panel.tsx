@@ -10,12 +10,12 @@ import {
   RevealItem,
   switchBounce,
 } from "./_lib/motion-presets";
+import { PanelCard } from "./_lib/panel";
 import { remindersSchema, type ReminderValues } from "@/components/shared/settings-schema";
-import { Panel } from "@/components/dashboard-panels";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Switch, SwitchRow } from "@/components/ui/switch";
-import { useToast } from "@/components/toast";
+import { Badge } from "@/components/badge";
+import { Input } from "@/components/input";
+import { Switch } from "@/components/switch";
+import { toast } from "@/components/toast-stack";
 import { useExamScope } from "@/components/exam-context";
 import {
   examsKeys,
@@ -50,7 +50,6 @@ const EMPTY_PREFERENCES: ReminderValues = {
 export function RemindersPanel() {
   const scope = useExamScope();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -111,7 +110,7 @@ export function RemindersPanel() {
         setPending(false);
       }
     },
-    [queryClient, scope.exams, toast],
+    [queryClient, scope.exams],
   );
 
   const save = useCallback(() => handleSubmit(savePreferences)(), [
@@ -127,174 +126,190 @@ export function RemindersPanel() {
 
   if (!scope.exams || !saved) {
     return (
-      <Panel dense icon="bell" title="Reminders" description="Loading…">
-        <div className="px-4 pb-4">
-          <div className="h-32 animate-pulse rounded-control bg-soft" />
-        </div>
-      </Panel>
+      <PanelCard icon="bell" title="Reminders" description="Loading…">
+        <div className="h-32 animate-pulse rounded-[14px] bg-muted" />
+      </PanelCard>
     );
   }
 
   return (
-    <Panel
-      dense
+    <PanelCard
       icon="bell"
       title="Reminders"
       description="What the workspace surfaces while you are working in it."
     >
-      <div className="px-4 pb-4">
-        <Reveal>
-          <div className="rounded-control border border-rule-soft bg-canvas p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[length:var(--type-label)] font-medium text-ink">
-                These are in-app signals, not notifications.
-              </p>
-              <Badge variant="secondary">In-app only · no email</Badge>
-            </div>
-            <p className="mt-1 text-[length:var(--type-secondary)] leading-relaxed text-muted">
-              SSC Insight runs entirely in your browser session. It cannot send a
-              push notification, an email, or a reminder while it is closed —
-              there is no background delivery of any kind. Everything below
-              changes what you see on screen while the app is open.
+      <Reveal>
+        <div className="rounded-[14px] border border-border bg-muted p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-foreground">
+              These are in-app signals, not notifications.
             </p>
+            <Badge tone="neutral">In-app only · no email</Badge>
           </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+            SSC Insight runs entirely in your browser session. It cannot send a
+            push notification, an email, or a reminder while it is closed —
+            there is no background delivery of any kind. Everything below
+            changes what you see on screen while the app is open.
+          </p>
+        </div>
 
-          <div className="mt-2">
-            <RevealItem>
-              <SwitchRow
-                title="Emphasise overdue tasks"
-                description="Marks overdue personal tasks in warning ink in the shell, the dashboard and the plan day."
-                control={
-                  <Controller
-                    control={control}
-                    name="overdueEmphasis"
-                    render={({ field }) => (
-                      <BouncingSwitch
-                        checked={field.value}
-                        disabled={pending}
-                        label="Emphasise overdue tasks"
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                }
-              />
-            </RevealItem>
-            <RevealItem>
-              <SwitchRow
-                title="Show a mock scheduled today"
-                description="A quiet note on the plan surfaces naming the mock the schedule expects today."
-                control={
-                  <Controller
-                    control={control}
-                    name="mockDueToday"
-                    render={({ field }) => (
-                      <BouncingSwitch
-                        checked={field.value}
-                        disabled={pending}
-                        label="Show a mock scheduled today"
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                }
-              />
-            </RevealItem>
-            <RevealItem>
-              <SwitchRow
-                title="Keep the gap to target visible"
-                description="A one-line gap between your latest result and the target on performance views."
-                control={
-                  <Controller
-                    control={control}
-                    name="targetGap"
-                    render={({ field }) => (
-                      <BouncingSwitch
-                        checked={field.value}
-                        disabled={pending}
-                        label="Keep the gap to target visible"
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                }
-              />
-            </RevealItem>
-            <RevealItem>
-              <SwitchRow
-                title="Quiet hours"
-                description="Suppress transient toasts during a window, so a late session is not interrupted by confirmations."
-                control={
-                  <Controller
-                    control={control}
-                    name="quietHours.enabled"
-                    render={({ field }) => (
-                      <BouncingSwitch
-                        checked={field.value}
-                        disabled={pending}
-                        label="Quiet hours"
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                }
-              />
-            </RevealItem>
-          </div>
-
-          {quietEnabled && (
-            <RevealItem className="mt-2 flex flex-wrap items-end gap-3">
-              <Controller
-                control={control}
-                name="quietHours.start"
-                render={({ field }) => (
-                  <label className="text-[length:var(--type-label)] text-muted">
-                    From
-                    <Input
-                      type="time"
-                      className="mt-0.5 block w-28"
+        <div className="mt-2">
+          <RevealItem>
+            <ReminderRow
+              title="Emphasise overdue tasks"
+              description="Marks overdue personal tasks in warning ink in the shell, the dashboard and the plan day."
+              control={
+                <Controller
+                  control={control}
+                  name="overdueEmphasis"
+                  render={({ field }) => (
+                    <BouncingSwitch
+                      checked={field.value}
                       disabled={pending}
-                      {...field}
+                      label="Emphasise overdue tasks"
+                      onCheckedChange={field.onChange}
                     />
-                  </label>
-                )}
-              />
-              <Controller
-                control={control}
-                name="quietHours.end"
-                render={({ field }) => (
-                  <label className="text-[length:var(--type-label)] text-muted">
-                    Until
-                    <Input
-                      type="time"
-                      className="mt-0.5 block w-28"
+                  )}
+                />
+              }
+            />
+          </RevealItem>
+          <RevealItem>
+            <ReminderRow
+              title="Show a mock scheduled today"
+              description="A quiet note on the plan surfaces naming the mock the schedule expects today."
+              control={
+                <Controller
+                  control={control}
+                  name="mockDueToday"
+                  render={({ field }) => (
+                    <BouncingSwitch
+                      checked={field.value}
                       disabled={pending}
-                      {...field}
+                      label="Show a mock scheduled today"
+                      onCheckedChange={field.onChange}
                     />
-                  </label>
-                )}
-              />
-              <p className="text-[length:var(--type-secondary)] text-muted">
-                All times are India Standard Time.
-              </p>
-            </RevealItem>
-          )}
+                  )}
+                />
+              }
+            />
+          </RevealItem>
+          <RevealItem>
+            <ReminderRow
+              title="Keep the gap to target visible"
+              description="A one-line gap between your latest result and the target on performance views."
+              control={
+                <Controller
+                  control={control}
+                  name="targetGap"
+                  render={({ field }) => (
+                    <BouncingSwitch
+                      checked={field.value}
+                      disabled={pending}
+                      label="Keep the gap to target visible"
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              }
+            />
+          </RevealItem>
+          <RevealItem>
+            <ReminderRow
+              title="Quiet hours"
+              description="Suppress transient toasts during a window, so a late session is not interrupted by confirmations."
+              control={
+                <Controller
+                  control={control}
+                  name="quietHours.enabled"
+                  render={({ field }) => (
+                    <BouncingSwitch
+                      checked={field.value}
+                      disabled={pending}
+                      label="Quiet hours"
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              }
+            />
+          </RevealItem>
+        </div>
 
-          {formState.errors.quietHours && (
-            <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
-              {formState.errors.quietHours.start?.message ??
-                formState.errors.quietHours.end?.message ??
-                "Check the quiet-hours window."}
+        {quietEnabled && (
+          <RevealItem className="mt-2 flex flex-wrap items-end gap-3">
+            <Controller
+              control={control}
+              name="quietHours.start"
+              render={({ field }) => (
+                <Input
+                  type="time"
+                  className="max-w-28"
+                  label="From"
+                  disabled={pending}
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="quietHours.end"
+              render={({ field }) => (
+                <Input
+                  type="time"
+                  className="max-w-28"
+                  label="Until"
+                  disabled={pending}
+                  {...field}
+                />
+              )}
+            />
+            <p className="text-[13px] text-muted-foreground">
+              All times are India Standard Time.
             </p>
-          )}
-          {error && (
-            <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
-              {error}
-            </p>
-          )}
-        </Reveal>
+          </RevealItem>
+        )}
+
+        {formState.errors.quietHours && (
+          <p role="alert" className="mt-3 text-xs text-destructive">
+            {formState.errors.quietHours.start?.message ??
+              formState.errors.quietHours.end?.message ??
+              "Check the quiet-hours window."}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mt-3 text-xs text-destructive">
+            {error}
+          </p>
+        )}
+      </Reveal>
+    </PanelCard>
+  );
+}
+
+/** One settings row: the explanation on the left, the control on the right. */
+function ReminderRow({
+  title,
+  description,
+  control,
+}: {
+  title: string;
+  description: string;
+  control: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5">
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-medium leading-5 text-foreground">
+          {title}
+        </p>
+        <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">
+          {description}
+        </p>
       </div>
-    </Panel>
+      {control}
+    </div>
   );
 }
 
@@ -319,12 +334,12 @@ function BouncingSwitch({
             animate: { scale: checked ? 1.06 : 1 },
             transition: switchBounce,
           })}
-      className="inline-flex"
+      className="inline-flex shrink-0"
     >
       <Switch
         checked={checked}
         disabled={disabled}
-        label={label}
+        aria-label={label}
         onCheckedChange={onCheckedChange}
       />
     </motion.div>

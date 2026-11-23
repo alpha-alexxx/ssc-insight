@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
-import { Button } from "./ui/button";
+import { Button } from "./button";
 
 /** Props for {@link PrivateWorkspace}. */
 export interface PrivateWorkspaceProps {
@@ -191,30 +191,26 @@ function GuardNotice({ tone, checking = false, onRetry }: GuardNoticeProps) {
   return (
     <main
       aria-busy={!blocked}
-      className="relative min-h-dvh w-full bg-canvas px-5 py-12 md:py-20"
+      className="min-h-dvh w-full bg-background px-5 py-12 md:py-20"
     >
-      <div
-        aria-hidden
-        className="landing-grid-lines pointer-events-none absolute inset-0 opacity-40"
-      />
-      <GuardStyles />
-
-      <article className="relative mx-auto w-full max-w-2xl">
-        {/* Masthead — wordmark + tone tag, then a rule that draws. */}
+      <article className="mx-auto w-full max-w-2xl">
+        {/* Masthead — wordmark + tone tag, then a rule. */}
         <header>
-          <div className="flex items-baseline justify-between border-b border-ink pb-3">
-            <span className="wordmark">SSC Insight</span>
+          <div className="flex items-baseline justify-between border-b border-foreground pb-3">
+            <span className="font-serif text-xl font-semibold tracking-[-0.03em] text-foreground">
+              SSC Insight
+            </span>
             <span
-              className={`inline-flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.14em] ${
-                blocked ? "text-danger" : "text-accent"
+              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                blocked ? "text-destructive" : "text-primary"
               }`}
             >
               <span
                 aria-hidden
                 className={
                   blocked
-                    ? "size-1.5 rounded-full bg-danger"
-                    : "guard-pip size-1.5 rounded-full bg-accent"
+                    ? "size-1.5 rounded-full bg-destructive"
+                    : "size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
                 }
               />
               {statusLabel}
@@ -222,36 +218,35 @@ function GuardNotice({ tone, checking = false, onRetry }: GuardNoticeProps) {
           </div>
           <div
             aria-hidden
-            className={`guard-rule h-[2px] ${blocked ? "bg-danger" : "bg-accent"}`}
+            className={`h-[2px] ${blocked ? "bg-destructive" : "bg-primary"}`}
           />
         </header>
 
         {/* Body */}
         <section className="pt-10 md:pt-14">
-          <h1 className="page-title text-balance">{headline}</h1>
+          <h1 className="font-serif text-3xl font-semibold text-balance text-foreground">
+            {headline}
+          </h1>
           <p
             role={blocked ? "alert" : "status"}
-            className="mt-4 max-w-prose text-sm leading-relaxed text-muted"
+            className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground"
           >
             {body}
           </p>
 
-          <ol
-            aria-label="Session checks"
-            className="mt-10 border-t border-rule-soft"
-          >
+          <ol aria-label="Session checks" className="mt-10 border-t border-border">
             {rows.map((row, i) => (
               <GuardLedgerRow key={i} row={row} index={i} />
             ))}
           </ol>
 
-          <footer className="mt-8 flex items-center justify-between gap-4 border-t border-rule-soft pt-5">
-            <p className="text-[0.6875rem] leading-relaxed text-muted">
+          <footer className="mt-8 flex items-center justify-between gap-4 border-t border-border pt-5">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               Re-verified on focus, on return, and every 60 seconds.
             </p>
             {blocked && onRetry && (
-              <Button onClick={onRetry} disabled={checking}>
-                {checking ? "Retrying…" : "Retry"}
+              <Button onClick={onRetry} loading={checking}>
+                {checking ? "Retrying" : "Retry"}
               </Button>
             )}
           </footer>
@@ -268,23 +263,23 @@ function GuardNotice({ tone, checking = false, onRetry }: GuardNoticeProps) {
 function GuardLedgerRow({ row, index }: { row: GuardRow; index: number }) {
   const tone =
     row.state === "ok"
-      ? "text-positive"
+      ? "text-success"
       : row.state === "fail"
-        ? "text-danger"
-        : "text-accent";
+        ? "text-destructive"
+        : "text-primary";
 
   return (
-    <li className="flex items-baseline gap-3 border-b border-rule-soft py-3 last:border-b-0">
-      <span className="w-6 shrink-0 tabular-nums text-[0.6875rem] font-medium text-muted">
+    <li className="flex items-baseline gap-3 border-b border-border py-3 last:border-b-0">
+      <span className="w-6 shrink-0 tabular-nums text-[11px] font-medium text-muted-foreground">
         {String(index + 1).padStart(2, "0")}
       </span>
-      <span className="shrink-0 text-sm text-ink">{row.label}</span>
+      <span className="shrink-0 text-sm text-foreground">{row.label}</span>
       <span
         aria-hidden
-        className="min-w-4 flex-1 -translate-y-[0.15em] border-b border-dotted border-rule-soft"
+        className="min-w-4 flex-1 -translate-y-[0.15em] border-b border-dotted border-border"
       />
       <span
-        className={`shrink-0 text-[0.625rem] font-semibold uppercase tracking-[0.14em] ${tone}`}
+        className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] ${tone}`}
       >
         {row.value}
       </span>
@@ -301,42 +296,13 @@ function ReverifyMark() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed right-4 top-4 z-50 inline-flex items-center gap-2 rounded-full border border-rule-soft bg-paper/95 px-3 py-1.5 text-[0.6875rem] font-medium text-muted shadow-pop backdrop-blur-sm"
+      className="pointer-events-none fixed right-4 top-4 z-50 inline-flex items-center gap-2 rounded-full bg-card/95 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] backdrop-blur-sm"
     >
       <span aria-hidden className="relative flex size-1.5">
-        <span className="absolute inline-flex size-full rounded-full bg-accent opacity-40 motion-safe:animate-ping" />
-        <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+        <span className="absolute inline-flex size-full rounded-full bg-primary opacity-40 motion-safe:animate-ping" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
       </span>
       <span>Verifying…</span>
     </div>
-  );
-}
-
-/**
- * Scoped keyframes for the two guard-only motions — the masthead rule that
- * draws, and the pulsing pip. Wrapped in `prefers-reduced-motion:
- * no-preference` so the reduced-motion state is fully static and legible.
- */
-function GuardStyles() {
-  return (
-    <style>{`
-      @keyframes guard-rule {
-        from { transform: scaleX(0); }
-        to   { transform: scaleX(1); }
-      }
-      @keyframes guard-pip {
-        0%, 100% { opacity: 1;   transform: scale(1);    }
-        50%      { opacity: 0.4; transform: scale(0.85); }
-      }
-      @media (prefers-reduced-motion: no-preference) {
-        .guard-rule {
-          transform-origin: left center;
-          animation: guard-rule 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        .guard-pip {
-          animation: guard-pip 1.6s ease-in-out infinite;
-        }
-      }
-    `}</style>
   );
 }

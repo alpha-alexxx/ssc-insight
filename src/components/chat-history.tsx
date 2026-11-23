@@ -293,7 +293,7 @@ function Row({
                 </button>
               )}
               {onDelete && (
-                <button type="button" aria-label={`Delete ${chat.title}`} onClick={onDelete} className={`cursor-pointer ${ICON} hover:text-red-600`}>
+                <button type="button" aria-label={`Delete ${chat.title}`} onClick={onDelete} className={`cursor-pointer ${ICON} hover:text-destructive`}>
                   <Trash2 />
                 </button>
               )}

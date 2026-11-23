@@ -34,14 +34,14 @@ export function DurationInput({
   }
   return (
     <fieldset className="col-span-2 min-w-0 md:col-span-1">
-      <legend className="mb-[7px] text-xs font-medium text-muted">
+      <legend className="mb-[7px] text-xs font-medium text-muted-foreground">
         Time (hh:mm:ss)
       </legend>
-      <div className="flex items-center gap-1 tabular">
+      <div className="flex items-center gap-1 tabular-nums">
         {["hours", "minutes", "seconds"].map((unit, index) => (
           <div key={unit} className="contents">
             {index > 0 && (
-              <span aria-hidden="true" className="text-muted">
+              <span aria-hidden="true" className="text-muted-foreground">
                 :
               </span>
             )}
@@ -53,7 +53,7 @@ export function DurationInput({
               max={index === 0 ? 23 : 59}
               step={1}
               placeholder="00"
-              className="!px-1 !text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="h-8 w-11 rounded-[10px] bg-card text-center text-[13px] text-foreground tabular-nums shadow-[inset_0_0_0_1px_var(--border)] outline-none placeholder:text-muted-foreground/70 focus-visible:shadow-[inset_0_0_0_1px_var(--ring),0_0_0_3px_color-mix(in_oklab,var(--ring)_20%,transparent)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               value={parts[index]}
               onChange={(e) => change(index, e.target.value)}
               onBlur={() =>

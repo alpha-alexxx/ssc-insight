@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "@/components/ui/icons";
+import { PlainIcon } from "@/components/icon";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,15 +20,18 @@ export function InsightCallout({
   return (
     <div
       className={cn(
-        "rounded-card border border-accent/25 bg-accent-soft/60 px-4 py-3.5",
+        "rounded-xl bg-accent px-4 py-3.5 text-accent-foreground",
+        "shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_25%,transparent)]",
         className,
       )}
     >
-      <p className="section-label mb-1.5 flex items-center gap-1.5 text-accent">
-        <Sparkles size={12} aria-hidden />
+      <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
+        <PlainIcon name="sparkles" size={12} />
         {title}
       </p>
-      <div className="text-[0.8125rem] leading-relaxed text-ink">{children}</div>
+      <div className="text-[13px] leading-relaxed text-foreground">
+        {children}
+      </div>
     </div>
   );
 }

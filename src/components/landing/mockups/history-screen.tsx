@@ -2,7 +2,13 @@ import { totals, type SubjectId } from "@/lib/domain";
 import { shortDate } from "@/lib/format";
 import { LANDING_ATTEMPTS, LANDING_SUMMARY } from "../fixtures";
 import type { ChipTone } from "./data-parts";
-import { MockChip, MockStat, accuracyTone } from "./data-parts";
+import {
+  MOCK_ROW_HEAD,
+  MOCK_TABLE,
+  MockChip,
+  MockStat,
+  accuracyTone,
+} from "./data-parts";
 import { MockPageHead, MockPanel, WorkspaceFrame } from "./workspace-frame";
 
 /**
@@ -40,7 +46,7 @@ export function HistoryScreen() {
       view="Mock history"
       active="Mock history"
       actions={
-        <span className="rounded-control bg-accent px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-paper">
+        <span className="rounded-full bg-primary px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-primary-foreground">
           + Add mock
         </span>
       }
@@ -49,7 +55,7 @@ export function HistoryScreen() {
         title="Mock history"
         subtitle="Every saved result with its actual attempt date, score and details."
         actions={
-          <span className="rounded-control border border-rule px-[0.55em] py-[0.2em] text-[0.8em]">
+          <span className="rounded-full px-[0.55em] py-[0.2em] text-[0.8em] shadow-[inset_0_0_0_1px_var(--border)]">
             Export CSV
           </span>
         }
@@ -84,7 +90,7 @@ export function HistoryScreen() {
           ].map((cell) => (
             <div
               key={cell.label}
-              className="rounded-control border border-rule-soft bg-paper px-[0.7em] py-[0.55em]"
+              className="rounded-lg bg-card px-[0.7em] py-[0.55em] shadow-[inset_0_0_0_1px_var(--border)]"
             >
               <MockStat {...cell} />
             </div>
@@ -95,14 +101,14 @@ export function HistoryScreen() {
           className="mt-[0.8em]"
           title="All saved mocks"
           description={`${LANDING_ATTEMPTS.length} results · sorted by attempt date`}
-          action={<span className="text-muted">Search mocks… /</span>}
+          action={<span className="text-muted-foreground">Search mocks… /</span>}
           bodyClassName="!px-0 !pb-0"
         >
-          <div className="table-scroll">
-            <table className="mock-table">
+          <div className="overflow-x-auto">
+            <table className={MOCK_TABLE}>
               <thead>
                 <tr>
-                  <th scope="col" className="sticky-col">
+                  <th scope="col" className="sticky left-0 z-[1] bg-card">
                     Mock name
                   </th>
                   <th scope="col">Type</th>
@@ -124,11 +130,11 @@ export function HistoryScreen() {
                   const firstSubject = attempt.subjects[0]!;
                   return (
                     <tr key={attempt.id}>
-                      <th scope="row" className="sticky-col text-left font-normal">
+                      <th scope="row" className={`${MOCK_ROW_HEAD} sticky left-0 z-[1] bg-card`}>
                         <span className="flex items-center gap-[0.45em]">
                           <span
                             aria-hidden="true"
-                            className="grid size-[1.5em] place-items-center rounded-control border border-rule-soft bg-accent-soft text-[0.7em] font-semibold text-accent"
+                            className="grid size-[1.5em] shrink-0 place-items-center rounded-full bg-primary/10 text-[0.7em] font-semibold text-primary"
                           >
                             {SUBJECT_SHORT[firstSubject.subjectId]
                               .slice(0, 2)
@@ -138,7 +144,7 @@ export function HistoryScreen() {
                             <span className="block max-w-[16em] truncate font-medium">
                               {attempt.name}
                             </span>
-                            <span className="block text-[0.78em] text-muted">
+                            <span className="block text-[0.78em] text-muted-foreground">
                               {TYPE_LABEL[attempt.type]}
                             </span>
                           </span>
@@ -152,14 +158,15 @@ export function HistoryScreen() {
                       <td>
                         <MockChip>{attempt.platform}</MockChip>
                       </td>
-                      <td className="text-muted">{shortDate(attempt.completedAt)}</td>
+                      <td className="text-muted-foreground">{shortDate(attempt.completedAt)}</td>
                       <td className="text-right">
                         <span className="flex flex-col items-end gap-[0.25em]">
-                          <span className="font-medium">
+                          <span className="font-medium text-foreground">
                             {t.score} / {t.maxScore}
                           </span>
-                          <span className="mock-bar w-[4.5em]">
+                          <span className="block h-[0.35em] w-[4.5em] overflow-hidden rounded-full bg-muted">
                             <span
+                              className="block h-full rounded-full bg-primary"
                               style={{
                                 width: `${Math.max(0, Math.min(100, percentage))}%`,
                               }}
@@ -172,7 +179,7 @@ export function HistoryScreen() {
                           {t.accuracy == null ? "—" : `${t.accuracy.toFixed(1)}%`}
                         </MockChip>
                       </td>
-                      <td className="text-right text-muted tabular">
+                      <td className="text-right tabular-nums text-muted-foreground">
                         {formatDuration(t.timeSeconds)}
                       </td>
                     </tr>
@@ -181,12 +188,12 @@ export function HistoryScreen() {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between border-t border-rule-soft px-[0.9em] py-[0.5em] text-[0.78em] text-muted">
+          <div className="flex items-center justify-between border-t border-border px-[0.9em] py-[0.5em] text-[0.78em] text-muted-foreground">
             <span>
               Showing 1–{LANDING_ATTEMPTS.length} of {LANDING_ATTEMPTS.length} mocks
             </span>
             <span className="flex gap-[0.5em]">
-              <span className="rounded-[2px] bg-ink px-[0.4em] text-paper">1</span>
+              <span className="rounded-[2px] bg-primary px-[0.4em] text-primary-foreground">1</span>
               <span>Next ›</span>
             </span>
           </div>

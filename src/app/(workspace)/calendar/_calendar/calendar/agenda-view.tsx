@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ComponentProps } from "react";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 import { ProgressRule } from "@/components/shared/plan/plan-shared";
 import { cn } from "@/lib/utils";
 import { longDate, shortDate } from "@/lib/format";
@@ -94,12 +94,12 @@ export function AgendaView({
           onGoToDate={onGoToDate}
         />
       ) : (
-        <div className="flex flex-col items-start gap-3 border-t border-rule-soft px-1 py-6">
-          <p className="text-sm text-muted">
+        <div className="flex flex-col items-start gap-3 border-t border-border px-1 py-6">
+          <p className="text-sm text-muted-foreground">
             Nothing scheduled from {shortDate(selected)} to {shortDate(to)}.
             {startDay ? "" : " This date is outside the plan window."}
           </p>
-          <div className="action-row-stack">
+          <div className="flex flex-wrap gap-2">
             {nextActivity && (
               <Button
                 size="sm"
@@ -126,18 +126,17 @@ export function AgendaView({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-rule-soft pt-3">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button
           variant="outline"
           size="sm"
-          className="border-dashed"
           onClick={() =>
             setWindowState({ start: selected, days: days + AGENDA_WINDOW })
           }
         >
           Show {AGENDA_WINDOW} more days
         </Button>
-        <span className="text-[length:var(--type-secondary)] text-muted">
+        <span className="text-[12.5px] text-muted-foreground">
           through {shortDate(addIsoDays(selected, days - 1))}
         </span>
       </div>
@@ -152,7 +151,7 @@ export function AgendaView({
       )}
 
       {!startDay && (
-        <p className="mt-3 border-t border-rule-soft pt-3 text-[length:var(--type-secondary)] text-muted">
+        <p className="mt-3 border-t border-border pt-3 text-[12.5px] text-muted-foreground">
           The study plan runs {shortDate(planStart)} – {shortDate(planEnd)}.
           Personal tasks and logged mocks work outside that window.
         </p>
@@ -209,20 +208,20 @@ function AgendaGroups({
             )}
             <div
               className={cn(
-                "border-t border-rule-soft py-3 first:border-t-0",
-                isToday && "bg-accent-soft/30",
+                "border-t border-border py-3 first:border-t-0",
+                isToday && "bg-primary/5",
               )}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-1">
                 <h3 className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-[length:var(--type-label)] font-semibold uppercase tracking-[0.12em] text-muted">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {isoWeekdayName(date).slice(0, 3)} {shortDate(date)}
                   </span>
                   {day && (
-                    <span className="text-[length:var(--type-label)] text-muted">Day {day.day}</span>
+                    <span className="text-[11px] text-muted-foreground">Day {day.day}</span>
                   )}
                   {isToday && (
-                    <span className="rounded-pill bg-ink px-1.5 py-px text-[length:var(--type-label)] font-medium uppercase tracking-wide text-paper">
+                    <span className="rounded-full bg-foreground px-1.5 py-px text-[11px] font-medium uppercase tracking-wide text-background">
                       Today
                     </span>
                   )}
@@ -230,7 +229,7 @@ function AgendaGroups({
                 <button
                   type="button"
                   onClick={() => onGoToDate(date)}
-                  className="tap-target inline-flex items-center gap-1 text-[length:var(--type-label)] text-muted hover:text-accent"
+                  className="inline-flex min-h-9 items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-primary"
                   aria-label={`Open ${longDate(date)}`}
                 >
                   Open
@@ -239,7 +238,7 @@ function AgendaGroups({
               </div>
               {day && (
                 <>
-                  <p className="mt-0.5 px-1 text-[length:var(--type-secondary)] text-muted">
+                  <p className="mt-0.5 px-1 text-[12px] text-muted-foreground">
                     {dayTypeLabel(day.dayType)}
                   </p>
                   <ProgressRule
@@ -297,12 +296,12 @@ function EarlierRanges({
   const [open, setOpen] = useState(false);
   const shown = open ? dates : dates.slice(-3).reverse();
   return (
-    <div className="mt-4 border-t border-rule-soft pt-3">
+    <div className="mt-4 border-t border-border pt-3">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="tap-target inline-flex items-center gap-1 text-[length:var(--type-label)] font-medium text-muted transition-colors hover:text-ink"
+        className="inline-flex min-h-9 items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <PlainIcon
           name="chevronRight"
@@ -320,12 +319,12 @@ function EarlierRanges({
               <button
                 type="button"
                 onClick={() => onGoToDate(date)}
-                className="tap-target flex w-full justify-between gap-3 border-b border-rule-soft py-1.5 text-left text-[length:var(--type-secondary)] last:border-0 hover:bg-soft"
+                className="flex w-full justify-between gap-3 border-b border-border py-1.5 text-left text-[12px] last:border-0 hover:bg-accent"
               >
-                <span className="text-muted">
+                <span className="text-muted-foreground">
                   {isoWeekdayName(date).slice(0, 3)} {shortDate(date)}
                 </span>
-                <span className="tabular text-muted">
+                <span className="tabular-nums text-muted-foreground">
                   {counts.plan.total
                     ? `${counts.plan.done}/${counts.plan.total} plan`
                     : ""}
@@ -344,7 +343,7 @@ function EarlierRanges({
         })}
       </ul>
       {dates.length > 3 && !open && (
-        <span className="mt-1 block text-[length:var(--type-secondary)] text-muted">
+        <span className="mt-1 block text-[12px] text-muted-foreground">
           {dates.length - 3} older
         </span>
       )}

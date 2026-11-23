@@ -1,14 +1,13 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import {
-  CalendarClock,
-  Info,
-  Sparkles,
-  X,
-  Zap,
-} from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Input } from "@/components/input";
+import { PlainIcon } from "@/components/icon";
+import { Select } from "@/components/select";
+import { Spinner } from "@/components/spinner";
+import { Textarea } from "@/components/textarea";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 import { api } from "@/lib/api-client";
 import {
@@ -42,9 +41,20 @@ type DraftResponse = {
   contextTruncated?: boolean;
 };
 
-/** The same explicit-date, review-before-write workflow in planner and AI sheet.
+/**
+ * The same explicit-date, review-before-write workflow in planner and AI sheet.
  * Extracted from plan/personal-todos.tsx so the My Tasks workspace, the AI
- * sheet tab, and any future host share one implementation. */
+ * sheet tab, and any future host share one implementation.
+ *
+ * Hairline rebuild: fields are the Hairline Input/Select/Textarea, the
+ * proposal checkboxes are the Hairline Checkbox, the working indicator is
+ * the Hairline Spinner (dots), and every colour is a semantic token. The
+ * review ledger keeps its select-then-apply semantics: the installed
+ * `approval-card` (one Approve/Deny per card) and `action-receipt` (undo
+ * receipts for actions already taken) model different interactions, so the
+ * editable proposal rows are composed from tokens instead — recorded in the
+ * migration report.
+ */
 export function TodoAiComposer({
   onChanged,
   compact = false,
@@ -76,16 +86,16 @@ export function TodoAiComposer({
     return (
       <section className="flex flex-col gap-5" aria-label="AI todo assistant">
         <div>
-          <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
+          <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-foreground">
             Plan your study todos
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-muted">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Todo planning runs on AI. Set up a provider to draft revision
             todos and reschedules here — manual entry stays available in My
             Tasks.
           </p>
         </div>
-        <div className="rounded-control border border-rule bg-canvas p-4">
+        <div className="rounded-xl bg-muted/40 p-4 shadow-[inset_0_0_0_1px_var(--border)]">
           <AiSettingsForm
             variant="panel"
             showHeading={false}
@@ -267,22 +277,22 @@ function TodoAiComposerInner({
   }
   return (
     <section
-      className={cn("flex flex-col gap-5", !compact && "panel p-4")}
+      className={cn("flex flex-col gap-5", !compact && "rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]")}
       aria-label="AI todo assistant"
     >
       {slim && (
         <>
           <div>
-            <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
+            <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-foreground">
               Plan your study todos
             </h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
               Describe the week — the draft appears here for your review.
             </p>
           </div>
-          <div className="flex items-start gap-2.5 border-l-2 border-l-accent pl-3">
-            <CalendarClock size={15} className="mt-0.5 shrink-0 text-accent" />
-            <p className="min-w-0 text-sm leading-relaxed text-muted">
+          <div className="flex items-start gap-2.5 border-l-2 border-l-primary pl-3">
+            <PlainIcon name="calendarPlus" size={15} className="mt-0.5 shrink-0 text-primary" />
+            <p className="min-w-0 text-sm leading-relaxed text-muted-foreground">
               Choose dates and say what you want to plan. You review every
               proposed todo before anything is saved.
             </p>
@@ -292,8 +302,8 @@ function TodoAiComposerInner({
       {!compact && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="font-serif text-xl">Plan with AI</h3>
-            <p className="mt-1 text-xs text-muted">
+            <h3 className="font-serif text-xl text-foreground">Plan with AI</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
               Describe the work. Review every change before it is saved.
             </p>
           </div>
@@ -317,53 +327,48 @@ function TodoAiComposerInner({
             }}
           >
             <label>
-              <span className="section-label">What would you like to plan?</span>
-              <textarea
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                What would you like to plan?
+              </span>
+              <Textarea
                 required
                 maxLength={MAX_TODO_PROMPT_CHARS}
-                rows={slim ? 2 : 3}
-                className={
-                  compact
-                    ? "mt-2 resize-y text-sm leading-relaxed"
-                    : undefined
-                }
+                minRows={slim ? 2 : 3}
+                maxRows={10}
+                showCount
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Create revision todos for my weaker subjects, or reschedule unfinished work…"
                 disabled={busy}
               />
-              {slim && (
-                <span className="mt-1 block text-right text-xs font-normal tabular-nums text-muted">
-                  {prompt.length.toLocaleString("en-IN")} /{" "}
-                  {MAX_TODO_PROMPT_CHARS.toLocaleString("en-IN")}
-                </span>
-              )}
             </label>
-            <div className="grid grid-cols-2 gap-3 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
+            <div className="grid grid-cols-2 gap-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <label>
                 Start date
-                <input
+                <Input
                   type="date"
                   value={date}
+                  className="mt-1"
                   onChange={(e) => setDate(e.target.value)}
                   disabled={busy}
                 />
               </label>
               <label>
                 End date (optional)
-                <input
+                <Input
                   type="date"
                   min={date || undefined}
                   value={endDate}
+                  className="mt-1"
                   onChange={(e) => setEndDate(e.target.value)}
                   disabled={busy}
                 />
               </label>
             </div>
             {slim && (
-              <div className="border-t border-rule-soft pt-3">
-                <p className="flex items-center gap-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted">
-                  <Zap size={12} className="shrink-0 text-accent" />
+              <div className="border-t border-border pt-3">
+                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <PlainIcon name="flash" size={12} className="shrink-0 text-primary" />
                   Start from a template
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -410,7 +415,7 @@ function TodoAiComposerInner({
                 </div>
               </div>
             )}
-            <p className="text-xs leading-relaxed text-muted">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Choose the dates explicitly. AI can use your mock performance,
               study plan, and personal todo notes and subtasks. This context is
               sent to your configured provider; credentials and account identity
@@ -420,15 +425,15 @@ function TodoAiComposerInner({
               className={slim ? "w-full justify-center" : undefined}
               disabled={busy || !prompt.trim()}
             >
-              {slim && <Sparkles size={18} />}
+              {slim && <PlainIcon name="sparkles" size={18} />}
               {busy
                 ? "Working…"
                 : draft
                   ? "Generate new draft"
                   : "Prepare draft"}
             </Button>
-            <p className={cn("flex items-start gap-2 text-xs leading-relaxed text-muted", page && "hidden")}>
-              {compact && <Info size={16} className="mt-0.5 shrink-0" />}
+            <p className={cn("flex items-start gap-2 text-xs leading-relaxed text-muted-foreground", page && "hidden")}>
+              {compact && <PlainIcon name="info" size={16} className="mt-0.5 shrink-0" />}
               <span>
                 Generating does not save anything. Manual todo entry works
                 without AI.
@@ -437,22 +442,18 @@ function TodoAiComposerInner({
           </form>
           {busy && (
             <p
-              className="flex items-center gap-2.5 text-xs text-muted"
+              className="flex items-center gap-2.5 text-xs text-muted-foreground"
               role="status"
               aria-busy="true"
             >
-              <span className="thinking-dots" aria-hidden>
-                <i />
-                <i />
-                <i />
-              </span>
+              <Spinner variant="dots" size="xs" />
               Reading your request and preparing a draft…
             </p>
           )}
           {draft?.needsDates && (
             <p
               role="status"
-              className="border border-warning bg-warning-soft p-3 text-sm text-warning"
+              className="rounded-xl bg-warning/10 p-3 text-sm text-warning shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_35%,transparent)]"
             >
               {draft.question ??
                 "Which date or date range should these todos use?"}{" "}
@@ -460,13 +461,13 @@ function TodoAiComposerInner({
             </p>
           )}
           {draft && !draft.needsDates && (
-            <div className="border-t border-rule-soft pt-4">
+            <div className="border-t border-border pt-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h4 className="section-label">
+                <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Review · {draft.operations.length}{" "}
                   {draft.operations.length === 1 ? "change" : "changes"}
                 </h4>
-                <span className="text-[11px] text-muted">
+                <span className="text-[11px] text-muted-foreground">
                   Only checked rows are applied
                 </span>
               </div>
@@ -477,11 +478,11 @@ function TodoAiComposerInner({
                 </p>
               )}
               {!draft.operations.length && (
-                <p className="mt-3 text-sm text-muted">
+                <p className="mt-3 text-sm text-muted-foreground">
                   No changes proposed. Try a more specific instruction.
                 </p>
               )}
-              <ul className="mt-1 divide-y divide-rule-soft">
+              <ul className="mt-1 divide-y divide-border">
                 {draft.operations.map((op, index) => {
                   const before = op.id ? (draft.before?.[op.id] ?? null) : null;
                   const after = proposedValue(op, before ?? null);
@@ -494,15 +495,15 @@ function TodoAiComposerInner({
                   return (
                     <li key={index} className="py-2.5">
                       <div className="flex items-start gap-2.5">
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          size="sm"
                           className="mt-1"
                           checked={checked}
                           disabled={busy}
                           aria-label={`${op.type === "delete" ? "Trash" : op.type === "create" ? "Add" : "Update"} ${after.title || "proposal"}`}
-                          onChange={(e) => {
+                          onCheckedChange={(value) => {
                             setSelected(
-                              e.target.checked
+                              value
                                 ? [...selected, index]
                                 : selected.filter((i) => i !== index),
                             );
@@ -514,16 +515,16 @@ function TodoAiComposerInner({
                           className={cn(
                             "w-3 shrink-0 font-serif text-base leading-6",
                             op.type === "delete"
-                              ? "text-danger"
+                              ? "text-destructive"
                               : op.type === "create"
-                                ? "text-positive"
-                                : "text-accent",
+                                ? "text-success"
+                                : "text-primary",
                           )}
                         >
                           {op.type === "delete" ? "−" : op.type === "create" ? "+" : "~"}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] uppercase tracking-[0.1em] text-muted">
+                          <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
                             {op.type === "delete"
                               ? "Trash"
                               : op.type === "create"
@@ -535,13 +536,13 @@ function TodoAiComposerInner({
                             className={cn(
                               "break-words text-sm font-medium leading-snug",
                               op.type === "delete"
-                                ? "text-danger line-through"
-                                : "text-ink",
+                                ? "text-destructive line-through"
+                                : "text-foreground",
                             )}
                           >
                             {after.title || "(untitled)"}
                           </p>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted">
+                          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                             <span className="capitalize">{after.priority} priority</span>
                             {before && before.dueDate && before.dueDate !== after.dueDate && (
                               <span className="line-through">
@@ -564,124 +565,109 @@ function TodoAiComposerInner({
                             </p>
                           )}
                           {open && op.type !== "delete" && (
-                            <div className="mt-2 space-y-2 border-l border-rule-soft pl-3">
-                              <label className="text-[11px] text-muted">
-                                Title
-                                <input
-                                  required
-                                  maxLength={200}
-                                  className="mt-1"
-                                  value={op.data?.title ?? before?.title ?? ""}
-                                  onChange={(e) =>
-                                    changeOperation(index, { title: e.target.value })
-                                  }
-                                  disabled={busy}
-                                />
-                              </label>
+                            <div className="mt-2 space-y-2 border-l border-border pl-3">
+                              <Input
+                                label="Title"
+                                required
+                                maxLength={200}
+                                value={op.data?.title ?? before?.title ?? ""}
+                                onChange={(e) =>
+                                  changeOperation(index, { title: e.target.value })
+                                }
+                                disabled={busy}
+                              />
                               <div className="grid grid-cols-2 gap-2">
-                                <label className="text-[11px] text-muted">
-                                  Date
-                                  <input
-                                    type="date"
-                                    required
-                                    className="mt-1"
-                                    value={op.data?.dueDate ?? before?.dueDate ?? ""}
-                                    onChange={(e) =>
-                                      changeOperation(index, { dueDate: e.target.value })
-                                    }
-                                    disabled={busy}
-                                  />
-                                </label>
-                                <label className="text-[11px] text-muted">
-                                  Priority
-                                  <select
-                                    className="mt-1"
-                                    value={op.data?.priority ?? before?.priority ?? "normal"}
-                                    onChange={(e) =>
-                                      changeOperation(index, { priority: e.target.value })
-                                    }
-                                    disabled={busy}
-                                  >
-                                    <option value="high">High</option>
-                                    <option value="normal">Normal</option>
-                                    <option value="low">Low</option>
-                                  </select>
-                                </label>
-                              </div>
-                              <label className="text-[11px] text-muted">
-                                Group
-                                <select
-                                  className="mt-1"
-                                  value={
-                                    op.data?.groupId !== undefined
-                                      ? (op.data.groupId ?? "")
-                                      : (before?.groupId ?? "")
-                                  }
-                                  disabled={busy}
-                                  onChange={(event) =>
-                                    changeOperation(index, {
-                                      groupId: event.target.value || null,
-                                    })
-                                  }
-                                >
-                                  <option value="">Ungrouped</option>
-                                  {groups.map((group) => (
-                                    <option key={group.id} value={group.id}>
-                                      {group.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                              <label className="text-[11px] text-muted">
-                                Notes
-                                <textarea
-                                  rows={2}
-                                  maxLength={2000}
-                                  className="mt-1"
-                                  value={op.data?.notes ?? before?.notes ?? ""}
+                                <Input
+                                  label="Date"
+                                  type="date"
+                                  required
+                                  value={op.data?.dueDate ?? before?.dueDate ?? ""}
                                   onChange={(e) =>
-                                    changeOperation(index, { notes: e.target.value })
+                                    changeOperation(index, { dueDate: e.target.value })
                                   }
                                   disabled={busy}
                                 />
-                              </label>
-                              <label className="check-row text-[11px]">
-                                <input
-                                  type="checkbox"
-                                  checked={after.completed}
+                                <Select
+                                  label="Priority"
+                                  value={op.data?.priority ?? before?.priority ?? "normal"}
+                                  onValueChange={(value) =>
+                                    changeOperation(index, { priority: value })
+                                  }
                                   disabled={busy}
-                                  onChange={(event) => {
-                                    const completed = event.target.checked;
-                                    changeOperation(index, {
-                                      completed,
-                                      subtasks: after.subtasks.map((subtask) => ({
-                                        ...subtask,
-                                        completed,
-                                      })),
-                                    });
-                                  }}
+                                  options={[
+                                    { value: "high", label: "High" },
+                                    { value: "normal", label: "Normal" },
+                                    { value: "low", label: "Low" },
+                                  ]}
                                 />
-                                <span>Complete with all subtasks</span>
-                              </label>
+                              </div>
+                              <Select
+                                label="Group"
+                                value={
+                                  op.data?.groupId !== undefined
+                                    ? (op.data.groupId ?? "")
+                                    : (before?.groupId ?? "")
+                                }
+                                disabled={busy}
+                                onValueChange={(value) =>
+                                  changeOperation(index, {
+                                    groupId: value || null,
+                                  })
+                                }
+                                options={[
+                                  { value: "", label: "Ungrouped" },
+                                  ...groups.map((group) => ({
+                                    value: group.id,
+                                    label: group.name,
+                                  })),
+                                ]}
+                              />
+                              <Textarea
+                                label="Notes"
+                                minRows={2}
+                                maxRows={8}
+                                maxLength={2000}
+                                value={op.data?.notes ?? before?.notes ?? ""}
+                                onChange={(e) =>
+                                  changeOperation(index, { notes: e.target.value })
+                                }
+                                disabled={busy}
+                              />
+                              <Checkbox
+                                size="sm"
+                                checked={after.completed}
+                                disabled={busy}
+                                label="Complete with all subtasks"
+                                onCheckedChange={(value) => {
+                                  const completed = Boolean(value);
+                                  changeOperation(index, {
+                                    completed,
+                                    subtasks: after.subtasks.map((subtask) => ({
+                                      ...subtask,
+                                      completed,
+                                    })),
+                                  });
+                                }}
+                              />
                               {after.subtasks.map((sub, i) => (
                                 <div key={sub.id ?? i} className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    aria-label={`Complete proposed subtask ${i + 1}`}
+                                  <Checkbox
+                                    size="sm"
                                     checked={sub.completed}
                                     disabled={busy}
-                                    onChange={(event) =>
+                                    aria-label={`Complete proposed subtask ${i + 1}`}
+                                    onCheckedChange={(value) =>
                                       changeOperation(index, {
                                         subtasks: after.subtasks.map((item, n) =>
                                           n === i
-                                            ? { ...item, completed: event.target.checked }
+                                            ? { ...item, completed: Boolean(value) }
                                             : item,
                                         ),
                                         completed: undefined,
                                       })
                                     }
                                   />
-                                  <input
+                                  <Input
                                     aria-label={`Subtask ${i + 1} title`}
                                     className="min-w-0 flex-1"
                                     maxLength={200}
@@ -709,7 +695,7 @@ function TodoAiComposerInner({
                                       })
                                     }
                                   >
-                                    <X size={14} />
+                                    <PlainIcon name="close" size={14} />
                                   </Button>
                                 </div>
                               ))}
@@ -743,7 +729,7 @@ function TodoAiComposerInner({
                               }))
                             }
                             aria-expanded={open}
-                            className="shrink-0 pt-1 text-[11px] font-medium text-accent hover:text-accent-hover"
+                            className="shrink-0 pt-1 text-[11px] font-medium text-primary hover:text-primary/80"
                           >
                             {open ? "Done" : "Edit"}
                           </button>
@@ -754,13 +740,13 @@ function TodoAiComposerInner({
                 })}
               </ul>
               {duplicateLookupTruncated && (
-                <p className="mt-2 text-[11px] text-muted">
+                <p className="mt-2 text-[11px] text-muted-foreground">
                   Duplicate hints compare this draft with the first 100 active
                   todos.
                 </p>
               )}
-              <div className="sticky bottom-0 -mx-1 mt-3 flex items-center justify-between gap-3 border-t border-rule-soft bg-paper px-1 py-2.5">
-                <span className="text-[11px] tabular text-muted">
+              <div className="sticky bottom-0 -mx-1 mt-3 flex items-center justify-between gap-3 border-t border-border bg-background px-1 py-2.5">
+                <span className="text-[11px] tabular-nums text-muted-foreground">
                   {selected.length} of {draft.operations.length} selected
                 </span>
                 <div className="flex items-center gap-2">
@@ -804,7 +790,7 @@ function TodoAiComposerInner({
           {error && (
             <p
               role="alert"
-              className="border-l-2 border-l-danger bg-danger-soft px-3 py-2 text-xs leading-relaxed text-danger"
+              className="border-l-2 border-l-destructive bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>
@@ -812,7 +798,7 @@ function TodoAiComposerInner({
           {success && (
             <p
               role="status"
-              className="border-l-2 border-l-positive bg-positive-soft px-3 py-2 text-xs leading-relaxed text-positive"
+              className="border-l-2 border-l-success bg-success/10 px-3 py-2 text-xs leading-relaxed text-success"
             >
               {success}
             </p>

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { AuthErrorAnnouncer } from "@/components/auth/auth-error-announcer";

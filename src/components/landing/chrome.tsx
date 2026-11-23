@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
  * page without ever owning it:
  *
  *  - <SectionRail/>: the numbered spine. A hair-thin scroll-progress rule
- *    with an accent fill, then the section index; the active number turns
- *    accent, its dash grows, and labels surface on hover. Scroll-spy runs on
+ *    with a primary fill, then the section index; the active number turns
+ *    primary, its dash grows, and labels surface on hover. Scroll-spy runs on
  *    one IntersectionObserver reading the middle band of the viewport.
- *  - <FloatingAsk/>: the black pill. For an anonymous visitor "Ask AI" leads
+ *  - <FloatingAsk/>: the primary pill. For an anonymous visitor "Ask AI" leads
  *    to the sign-in page — the one gate in front of the workspace.
  */
 
@@ -74,10 +74,10 @@ export function SectionRail() {
       className="fixed top-1/2 right-6 z-30 hidden -translate-y-1/2 xl:block print:hidden"
     >
       <div className="flex items-stretch gap-3">
-        {/* the scroll-progress rule, filled top-down in accent */}
-        <div aria-hidden="true" className="relative w-px bg-rule-soft">
+        {/* the scroll-progress rule, filled top-down in primary */}
+        <div aria-hidden="true" className="relative w-px bg-border">
           <div
-            className="absolute inset-x-0 top-0 h-full origin-top bg-accent transition-transform duration-150 ease-out"
+            className="absolute inset-x-0 top-0 h-full origin-top bg-primary transition-transform duration-150 ease-out"
             style={{ transform: `scaleY(${progress})` }}
           />
         </div>
@@ -90,14 +90,14 @@ export function SectionRail() {
                 <a
                   href={`#${item.id}`}
                   aria-current={isActive ? "true" : undefined}
-                  className="group flex items-center justify-end gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                  className="group flex items-center justify-end gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-4 focus-visible:ring-offset-background"
                 >
                   <span
                     className={cn(
-                      "text-[0.5625rem] font-semibold uppercase tracking-[0.14em] transition-opacity duration-150",
+                      "text-[9px] font-semibold uppercase tracking-[0.14em] transition-opacity duration-150",
                       isActive
-                        ? "text-ink opacity-100"
-                        : "text-muted opacity-0 group-hover:opacity-100",
+                        ? "text-foreground opacity-100"
+                        : "text-muted-foreground opacity-0 group-hover:opacity-100",
                     )}
                   >
                     {item.label}
@@ -106,13 +106,13 @@ export function SectionRail() {
                     aria-hidden="true"
                     className={cn(
                       "h-px transition-all duration-200",
-                      isActive ? "w-6 bg-accent" : "w-3 bg-rule group-hover:bg-ink",
+                      isActive ? "w-6 bg-primary" : "w-3 bg-border group-hover:bg-foreground",
                     )}
                   />
                   <span
                     className={cn(
-                      "tabular-nums w-5 text-right text-[0.625rem] leading-none",
-                      isActive ? "font-semibold text-accent" : "text-muted",
+                      "w-5 text-right text-[10px] leading-none tabular-nums",
+                      isActive ? "font-semibold text-primary" : "text-muted-foreground",
                     )}
                   >
                     {item.no}
@@ -132,13 +132,13 @@ export function FloatingAsk() {
     <Link
       href="/sign-in"
       aria-label="Ask AI — sign in to open the workspace"
-      className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2.5 rounded-full bg-ink py-3.5 pr-5 pl-4 text-paper transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent print:hidden"
+      className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2.5 rounded-full bg-primary py-3.5 pr-5 pl-4 text-primary-foreground transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background print:hidden"
     >
       <span aria-hidden="true" className="relative flex size-2">
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-75 motion-reduce:animate-none" />
-        <span className="relative inline-flex size-2 rounded-full bg-accent" />
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary-foreground opacity-60 motion-reduce:animate-none" />
+        <span className="relative inline-flex size-2 rounded-full bg-primary-foreground" />
       </span>
-      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em]">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
         Ask AI
       </span>
     </Link>

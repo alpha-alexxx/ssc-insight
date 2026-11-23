@@ -1,5 +1,8 @@
 "use client";
-import { PlainIcon } from "@/components/icon";
+import { Badge } from "@/components/badge";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Alert } from "@/components/alert";
 import {
   PLAN_CATEGORIES,
   effectiveStatus,
@@ -9,13 +12,19 @@ import {
 } from "@/lib/plan/view-model";
 import type { PlanTaskType } from "@/lib/plan/schema";
 
-/** Shared planner atoms — category chips, completion toggles, states. */
+/** Shared planner atoms — category chips, completion toggles, states.
+ *
+ * Hairline rebuild: chips are `Badge`, completion toggles are the Hairline
+ * `Checkbox` (a real <input type="checkbox"> underneath), the plan error card
+ * is the Hairline `Alert`, and the 2px progress rule is composed from tokens.
+ * All behaviour, labels and aria contracts are unchanged.
+ */
 
 /* ---------- personal-task status dots ----------
-   Colors come straight from the semantic tokens (--positive/--danger/
-   --accent/--rule), which are defined once in :root/.dark and never
-   overridden by [data-palette], so the dot semantics are identical across
-   all palette × style combinations. Overdue derives from the due date —
+   Colors come straight from the semantic tokens (--success/--destructive/
+   --primary/--border), which are defined once in :root/.dark and never
+   re-themed per palette, so the dot semantics are identical across all
+   palette × style combinations. Overdue derives from the due date —
    it is never stored. */
 export type PersonalTaskDisplayStatus =
   | "todo"
@@ -29,23 +38,23 @@ export const STATUS_META: Record<
 > = {
   todo: {
     label: "To do",
-    dotClass: "bg-paper border-2 border-rule",
-    textClass: "text-muted",
+    dotClass: "bg-background border-2 border-border",
+    textClass: "text-muted-foreground",
   },
   in_progress: {
     label: "In progress",
-    dotClass: "bg-accent border-2 border-accent",
-    textClass: "text-accent",
+    dotClass: "bg-primary border-2 border-primary",
+    textClass: "text-primary",
   },
   completed: {
     label: "Done",
-    dotClass: "bg-positive border-2 border-positive",
-    textClass: "text-positive",
+    dotClass: "bg-success border-2 border-success",
+    textClass: "text-success",
   },
   overdue: {
     label: "Overdue",
-    dotClass: "bg-danger border-2 border-danger ring-2 ring-danger-soft",
-    textClass: "text-danger",
+    dotClass: "bg-destructive border-2 border-destructive ring-2 ring-destructive/10",
+    textClass: "text-destructive",
   },
 };
 
@@ -85,15 +94,9 @@ export function StatusDot({
 export function CategoryChip({ type }: { type: PlanTaskType }) {
   const mock = isMockType(type);
   return (
-    <span
-      className={`inline-flex items-center rounded-pill border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap ${
-        mock
-          ? "border-accent/40 bg-accent-soft text-accent"
-          : "border-rule-soft bg-soft text-muted"
-      }`}
-    >
+    <Badge size="sm" tone={mock ? "primary" : "neutral"}>
       {PLAN_CATEGORIES[type].short}
-    </span>
+    </Badge>
   );
 }
 
@@ -107,20 +110,13 @@ export function CompleteToggle({
   label: string;
 }) {
   return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={completed}
+    <Checkbox
+      checked={completed}
+      onCheckedChange={() => onToggle?.()}
       aria-label={label}
-      onClick={onToggle}
-      className={`relative mt-0.5 flex size-5.5 shrink-0 items-center justify-center rounded-[4px] border transition-colors after:absolute after:-inset-2.5 after:content-[''] ${
-        completed
-          ? "border-positive bg-positive-soft text-positive"
-          : "border-rule bg-paper hover:border-ink"
-      }`}
-    >
-      {completed && <PlainIcon name="check" size={12} />}
-    </button>
+      size="sm"
+      className="mt-0.5"
+    />
   );
 }
 
@@ -131,7 +127,11 @@ export function ResultLine({ task }: { task: PlanTaskView }) {
   if (task.wrong != null) parts.push(`${task.wrong} wrong`);
   if (task.unattempted != null) parts.push(`${task.unattempted} skipped`);
   if (!parts.length) return null;
-  return <span className="text-[11px] muted tabular">{parts.join(" · ")}</span>;
+  return (
+    <span className="text-[11px] tabular-nums text-muted-foreground">
+      {parts.join(" · ")}
+    </span>
+  );
 }
 
 /**
@@ -153,35 +153,34 @@ export function ProgressRule({
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
     <div
-      className={`metric-rule block ${className ?? ""}`}
+      className={`block h-0.5 overflow-hidden rounded-full bg-border ${className ?? ""}`}
       role="progressbar"
       aria-valuenow={pct}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={`${label} progress`}
     >
-      <span style={{ width: `${pct}%` }} />
+      <span
+        className="block h-full rounded-full bg-primary"
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
 
 export function PlanErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div
-      role="alert"
-      className="mb-5 flex flex-wrap gap-3 justify-between items-center bg-warning-soft text-warning border border-warning rounded-control px-5 py-4"
+    <Alert
+      tone="warning"
+      title="The study plan could not load"
+      action={
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Retry
+        </Button>
+      }
+      className="mb-5"
     >
-      <div>
-        <p className="font-medium text-sm">The study plan could not load</p>
-        <p className="text-xs mt-1 max-w-2xl">{message}</p>
-      </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="border border-warning rounded-control px-3 py-2 text-xs font-medium hover:bg-warning/10 transition-colors"
-      >
-        Retry
-      </button>
-    </div>
+      <p className="max-w-2xl">{message}</p>
+    </Alert>
   );
 }

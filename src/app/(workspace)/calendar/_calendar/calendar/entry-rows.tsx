@@ -54,12 +54,12 @@ export function PlanEntryRow({
 export function StatusDot({ status }: { status: PersonalEntry["status"] }) {
   const cls =
     status === "completed"
-      ? "bg-positive border-positive"
+      ? "bg-success border-success"
       : status === "overdue"
-        ? "bg-danger border-danger ring-2 ring-danger-soft"
+        ? "bg-destructive border-destructive ring-2 ring-destructive/10"
         : status === "in_progress"
-          ? "bg-accent border-accent"
-          : "bg-paper border-rule";
+          ? "bg-primary border-primary"
+          : "bg-background border-border";
   return (
     <span
       aria-hidden="true"
@@ -79,7 +79,7 @@ export function PersonalEntryRow({
 }) {
   const completed = entry.status === "completed";
   return (
-    <li className="border-l-2 border-l-transparent px-4 py-2.5 transition-colors hover:bg-soft">
+    <li className="border-l-2 border-l-transparent px-4 py-2.5 transition-colors hover:bg-accent">
       <div className="flex items-start gap-2.5">
         <CompleteToggle
           completed={completed}
@@ -97,13 +97,13 @@ export function PersonalEntryRow({
             <span
               className={cn(
                 "block break-words text-[13px] font-medium leading-snug",
-                completed ? "text-muted line-through" : "text-ink",
+                completed ? "text-muted-foreground line-through" : "text-foreground",
               )}
             >
               {entry.task.title}
             </span>
-            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[length:var(--type-secondary)] text-muted">
-              {entry.overdue && <span className="text-danger">Overdue</span>}
+            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
+              {entry.overdue && <span className="text-destructive">Overdue</span>}
               {entry.task.priority !== "normal" && (
                 <span className="capitalize">{entry.task.priority} priority</span>
               )}
@@ -112,7 +112,7 @@ export function PersonalEntryRow({
               )}
             </span>
           </span>
-          <PlainIcon name="chevronRight" size={13} className="mt-0.5 shrink-0 text-muted" />
+          <PlainIcon name="chevronRight" size={13} className="mt-0.5 shrink-0 text-muted-foreground" />
         </button>
       </div>
     </li>
@@ -137,7 +137,7 @@ export function AttemptEntryRow({
   onOpen: () => void;
 }) {
   return (
-    <li className="border-l-2 border-l-ink/60 px-4 py-2">
+    <li className="border-l-2 border-l-foreground/60 px-4 py-2">
       <button
         type="button"
         onClick={onOpen}
@@ -145,24 +145,24 @@ export function AttemptEntryRow({
         aria-label={`${attempt.name}, ${scorePct} percent — open result`}
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium leading-snug text-ink">
+          <span className="block truncate text-[13px] font-medium leading-snug text-foreground">
             {attempt.name}
           </span>
-          <span className="mt-0.5 block truncate text-[length:var(--type-secondary)] text-muted">
+          <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
             {attempt.platform} · {mockTypeLabel(attempt.type)}
           </span>
         </span>
         <span
           className={cn(
-            "shrink-0 font-serif tabular leading-none text-ink",
+            "shrink-0 font-serif tabular-nums leading-none text-foreground",
             dense ? "text-base" : "text-xl",
           )}
           aria-hidden="true"
         >
           {scorePct}
-          <span className="ml-0.5 text-[length:var(--type-label)] text-muted">%</span>
+          <span className="ml-0.5 text-[11px] text-muted-foreground">%</span>
         </span>
-        <PlainIcon name="chevronRight" size={13} className="shrink-0 text-muted" />
+        <PlainIcon name="chevronRight" size={13} className="shrink-0 text-muted-foreground" />
       </button>
     </li>
   );
@@ -188,7 +188,7 @@ export function RevisionEntryRow({
       <span
         className={cn(
           "min-w-0 flex-1 break-words text-[12px] leading-snug",
-          done ? "text-muted line-through" : "text-ink",
+          done ? "text-muted-foreground line-through" : "text-foreground",
         )}
       >
         {label}
@@ -208,11 +208,11 @@ export function SectionHead({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 border-t border-rule-soft px-4 pb-1 pt-3">
-      <h3 className="section-label flex items-baseline gap-1.5">
+    <div className="flex items-baseline justify-between gap-2 border-t border-border px-4 pb-1 pt-3">
+      <h3 className="flex items-baseline gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         <span>{label}</span>
         {count != null && (
-          <span className="tabular text-muted normal-case tracking-normal">
+          <span className="tabular-nums text-muted-foreground normal-case tracking-normal">
             {count}
           </span>
         )}
@@ -252,7 +252,7 @@ export function entryPlanRow(entry: Extract<CalendarEntry, { kind: "plan-task" }
 /** Shared "quiet day" line for agenda gaps. */
 export function QuietDays({ count }: { count: number }) {
   return (
-    <p className="flex items-center justify-center gap-2 border-y border-rule-soft/60 py-2 text-[length:var(--type-secondary)] text-muted">
+    <p className="flex items-center justify-center gap-2 border-y border-border/60 py-2 text-[12px] text-muted-foreground">
       <span aria-hidden="true">· · ·</span>
       {count} quiet {count === 1 ? "day" : "days"}
       <span aria-hidden="true">· · ·</span>

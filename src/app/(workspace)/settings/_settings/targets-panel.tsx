@@ -5,21 +5,15 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Reveal, RevealItem } from "./_lib/motion-presets";
+import { PanelCard } from "./_lib/panel";
 import { targetsSchema } from "@/components/shared/settings-schema";
-import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
-import {
-  Tabs,
-  TabsCaption,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { useToast } from "@/components/toast";
+import { Button } from "@/components/button";
+import { Input } from "@/components/input";
+import { Slider } from "@/components/slider";
+import { Progress } from "@/components/progress";
+import { Tabs } from "@/components/tabs";
+import { toast } from "@/components/toast-stack";
 import { useExamScope } from "@/components/exam-context";
 import {
   examsKeys,
@@ -56,7 +50,6 @@ export function TargetsPanel({
 }) {
   const scope = useExamScope();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("tiers");
@@ -131,7 +124,7 @@ export function TargetsPanel({
         setPending(false);
       }
     },
-    [queryClient, toast],
+    [queryClient],
   );
 
   /** One row's instant save (the row's own button). */
@@ -186,11 +179,9 @@ export function TargetsPanel({
 
   if (!exams) {
     return (
-      <Panel dense icon="target" title="Targets" description="Loading…">
-        <div className="px-4 pb-4">
-          <div className="h-24 animate-pulse rounded-control bg-soft" />
-        </div>
-      </Panel>
+      <PanelCard icon="target" title="Targets" description="Loading…">
+        <div className="h-24 animate-pulse rounded-[14px] bg-muted" />
+      </PanelCard>
     );
   }
 
@@ -201,47 +192,180 @@ export function TargetsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <Tabs value={tab} onValueChange={setTab}>
-        <Panel
-          dense
-          icon="target"
-          title="Targets"
-          description="A percentile goal per exam, and a marks target per tier."
-        >
-          <div className="px-4 pb-4">
-            <TabsList aria-label="Target type">
-              <TabsTrigger value="tiers">Per tier</TabsTrigger>
-              <TabsTrigger value="defaults">Structure defaults</TabsTrigger>
-              <TabsTrigger value="percentile">Percentile goal</TabsTrigger>
-            </TabsList>
-
-            {/* ---- per-tier marks ---- */}
-            <TabsContent value="tiers">
-              <TabsCaption>
-                Each tier has its own maximum. A tier shows where its number
-                came from, and can be reset to the shared default.
-              </TabsCaption>
-              {enabledTierKeys.length === 0 ? (
-                <p className="mt-3 rounded-control bg-soft p-3 text-xs text-muted">
-                  No tiers are enabled yet. Enable one under Exams &amp; tiers to
-                  set a target.
+      <PanelCard
+        icon="target"
+        title="Targets"
+        description="A percentile goal per exam, and a marks target per tier."
+      >
+        <Tabs
+          label="Target type"
+          value={tab}
+          onValueChange={setTab}
+          items={[
+            {
+              value: "tiers",
+              label: "Per tier",
+              content: (
+              <>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  Each tier has its own maximum. A tier shows where its number
+                  came from, and can be reset to the shared default.
                 </p>
-              ) : (
+                {enabledTierKeys.length === 0 ? (
+                  <p className="mt-3 rounded-[14px] bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+                    No tiers are enabled yet. Enable one under Exams &amp; tiers
+                    to set a target.
+                  </p>
+                ) : (
+                  <Reveal>
+                    <ul className="mt-3 divide-y divide-border">
+                      {enabledTierKeys.map((key) => {
+                        const target = exams.resolvedTargets[key];
+                        if (!target) return null;
+                        const field = `tier:${key}`;
+                        return (
+                          <RevealItem key={key}>
+                            <Controller
+                              control={control}
+                              name={field}
+                              render={({ field: bound, fieldState }) => (
+                                <TierTargetRow
+                                  target={target}
+                                  label={tierLabel(exams, key)}
+                                  value={bound.value}
+                                  pending={pending || busy}
+                                  invalid={!!fieldState.error}
+                                  error={fieldState.error?.message}
+                                  onChange={bound.onChange}
+                                  onSave={() =>
+                                    commitField(
+                                      field,
+                                      (value) => ({
+                                        kind: "override",
+                                        tierKey: key,
+                                        marks:
+                                          value.trim() === ""
+                                            ? null
+                                            : Number(value),
+                                      }),
+                                      "Target saved",
+                                    )
+                                  }
+                                  onInherit={() =>
+                                    void commit(
+                                      [{ kind: "inherit", tierKey: key }],
+                                      "Target reset to the structure default",
+                                    )
+                                  }
+                                />
+                              )}
+                            />
+                          </RevealItem>
+                        );
+                      })}
+                    </ul>
+                  </Reveal>
+                )}
+              </>
+            ),
+          },
+          {
+            value: "defaults",
+            label: "Structure defaults",
+            content: (
+              <>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  A default applies to every tier with the identical paper
+                  (same subjects, counts and marking). It can never cross a
+                  different maximum.
+                </p>
                 <Reveal>
-                  <ul className="mt-3 divide-y divide-rule-soft">
-                    {enabledTierKeys.map((key) => {
-                      const target = exams.resolvedTargets[key];
-                      if (!target) return null;
-                      const field = `tier:${key}`;
+                  <ul className="mt-3 divide-y divide-border">
+                    {Object.entries(exams.targetPeers).map(
+                      ([signature, peers]) => {
+                        const field = `default:${signature}`;
+                        return (
+                          <RevealItem key={signature}>
+                            <Controller
+                              control={control}
+                              name={field}
+                              render={({ field: bound, fieldState }) => (
+                                <DefaultRow
+                                  signature={signature}
+                                  peers={peers}
+                                  target={targetForSignature(exams, peers)}
+                                  labelFor={(key) => tierLabel(exams, key)}
+                                  value={bound.value}
+                                  pending={pending || busy}
+                                  invalid={!!fieldState.error}
+                                  error={fieldState.error?.message}
+                                  onChange={bound.onChange}
+                                  onSave={() =>
+                                    commitField(
+                                      field,
+                                      (value) => ({
+                                        kind: "default",
+                                        signature,
+                                        marks:
+                                          value.trim() === ""
+                                            ? null
+                                            : Number(value),
+                                      }),
+                                      "Default saved",
+                                    )
+                                  }
+                                  onClear={() =>
+                                    void commit(
+                                      [{ kind: "default", signature, marks: null }],
+                                      "Default removed",
+                                    )
+                                  }
+                                />
+                              )}
+                            />
+                          </RevealItem>
+                        );
+                      },
+                    )}
+                  </ul>
+                </Reveal>
+              </>
+            ),
+          },
+          {
+            value: "percentile",
+            label: "Percentile goal",
+            content: (
+              <>
+                <PercentileExplainer />
+                <Reveal>
+                  <ul className="mt-3 divide-y divide-border">
+                    {[
+                      ...exams.builtIn.map((e) => ({
+                        id: e.id,
+                        name: e.name,
+                        enabled: exams.enabledTiers.some((k) =>
+                          k.startsWith(`${e.id}:`),
+                        ),
+                      })),
+                      ...exams.customExams.map((e) => ({
+                        id: e.id,
+                        name: e.name,
+                        enabled: exams.enabledTiers.some((k) =>
+                          k.startsWith(`${e.id}:`),
+                        ),
+                      })),
+                    ].map((exam) => {
+                      const field = `pct:${exam.id}`;
                       return (
-                        <RevealItem key={key}>
+                        <RevealItem key={exam.id}>
                           <Controller
                             control={control}
                             name={field}
                             render={({ field: bound, fieldState }) => (
-                              <TierTargetRow
-                                target={target}
-                                label={tierLabel(exams, key)}
+                              <PercentileRow
+                                name={exam.name}
+                                enabled={exam.enabled}
                                 value={bound.value}
                                 pending={pending || busy}
                                 invalid={!!fieldState.error}
@@ -251,20 +375,14 @@ export function TargetsPanel({
                                   commitField(
                                     field,
                                     (value) => ({
-                                      kind: "override",
-                                      tierKey: key,
-                                      marks:
+                                      kind: "percentile",
+                                      examId: exam.id,
+                                      percentile:
                                         value.trim() === ""
                                           ? null
                                           : Number(value),
                                     }),
-                                    "Target saved",
-                                  )
-                                }
-                                onInherit={() =>
-                                  void commit(
-                                    [{ kind: "inherit", tierKey: key }],
-                                    "Target reset to the structure default",
+                                    "Percentile goal saved",
                                   )
                                 }
                               />
@@ -275,136 +393,18 @@ export function TargetsPanel({
                     })}
                   </ul>
                 </Reveal>
-              )}
-            </TabsContent>
+              </>
+            ),
+          },
+        ]}
+        />
 
-            {/* ---- structure defaults ---- */}
-            <TabsContent value="defaults">
-              <TabsCaption>
-                A default applies to every tier with the identical paper
-                (same subjects, counts and marking). It can never cross a
-                different maximum.
-              </TabsCaption>
-              <Reveal>
-                <ul className="mt-3 divide-y divide-rule-soft">
-                  {Object.entries(exams.targetPeers).map(
-                    ([signature, peers]) => {
-                      const field = `default:${signature}`;
-                      return (
-                        <RevealItem key={signature}>
-                          <Controller
-                            control={control}
-                            name={field}
-                            render={({ field: bound, fieldState }) => (
-                              <DefaultRow
-                                signature={signature}
-                                peers={peers}
-                                target={targetForSignature(exams, peers)}
-                                labelFor={(key) => tierLabel(exams, key)}
-                                value={bound.value}
-                                pending={pending || busy}
-                                invalid={!!fieldState.error}
-                                error={fieldState.error?.message}
-                                onChange={bound.onChange}
-                                onSave={() =>
-                                  commitField(
-                                    field,
-                                    (value) => ({
-                                      kind: "default",
-                                      signature,
-                                      marks:
-                                        value.trim() === ""
-                                          ? null
-                                          : Number(value),
-                                    }),
-                                    "Default saved",
-                                  )
-                                }
-                                onClear={() =>
-                                  void commit(
-                                    [{ kind: "default", signature, marks: null }],
-                                    "Default removed",
-                                  )
-                                }
-                              />
-                            )}
-                          />
-                        </RevealItem>
-                      );
-                    },
-                  )}
-                </ul>
-              </Reveal>
-            </TabsContent>
-
-            {/* ---- percentile goal ---- */}
-            <TabsContent value="percentile">
-              <PercentileExplainer />
-              <Reveal>
-                <ul className="mt-3 divide-y divide-rule-soft">
-                  {[
-                    ...exams.builtIn.map((e) => ({
-                      id: e.id,
-                      name: e.name,
-                      enabled: exams.enabledTiers.some((k) =>
-                        k.startsWith(`${e.id}:`),
-                      ),
-                    })),
-                    ...exams.customExams.map((e) => ({
-                      id: e.id,
-                      name: e.name,
-                      enabled: exams.enabledTiers.some((k) =>
-                        k.startsWith(`${e.id}:`),
-                      ),
-                    })),
-                  ].map((exam) => {
-                    const field = `pct:${exam.id}`;
-                    return (
-                      <RevealItem key={exam.id}>
-                        <Controller
-                          control={control}
-                          name={field}
-                          render={({ field: bound, fieldState }) => (
-                            <PercentileRow
-                              name={exam.name}
-                              enabled={exam.enabled}
-                              value={bound.value}
-                              pending={pending || busy}
-                              invalid={!!fieldState.error}
-                              error={fieldState.error?.message}
-                              onChange={bound.onChange}
-                              onSave={() =>
-                                commitField(
-                                  field,
-                                  (value) => ({
-                                    kind: "percentile",
-                                    examId: exam.id,
-                                    percentile:
-                                      value.trim() === ""
-                                        ? null
-                                        : Number(value),
-                                  }),
-                                  "Percentile goal saved",
-                                )
-                              }
-                            />
-                          )}
-                        />
-                      </RevealItem>
-                    );
-                  })}
-                </ul>
-              </Reveal>
-            </TabsContent>
-
-            {error && (
-              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
-                {error}
-              </p>
-            )}
-          </div>
-        </Panel>
-      </Tabs>
+        {error && (
+          <p role="alert" className="mt-3 text-xs text-destructive">
+            {error}
+          </p>
+        )}
+      </PanelCard>
 
       {/* The quick single-field editor the dashboard's target action uses.
           Kept so the header/dashboard "Set target" affordance still exists. */}
@@ -475,12 +475,12 @@ function TierTargetRow({
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-sm font-medium text-ink">{label}</p>
-        <p className="text-[length:var(--type-secondary)] text-muted">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-[13px] text-muted-foreground">
           <span
             className={cn(
-              target.source === "override" && "text-ink",
-              target.source === "none" && "text-muted",
+              target.source === "override" && "text-foreground",
+              target.source === "none" && "text-muted-foreground",
             )}
           >
             {sourceLabel(target)}
@@ -490,30 +490,29 @@ function TierTargetRow({
         </p>
       </div>
       {target.outOfRange && (
-        <p className="mt-1 text-[length:var(--type-secondary)] leading-relaxed text-warning">
+        <p className="mt-1 text-[13px] leading-relaxed text-warning">
           Your saved {n(target.marks)} is above this paper&apos;s current
           maximum of {target.maxScore}. The paper changed after you set it —
           adjust it or reset to the default.
         </p>
       )}
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-[length:var(--type-label)] text-muted">
-          Target marks
-          <Input
-            type="number"
-            inputMode="decimal"
-            className="no-spin mt-0.5 block w-32"
-            min={0}
-            max={target.maxScore}
-            step="0.01"
-            placeholder={`up to ${target.maxScore}`}
-            value={value}
-            disabled={pending}
-            aria-invalid={invalid || undefined}
-            aria-label={`Target marks for ${label}`}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
+        <Input
+          type="number"
+          inputMode="decimal"
+          className="max-w-32"
+          inputClassName="appearance-none"
+          label="Target marks"
+          min={0}
+          max={target.maxScore}
+          step="0.01"
+          placeholder={`up to ${target.maxScore}`}
+          value={value}
+          disabled={pending}
+          error={invalid && error ? error : undefined}
+          aria-label={`Target marks for ${label}`}
+          onChange={(e) => onChange(e.target.value)}
+        />
         <Button
           size="sm"
           variant="outline"
@@ -528,15 +527,11 @@ function TierTargetRow({
             variant="ghost"
             disabled={pending}
             onClick={onInherit}
+            icon={<PlainIcon name="refresh" size={13} />}
             title="Remove this tier's own target and use the structure default"
           >
-            <PlainIcon name="refresh" size={13} /> Use default
+            Use default
           </Button>
-        )}
-        {invalid && error && (
-          <p role="alert" className="text-[length:var(--type-label)] text-danger">
-            {error}
-          </p>
         )}
       </div>
       {target.marks != null && target.maxScore > 0 && (
@@ -546,7 +541,7 @@ function TierTargetRow({
             label={`${label} target`}
             className="max-w-56"
           />
-          <span className="text-[length:var(--type-secondary)] tabular text-muted">
+          <span className="text-[13px] tabular-nums text-muted-foreground">
             {n((target.marks / target.maxScore) * 100)}% of the paper
           </span>
         </div>
@@ -584,36 +579,35 @@ function DefaultRow({
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-sm font-medium text-ink">
+        <p className="text-sm font-medium text-foreground">
           {describeSignature(signature)}
         </p>
-        <p className="text-[length:var(--type-secondary)] text-muted">
+        <p className="text-[13px] text-muted-foreground">
           Applies to {peers.length} tier{peers.length === 1 ? "" : "s"} · out of{" "}
           {maxScore}
         </p>
       </div>
-      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[length:var(--type-secondary)] text-muted">
+      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
         {peers.map((key) => (
           <li key={key}>{labelFor(key)}</li>
         ))}
       </ul>
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-[length:var(--type-label)] text-muted">
-          Default target marks
-          <Input
-            type="number"
-            inputMode="decimal"
-            className="no-spin mt-0.5 block w-32"
-            min={0}
-            max={maxScore}
-            step="0.01"
-            placeholder={`up to ${maxScore}`}
-            value={value}
-            disabled={pending}
-            aria-invalid={invalid || undefined}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
+        <Input
+          type="number"
+          inputMode="decimal"
+          className="max-w-32"
+          inputClassName="appearance-none"
+          label="Default target marks"
+          min={0}
+          max={maxScore}
+          step="0.01"
+          placeholder={`up to ${maxScore}`}
+          value={value}
+          disabled={pending}
+          error={invalid && error ? error : undefined}
+          onChange={(e) => onChange(e.target.value)}
+        />
         <Button
           size="sm"
           variant="outline"
@@ -631,11 +625,6 @@ function DefaultRow({
           >
             Remove default
           </Button>
-        )}
-        {invalid && error && (
-          <p role="alert" className="text-[length:var(--type-label)] text-danger">
-            {error}
-          </p>
         )}
       </div>
     </li>
@@ -682,15 +671,15 @@ function PercentileRow({
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-sm font-medium text-ink">
+        <p className="text-sm font-medium text-foreground">
           {name}
           {!enabled && (
-            <span className="ml-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
+            <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
               not enabled
             </span>
           )}
         </p>
-        <p className="text-[length:var(--type-secondary)] text-muted">Goal percentile</p>
+        <p className="text-[13px] text-muted-foreground">Goal percentile</p>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <Slider
@@ -699,21 +688,22 @@ function PercentileRow({
           max={100}
           step={1}
           disabled={pending}
-          aria-label={`${name} goal percentile`}
+          label={`${name} goal percentile`}
           onValueChange={([next]) => onChange(String(next))}
           className="max-w-56"
         />
         <Input
           type="number"
           inputMode="numeric"
-          className="no-spin block w-20"
+          className="max-w-20"
+          inputClassName="appearance-none"
           min={0}
           max={100}
           step="1"
           placeholder="e.g. 95"
           value={value}
           disabled={pending}
-          aria-invalid={invalid || undefined}
+          error={invalid && error ? error : undefined}
           aria-label={`${name} goal percentile value`}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -725,11 +715,6 @@ function PercentileRow({
         >
           Save
         </Button>
-        {invalid && error && (
-          <p role="alert" className="text-[length:var(--type-label)] text-danger">
-            {error}
-          </p>
-        )}
       </div>
     </li>
   );
@@ -737,17 +722,17 @@ function PercentileRow({
 
 function PercentileExplainer() {
   return (
-    <div className="mt-3 rounded-control border border-rule-soft bg-canvas p-3">
-      <p className="text-[length:var(--type-label)] font-medium text-ink">
+    <div className="rounded-[14px] border border-border bg-muted p-3">
+      <p className="text-xs font-medium text-foreground">
         A percentile goal is not any of these
       </p>
-      <ul className="mt-1 grid gap-0.5 text-[length:var(--type-secondary)] leading-relaxed text-muted sm:grid-cols-2">
+      <ul className="mt-1 grid gap-0.5 text-[13px] leading-relaxed text-muted-foreground sm:grid-cols-2">
         <li>Not a percentage of a paper.</li>
         <li>Not a raw-marks equivalent.</li>
         <li>Not a normalized score.</li>
         <li>Not an official cutoff or a chance of selection.</li>
       </ul>
-      <p className="mt-1.5 text-[length:var(--type-secondary)] leading-relaxed text-muted">
+      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
         The app never estimates a percentile for you — it only records what a
         platform or result sheet reported.
       </p>
@@ -774,45 +759,43 @@ function ActiveTargetCard({
       ? null
       : (target.marks / target.maxScore) * 100;
   return (
-    <Panel
-      dense
+    <PanelCard
       icon="award"
       title="Today's reference"
       description={`${examName} · ${target.source === "none" ? "no target set" : sourceLabel(target)}`}
     >
-      <div className="px-4 pb-4">
-        <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="font-serif text-[1.75rem] leading-none tabular">
-            {target.marks == null ? "—" : n(target.marks)}
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-serif text-[1.75rem] leading-none tabular-nums">
+          {target.marks == null ? "—" : n(target.marks)}
+        </span>
+        <span className="text-xs text-muted-foreground">/ {target.maxScore}</span>
+        {percent != null && (
+          <span className="text-xs tabular-nums text-muted-foreground">
+            · {n(percent)}% of the paper
           </span>
-          <span className="text-xs text-muted">/ {target.maxScore}</span>
-          {percent != null && (
-            <span className="text-xs tabular text-muted">
-              · {n(percent)}% of the paper
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
-          The dashboard draws this as a reference line on the charts for this tier.
-        </p>
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-3"
-          disabled={busy || saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave();
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          <PlainIcon name="target" size={13} /> Set from dashboard value
-        </Button>
+        )}
       </div>
-    </Panel>
+      <p className="mt-1 text-[13px] text-muted-foreground">
+        The dashboard draws this as a reference line on the charts for this tier.
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        className="mt-3"
+        disabled={busy || saving}
+        icon={<PlainIcon name="target" size={13} />}
+        onClick={async () => {
+          setSaving(true);
+          try {
+            await onSave();
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        Set from dashboard value
+      </Button>
+    </PanelCard>
   );
 }
 

@@ -54,7 +54,7 @@ const TONES = {
 };
 
 const ERROR_TONE =
-  "bg-red-500/10 text-red-600 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] dark:text-red-400";
+  "bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)]";
 
 function writeClipboard(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
@@ -177,7 +177,7 @@ export function CopyButton({
           <span className="absolute inset-0 flex items-center justify-center" style={interactionIcon(state === "idle", reduced)}>
             <Copy size={s.icon} strokeWidth={1.75} />
           </span>
-          <span className="absolute inset-0 text-emerald-600 dark:text-emerald-400" style={interactionIcon(state === "copied", reduced)}>
+          <span className="absolute inset-0 text-success" style={interactionIcon(state === "copied", reduced)}>
             <Check drawn={state === "copied"} reduced={reduced} />
           </span>
           <span className="absolute inset-0" style={interactionIcon(state === "error", reduced)}>

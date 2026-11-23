@@ -37,7 +37,7 @@ export function DashboardScreen() {
       view="Dashboard"
       active="Dashboard"
       actions={
-        <span className="rounded-control bg-accent px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-paper">
+        <span className="rounded-full bg-primary px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-primary-foreground">
           + Add mock
         </span>
       }
@@ -119,7 +119,7 @@ export function DashboardScreen() {
             <div className="h-[7.5em]">
               <MockTrend points={points} target={s.targetPercentage} />
             </div>
-            <div className="mt-[0.5em] flex items-center justify-between text-[0.75em] text-muted">
+            <div className="mt-[0.5em] flex items-center justify-between text-[0.75em] text-muted-foreground">
               <span>Dashed line: your target, {LANDING_TARGET} / 390 marks</span>
               <span>{s.mockCount} results</span>
             </div>
@@ -156,19 +156,19 @@ export function DashboardScreen() {
                       label: "Correct",
                       count: ring.correct,
                       share: ring.correctPercentage,
-                      color: "var(--chart-average)",
+                      color: "var(--success)",
                     },
                     {
                       label: "Incorrect",
                       count: ring.incorrect,
                       share: ring.incorrectPercentage,
-                      color: "var(--accent)",
+                      color: "var(--destructive)",
                     },
                     {
                       label: "Unattempted",
                       count: ring.unattempted,
                       share: ring.unattemptedPercentage,
-                      color: "var(--outcome-unattempted)",
+                      color: "var(--muted-foreground)",
                     },
                   ]}
                 />
@@ -179,7 +179,7 @@ export function DashboardScreen() {
           <MockPanel
             title="Recent mocks"
             description="Actual result data from your latest attempts."
-            action={<span className="text-accent">View all →</span>}
+            action={<span className="text-primary">View all →</span>}
           >
             <ul className="flex flex-col">
               {recent.map((attempt) => {
@@ -187,21 +187,21 @@ export function DashboardScreen() {
                 return (
                   <li
                     key={attempt.id}
-                    className="flex items-center gap-[0.55em] border-b border-rule-soft py-[0.42em] last:border-b-0 last:pb-0 first:pt-0"
+                    className="flex items-center gap-[0.55em] border-b border-border py-[0.42em] last:border-b-0 last:pb-0 first:pt-0"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.9em] font-medium">
+                      <p className="truncate text-[0.9em] font-medium text-foreground">
                         {attempt.name}
                       </p>
-                      <p className="truncate text-[0.75em] text-muted">
+                      <p className="truncate text-[0.75em] text-muted-foreground">
                         {attempt.platform} · {shortDate(attempt.completedAt)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="tabular text-[0.86em] font-medium">
+                      <p className="tabular-nums text-[0.86em] font-medium text-foreground">
                         {t.score} / {t.maxScore}
                       </p>
-                      <p className="text-[0.72em] text-muted tabular">
+                      <p className="tabular-nums text-[0.72em] text-muted-foreground">
                         {t.percentage.toFixed(1)}%
                       </p>
                     </div>
@@ -212,7 +212,7 @@ export function DashboardScreen() {
           </MockPanel>
         </div>
 
-        <p className="mt-[0.6em] text-[0.76em] text-muted">
+        <p className="mt-[0.6em] text-[0.76em] text-muted-foreground">
           Attempt date drives every chart and filter — recorded separately from
           the day a plan task was scheduled.
         </p>

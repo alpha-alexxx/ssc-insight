@@ -5,30 +5,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Reveal, RevealItem } from "./_lib/motion-presets";
+import { PanelCard } from "./_lib/panel";
 import { examsScopeSchema, type ExamsScopeValues } from "@/components/shared/settings-schema";
-import { Panel } from "@/components/dashboard-panels";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Dialog } from "radix-ui";
-import { useToast } from "@/components/toast";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Input } from "@/components/input";
+import { Accordion } from "@/components/accordion";
+import { Alert } from "@/components/alert";
+import { Dialog } from "@/components/dialog";
+import { toast } from "@/components/toast-stack";
 import { useExamScope } from "@/components/exam-context";
 import {
   createCustomExamRequest,
@@ -59,7 +45,6 @@ import { usePanelDraft } from "@/components/shared/settings-guard";
 export function ExamsPanel() {
   const scope = useExamScope();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -125,7 +110,7 @@ export function ExamsPanel() {
         setBusy(false);
       }
     },
-    [exams, queryClient, toast],
+    [exams, queryClient],
   );
 
   const save = useCallback(
@@ -179,22 +164,23 @@ export function ExamsPanel() {
         // The exam is now a Trash row; a mounted /trash must show it.
         await queryClient.invalidateQueries({ queryKey: trashKeys.all });
         setDeleting(null);
-        toast.success("Moved to Trash", "Recoverable for 15 days");
+        toast.success("Moved to Trash", {
+          description: "Recoverable for 15 days",
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not delete the exam");
       } finally {
         setBusy(false);
       }
     },
-    [queryClient, toast],
+    [queryClient],
   );
 
   const anyDialogOpen = creating || editing != null || deleting != null;
 
   if (!exams) {
     return (
-      <Panel
-        dense
+      <PanelCard
         icon="layers"
         title="Exams & tiers"
         description={
@@ -203,29 +189,32 @@ export function ExamsPanel() {
             : "Loading your exams…"
         }
       >
-        <div className="px-4 pb-4">
-          {scope.failed ? (
-            <div className="flex items-center gap-3">
-              <p role="alert" className="text-xs text-danger">
-                Check your connection, then try again.
-              </p>
-              <Button size="sm" variant="outline" onClick={scope.refresh}>
-                <PlainIcon name="refresh" size={13} /> Retry
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2" role="status" aria-label="Loading exams">
-              {Array.from({ length: 3 }, (_, i) => (
-                <div
-                  key={i}
-                  className="h-16 animate-pulse rounded-control bg-soft"
-                  style={{ opacity: 1 - i * 0.15 }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
+        {scope.failed ? (
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-xs text-destructive">
+              Check your connection, then try again.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              icon={<PlainIcon name="refresh" size={13} />}
+              onClick={scope.refresh}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2" role="status" aria-label="Loading exams">
+            {Array.from({ length: 3 }, (_, i) => (
+              <div
+                key={i}
+                className="h-16 animate-pulse rounded-[14px] bg-muted"
+                style={{ opacity: 1 - i * 0.15 }}
+              />
+            ))}
+          </div>
+        )}
+      </PanelCard>
     );
   }
 
@@ -238,127 +227,125 @@ export function ExamsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel
-        dense
+      <PanelCard
         icon="layers"
         title="Exams & tiers"
         description="Enable the tiers you are preparing for, then pick which one the workspace follows."
       >
-        <div className="px-4 pb-4">
-          <Reveal>
-            {exams.enabledTiers.length === 0 && !formState.isDirty && (
-              <RevealItem>
-                <p className="mb-3 rounded-control bg-warning-soft p-3 text-xs leading-relaxed text-warning">
-                  Nothing is enabled yet. Tick at least one tier below so mocks,
-                  targets and performance views have a scope.
-                </p>
-              </RevealItem>
-            )}
+        <Reveal>
+          {exams.enabledTiers.length === 0 && !formState.isDirty && (
             <RevealItem>
-              <ul className="divide-y divide-rule-soft">
-                {exams.builtIn.map((exam) => (
-                  <ExamRow
-                    key={exam.id}
-                    examId={exam.id}
-                    name={exam.name}
-                    cycle={exam.source.cycle}
-                    tiers={exam.tiers.map((tier) => ({
-                      id: tier.id,
-                      label: tier.label,
-                      maxScore: maxOf(tier),
-                      durationMinutes: tier.durationMinutes ?? null,
-                      subjects: tier.subjects.map((s) => ({
-                        subjectId: s.subjectId,
-                        questions: s.questions,
-                        qualifying: s.qualifying,
+              <Alert tone="warning" title="Nothing is enabled yet.">
+                Tick at least one tier below so mocks, targets and performance
+                views have a scope.
+              </Alert>
+            </RevealItem>
+          )}
+          <RevealItem>
+            <ul className="divide-y divide-border">
+              {exams.builtIn.map((exam) => (
+                <ExamRow
+                  key={exam.id}
+                  examId={exam.id}
+                  name={exam.name}
+                  cycle={exam.source.cycle}
+                  tiers={exam.tiers.map((tier) => ({
+                    id: tier.id,
+                    label: tier.label,
+                    maxScore: maxOf(tier),
+                    durationMinutes: tier.durationMinutes ?? null,
+                    subjects: tier.subjects.map((s) => ({
+                      subjectId: s.subjectId,
+                      questions: s.questions,
+                      qualifying: s.qualifying,
+                    })),
+                    marking: tier.marking,
+                    role: tier.role ?? null,
+                  }))}
+                  sources={[exam.source]}
+                  stages={(exam.stages ?? []).map((stage) => ({
+                    id: stage.id,
+                    label: stage.label,
+                    durationMinutes: stage.durationMinutes ?? null,
+                    note: stage.note ?? null,
+                  }))}
+                  enabled={enabled}
+                  activeExamId={exams.activeExamId}
+                  activeTierId={exams.activeTierId}
+                  busy={busy}
+                  onToggleTier={toggleTier}
+                  onTargeted={() => void setTargeted(exam.id)}
+                />
+              ))}
+              {exams.customExams.map((exam) => (
+                <ExamRow
+                  key={exam.id}
+                  examId={exam.id}
+                  name={exam.name}
+                  custom
+                  tiers={exam.tiers.map((tier) => ({
+                    id: tier.id,
+                    label: tier.label,
+                    maxScore: tier.maxScore,
+                    durationMinutes: null,
+                    subjects: tier.subjects,
+                    marking: tier.marking,
+                    role: null,
+                  }))}
+                  sources={[]}
+                  stages={[]}
+                  enabled={enabled}
+                  activeExamId={exams.activeExamId}
+                  activeTierId={exams.activeTierId}
+                  busy={busy}
+                  onToggleTier={toggleTier}
+                  onTargeted={() => void setTargeted(exam.id)}
+                  onEdit={() => {
+                    setEditing({
+                      id: exam.id,
+                      name: exam.name,
+                      tiers: exam.tiers.map((tier) => ({
+                        id: tier.id,
+                        label: tier.label,
+                        subjects: tier.subjects.map((s) => ({ ...s })),
+                        marking: { ...tier.marking },
                       })),
-                      marking: tier.marking,
-                      role: tier.role ?? null,
-                    }))}
-                    sources={[exam.source]}
-                    stages={(exam.stages ?? []).map((stage) => ({
-                      id: stage.id,
-                      label: stage.label,
-                      durationMinutes: stage.durationMinutes ?? null,
-                      note: stage.note ?? null,
-                    }))}
-                    enabled={enabled}
-                    activeExamId={exams.activeExamId}
-                    activeTierId={exams.activeTierId}
-                    busy={busy}
-                    onToggleTier={toggleTier}
-                    onTargeted={() => void setTargeted(exam.id)}
-                  />
-                ))}
-                {exams.customExams.map((exam) => (
-                  <ExamRow
-                    key={exam.id}
-                    examId={exam.id}
-                    name={exam.name}
-                    custom
-                    tiers={exam.tiers.map((tier) => ({
-                      id: tier.id,
-                      label: tier.label,
-                      maxScore: tier.maxScore,
-                      durationMinutes: null,
-                      subjects: tier.subjects,
-                      marking: tier.marking,
-                      role: null,
-                    }))}
-                    sources={[]}
-                    stages={[]}
-                    enabled={enabled}
-                    activeExamId={exams.activeExamId}
-                    activeTierId={exams.activeTierId}
-                    busy={busy}
-                    onToggleTier={toggleTier}
-                    onTargeted={() => void setTargeted(exam.id)}
-                    onEdit={() => {
-                      setEditing({
-                        id: exam.id,
-                        name: exam.name,
-                        tiers: exam.tiers.map((tier) => ({
-                          id: tier.id,
-                          label: tier.label,
-                          subjects: tier.subjects.map((s) => ({ ...s })),
-                          marking: { ...tier.marking },
-                        })),
-                      });
-                    }}
-                    onDelete={() => setDeleting({ id: exam.id, name: exam.name })}
-                  />
-                ))}
-              </ul>
-            </RevealItem>
-            {formState.errors.enabledTiers && (
-              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
-                {formState.errors.enabledTiers.message}
-              </p>
-            )}
-            {error && (
-              <p role="alert" className="mt-3 text-[length:var(--type-label)] text-danger">
-                {error}
-              </p>
-            )}
-            <RevealItem className="mt-4 flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="max-sm:w-full sm:ml-auto"
-                disabled={anyDialogOpen || exams.customExams.length >= 20}
-                onClick={() => setCreating(true)}
-                title={
-                  exams.customExams.length >= 20
-                    ? "You already have 20 custom exams"
-                    : undefined
-                }
-              >
-                <PlainIcon name="plus" size={14} /> Create custom exam
-              </Button>
-            </RevealItem>
-          </Reveal>
-        </div>
-      </Panel>
+                    });
+                  }}
+                  onDelete={() => setDeleting({ id: exam.id, name: exam.name })}
+                />
+              ))}
+            </ul>
+          </RevealItem>
+          {formState.errors.enabledTiers && (
+            <p role="alert" className="mt-3 text-xs text-destructive">
+              {formState.errors.enabledTiers.message}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="mt-3 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+          <RevealItem className="mt-4 flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="max-sm:w-full sm:ml-auto"
+              disabled={anyDialogOpen || exams.customExams.length >= 20}
+              onClick={() => setCreating(true)}
+              icon={<PlainIcon name="plus" size={14} />}
+              title={
+                exams.customExams.length >= 20
+                  ? "You already have 20 custom exams"
+                  : undefined
+              }
+            >
+              Create custom exam
+            </Button>
+          </RevealItem>
+        </Reveal>
+      </PanelCard>
 
       {(creating || editing) && (
         <CustomExamDialog
@@ -388,43 +375,43 @@ export function ExamsPanel() {
         />
       )}
 
-      <AlertDialog
+      <Dialog
         open={deleting != null}
         onOpenChange={(open) => !open && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Move {deleting?.name} to Trash?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              It disappears from the catalog and the scope switcher, and stays
-              recoverable in Trash for 15 days. Its tiers, targets and
-              percentile goal come back with it — they are only dropped when it
-              is deleted permanently. An exam that still has logged mocks
-              cannot be deleted.
-              {deleting && exams?.activeExamId === deleting.id ? (
-                <>
-                  {" "}
-                  This is your active exam: your scope moves to another enabled
-                  tier. Restoring it will not switch the scope back.                </>
-              ) : null}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+        title={`Move ${deleting?.name ?? ""} to Trash?`}
+        description={
+          <>
+            It disappears from the catalog and the scope switcher, and stays
+            recoverable in Trash for 15 days. Its tiers, targets and
+            percentile goal come back with it — they are only dropped when it
+            is deleted permanently. An exam that still has logged mocks
+            cannot be deleted.
+            {deleting && exams?.activeExamId === deleting.id ? (
+              <>
+                {" "}
+                This is your active exam: your scope moves to another enabled
+                tier. Restoring it will not switch the scope back.
+              </>
+            ) : null}
+          </>
+        }
+        footer={
+          <>
+            <Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
               disabled={busy}
-              onClick={(event) => {
-                event.preventDefault();
+              onClick={() => {
                 if (deleting) void removeCustom(deleting.id);
               }}
             >
               Move to Trash
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }
@@ -494,16 +481,16 @@ function ExamRow({
   return (
     <li className="py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="min-w-36 flex-1 text-sm font-medium text-ink">
+        <span className="min-w-36 flex-1 text-sm font-medium text-foreground">
           {name}
           {custom ? (
-            <span className="ml-1.5 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
+            <span className="ml-1.5 text-xs uppercase tracking-wide text-muted-foreground">
               custom
             </span>
           ) : null}
         </span>
         {cycle && (
-          <span className="text-[length:var(--type-secondary)] text-muted">
+          <span className="text-[13px] text-muted-foreground">
             Pattern: {cycle}
           </span>
         )}
@@ -515,9 +502,8 @@ function ExamRow({
           disabled={busy || enabledKeys.length === 0 || isTargeted}
           onClick={onTargeted}
           className={cn(
-            isTargeted &&
-              "border-accent bg-accent-soft text-accent hover:bg-accent-soft disabled:border-accent disabled:bg-accent-soft disabled:text-accent disabled:opacity-100",
-            enabledKeys.length === 0 && "text-muted",
+            isTargeted && "text-primary",
+            enabledKeys.length === 0 && "text-muted-foreground",
           )}
           title={
             enabledKeys.length === 0
@@ -538,7 +524,7 @@ function ExamRow({
           <Button
             variant="ghost"
             size="sm"
-            className="text-danger hover:text-danger"
+            className="text-destructive hover:text-destructive"
             disabled={busy}
             onClick={onDelete}
           >
@@ -552,64 +538,55 @@ function ExamRow({
           const key = `${examId}:${tier.id}`;
           const on = enabled.has(key);
           return (
-            <label
+            <Checkbox
               key={tier.id}
-              className="flex cursor-pointer items-start gap-2.5 text-xs"
-            >
-              <Checkbox
-                checked={on}
-                disabled={busy}
-                onCheckedChange={(checked) => onToggleTier(key, checked === true)}
-                className="mt-0.5"
-                aria-label={`Enable ${name} ${tier.label}`}
-              />
-              <span className="min-w-0">
-                <span className="font-medium text-ink">{tier.label}</span>
-                <span className="ml-2 text-muted">{describeTier(tier)}</span>
-                {tier.role && (
-                  <span className="ml-2 text-[length:var(--type-label)] uppercase tracking-wide text-muted">
-                    {tier.role}
-                  </span>
-                )}
-              </span>
-            </label>
+              checked={on}
+              disabled={busy}
+              onCheckedChange={(checked) => onToggleTier(key, checked === true)}
+              label={tier.label}
+              description={`${describeTier(tier)}${tier.role ? ` · ${tier.role}` : ""}`}
+              aria-label={`Enable ${name} ${tier.label}`}
+            />
           );
         })}
       </div>
 
       {(stages.length > 0 || sources.length > 0) && (
-        <Accordion type="single" collapsible className="mt-1 pl-1">
-          <AccordionItem value="detail" className="border-b-0">
-            <AccordionTrigger className="py-1.5 text-[length:var(--type-secondary)] font-normal text-muted">
-              Stages and source
-            </AccordionTrigger>
-            <AccordionContent>
-              <ul className="space-y-1 text-[length:var(--type-secondary)] leading-relaxed text-muted">
-                {stages.map((stage) => (
-                  <li key={stage.id}>
-                    <span className="font-medium text-ink">{stage.label}</span>
-                    {stage.durationMinutes ? ` · ${stage.durationMinutes} min` : ""}
-                    {" · qualifying, not scored"}
-                    {stage.note ? ` — ${stage.note}` : ""}
-                  </li>
-                ))}
-                {sources.map((source) => (
-                  <li key={source.url}>
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="underline decoration-rule-soft underline-offset-2 hover:text-accent"
-                    >
-                      {source.cycle} notice
-                    </a>{" "}
-                    · read {source.retrievedAt}
-                  </li>
-                ))}
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <Accordion
+          className="mt-1 pl-1"
+          type="single"
+          items={[
+            {
+              value: "detail",
+              title: "Stages and source",
+              content: (
+                <ul className="space-y-1 text-[13px] leading-relaxed text-muted-foreground">
+                  {stages.map((stage) => (
+                    <li key={stage.id}>
+                      <span className="font-medium text-foreground">{stage.label}</span>
+                      {stage.durationMinutes ? ` · ${stage.durationMinutes} min` : ""}
+                      {" · qualifying, not scored"}
+                      {stage.note ? ` — ${stage.note}` : ""}
+                    </li>
+                  ))}
+                  {sources.map((source) => (
+                    <li key={source.url}>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="underline decoration-border underline-offset-2 hover:text-primary"
+                      >
+                        {source.cycle} notice
+                      </a>{" "}
+                      · read {source.retrievedAt}
+                    </li>
+                  ))}
+                </ul>
+              ),
+            },
+          ]}
+        />
       )}
     </li>
   );
@@ -667,7 +644,6 @@ function CustomExamDialog({
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
-  const toast = useToast();
   const [draft, setDraft] = useState<CustomExamInput>(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -709,262 +685,238 @@ function CustomExamDialog({
   };
 
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && !busy && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-ink/45" />
-        <Dialog.Content
-          aria-describedby="custom-exam-description"
-          className="dialog-content fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto border border-rule bg-paper p-5 shadow-pop outline-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-40px)] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-panel"
-        >
-          <Dialog.Title className="font-serif text-[1.25rem] font-medium">
-            {isNew ? "Create a custom exam" : `Edit ${initial.name}`}
-          </Dialog.Title>
-          <p
-            id="custom-exam-description"
-            className="mt-1 text-[0.75rem] leading-relaxed text-muted"
-          >
-            Name the exam, then add its tiers. Each tier carries its own
-            subjects, question counts and marking scheme.
-          </p>
+    <Dialog
+      open
+      onOpenChange={(open) => !open && !busy && onClose()}
+      title={isNew ? "Create a custom exam" : `Edit ${initial.name}`}
+      size="lg"
+      description="Name the exam, then add its tiers. Each tier carries its own subjects, question counts and marking scheme."
+      footer={
+        <>
+          <Button variant="outline" disabled={busy} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={busy || !valid} loading={busy} onClick={() => void save()}>
+            {isNew ? "Create exam" : "Save changes"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          label="Exam name"
+          maxLength={80}
+          required
+          placeholder="e.g. SSC JE, My Practice Paper"
+          value={draft.name}
+          disabled={busy}
+          onValueChange={(name) =>
+            setDraft((prev) => ({ ...prev, name }))
+          }
+        />
 
-          <div className="mt-4 space-y-4">
-            <label className="block text-xs font-medium">
-              Exam name
-              <Input
-                className="mt-1"
-                maxLength={80}
-                required
-                placeholder="e.g. SSC JE, My Practice Paper"
-                value={draft.name}
-                disabled={busy}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, name: e.target.value }))
-                }
-              />
-            </label>
-
-            {draft.tiers.map((tier, index) => {
-              const meritQuestions = tier.subjects
-                .filter((s) => !s.qualifying)
-                .reduce((sum, s) => sum + s.questions, 0);
-              return (
-                <fieldset
-                  key={tier.id ?? `new-${index}`}
-                  className="rounded-control border border-rule-soft p-3"
-                >
-                  <legend className="flex items-center gap-2 px-1 text-[length:var(--type-label)] font-semibold uppercase tracking-[0.1em] text-muted">
-                    Tier {index + 1}
-                    {draft.tiers.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-[length:var(--type-label)] font-normal normal-case text-danger hover:underline"
-                        disabled={busy}
-                        onClick={() =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            tiers: prev.tiers.filter((_, i) => i !== index),
-                          }))
-                        }
+        {draft.tiers.map((tier, index) => {
+          const meritQuestions = tier.subjects
+            .filter((s) => !s.qualifying)
+            .reduce((sum, s) => sum + s.questions, 0);
+          return (
+            <fieldset
+              key={tier.id ?? `new-${index}`}
+              className="rounded-[14px] border border-border p-3"
+            >
+              <legend className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Tier {index + 1}
+                {draft.tiers.length > 1 && (
+                  <button
+                    type="button"
+                    className="text-xs font-normal normal-case text-destructive hover:underline"
+                    disabled={busy}
+                    onClick={() =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        tiers: prev.tiers.filter((_, i) => i !== index),
+                      }))
+                    }
+                  >
+                    remove
+                  </button>
+                )}
+              </legend>
+              <div className="space-y-3">
+                <Input
+                  label="Tier label"
+                  maxLength={40}
+                  required
+                  placeholder="e.g. Prelims, Mains, Paper 1"
+                  disabled={busy}
+                  value={tier.label}
+                  onValueChange={(label) => updateTier(index, { label })}
+                />
+                <div className="space-y-2">
+                  {SUBJECT_CHOICES.map((id) => {
+                    const row = tier.subjects.find(
+                      (s) => s.subjectId === id,
+                    );
+                    return (
+                      <div
+                        key={id}
+                        className="flex flex-wrap items-center gap-3"
                       >
-                        remove
-                      </button>
-                    )}
-                  </legend>
-                  <div className="space-y-3">
-                    <label className="block text-xs font-medium">
-                      Tier label
-                      <Input
-                        className="mt-1"
-                        maxLength={40}
-                        required
-                        placeholder="e.g. Prelims, Mains, Paper 1"
-                        disabled={busy}
-                        value={tier.label}
-                        onChange={(e) =>
-                          updateTier(index, { label: e.target.value })
-                        }
-                      />
-                    </label>
-                    <div className="space-y-2">
-                      {SUBJECT_CHOICES.map((id) => {
-                        const row = tier.subjects.find(
-                          (s) => s.subjectId === id,
-                        );
-                        return (
-                          <div
-                            key={id}
-                            className="flex flex-wrap items-center gap-3"
-                          >
-                            <label className="flex min-w-36 flex-1 items-center gap-2 text-xs">
-                              <Checkbox
-                                checked={row != null}
-                                disabled={busy}
-                                onCheckedChange={(checked) => {
-                                  const subjects =
-                                    checked === true
-                                      ? [
-                                          ...tier.subjects,
-                                          {
-                                            subjectId: id,
-                                            questions: 25,
-                                            qualifying: false,
-                                          },
-                                        ]
-                                      : tier.subjects.filter(
-                                          (s) => s.subjectId !== id,
-                                        );
-                                  updateTier(index, { subjects });
-                                }}
-                              />
-                              {SUBJECTS[id].name}
-                            </label>
-                            {row && (
-                              <>
-                                <label className="text-[length:var(--type-label)] text-muted">
-                                  Questions
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    className="no-spin mt-0.5 block w-24"
-                                    min={1}
-                                    max={500}
-                                    disabled={busy}
-                                    value={row.questions}
-                                    onChange={(e) =>
-                                      updateTier(index, {
-                                        subjects: tier.subjects.map((s) =>
-                                          s.subjectId === id
-                                            ? {
-                                                ...s,
-                                                questions: Number(e.target.value),
-                                              }
-                                            : s,
-                                        ),
-                                      })
-                                    }
-                                  />
-                                </label>
-                                <label className="flex items-center gap-1.5 text-[length:var(--type-label)] text-muted">
-                                  <Checkbox
-                                    checked={row.qualifying}
-                                    disabled={busy}
-                                    onCheckedChange={(checked) =>
-                                      updateTier(index, {
-                                        subjects: tier.subjects.map((s) =>
-                                          s.subjectId === id
-                                            ? {
-                                                ...s,
-                                                qualifying: checked === true,
-                                              }
-                                            : s,
-                                        ),
-                                      })
-                                    }
-                                  />
-                                  Qualifying (excluded from total)
-                                </label>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-wrap items-end gap-3">
-                      <label className="text-[length:var(--type-label)] text-muted">
-                        Marks per correct
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          className="no-spin mt-0.5 block w-24"
-                          min={0.25}
-                          max={100}
-                          step="0.25"
+                        <Checkbox
+                          checked={row != null}
                           disabled={busy}
-                          value={tier.marking.correct}
-                          onChange={(e) =>
-                            updateTier(index, {
-                              marking: {
-                                ...tier.marking,
-                                correct: Number(e.target.value),
-                              },
-                            })
-                          }
+                          className="min-w-36 flex-1"
+                          onCheckedChange={(checked) => {
+                            const subjects =
+                              checked === true
+                                ? [
+                                    ...tier.subjects,
+                                    {
+                                      subjectId: id,
+                                      questions: 25,
+                                      qualifying: false,
+                                    },
+                                  ]
+                                : tier.subjects.filter(
+                                    (s) => s.subjectId !== id,
+                                  );
+                            updateTier(index, { subjects });
+                          }}
+                          label={SUBJECTS[id].name}
                         />
-                      </label>
-                      <label className="text-[length:var(--type-label)] text-muted">
-                        Penalty per incorrect
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          className="no-spin mt-0.5 block w-24"
-                          min={0}
-                          max={100}
-                          step="0.05"
-                          disabled={busy}
-                          value={tier.marking.incorrect}
-                          onChange={(e) =>
-                            updateTier(index, {
-                              marking: {
-                                ...tier.marking,
-                                incorrect: Number(e.target.value),
-                              },
-                            })
-                          }
-                        />
-                      </label>
-                      <p className="text-[length:var(--type-secondary)] text-muted">
-                        Maximum: {meritQuestions * tier.marking.correct} marks
-                      </p>
-                    </div>
-                  </div>
-                </fieldset>
-              );
-            })}
+                        {row && (
+                          <>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              className="max-w-24"
+                              inputClassName="appearance-none"
+                              label="Questions"
+                              min={1}
+                              max={500}
+                              disabled={busy}
+                              value={String(row.questions)}
+                              onValueChange={(questions) =>
+                                updateTier(index, {
+                                  subjects: tier.subjects.map((s) =>
+                                    s.subjectId === id
+                                      ? {
+                                          ...s,
+                                          questions: Number(questions),
+                                        }
+                                      : s,
+                                  ),
+                                })
+                              }
+                            />
+                            <Checkbox
+                              checked={row.qualifying}
+                              disabled={busy}
+                              onCheckedChange={(checked) =>
+                                updateTier(index, {
+                                  subjects: tier.subjects.map((s) =>
+                                    s.subjectId === id
+                                      ? {
+                                          ...s,
+                                          qualifying: checked === true,
+                                        }
+                                      : s,
+                                  ),
+                                })
+                              }
+                              label="Qualifying (excluded from total)"
+                            />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    className="max-w-24"
+                    inputClassName="appearance-none"
+                    label="Marks per correct"
+                    min={0.25}
+                    max={100}
+                    step="0.25"
+                    disabled={busy}
+                    value={String(tier.marking.correct)}
+                    onValueChange={(correct) =>
+                      updateTier(index, {
+                        marking: {
+                          ...tier.marking,
+                          correct: Number(correct),
+                        },
+                      })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    className="max-w-24"
+                    inputClassName="appearance-none"
+                    label="Penalty per incorrect"
+                    min={0}
+                    max={100}
+                    step="0.05"
+                    disabled={busy}
+                    value={String(tier.marking.incorrect)}
+                    onValueChange={(incorrect) =>
+                      updateTier(index, {
+                        marking: {
+                          ...tier.marking,
+                          incorrect: Number(incorrect),
+                        },
+                      })
+                    }
+                  />
+                  <p className="text-[13px] text-muted-foreground">
+                    Maximum: {meritQuestions * tier.marking.correct} marks
+                  </p>
+                </div>
+              </div>
+            </fieldset>
+          );
+        })}
 
-            {draft.tiers.length < 4 && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy}
-                onClick={() =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    tiers: [
-                      ...prev.tiers,
+        {draft.tiers.length < 4 && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            icon={<PlainIcon name="plus" size={14} />}
+            onClick={() =>
+              setDraft((prev) => ({
+                ...prev,
+                tiers: [
+                  ...prev.tiers,
+                  {
+                    label: `Tier ${prev.tiers.length + 1}`,
+                    subjects: [
                       {
-                        label: `Tier ${prev.tiers.length + 1}`,
-                        subjects: [
-                          {
-                            subjectId: "quant",
-                            questions: 25,
-                            qualifying: false,
-                          },
-                        ],
-                        marking: { correct: 2, incorrect: 0.5 },
+                        subjectId: "quant",
+                        questions: 25,
+                        qualifying: false,
                       },
                     ],
-                  }))
-                }
-              >
-                <PlainIcon name="plus" size={14} /> Add tier
-              </Button>
-            )}
-            {error && (
-              <p role="alert" className="text-[length:var(--type-label)] text-danger">
-                {error}
-              </p>
-            )}
-            <div className="action-row-stack">
-              <Button disabled={busy || !valid} onClick={() => void save()}>
-                {busy ? "Saving…" : isNew ? "Create exam" : "Save changes"}
-              </Button>
-              <Button variant="outline" disabled={busy} onClick={onClose}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+                    marking: { correct: 2, incorrect: 0.5 },
+                  },
+                ],
+              }))
+            }
+          >
+            Add tier
+          </Button>
+        )}
+        {error && (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+    </Dialog>
   );
 }

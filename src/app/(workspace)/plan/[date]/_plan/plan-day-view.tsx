@@ -2,10 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Dialog } from "radix-ui";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Dialog } from "@/components/dialog";
+import { Skeleton } from "@/components/skeleton";
+import { Textarea } from "@/components/textarea";
 import { AttemptRecordCard } from "@/components/attempt-outcome-card";
+import { EmptyState } from "@/components/empty-state";
 import { PlanErrorCard, ProgressRule } from "@/components/shared/plan/plan-shared";
 import { PlanTaskRow } from "@/components/shared/plan/plan-task-row";
 import { ResultEditor } from "./day/result-editor";
@@ -36,6 +40,12 @@ import { cn } from "@/lib/utils";
  * callout answering "what do I do now?", 2px rules as the only gauge idiom,
  * and a desktop context rail (phase progress, plan-wide %, jump to today).
  * Results are per-task and explicit; the plan is read-only.
+ *
+ * Hairline rebuild: panels are token-composed cards (rounded-2xl bg-card +
+ * inset hairline border), the habits/revision ticks are the Hairline
+ * Checkbox, the mark-all confirmation is the Hairline Dialog, and the empty
+ * day (a date with no plan work) is the Hairline EmptyState. The day's
+ * URL contract (`/plan/[date]`) and every handler are unchanged.
  */
 export function PlanDayView({
   date,
@@ -84,9 +94,12 @@ export function PlanDayView({
 
   if (loading && !plan)
     return (
-      <div className="panel p-6 animate-pulse" aria-busy="true">
-        <div className="h-6 w-56 bg-rule-soft rounded mb-4" />
-        <div className="h-40 w-full bg-rule-soft rounded" />
+      <div
+        className="rounded-2xl bg-card p-6 shadow-[inset_0_0_0_1px_var(--border)]"
+        aria-busy="true"
+      >
+        <Skeleton className="mb-4 w-56" />
+        <Skeleton shape="block" height={160} className="rounded-xl" />
       </div>
     );
   if (!plan)
@@ -209,20 +222,20 @@ export function PlanDayView({
         <div
           role="group"
           aria-label="Plan day navigation"
-          className="segment-group col-span-2 grid grid-cols-2 gap-0.5 sm:col-span-1 sm:inline-flex sm:w-auto"
+          className="col-span-2 inline-flex gap-1 sm:col-span-1 sm:w-auto"
         >
           {previous ? (
             <Link
               href={`/plan/${previous.date}`}
-              className="segment justify-center"
+              className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent sm:flex-none"
               title={`Day ${previous.day} · ${longDate(previous.date)}`}
             >
               <PlainIcon name="arrowLeft" size={13} /> Day {previous.day}
             </Link>
           ) : (
             <span
-              className="segment justify-center opacity-50"
               aria-disabled="true"
+              className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full px-3 text-[12px] font-medium text-muted-foreground opacity-50 sm:flex-none"
             >
               <PlainIcon name="arrowLeft" size={13} /> Day 1
             </span>
@@ -230,15 +243,15 @@ export function PlanDayView({
           {next ? (
             <Link
               href={`/plan/${next.date}`}
-              className="segment justify-center"
+              className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent sm:flex-none"
               title={`Day ${next.day} · ${longDate(next.date)}`}
             >
               Day {next.day} <PlainIcon name="arrowRight" size={13} />
             </Link>
           ) : (
             <span
-              className="segment justify-center opacity-50"
               aria-disabled="true"
+              className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full px-3 text-[12px] font-medium text-muted-foreground opacity-50 sm:flex-none"
             >
               Day 50 <PlainIcon name="arrowRight" size={13} />
             </span>
@@ -246,13 +259,13 @@ export function PlanDayView({
         </div>
         <Link
           href="/calendar"
-          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control px-2 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-soft hover:text-ink sm:min-h-0 sm:justify-start"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:min-h-0 sm:justify-start"
         >
           <PlainIcon name="calendar" size={15} /> Calendar
         </Link>
         <Link
           href={`/plan/week/${current.date}`}
-          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control px-2 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-soft hover:text-ink sm:min-h-0 sm:justify-start"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:min-h-0 sm:justify-start"
         >
           <PlainIcon name="layers" size={15} /> Week
         </Link>
@@ -267,7 +280,7 @@ export function PlanDayView({
 
       {/* ---- Hero: dateline · Day N · type · next-up · figures ---- */}
       <header className="mb-6">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {phase?.name ?? `Phase ${current.phase}`} · {longDate(current.date)}
           {current.date === today
             ? " · today"
@@ -277,14 +290,14 @@ export function PlanDayView({
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
           <div className="min-w-0">
-            <h1 className="text-[clamp(2rem,7vw,2.75rem)] font-semibold leading-none tracking-[-0.03em] text-ink">
+            <h1 className="text-[clamp(2rem,7vw,2.75rem)] font-semibold leading-none tracking-[-0.03em] text-foreground">
               Day {current.day}
-              <span className="ml-2 align-middle rounded-pill border border-rule-soft px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted">
+              <span className="ml-2 align-middle rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]">
                 CGL plan
               </span>
             </h1>
             <p
-              className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent"
+              className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary"
               title={current.dayType}
             >
               {dayTypeLabel(current.dayType)}
@@ -303,7 +316,7 @@ export function PlanDayView({
               rule={null}
             />
             {stats.dayCompleted && (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-positive/40 bg-positive-soft px-2.5 py-1 text-[10px] font-semibold text-positive">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_30%,transparent)]">
                 <PlainIcon name="check" size={11} /> Day complete
               </span>
             )}
@@ -314,26 +327,26 @@ export function PlanDayView({
             Phones: label + name on one row, stats + full-width actions on
             the next; sm+ keeps the single inline row. */}
         {(nextUp || carriedOver) && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-accent/30 bg-accent-soft/40 px-4 py-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-accent">
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-primary/5 px-4 py-3 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
               {carriedOver ? "Carried over" : "Next up"}
             </span>
             {carriedOver ? (
               <Link
                 href={`/plan/${carriedOver.day.date}`}
-                className="min-w-0 flex-1 basis-full text-sm font-medium text-ink underline-offset-4 hover:text-accent hover:underline sm:basis-0"
+                className="min-w-0 flex-1 basis-full text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline sm:basis-0"
               >
                 Day {carriedOver.day.day} · {carriedOver.task.name}
-                <span className="ml-2 text-[11px] font-normal text-muted">
+                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
                   {longDate(carriedOver.day.date)}
                 </span>
               </Link>
             ) : (
               <>
-                <p className="min-w-0 flex-1 basis-full break-words text-sm font-medium text-ink sm:basis-0">
+                <p className="min-w-0 flex-1 basis-full break-words text-sm font-medium text-foreground sm:basis-0">
                   {nextUp!.task.name}
                 </p>
-                <span className="text-[11px] tabular text-muted">
+                <span className="text-[11px] tabular-nums text-muted-foreground">
                   {nextUp!.task.questions} Q · {nextUp!.task.marks} marks
                 </span>
                 <div className="flex w-full items-center gap-1.5 sm:ml-auto sm:w-auto">
@@ -342,7 +355,7 @@ export function PlanDayView({
                       href={nextUp!.task.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-control border border-rule-soft bg-paper px-2 py-1 text-[10px] font-medium text-accent transition-colors hover:border-accent/50 sm:min-h-0 sm:flex-none"
+                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full bg-card px-2 py-1 text-[11px] font-medium text-primary shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent sm:min-h-0 sm:flex-none"
                     >
                       Start <PlainIcon name="arrowUpRight" size={11} />
                     </a>
@@ -352,7 +365,7 @@ export function PlanDayView({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="min-h-9 flex-1 text-[10px] text-accent sm:min-h-0 sm:flex-none"
+                      className="min-h-9 flex-1 sm:min-h-0 sm:flex-none"
                       onClick={() => onAddMock(current.date, nextUp!.task)}
                     >
                       Log attempt
@@ -365,7 +378,7 @@ export function PlanDayView({
         )}
 
         {/* Slim plan context for phones — the desktop rail hides below lg. */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted lg:hidden">
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground lg:hidden">
           <span className="truncate">
             {phase?.name ?? `Phase ${current.phase}`} · Day {current.day} of{" "}
             {plan.days.length} ·{" "}
@@ -377,7 +390,7 @@ export function PlanDayView({
           {nearestToday && nearestToday.date !== current.date && (
             <Link
               href={`/plan/${nearestToday.date}`}
-              className="font-medium text-accent underline-offset-4 hover:underline"
+              className="font-medium text-primary underline-offset-4 hover:underline"
             >
               {nearestToday.date === today
                 ? "Jump to today"
@@ -401,22 +414,24 @@ export function PlanDayView({
             rule={stats.total ? stats.completed / stats.total : null}
             action={
               outstanding.length > 0 ? (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary"
                   onClick={() => setMarkAllOpen(true)}
-                  className="shrink-0 text-[10px] font-medium text-accent transition-colors hover:text-accent-hover"
                 >
                   Mark all done
-                </button>
+                </Button>
               ) : null
             }
           >
-            <section className="panel overflow-hidden" aria-label="Today's assignments">
-              <p className="border-b border-rule-soft px-4 py-2.5 text-[11px] leading-relaxed text-muted sm:px-5">
+            <section className="overflow-hidden rounded-2xl bg-card shadow-[inset_0_0_0_1px_var(--border)]" aria-label="Today's assignments">
+              <p className="border-b border-border px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground sm:px-5">
                 Work through each item, then record how it went — checking a
                 task reveals its result step.
               </p>
-              <ul className="divide-y divide-rule-soft">
+              <ul className="divide-y divide-border">
                 {current.tasks.map((task) => {
                   const recorded = task.completed && task.score != null;
                   const open = openResult?.date === current.date && openResult.key === task.key;
@@ -433,22 +448,18 @@ export function PlanDayView({
                     >
                       {task.completed && (
                         <div className="ml-0 sm:ml-[52px]">
-                          <button
+                          <Button
                             type="button"
+                            variant={recorded ? "outline" : "primary"}
+                            size="xs"
                             aria-expanded={open}
                             onClick={() =>
                               setOpenResult(open ? null : { date: current.date, key: task.key })
                             }
-                            className={cn(
-                              "mt-2 inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[10px] font-semibold transition-colors",
-                              recorded
-                                ? "border border-rule-soft text-muted hover:text-ink"
-                                : "bg-accent text-paper hover:bg-accent-hover",
-                            )}
                           >
                             <PlainIcon name={recorded ? "settings" : "trend"} size={11} />
                             {recorded ? "Edit result" : "Record result"}
-                          </button>
+                          </Button>
                           {open && (
                             <ResultEditor
                               task={task}
@@ -460,7 +471,7 @@ export function PlanDayView({
                         </div>
                       )}
                       {!task.completed && task.notes && (
-                        <p className="mt-2 ml-0 sm:ml-[52px] text-[10px] text-muted">
+                        <p className="mt-2 ml-0 text-[11px] text-muted-foreground sm:ml-[52px]">
                           {task.notes}
                         </p>
                       )}
@@ -478,26 +489,26 @@ export function PlanDayView({
             count={`${checklistDone} of ${current.checklist.length}`}
             rule={current.checklist.length ? checklistDone / current.checklist.length : null}
           >
-            <section className="panel px-4 py-4 sm:px-5" aria-label="Daily checklist">
-              <p className="text-[11px] text-muted">
+            <section className="rounded-2xl bg-card px-4 py-4 shadow-[inset_0_0_0_1px_var(--border)] sm:px-5" aria-label="Daily checklist">
+              <p className="text-[11px] text-muted-foreground">
                 The plan&apos;s four habits for every study day — they decide
                 whether the day counts as complete.
               </p>
               <ul className="mt-3.5 flex flex-col gap-3">
                 {current.checklist.map((item) => (
                   <li key={item.id}>
-                    <label className="check-row text-[13px]">
-                      <input
-                        type="checkbox"
-                        checked={item.done}
-                        onChange={(e) =>
-                          toggleChecklist(current.day, item.id, e.target.checked)
-                        }
-                      />
-                      <span className={item.done ? "text-muted line-through" : ""}>
-                        {item.label}
-                      </span>
-                    </label>
+                    <Checkbox
+                      checked={item.done}
+                      size="md"
+                      label={
+                        <span className={item.done ? "text-muted-foreground line-through" : undefined}>
+                          {item.label}
+                        </span>
+                      }
+                      onCheckedChange={(done) =>
+                        toggleChecklist(current.day, item.id, done)
+                      }
+                    />
                   </li>
                 ))}
               </ul>
@@ -522,44 +533,43 @@ export function PlanDayView({
                   : null
               }
             >
-              <section className="panel px-4 py-4 sm:px-5" aria-label="Revision">
+              <section className="rounded-2xl bg-card px-4 py-4 shadow-[inset_0_0_0_1px_var(--border)] sm:px-5" aria-label="Revision">
                 {current.revisionTasks.length > 0 ? (
                   <ul className="flex flex-col gap-2.5">
                     {current.revisionTasks.map((label, index) => {
                       const done = current.revisionDone.includes(String(index));
                       return (
                         <li key={index}>
-                          <label className="check-row items-start text-[13px]">
-                            <input
-                              type="checkbox"
-                              className="mt-0.5"
-                              checked={done}
-                              onChange={(e) =>
-                                toggleDayRevision(current.day, index, e.target.checked)
-                              }
-                            />
-                            <span className={done ? "text-muted line-through" : ""}>
-                              {label}
-                            </span>
-                          </label>
+                          <Checkbox
+                            checked={done}
+                            size="md"
+                            label={
+                              <span className={done ? "text-muted-foreground line-through" : undefined}>
+                                {label}
+                              </span>
+                            }
+                            onCheckedChange={(checked) =>
+                              toggleDayRevision(current.day, index, checked)
+                            }
+                          />
                         </li>
                       );
                     })}
                   </ul>
                 ) : weeklyRevisionDay ? (
-                  <p className="text-xs leading-relaxed text-muted">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     Weekly Rev-2 day. {queue.rev2.length === 0
                       ? "Every completed task from this week already has its Rev-2 tick."
                       : `${queue.rev2.length} completed ${queue.rev2.length === 1 ? "task" : "tasks"} from this week still need their Rev-2 tick — open a task's result editor and mark it.`}
                   </p>
                 ) : finalRevisionDay ? (
-                  <p className="text-xs leading-relaxed text-muted">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     Final-revision window. {queue.rev3.length === 0
                       ? "Nothing is left to revisit."
                       : `${queue.rev3.length} ${queue.rev3.length === 1 ? "item is" : "items are"} still waiting for a Rev-3 pass — tick Rev-3 in each task's result editor.`}
                   </p>
                 ) : (
-                  <p className="text-xs leading-relaxed text-muted">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     No revision blocks scheduled today. Rev-1 happens right
                     after each task — tick it in the task&apos;s result editor.
                   </p>
@@ -574,9 +584,9 @@ export function PlanDayView({
           </FlowSection>
 
           {/* Personal tasks for this date */}
-          <section className="panel overflow-hidden" aria-label="Your tasks for this date">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule-soft px-4 py-3 sm:px-5">
-              <h2 className="font-serif text-lg font-medium">
+          <section className="overflow-hidden rounded-2xl bg-card shadow-[inset_0_0_0_1px_var(--border)]" aria-label="Your tasks for this date">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-5">
+              <h2 className="text-base font-semibold text-foreground">
                 Your personal tasks
               </h2>
               <div className="flex items-center gap-3">
@@ -594,7 +604,7 @@ export function PlanDayView({
                   </label>
                   <input
                     id="plan-day-new-task"
-                    className="w-40 py-1.5 text-xs sm:w-56"
+                    className="h-7 w-40 rounded-full bg-background px-3 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/70 shadow-[inset_0_0_0_1px_var(--border)] focus-visible:shadow-[inset_0_0_0_1px_var(--ring)] sm:w-56"
                     placeholder="Add a task for this day…"
                     maxLength={200}
                     value={newTaskTitle}
@@ -611,19 +621,19 @@ export function PlanDayView({
                 </form>
                 <Link
                   href="/my-tasks"
-                  className="text-[11px] font-medium text-accent transition-colors hover:text-accent-hover"
+                  className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
                 >
                   Open My Tasks →
                 </Link>
               </div>
             </div>
             {newTaskError && (
-              <p role="alert" className="border-b border-rule-soft px-4 py-2 text-[11px] text-danger sm:px-5">
+              <p role="alert" className="border-b border-border px-4 py-2 text-[11px] text-destructive sm:px-5">
                 {newTaskError}
               </p>
             )}
             {personalTasks.length > 0 ? (
-              <ul className="divide-y divide-rule-soft">
+              <ul className="divide-y divide-border">
                 {personalTasks.map((task) => (
                   <li key={task.id} className="flex items-start gap-2.5 px-4 py-3 sm:px-5">
                     <TaskStatusButton
@@ -637,20 +647,20 @@ export function PlanDayView({
                       <p
                         className={cn(
                           "break-words text-sm font-medium leading-snug",
-                          task.status === "completed" && "text-muted line-through",
+                          task.status === "completed" && "text-muted-foreground line-through",
                         )}
                       >
                         {task.title}
                       </p>
                       {task.notes && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-muted">{task.notes}</p>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{task.notes}</p>
                       )}
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="px-4 py-4 text-[0.8125rem] text-muted sm:px-5">
+              <p className="px-4 py-4 text-[13px] text-muted-foreground sm:px-5">
                 Nothing personal is due on this date. Add a task if today needs
                 one — it appears here and in My Tasks.
               </p>
@@ -658,11 +668,11 @@ export function PlanDayView({
           </section>
 
           {/* Logged attempts */}
-          <section className="panel p-4 sm:p-5" aria-label="Logged attempts">
+          <section className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)] sm:p-5" aria-label="Logged attempts">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="font-serif text-lg font-medium">Logged attempts</h2>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                <h2 className="text-base font-semibold text-foreground">Logged attempts</h2>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                   Tracker results whose attempt date is this day.
                 </p>
               </div>
@@ -679,9 +689,9 @@ export function PlanDayView({
                 ))}
               </ul>
             ) : (
-              <div className="mt-3 flex items-start gap-3 rounded-control border border-dashed border-rule px-4 py-4">
-                <PlainIcon name="file" size={17} className="mt-0.5 shrink-0 text-muted" />
-                <p className="text-[11px] leading-relaxed text-muted">
+              <div className="mt-3 flex items-start gap-3 rounded-xl border border-dashed border-border px-4 py-4">
+                <PlainIcon name="file" size={17} className="mt-0.5 shrink-0 text-muted-foreground" />
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Nothing logged for this date yet. Log a mock to record how it
                   went — the plan itself never moves.
                 </p>
@@ -692,14 +702,14 @@ export function PlanDayView({
 
         {/* Desktop context rail */}
         <aside className="hidden min-w-0 flex-col gap-5 lg:flex lg:col-start-2 lg:row-start-1">
-          <section className="panel p-4 sm:p-5" aria-label="Plan context">
-            <h2 className="font-serif text-lg font-medium">Plan context</h2>
+          <section className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)] sm:p-5" aria-label="Plan context">
+            <h2 className="text-base font-semibold text-foreground">Plan context</h2>
             <div className="mt-3.5">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-ink">
+                <p className="text-sm font-medium text-foreground">
                   Day {current.day} of {plan.days.length}
                 </p>
-                <p className="text-[11px] tabular text-muted">
+                <p className="text-[11px] tabular-nums text-muted-foreground">
                   {shortDate(plan.startDate)} – {longDate(plan.endDate)}
                 </p>
               </div>
@@ -710,11 +720,11 @@ export function PlanDayView({
                 className="mt-2"
               />
             </div>
-            <div className="mt-4 border-t border-rule-soft pt-3.5">
-              <p className="text-xs font-medium text-ink">
+            <div className="mt-4 border-t border-border pt-3.5">
+              <p className="text-xs font-medium text-foreground">
                 {phase?.name ?? `Phase ${current.phase}`}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {phaseStats.completed} of {phaseStats.total} assignments across
                 days {phaseDays[0]?.day}–{phaseDays.at(-1)?.day}
               </p>
@@ -725,11 +735,11 @@ export function PlanDayView({
                 className="mt-2"
               />
             </div>
-            <div className="mt-4 border-t border-rule-soft pt-3.5">
-              <p className="text-xs font-medium text-ink">
+            <div className="mt-4 border-t border-border pt-3.5">
+              <p className="text-xs font-medium text-foreground">
                 Whole plan · {planStats.completionPct}%
               </p>
-              <p className="mt-0.5 text-[11px] text-muted">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {planStats.completedDays} of {planStats.totalDays} days ·{" "}
                 {planStats.completedAssignments} of {planStats.totalAssignments}{" "}
                 assignments
@@ -741,26 +751,27 @@ export function PlanDayView({
                 className="mt-2"
               />
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-rule-soft pt-3.5">
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3.5">
               {nearestToday && nearestToday.date !== current.date && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
+                <Link
+                  href={`/plan/${nearestToday.date}`}
                   className={
-                    nearestToday.date === today ? "border-accent/50 text-accent" : undefined
+                    nearestToday.date === today
+                      ? "inline-flex h-7 items-center rounded-full bg-primary/10 px-3 text-[12px] font-medium text-primary transition-colors hover:bg-primary/15"
+                      : "inline-flex h-7 items-center rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
                   }
                 >
-                  <Link href={`/plan/${nearestToday.date}`}>
-                    {nearestToday.date === today
-                      ? "Jump to today"
-                      : `Latest day (${shortDate(nearestToday.date)})`}
-                  </Link>
-                </Button>
+                  {nearestToday.date === today
+                    ? "Jump to today"
+                    : `Latest day (${shortDate(nearestToday.date)})`}
+                </Link>
               )}
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/calendar">Open calendar</Link>
-              </Button>
+              <Link
+                href="/calendar"
+                className="inline-flex h-7 items-center rounded-full px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Open calendar
+              </Link>
             </div>
           </section>
         </aside>
@@ -768,27 +779,24 @@ export function PlanDayView({
 
       {/* Mark-all-done confirmation */}
       {markAllOpen && (
-        <Dialog.Root open onOpenChange={(open) => !open && setMarkAllOpen(false)}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                Mark all {outstanding.length}{" "}
-                {outstanding.length === 1 ? "task" : "tasks"} done?
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                Every outstanding assignment for Day {current.day} gets its
-                tick. You can untick any task afterwards.
-              </Dialog.Description>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setMarkAllOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={markAllDone}>Mark all done</Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setMarkAllOpen(false);
+          }}
+          title={`Mark all ${outstanding.length} ${
+            outstanding.length === 1 ? "task" : "tasks"
+          } done?`}
+          description={`Every outstanding assignment for Day ${current.day} gets its tick. You can untick any task afterwards.`}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setMarkAllOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={markAllDone}>Mark all done</Button>
+            </>
+          }
+        />
       )}
     </div>
   );
@@ -806,10 +814,10 @@ function HeroFigure({
 }) {
   return (
     <div className="min-w-16">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 font-serif text-xl leading-none tabular text-ink">
+      <p className="mt-0.5 font-serif text-xl tabular-nums leading-none text-foreground">
         {value}
       </p>
       {rule != null && (
@@ -844,15 +852,15 @@ function FlowSection({
     <section aria-label={label}>
       <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span
-          className="grid size-5 shrink-0 place-items-center rounded-full border border-rule text-[10px] font-semibold tabular text-muted"
+          className="grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold tabular-nums text-muted-foreground"
           aria-hidden="true"
         >
           {index}
         </span>
-        <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
           {label}
         </h2>
-        {count && <span className="text-[11px] tabular text-muted">{count}</span>}
+        {count && <span className="text-[11px] tabular-nums text-muted-foreground">{count}</span>}
         {rule != null && (
           <ProgressRule
             done={Math.round(rule * 100)}
@@ -881,28 +889,34 @@ function PlanNotFound({
     [...plan.days].filter((day) => day.date < today).at(-1) ??
     plan.days[0];
   return (
-    <div className="mx-auto max-w-lg py-10 text-center">
-      <h1 className="font-serif text-3xl">No plan day for {date}</h1>
-      <p className="muted mt-2 text-sm">
-        The plan runs {longDate(plan.startDate)} – {longDate(plan.endDate)}.
-        Pick a date inside that window.
-      </p>
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+    <div className="mx-auto max-w-lg py-10">
+      <EmptyState
+        scene="inbox"
+        title={`No plan day for ${date}`}
+        description={
+          <>
+            The plan runs {longDate(plan.startDate)} – {longDate(plan.endDate)}.
+            Pick a date inside that window.
+          </>
+        }
+      >
         {nearest && (
-          <Button asChild size="sm">
-            <Link href={`/plan/${nearest.date}`}>
-              {nearest.date === today
-                ? "Go to today"
-                : `Go to the latest day (${shortDate(nearest.date)})`}
-            </Link>
-          </Button>
-        )}
-        <Button asChild variant="outline" size="sm">
-          <Link href="/calendar">
-            <PlainIcon name="calendar" size={14} /> Open the study calendar
+          <Link
+            href={`/plan/${nearest.date}`}
+            className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            {nearest.date === today
+              ? "Go to today"
+              : `Go to the latest day (${shortDate(nearest.date)})`}
           </Link>
-        </Button>
-      </div>
+        )}
+        <Link
+          href="/calendar"
+          className="inline-flex h-9 items-center gap-1 rounded-full px-4 text-[13px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
+        >
+          <PlainIcon name="calendar" size={14} /> Open the study calendar
+        </Link>
+      </EmptyState>
     </div>
   );
 }
@@ -949,14 +963,14 @@ function DayNotes({
   }
 
   return (
-    <section className="panel px-4 py-4 sm:px-5" aria-label="Day notes">
+    <section className="rounded-2xl bg-card px-4 py-4 shadow-[inset_0_0_0_1px_var(--border)] sm:px-5" aria-label="Day notes">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[11px] text-muted">
+        <p className="text-[11px] text-muted-foreground">
           What needs another look from today&apos;s work?
         </p>
         <div className="flex items-center gap-2">
           {savedAt && (
-            <span role="status" className="text-[11px] text-positive">
+            <span role="status" className="text-[11px] text-success">
               Saved {savedAt}
             </span>
           )}
@@ -964,6 +978,7 @@ function DayNotes({
             type="button"
             variant="outline"
             size="sm"
+            loading={saving}
             disabled={saving || draft.value === draft.saved}
             onClick={() => void persist()}
           >
@@ -971,20 +986,18 @@ function DayNotes({
           </Button>
         </div>
       </div>
-      <label>
-        <span className="sr-only">Day notes</span>
-        <textarea
-          rows={4}
-          maxLength={2000}
-          value={draft.value}
-          placeholder="Weak areas, recurring mistakes, formulas to revisit…"
-          className="max-sm:text-base"
-          onChange={(e) =>
-            setDraft((current) => ({ ...current, value: e.target.value }))
-          }
-          onBlur={() => void persist()}
-        />
-      </label>
+      <Textarea
+        aria-label="Day notes"
+        minRows={4}
+        maxRows={10}
+        maxLength={2000}
+        value={draft.value}
+        placeholder="Weak areas, recurring mistakes, formulas to revisit…"
+        onChange={(e) =>
+          setDraft((current) => ({ ...current, value: e.target.value }))
+        }
+        onBlur={() => void persist()}
+      />
     </section>
   );
 }

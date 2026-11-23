@@ -1,14 +1,8 @@
 "use client";
 
-import { CalendarClock, Check, MoreHorizontal, Trash2 } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/button";
+import { DropdownMenu } from "@/components/dropdown-menu";
+import { PlainIcon } from "@/components/icon";
 
 /**
  * Select-mode toolbar: bulk status, reschedule, and trash for the selection,
@@ -18,6 +12,9 @@ import {
  *
  * Restoring is deliberately absent: deleted tasks are recovered from /trash,
  * which is the only surface that lists them.
+ *
+ * Hairline rebuild: Hairline Button + declarative DropdownMenu (trigger +
+ * items); icons are the static vocabulary.
  */
 export function BulkBar({
   selectedCount,
@@ -50,9 +47,9 @@ export function BulkBar({
     <div
       role="toolbar"
       aria-label="Bulk actions"
-      className="flex flex-wrap items-center gap-2 rounded-control border border-accent/30 bg-accent-soft/50 px-3 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_30%,transparent)]"
     >
-      <span className="text-xs font-medium tabular-nums text-ink">
+      <span className="text-xs font-medium tabular-nums text-foreground">
         {selectedCount} selected
       </span>
       <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -65,23 +62,23 @@ export function BulkBar({
           Clear
         </Button>
         <Button type="button" variant="outline" size="sm" disabled={busy || !has} onClick={onComplete}>
-          <Check size={13} />
+          <PlainIcon name="check" size={13} />
           Complete
         </Button>
         <Button type="button" variant="outline" size="sm" disabled={busy || !has} onClick={onInProgress}>
-          <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+          <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
           In progress
         </Button>
         <Button type="button" variant="outline" size="sm" disabled={busy || !has} onClick={onReschedule}>
-          <CalendarClock size={13} />
+          <PlainIcon name="calendarPlus" size={13} />
           Reschedule
         </Button>
         <Button type="button" variant="destructive" size="sm" disabled={busy || !has} onClick={onTrash}>
-          <Trash2 size={13} />
+          <PlainIcon name="trash" size={13} />
           Trash
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <DropdownMenu
+          trigger={
             <Button
               type="button"
               variant="ghost"
@@ -90,26 +87,37 @@ export function BulkBar({
               aria-label="More selection actions"
               disabled={busy}
             >
-              <MoreHorizontal size={15} />
+              <PlainIcon name="more" size={15} />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {selectedCount < pageTotal && (
-              <DropdownMenuItem onSelect={onSelectAll}>
-                Select all on page
-              </DropdownMenuItem>
-            )}
-            {onScopeTrash && scopeTotal > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem danger onSelect={onScopeTrash}>
-                  <Trash2 size={13} />
-                  Trash all matching ({scopeTotal})…
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          }
+          align="end"
+          label="More selection actions"
+          items={[
+            ...(selectedCount < pageTotal
+              ? [
+                  {
+                    type: "item" as const,
+                    id: "select-all",
+                    label: "Select all on page",
+                    onSelect: onSelectAll,
+                  },
+                ]
+              : []),
+            ...(onScopeTrash && scopeTotal > 0
+              ? [
+                  { type: "separator" as const },
+                  {
+                    type: "item" as const,
+                    id: "scope-trash",
+                    label: `Trash all matching (${scopeTotal})…`,
+                    icon: <PlainIcon name="trash" size={13} />,
+                    destructive: true,
+                    onSelect: onScopeTrash,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </div>
     </div>
   );

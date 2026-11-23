@@ -36,15 +36,15 @@ export interface AlertProps {
 
 const TONE: Record<AlertTone, string> = {
   info: "bg-card shadow-[inset_0_0_0_1px_var(--border)] text-foreground",
-  success: "bg-emerald-500/[0.06] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-emerald-500)_30%,transparent)] text-foreground",
-  warning: "bg-amber-500/[0.07] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-amber-500)_35%,transparent)] text-foreground",
-  danger: "bg-red-500/[0.06] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] text-foreground",
+  success: "bg-success/10 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_30%,transparent)] text-foreground",
+  warning: "bg-warning/10 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_35%,transparent)] text-foreground",
+  danger: "bg-destructive/10 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)] text-foreground",
 };
 const ICON_TONE: Record<AlertTone, string> = {
   info: "text-muted-foreground",
-  success: "text-emerald-600 dark:text-emerald-400",
-  warning: "text-amber-600 dark:text-amber-400",
-  danger: "text-red-600 dark:text-red-400",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-destructive",
 };
 
 const ICONS: Record<AlertTone, React.ReactNode> = {

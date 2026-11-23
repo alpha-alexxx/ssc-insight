@@ -1,29 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  CalendarClock,
-  CalendarDays,
-  Columns3,
-  List,
-  ListChecks,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Trash2,
-  Pencil,
-  Zap,
-} from "@/components/ui/icons";
-import { Dialog } from "radix-ui";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Button } from "@/components/button";
+import { Checkbox } from "@/components/checkbox";
+import { Dialog } from "@/components/dialog";
+import { Input } from "@/components/input";
+import { PlainIcon } from "@/components/icon";
+import { Select } from "@/components/select";
+import { Sheet } from "@/components/sheet";
+import { Skeleton } from "@/components/skeleton";
 import {
   istTodayIso,
   linkHost,
@@ -31,8 +16,6 @@ import {
 } from "@/lib/plan/view-model";
 import { cn } from "@/lib/utils";
 import { shortDate as dateLabel, longDate } from "@/lib/format";
-import { useOverlayFocus } from "@/components/use-overlay-viewport";
-import { DuotoneTile, PlainIcon } from "@/components/icon";
 import { PersonalCalendar } from "./personal-calendar";
 import { TaskEditor } from "@/components/shared/tasks/task-editor";
 import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
@@ -84,12 +67,12 @@ const VIEWS: { id: View; label: string }[] = [
 /** Personal task categories — mirrors personalTaskCategories in
  * lib/plan/progress.ts (the /api/tasks enum) and the todos backend default. */
 const TASK_CATEGORIES: { id: string; label: string; icon: string; tile: string }[] = [
-  { id: "practice", label: "Practice", icon: "file", tile: "bg-accent-soft text-accent" },
-  { id: "revision", label: "Revision", icon: "refresh", tile: "bg-warning-soft text-warning" },
-  { id: "error_review", label: "Error review", icon: "warning", tile: "bg-danger-soft text-danger" },
-  { id: "notes", label: "Notes", icon: "fileCheck", tile: "bg-positive-soft text-positive" },
-  { id: "formula", label: "Formula sheet", icon: "quant", tile: "bg-accent-soft text-accent" },
-  { id: "other", label: "Custom", icon: "layers", tile: "bg-soft text-muted" },
+  { id: "practice", label: "Practice", icon: "file", tile: "bg-primary/10 text-primary" },
+  { id: "revision", label: "Revision", icon: "refresh", tile: "bg-warning/10 text-warning" },
+  { id: "error_review", label: "Error review", icon: "warning", tile: "bg-destructive/10 text-destructive" },
+  { id: "notes", label: "Notes", icon: "fileCheck", tile: "bg-success/10 text-success" },
+  { id: "formula", label: "Formula sheet", icon: "quant", tile: "bg-primary/10 text-primary" },
+  { id: "other", label: "Custom", icon: "layers", tile: "bg-muted text-muted-foreground" },
 ];
 
 function categoryMeta(id: string) {
@@ -97,7 +80,14 @@ function categoryMeta(id: string) {
 }
 
 /** Page-level layout (reference): List = day/filtered list, Calendar =
- * month grid + selected-day list, Kanban = pending/completed columns. */
+ * month grid + selected-day list, Kanban = pending/completed columns.
+ *
+ * Hairline rebuild: every surface is composed from semantic tokens — cards
+ * are `rounded-2xl bg-card` with the inset hairline border, the checkboxes
+ * are the Hairline Checkbox, overlays are the Hairline Dialog/Sheet, and
+ * icons are the static vocabulary. All handlers, state and copy are
+ * unchanged.
+ */
 type PageLayout = "list" | "calendar" | "kanban";
 export function PersonalTodos({
   initialDate,
@@ -110,7 +100,7 @@ export function PersonalTodos({
 }: {
   initialDate?: string;
   compact?: boolean;
-  /** Renders as a single self-contained Panel for the dashboard column. */
+  /** Renders as a single self-contained card for the dashboard column. */
   dashboardColumn?: boolean;
   /** When provided (dashboard), the selected date follows the section's day stepper. */
   focusDate?: string;
@@ -119,7 +109,6 @@ export function PersonalTodos({
   onChanged?: () => void;
   aiAction?: React.ReactNode;
 }) {
-  const overlayFocus = useOverlayFocus();
   const [internalDate, setInternalDate] = useState(
     initialDate ?? istTodayIso(),
   );
@@ -267,10 +256,15 @@ export function PersonalTodos({
           {/* ---- Reference header: tile + title, layout switch, Add task ---- */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <DuotoneTile name="check" tile="accent" className="size-12" />
+              <span
+                aria-hidden="true"
+                className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary shadow-[inset_0_0_0_1px_var(--border)]"
+              >
+                <PlainIcon name="check" size={22} />
+              </span>
               <div className="min-w-0">
-                <h2 className="page-title">My tasks</h2>
-                <p className="mt-1 text-sm text-muted">
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">My tasks</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Plan assignments and manage your study tasks in one place.
                 </p>
               </div>
@@ -279,32 +273,36 @@ export function PersonalTodos({
               <div
                 role="group"
                 aria-label="Task layout"
-                className="segment-group"
+                className="inline-flex gap-1"
               >
                 {(
                   [
-                    { id: "list", label: "List", icon: List },
-                    { id: "calendar", label: "Calendar", icon: CalendarDays },
-                    { id: "kanban", label: "Kanban", icon: Columns3 },
+                    { id: "list", label: "List", icon: "list" },
+                    { id: "calendar", label: "Calendar", icon: "calendar" },
+                    { id: "kanban", label: "Kanban", icon: "kanban" },
                   ] as const
                 ).map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     aria-pressed={layout === item.id}
-                    className="segment"
+                    className={
+                      layout === item.id
+                        ? "inline-flex min-h-9 items-center gap-1.5 rounded-full bg-primary/10 px-3 text-[12px] font-medium text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                        : "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent hover:text-foreground"
+                    }
                     onClick={() => {
                       setLayout(item.id);
                       clearSelection();
                     }}
                   >
-                    <item.icon size={14} className="shrink-0" />
+                    <PlainIcon name={item.icon} size={14} className="shrink-0" />
                     {item.label}
                   </button>
                 ))}
               </div>
               <Button type="button" size="sm" onClick={() => setCreating(true)}>
-                <Plus size={14} /> Add task
+                <PlainIcon name="plus" size={14} /> Add task
               </Button>
             </div>
           </div>
@@ -316,28 +314,28 @@ export function PersonalTodos({
                 {
                   id: "all" as View,
                   icon: "clock" as const,
-                  tile: "bg-accent-soft text-accent",
+                  tile: "bg-primary/10 text-primary",
                   label: "Pending",
                   value: data?.counts.pending,
                 },
                 {
                   id: "completed" as View,
                   icon: "success" as const,
-                  tile: "bg-positive-soft text-positive",
+                  tile: "bg-success/10 text-success",
                   label: "Completed",
                   value: data?.counts.completed,
                 },
                 {
                   id: "overdue" as View,
                   icon: "warning" as const,
-                  tile: "bg-danger-soft text-danger",
+                  tile: "bg-destructive/10 text-destructive",
                   label: "Overdue",
                   value: data?.counts.overdue,
                 },
                 {
                   id: "today" as View,
                   icon: "target" as const,
-                  tile: "bg-accent-soft text-accent",
+                  tile: "bg-primary/10 text-primary",
                   label: "Focus today",
                   value: data?.counts.today,
                 },
@@ -352,15 +350,15 @@ export function PersonalTodos({
                 }}
                 aria-pressed={view === kpi.id}
                 className={cn(
-                  "group flex items-center gap-3 rounded-panel border bg-paper px-3.5 py-3 text-left transition-colors",
+                  "group flex items-center gap-3 rounded-2xl bg-card px-3.5 py-3 text-left shadow-[inset_0_0_0_1px_var(--border)] transition-colors",
                   view === kpi.id
-                    ? "border-accent"
-                    : "border-rule-soft hover:border-accent/50",
+                    ? "ring-2 ring-primary"
+                    : "hover:bg-accent",
                 )}
               >
                 <span
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-control",
+                    "flex size-9 shrink-0 items-center justify-center rounded-lg",
                     kpi.tile,
                   )}
                   aria-hidden="true"
@@ -368,17 +366,17 @@ export function PersonalTodos({
                   <PlainIcon name={kpi.icon} size={15} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[0.625rem] font-medium text-muted">
+                  <span className="block text-[11px] font-medium text-muted-foreground">
                     {kpi.label}
                   </span>
-                  <span className="block font-serif text-xl leading-tight tabular text-ink">
+                  <span className="block font-serif text-xl leading-tight tabular-nums text-foreground">
                     {kpi.value ?? "—"}
                   </span>
                 </span>
                 <PlainIcon
                   name="chevronRight"
                   size={14}
-                  className="shrink-0 text-muted transition-colors group-hover:text-accent"
+                  className="shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
                 />
               </button>
             ))}
@@ -395,7 +393,7 @@ export function PersonalTodos({
         {!dashboardColumn && (
           <aside className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1">
             <section
-              className="rounded-panel border border-rule-soft bg-paper p-4"
+              className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
               aria-label="Task calendar"
             >
               <PersonalCalendar
@@ -406,37 +404,37 @@ export function PersonalTodos({
             </section>
             {data && (
               <section
-                className="rounded-panel border border-rule-soft bg-paper p-4"
+                className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
                 aria-label="Tasks summary"
               >
-                <p className="flex items-center gap-2 text-sm font-medium text-ink">
-                  <PlainIcon name="report" size={14} className="text-accent" />
+                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <PlainIcon name="report" size={14} className="text-primary" />
                   Tasks summary{" "}
-                  <span className="text-xs font-normal text-muted">
+                  <span className="text-xs font-normal text-muted-foreground">
                     ({new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })})
                   </span>
                 </p>
-                <ul className="mt-3 divide-y divide-rule-soft text-xs">
+                <ul className="mt-3 divide-y divide-border text-xs">
                   {(
                     [
                       ["Pending", data.counts.pending, "bg-warning"],
-                      ["Completed", data.counts.completed, "bg-positive"],
-                      ["Overdue", data.counts.overdue, "bg-danger"],
-                      ["Total tasks", data.counts.all, "bg-accent"],
+                      ["Completed", data.counts.completed, "bg-success"],
+                      ["Overdue", data.counts.overdue, "bg-destructive"],
+                      ["Total tasks", data.counts.all, "bg-primary"],
                     ] as const
                   ).map(([label, count, dot]) => (
                     <li
                       key={label}
                       className="flex items-center justify-between gap-2 py-2"
                     >
-                      <span className="flex items-center gap-2 text-muted">
+                      <span className="flex items-center gap-2 text-muted-foreground">
                         <span
                           className={cn("size-2 rounded-full", dot)}
                           aria-hidden="true"
                         />
                         {label}
                       </span>
-                      <span className="font-medium tabular text-ink">
+                      <span className="font-medium tabular-nums text-foreground">
                         {count ?? "—"}
                       </span>
                     </li>
@@ -445,19 +443,19 @@ export function PersonalTodos({
               </section>
             )}
             <section
-              className="rounded-panel border border-rule-soft bg-paper p-4"
+              className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
               aria-label="Quick add"
             >
-              <p className="flex items-center gap-2 text-sm font-medium text-ink">
-                <Zap size={14} className="text-accent" /> Quick add
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <PlainIcon name="flash" size={14} className="text-primary" /> Quick add
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {(
                   [
-                    ["file", "bg-accent-soft text-accent", "Add mock", "mock"],
-                    ["book", "bg-positive-soft text-positive", "Add sectional", "sectional"],
-                    ["target", "bg-warning-soft text-warning", "Add topic", "topic"],
-                    ["refresh", "bg-danger-soft text-danger", "Add revision", "revision"],
+                    ["file", "bg-primary/10 text-primary", "Add mock", "mock"],
+                    ["book", "bg-success/10 text-success", "Add sectional", "sectional"],
+                    ["target", "bg-warning/10 text-warning", "Add topic", "topic"],
+                    ["refresh", "bg-destructive/10 text-destructive", "Add revision", "revision"],
                   ] as const
                 ).map(([icon, tile, label, kind]) => (
                   <button
@@ -467,7 +465,7 @@ export function PersonalTodos({
                       setCreating(true);
                     }}
                     title={`Open the task editor${label === "Add mock" ? "" : ` (file the result under ${kind})`}`}
-                    className="flex items-center gap-2 rounded-control border border-rule-soft bg-paper px-2.5 py-2 text-xs font-medium text-ink transition-colors hover:border-accent/50 hover:text-accent"
+                    className="flex items-center gap-2 rounded-lg bg-card px-2.5 py-2 text-xs font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent hover:text-primary"
                   >
                     <span
                       className={cn(
@@ -484,23 +482,23 @@ export function PersonalTodos({
               </div>
             </section>
             <section
-              className="rounded-panel border border-rule-soft bg-paper p-4"
+              className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
               aria-label="Focus tools"
             >
-              <p className="flex items-center gap-2 text-sm font-medium text-ink">
-                <PlainIcon name="target" size={14} className="text-accent" />{" "}
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <PlainIcon name="target" size={14} className="text-primary" />{" "}
                 Focus tools
               </p>
               <div className="mt-3 grid gap-2">
                 <a
                   href="/calendar"
-                  className="inline-flex items-center gap-2 rounded-control border border-rule-soft px-3 py-2 text-xs font-medium text-ink transition-colors hover:border-accent/50 hover:text-accent"
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent hover:text-primary"
                 >
                   <PlainIcon name="calendar" size={13} /> View study plan
                 </a>
                 <a
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 rounded-control border border-rule-soft px-3 py-2 text-xs font-medium text-ink transition-colors hover:border-accent/50 hover:text-accent"
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent hover:text-primary"
                 >
                   <PlainIcon name="dashboard" size={13} /> Open dashboard
                 </a>
@@ -520,9 +518,9 @@ export function PersonalTodos({
           {!compact && !dashboardColumn && (
             <details
               data-ai-planner
-              className="border-b border-rule-soft pb-3"
+              className="border-b border-border pb-3"
             >
-              <summary className="cursor-pointer text-xs font-medium">
+              <summary className="cursor-pointer text-xs font-medium text-foreground">
                 Plan tasks with AI
               </summary>
               <div className="mt-3">
@@ -551,7 +549,7 @@ export function PersonalTodos({
                 <h3
                   id={dashboardColumn ? "dashboard-personal-date" : undefined}
                   className={cn(
-                    "font-serif",
+                    "font-serif text-foreground",
                     dashboardColumn ? "text-[1.1875rem]" : "text-xl",
                   )}
                 >
@@ -560,7 +558,7 @@ export function PersonalTodos({
                     : `Tasks for ${longDate(date)}`}
                 </h3>
                 {!dashboardColumn && (
-                  <span className="rounded-pill bg-soft px-2 py-0.5 text-[0.625rem] font-medium text-muted">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                     {new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
                       weekday: "short",
                       day: "numeric",
@@ -572,7 +570,7 @@ export function PersonalTodos({
                 )}
               </div>
               {dashboardColumn ? (
-                <p className="text-xs tabular text-muted">
+                <p className="text-xs tabular-nums text-muted-foreground">
                   {data
                     ? `${data.total} ${data.total === 1 ? "task" : "tasks"}`
                     : "…"}
@@ -580,15 +578,15 @@ export function PersonalTodos({
               ) : (
                 !compact && (
                   <div className="flex shrink-0 items-center gap-3">
-                    <div className="flex items-center gap-2 text-[0.625rem] tabular text-muted">
+                    <div className="flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground">
                       <span>
                         {data?.items.filter((t) => t.status === "completed")
                           .length ?? 0}
                         /{data?.total ?? 0} completed
                       </span>
-                      <span className="h-1.5 w-16 overflow-hidden rounded-pill bg-soft">
+                      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                         <span
-                          className="block h-full rounded-pill bg-accent transition-[width] duration-200"
+                          className="block h-full rounded-full bg-primary transition-[width] duration-200"
                           style={{
                             width: `${
                               data?.total
@@ -659,49 +657,46 @@ export function PersonalTodos({
                     !dashboardColumn && "basis-48",
                   )}
                 >
-                  {dashboardColumn && (
-                    <List
-                      size={14}
-                      aria-hidden="true"
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-                    />
-                  )}
-                  <input
+                  <Input
                     ref={input}
                     id="quick-todo-title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     maxLength={200}
                     required
+                    aria-label="New todo title"
                     placeholder={`Add a todo for ${dateLabel(date)}…`}
-                    className={cn(
-                      "min-w-0 w-full",
-                      dashboardColumn &&
-                        "h-[var(--control-height-sm)] py-0! pl-9!",
-                    )}
+                    leading={
+                      dashboardColumn ? (
+                        <PlainIcon name="list" size={14} />
+                      ) : undefined
+                    }
                     disabled={busy}
                   />
                 </div>
                 <label className="sr-only" htmlFor="quick-todo-group">
                   Todo group
                 </label>
-                <select
-                  id="quick-todo-group"
+                <div
                   className={cn(
                     dashboardColumn
-                      ? "h-[var(--control-height-sm)] w-full! min-w-0 py-0! text-xs"
-                      : "w-auto! max-w-40",
+                      ? "min-w-0"
+                      : "w-auto max-w-40",
                   )}
-                  value={groupId}
-                  onChange={(e) => setGroupId(e.target.value)}
-                  disabled={busy}
                 >
-                  {visibleGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
+                  <Select
+                    hideLabel
+                    size="sm"
+                    label="Todo group"
+                    value={groupId}
+                    onValueChange={setGroupId}
+                    disabled={busy}
+                    options={visibleGroups.map((g) => ({
+                      value: g.id,
+                      label: g.name,
+                    }))}
+                  />
+                </div>
                 {dashboardColumn ? (
                   <Button
                     type="submit"
@@ -709,23 +704,23 @@ export function PersonalTodos({
                     disabled={busy || !title.trim()}
                     className="shrink-0 px-3"
                   >
-                    <Plus size={14} /> Add
+                    <PlainIcon name="plus" size={14} /> Add
                   </Button>
                 ) : (
                   <Button disabled={busy || !title.trim()}>
-                    <Plus size={16} />
+                    <PlainIcon name="plus" size={16} />
                     Add todo
                   </Button>
                 )}
               </form>
               {dashboardColumn && (
-                <p className="text-[0.625rem] leading-relaxed text-muted">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Press Enter to add. Open a task to add notes, priority, or
                   subtasks.
                 </p>
               )}
               {!dashboardColumn && (
-                <p className="text-xs text-muted">
+                <p className="text-xs text-muted-foreground">
                   Press Enter to add another. Add notes, priority, or subtasks
                   using Edit.
                 </p>
@@ -739,7 +734,7 @@ export function PersonalTodos({
                 {TASK_CATEGORIES.map((cat) => (
                   <span
                     key={cat.id}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-rule-soft bg-paper px-2.5 py-1 text-[0.6875rem] font-medium text-muted"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]"
                   >
                     <span
                       className={cn(
@@ -758,12 +753,12 @@ export function PersonalTodos({
           </div>
           {groupsOpen && (
             <section
-              className="panel space-y-4 p-4"
+              className="space-y-4 rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]"
               aria-label="Manage todo groups"
             >
               <div>
-                <h3 className="font-serif text-lg">Your groups</h3>
-                <p className="mt-1 text-xs text-muted">
+                <h3 className="text-base font-semibold text-foreground">Your groups</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
                   Groups are shared across dates. Removing a group keeps its
                   todos under Ungrouped.
                 </p>
@@ -780,13 +775,14 @@ export function PersonalTodos({
                     setGroupName("");
                 }}
               >
-                <input
+                <Input
                   aria-label="New group name"
                   placeholder="e.g. Maths revision"
                   value={groupName}
                   maxLength={80}
                   onChange={(e) => setGroupName(e.target.value)}
                   required
+                  className="flex-1"
                 />
                 <Button disabled={busy || !groupName.trim()}>
                   Create group
@@ -805,96 +801,84 @@ export function PersonalTodos({
               ))}
             </section>
           )}
-          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <SheetContent
-              {...overlayFocus}
-              className="w-full sm:max-w-sm overflow-y-auto"
-            >
-              <SheetHeader className="pr-12">
-                <SheetTitle>Filters & sorting</SheetTitle>
-                <SheetDescription>
-                  Filter your task list. Calendar markers show every personal
-                  task.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="px-4 pb-5">
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="text-xs">
-                    Status
-                    <select
-                      aria-label="Status"
-                      value={completion}
-                      onChange={(e) => {
-                        setCompletion(e.target.value);
-                        setPage(1);
-                        clearSelection();
-                      }}
-                    >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </label>
-                  <label className="text-xs">
-                    Priority
-                    <select
-                      aria-label="Priority"
-                      value={priority}
-                      onChange={(e) => {
-                        setPriority(e.target.value);
-                        setPage(1);
-                        clearSelection();
-                      }}
-                    >
-                      <option value="all">All priorities</option>
-                      <option value="high">High</option>
-                      <option value="normal">Normal</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </label>
-                  <label className="text-xs">
-                    Group
-                    <select
-                      aria-label="Group"
-                      value={groupFilter}
-                      onChange={(e) => {
-                        setGroupFilter(e.target.value);
-                        setPage(1);
-                        clearSelection();
-                      }}
-                    >
-                      <option value="all">All groups</option>
-                      <option value="ungrouped">Ungrouped</option>
-                      {data?.groups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs">
-                    Sort
-                    <select
-                      aria-label="Sort"
-                      value={sort}
-                      onChange={(e) => {
-                        setSort(e.target.value);
-                        setPage(1);
-                        clearSelection();
-                      }}
-                    >
-                      <option value="priority">Priority</option>
-                      <option value="date">Due date</option>
-                      <option value="newest">Newest first</option>
-                      <option value="title">Title</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-            </SheetContent>
+          <Sheet
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
+            side="right"
+            width={384}
+            title="Filters & sorting"
+            description="Filter your task list. Calendar markers show every personal task."
+          >
+            <div className="grid grid-cols-2 gap-3 pb-2">
+              <Select
+                hideLabel
+                label="Status"
+                value={completion}
+                onValueChange={(value) => {
+                  setCompletion(value);
+                  setPage(1);
+                  clearSelection();
+                }}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "pending", label: "Pending" },
+                  { value: "completed", label: "Completed" },
+                ]}
+              />
+              <Select
+                hideLabel
+                label="Priority"
+                value={priority}
+                onValueChange={(value) => {
+                  setPriority(value);
+                  setPage(1);
+                  clearSelection();
+                }}
+                options={[
+                  { value: "all", label: "All priorities" },
+                  { value: "high", label: "High" },
+                  { value: "normal", label: "Normal" },
+                  { value: "low", label: "Low" },
+                ]}
+              />
+              <Select
+                hideLabel
+                label="Group"
+                value={groupFilter}
+                onValueChange={(value) => {
+                  setGroupFilter(value);
+                  setPage(1);
+                  clearSelection();
+                }}
+                options={[
+                  { value: "all", label: "All groups" },
+                  { value: "ungrouped", label: "Ungrouped" },
+                  ...(data?.groups ?? []).map((g) => ({
+                    value: g.id,
+                    label: g.name,
+                  })),
+                ]}
+              />
+              <Select
+                hideLabel
+                label="Sort"
+                value={sort}
+                onValueChange={(value) => {
+                  setSort(value);
+                  setPage(1);
+                  clearSelection();
+                }}
+                options={[
+                  { value: "priority", label: "Priority" },
+                  { value: "date", label: "Due date" },
+                  { value: "newest", label: "Newest first" },
+                  { value: "title", label: "Title" },
+                ]}
+              />
+            </div>
           </Sheet>
           {!dashboardColumn && (
-            <div className="flex flex-wrap items-center gap-2 border-b border-rule-soft pb-2">
+            <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
               <div
                 role="group"
                 aria-label="Personal todo views"
@@ -910,10 +894,10 @@ export function PersonalTodos({
                   aria-pressed={view === item.id}
                   onClick={() => selectView(item.id)}
                   className={cn(
-                    "min-h-9 border-b-2 px-3 text-[0.8125rem] font-medium transition-colors",
+                    "min-h-9 border-b-2 px-3 text-[13px] font-medium transition-colors",
                     view === item.id
-                      ? "border-accent text-ink"
-                      : "border-transparent text-muted hover:text-ink",
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {item.label === "Selected day" ? "All tasks" : item.label}
@@ -928,22 +912,21 @@ export function PersonalTodos({
             <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant={selectMode ? "default" : "outline"}
+                variant={selectMode ? "primary" : "outline"}
                 size="sm"
                 aria-pressed={selectMode}
                 onClick={() => toggleSelectMode()}
               >
-                <ListChecks size={13} /> Select
+                <PlainIcon name="check" size={13} /> Select
               </Button>
               {(data?.total ?? 0) > 0 && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
-                  className="border-danger/40 text-danger hover:bg-danger-soft"
                   onClick={() => setBulkConfirm("all")}
                 >
-                  <Trash2 size={13} /> Delete all
+                  <PlainIcon name="trash" size={13} /> Delete all
                   {data?.total != null ? (
                     <span className="tabular-nums">({data.total})</span>
                   ) : null}
@@ -955,20 +938,19 @@ export function PersonalTodos({
                 size="sm"
                 onClick={() => setFiltersOpen(true)}
               >
-                <SlidersHorizontal size={13} /> Filter &amp; sort
+                <PlainIcon name="sliders" size={13} /> Filter &amp; sort
               </Button>
               <div className="relative min-w-44">
-                <Search size={14} className="absolute left-3 top-3 text-muted" />
-                <input
+                <Input
                   aria-label="Search personal todos"
                   value={search}
+                  leading={<PlainIcon name="search" size={14} />}
                   onChange={(e) => {
                     setSearch(e.target.value);
                     setPage(1);
                     clearSelection();
                   }}
                   placeholder="Search tasks…"
-                  className="pl-9!"
                 />
               </div>
             </div>
@@ -977,7 +959,7 @@ export function PersonalTodos({
           {(error || loadError) && (
             <div
               role="alert"
-              className="border border-danger bg-danger-soft p-3 text-sm text-danger"
+              className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)]"
             >
               {error || loadError}
               <button
@@ -990,17 +972,24 @@ export function PersonalTodos({
             </div>
           )}
           {loading ? (
-            <p role="status" className="py-10 text-center text-muted">
-              Loading your todos…
-            </p>
+            <div
+              className="space-y-2 py-2"
+              role="status"
+              aria-label="Loading your todos"
+            >
+              <span className="sr-only">Loading your todos…</span>
+              {Array.from({ length: 6 }, (_, row) => (
+                <Skeleton key={row} height={56} />
+              ))}
+            </div>
           ) : !data?.items.length ? (
             <div
               className={cn(
-                "border-y border-rule-soft text-center",
+                "border-y border-border text-center",
                 dashboardColumn ? "px-4 py-7" : "px-4 py-8",
               )}
             >
-              <h3 className="font-serif text-lg">
+              <h3 className="font-serif text-lg text-foreground">
                 {view === "needsdate"
                   ? "Every todo has a date"
                   : search
@@ -1009,7 +998,7 @@ export function PersonalTodos({
                       ? "No personal tasks for this day"
                       : "A clear page for your work"}
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted">
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
                 {view === "needsdate"
                   ? "Older tasks without a date will appear here. Assign a date to bring them into your planner."
                   : search
@@ -1021,7 +1010,7 @@ export function PersonalTodos({
               {!search && view !== "needsdate" && !compact && (
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   <Button size="sm" onClick={() => setCreating(true)}>
-                    <Plus size={14} /> Add your first task
+                    <PlainIcon name="plus" size={14} /> Add your first task
                   </Button>
                   <Button
                     size="sm"
@@ -1034,7 +1023,7 @@ export function PersonalTodos({
                       }
                     }}
                   >
-                    <Sparkles size={14} /> Plan with AI
+                    <PlainIcon name="sparkles" size={14} /> Plan with AI
                   </Button>
                 </div>
               )}
@@ -1042,8 +1031,8 @@ export function PersonalTodos({
           ) : (
             <div className="space-y-5">
               {selectMode && (
-                <div className="flex flex-wrap items-center gap-2 border border-rule-soft bg-canvas px-3 py-2">
-                  <span className="text-xs font-medium tabular-nums text-ink">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 shadow-[inset_0_0_0_1px_var(--border)]">
+                  <span className="text-xs font-medium tabular-nums text-foreground">
                     {visibleSelected.length} selected
                   </span>
                   <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -1058,7 +1047,7 @@ export function PersonalTodos({
                         )
                       }
                     >
-                      <ListChecks size={13} /> Select all
+                      <PlainIcon name="check" size={13} /> Select all
                     </Button>
                     <Button
                       type="button"
@@ -1076,7 +1065,7 @@ export function PersonalTodos({
                       disabled={busy || !visibleSelected.length}
                       onClick={() => setBulkConfirm("selected")}
                     >
-                      <Trash2 size={13} /> Delete selected
+                      <PlainIcon name="trash" size={13} /> Delete selected
                       {visibleSelected.length > 0 && (
                         <span className="tabular-nums">
                           ({visibleSelected.length})
@@ -1095,25 +1084,25 @@ export function PersonalTodos({
                   <section
                     key={key}
                     className={cn(
-                      "overflow-hidden border-y border-rule-soft",
+                      "overflow-hidden border-y border-border",
                       dashboardColumn && "first:border-t-0",
                     )}
                   >
                     <div
                       className={cn(
-                        "flex flex-wrap items-baseline justify-between gap-2 border-b border-rule-soft bg-canvas",
+                        "flex flex-wrap items-baseline justify-between gap-2 border-b border-border bg-muted/30",
                         dashboardColumn ? "px-3 py-2.5" : "px-4 py-3",
                       )}
                     >
                       <h3
                         className={cn(
-                          "font-serif",
-                          dashboardColumn ? "text-[0.9375rem]" : "text-lg",
+                          "font-serif text-foreground",
+                          dashboardColumn ? "text-[15px]" : "text-lg",
                         )}
                       >
                         {group?.name ?? "Ungrouped"}
                       </h3>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-muted-foreground">
                         {first.dueDate
                           ? dateLabel(first.dueDate)
                           : "Needs date"}{" "}
@@ -1124,31 +1113,31 @@ export function PersonalTodos({
                       <article
                         key={todo.id}
                         className={cn(
-                          "group/task border-b border-rule-soft last:border-b-0",
+                          "group/task border-b border-border last:border-b-0",
                           dashboardColumn ? "px-3 py-3" : "py-3",
                         )}
                       >
                         <div className="flex items-start gap-3">
                           {selectMode && (
-                            <input
-                              type="checkbox"
+                            <Checkbox
+                              size="sm"
                               className="mt-1"
                               aria-label={`Select ${todo.title}`}
                               checked={selectedIds.has(todo.id)}
                               disabled={busy}
-                              onChange={() => toggleSelected(todo.id)}
+                              onCheckedChange={() => toggleSelected(todo.id)}
                             />
                           )}
-                          <input
-                            type="checkbox"
+                          <Checkbox
+                            size="sm"
                             className="mt-1"
                             aria-label={`Complete ${todo.title}`}
                             checked={todo.status === "completed"}
                             disabled={busy}
-                            onChange={(e) =>
+                            onCheckedChange={(checked) =>
                               void mutate(`/api/todos/${todo.id}`, "PATCH", {
                                 version: todo.version,
-                                completed: e.target.checked,
+                                completed: checked,
                               })
                             }
                           />
@@ -1158,9 +1147,9 @@ export function PersonalTodos({
                                 type="button"
                                 onClick={() => setEditing(todo)}
                                 className={cn(
-                                  "block w-full break-words text-left text-sm font-medium leading-snug underline-offset-4 hover:text-accent hover:underline",
+                                  "block w-full break-words text-left text-sm font-medium leading-snug underline-offset-4 hover:text-primary hover:underline",
                                   todo.status === "completed" &&
-                                    "text-muted line-through",
+                                    "text-muted-foreground line-through",
                                 )}
                               >
                                 {todo.title}
@@ -1171,15 +1160,15 @@ export function PersonalTodos({
                             ) : (
                               <h4
                                 className={cn(
-                                  "break-words text-sm font-medium",
+                                  "break-words text-sm font-medium text-foreground",
                                   todo.status === "completed" &&
-                                    "text-muted line-through",
+                                    "text-muted-foreground line-through",
                                 )}
                               >
                                 {todo.title}
                               </h4>
                             )}
-                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                               <span>
                                 {todo.priority === "high"
                                   ? "High priority"
@@ -1190,7 +1179,7 @@ export function PersonalTodos({
                               {todo.dueDate &&
                                 todo.dueDate < istTodayIso() &&
                                 todo.status !== "completed" && (
-                                  <span className="text-danger">Overdue</span>
+                                  <span className="text-destructive">Overdue</span>
                                 )}
                               {todo.subtasks.length > 0 && (
                                 <span>
@@ -1207,13 +1196,13 @@ export function PersonalTodos({
                                 href={todo.url}
                                 target="_blank"
                                 rel="noopener noreferrer nofollow"
-                                className="mt-1 block break-all text-xs text-accent underline underline-offset-4"
+                                className="mt-1 block break-all text-xs text-primary underline underline-offset-4"
                               >
                                 {linkHost(todo.url)}
                               </a>
                             )}
                             {todo.notes && (
-                              <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-muted">
+                              <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
                                 {todo.notes}
                               </p>
                             )}
@@ -1227,7 +1216,7 @@ export function PersonalTodos({
                               disabled={busy}
                               onClick={() => setEditing(todo)}
                             >
-                              <Pencil size={15} />
+                              <PlainIcon name="edit" size={15} />
                             </Button>
                             <Button
                               type="button"
@@ -1240,7 +1229,7 @@ export function PersonalTodos({
                                 setNewDate(todo.dueDate ?? date);
                               }}
                             >
-                              <CalendarClock size={15} />
+                              <PlainIcon name="calendarPlus" size={15} />
                             </Button>
                             <Button
                               size="icon"
@@ -1249,7 +1238,7 @@ export function PersonalTodos({
                               disabled={busy}
                               onClick={() => setConfirmTrash(todo)}
                             >
-                              <Trash2 size={15} />
+                              <PlainIcon name="trash" size={15} />
                             </Button>
                           </div>
                           )}
@@ -1258,39 +1247,39 @@ export function PersonalTodos({
                           <ul className="mt-3 space-y-2 pl-7">
                             {todo.subtasks.map((sub) => (
                               <li key={sub.id}>
-                                <label className="check-row text-xs">
-                                  <input
-                                    type="checkbox"
-                                    disabled={busy}
-                                    checked={sub.completed}
-                                    onChange={(e) =>
-                                      void mutate(
-                                        `/api/todos/${todo.id}`,
-                                        "PATCH",
-                                        {
-                                          version: todo.version,
-                                          subtasks: todo.subtasks.map((s) =>
-                                            s.id === sub.id
-                                              ? {
-                                                  ...s,
-                                                  completed: e.target.checked,
-                                                }
-                                              : s,
-                                          ),
-                                        },
-                                      )
-                                    }
-                                  />
-                                  <span
-                                    className={
-                                      sub.completed
-                                        ? "text-muted line-through"
-                                        : "text-ink"
-                                    }
-                                  >
-                                    {sub.title}
-                                  </span>
-                                </label>
+                                <Checkbox
+                                  size="sm"
+                                  checked={sub.completed}
+                                  disabled={busy}
+                                  label={
+                                    <span
+                                      className={
+                                        sub.completed
+                                          ? "text-muted-foreground line-through"
+                                          : "text-foreground"
+                                      }
+                                    >
+                                      {sub.title}
+                                    </span>
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    void mutate(
+                                      `/api/todos/${todo.id}`,
+                                      "PATCH",
+                                      {
+                                        version: todo.version,
+                                        subtasks: todo.subtasks.map((s) =>
+                                          s.id === sub.id
+                                            ? {
+                                                ...s,
+                                                completed: checked,
+                                              }
+                                            : s,
+                                        ),
+                                      },
+                                    )
+                                  }
+                                />
                               </li>
                             ))}
                           </ul>
@@ -1303,7 +1292,7 @@ export function PersonalTodos({
             </div>
           )}
           {data && !dashboardColumn && (data.total > data.limit || page > 1) && (
-            <div className="flex items-center justify-between border-t border-rule-soft pt-4 text-xs text-muted">
+            <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
               <span>
                 {data.total} todos · Page {page} of{" "}
                 {Math.ceil(data.total / data.limit)}
@@ -1350,25 +1339,25 @@ export function PersonalTodos({
     >
       {dashboardColumn ? (
         <section
-          className="panel overflow-hidden"
+          className="overflow-hidden rounded-2xl bg-card shadow-[inset_0_0_0_1px_var(--border)]"
           aria-labelledby="dashboard-personal-tasks-heading"
         >
-          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-rule-soft px-4 py-4">
+          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-4">
             <div className="flex min-w-0 items-start gap-3">
-              <DuotoneTile
-                name="check"
-                size={16}
-                tile="accent"
-                className="size-9"
-              />
+              <span
+                aria-hidden="true"
+                className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
+              >
+                <PlainIcon name="check" size={16} />
+              </span>
               <div className="min-w-0">
                 <h2
                   id="dashboard-personal-tasks-heading"
-                  className="font-serif text-[1.1875rem] font-medium leading-tight tracking-[-0.02em]"
+                  className="font-serif text-[1.1875rem] font-medium leading-tight tracking-[-0.02em] text-foreground"
                 >
                   Personal tasks
                 </h2>
-                <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted">
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                   Your own work for the selected day.
                 </p>
               </div>
@@ -1384,29 +1373,30 @@ export function PersonalTodos({
                   title="Plan personal tasks with AI"
                   onClick={onOpenAi}
                 >
-                  <Sparkles size={14} />
+                  <PlainIcon name="sparkles" size={14} />
                 </Button>
               )}
-              <Button asChild variant="outline" size="sm" className="h-8">
-                <a href="/my-tasks">
-                  <List size={13} />
-                  All tasks
-                </a>
-              </Button>
+              <a
+                href="/my-tasks"
+                className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
+              >
+                <PlainIcon name="list" size={13} />
+                All tasks
+              </a>
             </div>
           </header>
 
-          <div className="border-b border-rule-soft bg-canvas/60 px-4 py-3">
+          <div className="border-b border-border bg-muted/30 px-4 py-3">
             <div className="flex items-center justify-between gap-3 text-xs">
-              <p className="font-medium text-ink" aria-live="polite">
+              <p className="font-medium text-foreground" aria-live="polite">
                 {data
                   ? `${dashboardCompleted} of ${data.total} complete`
                   : "Loading task progress…"}
               </p>
-              <p className="tabular text-muted">{dashboardProgress}%</p>
+              <p className="tabular-nums text-muted-foreground">{dashboardProgress}%</p>
             </div>
             <div
-              className="mt-2 h-1.5 overflow-hidden bg-soft"
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
               role="progressbar"
               aria-label="Selected day task completion"
               aria-valuemin={0}
@@ -1414,7 +1404,7 @@ export function PersonalTodos({
               aria-valuenow={dashboardProgress}
             >
               <span
-                className="block h-full bg-accent transition-[width] duration-[var(--dur-enter)] motion-reduce:transition-none"
+                className="block h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none"
                 style={{ width: `${dashboardProgress}%` }}
               />
             </div>
@@ -1457,145 +1447,122 @@ export function PersonalTodos({
         />
       )}
       {confirmTrash && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setConfirmTrash(null);
           }}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                Move to Trash?
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {confirmTrash.title} and its subtasks can be restored later.
-              </Dialog.Description>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => setConfirmTrash(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={busy}
-                  onClick={async () => {
-                    if (
-                      await mutate(`/api/todos/${confirmTrash.id}`, "DELETE", {
-                        version: confirmTrash.version,
-                      })
-                    )
-                      setConfirmTrash(null);
-                  }}
-                >
-                  Move to Trash
-                </Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          title="Move to Trash?"
+          description={`${confirmTrash.title} and its subtasks can be restored later.`}
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setConfirmTrash(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={busy}
+                onClick={async () => {
+                  if (
+                    await mutate(`/api/todos/${confirmTrash.id}`, "DELETE", {
+                      version: confirmTrash.version,
+                    })
+                  )
+                    setConfirmTrash(null);
+                }}
+              >
+                Move to Trash
+              </Button>
+            </>
+          }
+        />
       )}
       {bulkConfirm && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setBulkConfirm(null);
           }}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                {bulkConfirm === "selected"
-                  ? `Move ${visibleSelected.length} selected ${
-                      visibleSelected.length === 1 ? "todo" : "todos"
-                    } to Trash?`
-                  : `Move all ${data?.total ?? 0} ${
-                      (data?.total ?? 0) === 1 ? "todo" : "todos"
-                    } to Trash?`}
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {bulkConfirm === "selected"
-                  ? "Selected todos and their subtasks can be restored later."
-                  : "Applies to everything matching the current view, search, and filters. You can restore them from Trash."}
-              </Dialog.Description>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => setBulkConfirm(null)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="destructive" disabled={busy} onClick={() => void runBulkDelete()}>
-                  Move to Trash
-                </Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          title={
+            bulkConfirm === "selected"
+              ? `Move ${visibleSelected.length} selected ${
+                  visibleSelected.length === 1 ? "todo" : "todos"
+                } to Trash?`
+              : `Move all ${data?.total ?? 0} ${
+                  (data?.total ?? 0) === 1 ? "todo" : "todos"
+                } to Trash?`
+          }
+          description={
+            bulkConfirm === "selected"
+              ? "Selected todos and their subtasks can be restored later."
+              : "Applies to everything matching the current view, search, and filters. You can restore them from Trash."
+          }
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setBulkConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" disabled={busy} onClick={() => void runBulkDelete()}>
+                Move to Trash
+              </Button>
+            </>
+          }
+        />
       )}
       {rescheduling && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setRescheduling(null);
           }}
+          title="Reschedule task"
+          description={`${rescheduling.title}. Subtasks move with this task.`}
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                Reschedule task
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {rescheduling.title}. Subtasks move with this task.
-              </Dialog.Description>
-              <form
-                className="mt-4 flex flex-col gap-3"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (
-                    await mutate(`/api/todos/${rescheduling.id}`, "PATCH", {
-                      version: rescheduling.version,
-                      dueDate: newDate,
-                    })
-                  )
-                    setRescheduling(null);
-                }}
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (
+                await mutate(`/api/todos/${rescheduling.id}`, "PATCH", {
+                  version: rescheduling.version,
+                  dueDate: newDate,
+                })
+              )
+                setRescheduling(null);
+            }}
+          >
+            <Input
+              label="New date"
+              type="date"
+              required
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+            {error && (
+              <p role="alert" className="text-xs text-destructive">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setRescheduling(null)}
               >
-                <label>
-                  New date
-                  <input
-                    type="date"
-                    required
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                  />
-                </label>
-                {error && (
-                  <p role="alert" className="text-xs text-danger">
-                    {error}
-                  </p>
-                )}
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => setRescheduling(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button disabled={busy}>Reschedule</Button>
-                </div>
-              </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+                Cancel
+              </Button>
+              <Button disabled={busy}>Reschedule</Button>
+            </div>
+          </form>
+        </Dialog>
       )}
       {editing && (
         <TaskEditor
@@ -1647,13 +1614,13 @@ function KanbanBoard({
   const open = (data?.items ?? []).filter((t) => t.status !== "completed");
   const done = (data?.items ?? []).filter((t) => t.status === "completed");
   const columns: { label: string; count: number; items: Todo[]; tint: string }[] = [
-    { label: "Pending", count: open.length, items: open, tint: "bg-accent" },
-    { label: "Completed", count: done.length, items: done, tint: "bg-positive" },
+    { label: "Pending", count: open.length, items: open, tint: "bg-primary" },
+    { label: "Completed", count: done.length, items: done, tint: "bg-success" },
   ];
   return (
     <div className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Drag-free board: toggle a card&apos;s checkbox to move it across.
         </p>
         <Button type="button" size="sm" variant="ghost" onClick={onToggleGroups} aria-expanded={groupsOpen}>
@@ -1661,7 +1628,7 @@ function KanbanBoard({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="mb-3 text-xs text-danger">
+        <p role="alert" className="mb-3 text-xs text-destructive">
           {error}{" "}
           <button type="button" className="underline" onClick={refresh}>
             Retry
@@ -1669,44 +1636,58 @@ function KanbanBoard({
         </p>
       )}
       {loading ? (
-        <p role="status" className="py-10 text-center text-muted">
-          Loading your board…
-        </p>
+        <div
+          className="grid gap-3 sm:grid-cols-2"
+          role="status"
+          aria-label="Loading your board"
+        >
+          <span className="sr-only">Loading your board…</span>
+          {Array.from({ length: 2 }, (_, column) => (
+            <div
+              key={column}
+              className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-2.5 shadow-[inset_0_0_0_1px_var(--border)]"
+            >
+              {Array.from({ length: 3 }, (_, row) => (
+                <Skeleton key={row} className="rounded-xl" height={56} />
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {columns.map((column) => (
             <section
               key={column.label}
               aria-label={`${column.label} tasks`}
-              className="rounded-panel border border-rule-soft bg-canvas/60 p-2.5"
+              className="rounded-2xl bg-muted/40 p-2.5 shadow-[inset_0_0_0_1px_var(--border)]"
             >
-              <p className="mb-2.5 flex items-center gap-2 px-1 text-xs font-medium text-ink">
+              <p className="mb-2.5 flex items-center gap-2 px-1 text-xs font-medium text-foreground">
                 <span className={cn("size-2 rounded-full", column.tint)} aria-hidden="true" />
                 {column.label}
-                <span className="text-muted tabular">{column.count}</span>
+                <span className="text-muted-foreground tabular-nums">{column.count}</span>
               </p>
               <ul className="flex min-h-24 flex-col gap-2">
                 {column.items.length === 0 && (
-                  <li className="rounded-control border border-dashed border-rule px-3 py-4 text-center text-[0.6875rem] text-muted">
+                  <li className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
                     Nothing here yet.
                   </li>
                 )}
                 {column.items.map((todo) => (
                   <li
                     key={todo.id}
-                    className="rounded-control border border-rule-soft bg-paper px-3 py-2.5"
+                    className="rounded-xl bg-card px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--border)]"
                   >
                     <div className="flex items-start gap-2.5">
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="sm"
                         className="mt-0.5"
                         aria-label={`Move ${todo.title} to ${todo.status === "completed" ? "Pending" : "Completed"}`}
                         checked={todo.status === "completed"}
                         disabled={busy}
-                        onChange={async (e) => {
+                        onCheckedChange={async (checked) => {
                           await mutateTodoRequest(`/api/todos/${todo.id}`, "PATCH", {
                             version: todo.version,
-                            completed: e.target.checked,
+                            completed: checked,
                           });
                           refresh();
                         }}
@@ -1718,17 +1699,15 @@ function KanbanBoard({
                       >
                         <span
                           className={cn(
-                            "block break-words text-[0.8125rem] font-medium",
-                            todo.status === "completed" && "text-muted line-through",
+                            "block break-words text-[13px] font-medium text-foreground",
+                            todo.status === "completed" && "text-muted-foreground line-through",
                           )}
                         >
                           {todo.title}
                         </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.625rem] text-muted">
+                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                           <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-pill border border-rule-soft px-1.5 py-0.5",
-                            )}
+                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 shadow-[inset_0_0_0_1px_var(--border)]"
                           >
                             <span
                               className={cn(
@@ -1739,9 +1718,9 @@ function KanbanBoard({
                             />
                             {categoryMeta(todo.category ?? "other").label}
                           </span>
-                          {todo.dueDate && <span className="tabular">{dateLabel(todo.dueDate)}</span>}
+                          {todo.dueDate && <span className="tabular-nums">{dateLabel(todo.dueDate)}</span>}
                           {todo.priority === "high" && (
-                            <span className="font-medium text-accent">High</span>
+                            <span className="font-medium text-primary">High</span>
                           )}
                         </span>
                       </button>
@@ -1771,14 +1750,14 @@ function OverdueTodoPreview({
     return (
       <div
         role="alert"
-        className="flex flex-wrap items-center justify-between gap-2 border-y border-danger/30 bg-danger-soft px-3 py-2.5 text-xs text-danger"
+        className="flex flex-wrap items-center justify-between gap-2 border-y border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
       >
         <p>{error}</p>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 text-danger hover:bg-danger/10 hover:text-danger"
+          className="h-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={refresh}
         >
           Retry
@@ -1789,30 +1768,30 @@ function OverdueTodoPreview({
   return (
     <section
       aria-label="Overdue personal tasks"
-      className="border-y border-danger/30 bg-danger-soft/50 px-3 py-3"
+      className="border-y border-destructive/30 bg-destructive/5 px-3 py-3"
     >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-xs font-semibold text-danger">
+        <h3 className="flex items-center gap-2 text-xs font-semibold text-destructive">
           <PlainIcon name="warning" size={13} />
           {data.total} overdue {data.total === 1 ? "task" : "tasks"}
         </h3>
         <a
           href="/my-tasks"
-          className="text-xs font-medium text-danger underline underline-offset-4"
+          className="text-xs font-medium text-destructive underline underline-offset-4"
         >
           Review all
         </a>
       </div>
-      <ul className="mt-2 divide-y divide-danger/20">
+      <ul className="mt-2 divide-y divide-destructive/20">
         {data.items.map((todo) => (
           <li key={todo.id}>
             <button
               type="button"
               onClick={() => onEdit(todo)}
-              className="flex min-h-10 w-full items-center justify-between gap-3 py-2 text-left text-xs text-ink hover:text-danger"
+              className="flex min-h-10 w-full items-center justify-between gap-3 py-2 text-left text-xs text-foreground hover:text-destructive"
             >
               <span className="min-w-0 break-words">{todo.title}</span>
-              <span className="shrink-0 tabular text-danger">
+              <span className="shrink-0 tabular-nums text-destructive">
                 {todo.dueDate && dateLabel(todo.dueDate)}
               </span>
             </button>
@@ -1836,8 +1815,8 @@ function GroupRow({
 }) {
   const [name, setName] = useState(group.name);
   return (
-    <div className="flex flex-wrap gap-2 border-t border-rule-soft pt-3">
-      <input
+    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+      <Input
         aria-label={`Rename ${group.name}`}
         value={name}
         onChange={(e) => setName(e.target.value)}

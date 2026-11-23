@@ -37,18 +37,18 @@ export interface BadgeProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, 
 const FILL: Record<BadgeTone, string> = {
   neutral: "bg-muted text-foreground",
   primary: "bg-primary/10 text-primary",
-  success: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
-  warning: "bg-amber-500/14 text-amber-700 dark:text-amber-400",
-  danger: "bg-red-500/10 text-red-600 dark:text-red-400",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  danger: "bg-destructive/10 text-destructive",
 };
 const LINE: Record<BadgeTone, string> = {
   neutral: "text-foreground shadow-[inset_0_0_0_1px_var(--border)]",
   primary: "text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)]",
-  success: "text-emerald-700 dark:text-emerald-400 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-emerald-500)_40%,transparent)]",
-  warning: "text-amber-700 dark:text-amber-400 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-amber-500)_45%,transparent)]",
-  danger: "text-red-600 dark:text-red-400 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_40%,transparent)]",
+  success: "text-success shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_40%,transparent)]",
+  warning: "text-warning shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_45%,transparent)]",
+  danger: "text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_40%,transparent)]",
 };
-const DOT: Record<BadgeTone, string> = { neutral: "bg-muted-foreground", primary: "bg-primary", success: "bg-emerald-500", warning: "bg-amber-500", danger: "bg-red-500" };
+const DOT: Record<BadgeTone, string> = { neutral: "bg-muted-foreground", primary: "bg-primary", success: "bg-success", warning: "bg-warning", danger: "bg-destructive" };
 
 export function Badge({ children, tone = "neutral", outline, dot, count, max = 99, showZero, icon, size = "md", className = "", ...props }: BadgeProps) {
   const reduced = useInteractionReducedMotion();

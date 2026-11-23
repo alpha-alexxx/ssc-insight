@@ -1,16 +1,8 @@
 "use client";
 import { PlainIcon } from "@/components/icon";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Button } from "@/components/button";
+import { DatePicker } from "@/components/date-picker";
+import { Tooltip } from "@/components/tooltip";
 import { AGENDA_WINDOW, type CalendarMode } from "./visuals";
 
 const UNIT: Record<CalendarMode, string> = {
@@ -33,10 +25,10 @@ export function stepSize(mode: CalendarMode): number {
  * logged results, so every date in the addressable range is legitimate — the
  * old plan-edge lock made personal work outside 26 Oct – 14 Dec unreachable.
  *
- * The date jump is a Popover rather than an inline field: the native date
- * input is awkward inside a toolbar row on phones, and the popover gives it a
- * full-width row plus Radix focus management. It must stay outside any drawer
- * (overlays share z-50), which is why it lives in the toolbar.
+ * Hairline rebuild: the date jump is the Hairline DatePicker — typed or
+ * picked, plain YYYY-MM-DD values. It sits inline beside the arrows and must
+ * stay outside any drawer (overlays share z-50, while the picker's month panel
+ * portals above them on its own layer), which is why it lives in the toolbar.
  */
 export function PeriodNav({
   mode,
@@ -56,69 +48,47 @@ export function PeriodNav({
   const unit = UNIT[mode];
   return (
     <>
-      <div className="day-nav">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className="day-nav-step tap-target"
-              aria-label={`Previous ${unit}`}
-              onClick={() => onStep(-1)}
-            >
-              <PlainIcon name="arrowLeft" size={14} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Previous {unit}</TooltipContent>
+      <div className="flex items-center gap-1">
+        <Tooltip content={`Previous ${unit}`}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Previous ${unit}`}
+            onClick={() => onStep(-1)}
+          >
+            <PlainIcon name="arrowLeft" size={14} />
+          </Button>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className="day-nav-step tap-target"
-              aria-label={`Next ${unit}`}
-              onClick={() => onStep(1)}
-            >
-              <PlainIcon name="arrowRight" size={14} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Next {unit}</TooltipContent>
+        <Tooltip content={`Next ${unit}`}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Next ${unit}`}
+            onClick={() => onStep(1)}
+          >
+            <PlainIcon name="arrowRight" size={14} />
+          </Button>
         </Tooltip>
       </div>
 
-      <span className="flex items-center gap-2">
+      <span className="flex flex-wrap items-center gap-2">
         {selected !== today && (
-          <button type="button" className="day-nav-today" onClick={onToday}>
+          <Button type="button" variant="secondary" size="sm" onClick={onToday}>
             Today
-          </button>
+          </Button>
         )}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="day-nav-today tap-target inline-flex items-center gap-1.5"
-              aria-label="Jump to a date"
-            >
-              <PlainIcon name="calendar" size={13} />
-              <span className="hidden sm:inline">Jump</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64">
-            <label className="block text-[length:var(--type-label)] font-medium text-muted">
-              Jump to a date
-              <Input
-                type="date"
-                className="mt-1 tabular"
-                value={selected}
-                onChange={(event) => {
-                  if (event.target.value) onSelect(event.target.value);
-                }}
-              />
-            </label>
-            <p className="mt-2 text-[length:var(--type-secondary)] text-muted">
-              Any date works, including outside the study plan.
-            </p>
-          </PopoverContent>
-        </Popover>
+        <span className="w-44 shrink-0 sm:w-56">
+          <DatePicker
+            label={<span className="sr-only">Jump to a date</span>}
+            hint="Any date works, including outside the study plan."
+            value={selected}
+            onValueChange={(value) => {
+              if (value) onSelect(value);
+            }}
+          />
+        </span>
       </span>
     </>
   );

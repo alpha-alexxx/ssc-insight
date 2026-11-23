@@ -42,8 +42,8 @@ export function scorePassword(value: string): PasswordScore {
   return Math.max(1, Math.min(4, score)) as PasswordScore;
 }
 
-const TONES = ["bg-red-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-500"];
-const TEXT = ["text-red-600 dark:text-red-400", "text-amber-600 dark:text-amber-400", "text-emerald-600 dark:text-emerald-400", "text-emerald-600 dark:text-emerald-400"];
+const TONES = ["bg-destructive", "bg-warning", "bg-success", "bg-success"];
+const TEXT = ["text-destructive", "text-warning", "text-success", "text-success"];
 
 export function PasswordInput({
   strength,

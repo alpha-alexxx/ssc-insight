@@ -3,23 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { PlainIcon } from "@/components/icon";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Settings02Icon } from "@/components/animate-ui/icons/hugeicons/settings-02";
+import { Button } from "@/components/button";
+import { Dialog } from "@/components/dialog";
 import { SettingsGuardProvider, useSettingsGuard } from "@/components/shared/settings-guard";
 import {
-  MotionButton,
   pageEnter,
   saveBarSpring,
   tabSwap,
 } from "./_lib/motion-presets";
+import { PanelCard } from "./_lib/panel";
 import { ExamsPanel } from "./exams-panel";
 import { TargetsPanel } from "./targets-panel";
 import { RemindersPanel } from "./reminders-panel";
@@ -28,7 +21,6 @@ import { AboutPanel } from "./about-panel";
 import { SecurityPanel } from "./security-panel";
 import { AppearancePanel } from "@/components/appearance-panel";
 import { AiSettingsForm } from "@/components/ai-settings-form";
-import { Panel } from "@/components/dashboard-panels";
 
 /**
  * Settings — seven groups behind one navigable rail.
@@ -180,16 +172,13 @@ function SettingsBody({
             {section === "reminders" && <RemindersPanel />}
             {section === "appearance" && <AppearancePanel />}
             {section === "ai" && (
-              <Panel
-                dense
+              <PanelCard
                 icon="sparkles"
                 title="AI provider"
                 description="Optional. The tracker stays fully usable without it."
               >
-                <div className="px-4 pb-5 pt-2 sm:px-5">
-                  <AiSettingsForm showHeading={false} />
-                </div>
-              </Panel>
+                <AiSettingsForm showHeading={false} />
+              </PanelCard>
             )}
             {section === "security" && (
               <SecurityPanel userName={userName} userEmail={userEmail} />
@@ -249,27 +238,31 @@ function SaveBar() {
         >
           <div
             role="status"
-            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-rule bg-paper px-4 py-3"
+            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
           >
-            <p className="text-sm text-muted">You have unsaved changes</p>
+            <p className="text-sm text-muted-foreground">
+              You have unsaved changes
+            </p>
             <div className="ml-auto flex items-center gap-2">
-              <MotionButton
-                type="button"
+              <Button
                 variant="ghost"
                 size="sm"
                 disabled={saving}
                 onClick={() => draft.reset()}
               >
                 Discard
-              </MotionButton>
-              <MotionButton
-                type="button"
+              </Button>
+              <Button
                 size="sm"
+                loading={saving}
                 disabled={saving}
+                icon={
+                  <Settings02Icon size={14} animateOnView animateOnViewOnce />
+                }
                 onClick={() => void save()}
               >
-                {saving ? "Saving…" : "Save"}
-              </MotionButton>
+                Save
+              </Button>
             </div>
           </div>
         </motion.div>
@@ -286,7 +279,7 @@ function SettingsNav({ section }: { section: SettingsSection }) {
           set of controls, and both actually change the panel. */}
       <nav
         aria-label="Settings sections"
-        className="-mx-3 flex gap-1 overflow-x-auto border-b border-rule-soft px-3 pb-px lg:hidden"
+        className="-mx-3 flex gap-1 overflow-x-auto border-b border-border px-3 pb-px lg:hidden"
       >
         {SETTINGS_SECTIONS.map((item) => {
           const active = section === item.id;
@@ -297,10 +290,10 @@ function SettingsNav({ section }: { section: SettingsSection }) {
               aria-current={active ? "page" : undefined}
               onClick={() => guard.requestSection(item.id)}
               className={cn(
-                "-mb-px min-h-11 shrink-0 whitespace-nowrap border-b-2 px-3 text-[0.8125rem] font-medium transition-colors",
+                "-mb-px min-h-11 shrink-0 whitespace-nowrap border-b-2 px-3 text-[13px] font-medium transition-colors",
                 active
-                  ? "border-accent text-ink"
-                  : "border-transparent text-muted hover:text-ink",
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               {item.label}
@@ -310,7 +303,7 @@ function SettingsNav({ section }: { section: SettingsSection }) {
       </nav>
       <nav
         aria-label="Settings sections"
-        className="hidden h-fit lg:sticky lg:top-[calc(var(--app-header-h)+16px)] lg:block"
+        className="hidden h-fit lg:sticky lg:top-20 lg:block"
       >
         <ul className="flex flex-col gap-0.5">
           {SETTINGS_SECTIONS.map((item) => {
@@ -322,19 +315,19 @@ function SettingsNav({ section }: { section: SettingsSection }) {
                   aria-current={active ? "page" : undefined}
                   onClick={() => guard.requestSection(item.id)}
                   className={cn(
-                    "w-full rounded-control px-3 py-2 text-left transition-colors",
+                    "w-full rounded-full px-3 py-2 text-left transition-colors",
                     active
-                      ? "bg-ink text-paper"
-                      : "text-muted hover:bg-soft hover:text-ink",
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
-                  <span className="block text-[0.8125rem] font-medium">
+                  <span className="block text-[13px] font-medium">
                     {item.label}
                   </span>
                   <span
                     className={cn(
-                      "mt-0.5 block text-[0.6875rem] leading-snug",
-                      active ? "text-paper/70" : "text-muted",
+                      "mt-0.5 block text-[11px] leading-snug",
+                      active ? "text-primary-foreground/70" : "text-muted-foreground",
                     )}
                   >
                     {item.hint}
@@ -359,28 +352,22 @@ function SettingsDiscardDialog() {
     SETTINGS_SECTIONS.find((s) => s.id === guard.pendingSection)?.label ??
     "another section";
   return (
-    <AlertDialog open={guard.confirming} onOpenChange={(open) => !open && guard.cancelDiscard()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
-          <AlertDialogDescription>
-            You have edits in this section that have not been saved. Moving to{" "}
-            {label} will discard them.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={guard.cancelDiscard}>
+    <Dialog
+      open={guard.confirming}
+      onOpenChange={(open) => !open && guard.cancelDiscard()}
+      title="Discard unsaved changes?"
+      size="sm"
+      description={`You have edits in this section that have not been saved. Moving to ${label} will discard them.`}
+      footer={
+        <>
+          <Button variant="outline" onClick={guard.cancelDiscard}>
             Keep editing
-          </AlertDialogCancel>
-          <MotionButton
-            variant="destructive"
-            onClick={guard.confirmDiscard}
-            whileTap={{ scale: 0.985 }}
-          >
-            <PlainIcon name="close" size={13} /> Discard and continue
-          </MotionButton>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+          <Button variant="destructive" onClick={guard.confirmDiscard}>
+            Discard and continue
+          </Button>
+        </>
+      }
+    />
   );
 }

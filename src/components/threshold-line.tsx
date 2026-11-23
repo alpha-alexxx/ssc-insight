@@ -354,7 +354,7 @@ export function ThresholdLine({
                           ref={(el) => {
                             ghostRefs.current[i] = el;
                           }}
-                          className="absolute inset-x-0 top-0 bg-red-500/40 dark:bg-red-400/45"
+                          className="absolute inset-x-0 top-0 bg-destructive/40"
                           style={{ height: plotH, willChange: "transform" }}
                         />
                       </div>
@@ -370,7 +370,7 @@ export function ThresholdLine({
                         ref={(el) => {
                           fillRefs.current[i] = el;
                         }}
-                        className="absolute inset-x-0 bottom-0 bg-red-500 dark:bg-red-400"
+                        className="absolute inset-x-0 bottom-0 bg-destructive"
                         style={{
                           height: above ? plotH : "100%",
                           opacity: above || fires ? 1 : 0,
@@ -399,7 +399,7 @@ export function ThresholdLine({
                 style={{ top: -HIT / 2, height: HIT }}
               >
                 <div
-                  className={`h-px flex-1 transition-colors duration-300 ${count ? "bg-red-500 dark:bg-red-400" : "bg-foreground/55"}`}
+                  className={`h-px flex-1 transition-colors duration-300 ${count ? "bg-destructive" : "bg-foreground/55"}`}
                   style={{ marginLeft: "var(--gutter)" }}
                 />
                 <div
@@ -432,7 +432,7 @@ export function ThresholdLine({
             {data.map((d, i) => (
               <span
                 key={d.key}
-                className="absolute top-[5px] size-[5px] -translate-x-1/2 rounded-full bg-red-500 dark:bg-red-400"
+                className="absolute top-[5px] size-[5px] -translate-x-1/2 rounded-full bg-destructive"
                 style={{
                   left: `${(i + 0.5) * slot}%`,
                   scale: firing[i] ? "1" : "0",

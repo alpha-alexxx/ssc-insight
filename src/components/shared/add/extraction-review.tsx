@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "@/components/ui/icons";
+import { Icon } from "@/components/icon";
 import {
   SUBJECTS,
   type AttemptInput,
@@ -14,7 +14,7 @@ import {
   type ExtractedSubjectDraft,
   type ExtractionDraft,
 } from "@/lib/ai/extraction";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 
 function optionalNumber(value: string) {
   return value === "" ? null : Number(value);
@@ -167,18 +167,18 @@ export function ExtractionReview({
 
   return (
     <section className="space-y-0" aria-label="Review AI extraction">
-      <div className="border-y border-rule-soft bg-canvas px-3 py-3 sm:px-4">
+      <div className="border-y border-border bg-muted/40 px-3 py-3 sm:px-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-serif text-lg">Draft status</h3>
           <span className="section-label">
             {draft.confidence} AI confidence
           </span>
         </div>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-muted-foreground">
           Edit any uncertain value. This step only prepares the form; it does not save.
         </p>
         {(blockers.length > 0 || warnings.length > 0 || draft.modelWarnings.length > 0) && (
-          <div className="mt-4 border-t border-rule-soft pt-3" role="status">
+          <div className="mt-4 border-t border-border pt-3" role="status">
             {blockers.length > 0 && (
               <p className="text-sm font-medium text-danger">
                 Resolve {blockers.length} highlighted field{blockers.length === 1 ? "" : "s"} before continuing.
@@ -193,7 +193,7 @@ export function ExtractionReview({
               </p>
             ))}
             {draft.issues.length > 4 && (
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-[11px] text-muted-foreground">
                 +{draft.issues.length - 4} more issue{draft.issues.length - 4 === 1 ? "" : "s"} shown beside the affected fields.
               </p>
             )}
@@ -206,7 +206,7 @@ export function ExtractionReview({
         )}
       </div>
 
-      <div className="border-b border-rule-soft py-4">
+      <div className="border-b border-border py-4">
         <h4 className="font-serif text-base">Mock details</h4>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label>
@@ -275,11 +275,11 @@ export function ExtractionReview({
         </div>
       </div>
 
-      <div className="border-b border-rule-soft py-4">
+      <div className="border-b border-border py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h4 className="font-serif text-base">Subject results</h4>
-            <p className="mt-1 text-xs text-muted">Blank means the report did not provide a reliable value.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Blank means the report did not provide a reliable value.</p>
           </div>
           <Button
             size="sm"
@@ -295,11 +295,11 @@ export function ExtractionReview({
               if (nextId) update({ subjects: [...draft.subjects, blankExtractedSubject(nextId)] });
             }}
           >
-            <Plus size={14} /> Add subject
+            <Icon name="plus" size={14} /> Add subject
           </Button>
         </div>
         <FieldIssues draft={draft} path="subjects" />
-        <div className="mt-4 divide-y divide-rule-soft border-y border-rule-soft">
+        <div className="mt-4 divide-y divide-border border-y border-border">
           {draft.subjects.map((subject, index) => {
             const path = `subjects.${index}`;
             return (
@@ -337,7 +337,7 @@ export function ExtractionReview({
                     aria-label={`Remove ${SUBJECTS[subject.subjectId].short}`}
                     onClick={() => update({ subjects: draft.subjects.filter((_, row) => row !== index) })}
                   >
-                    <Trash2 size={14} /> Remove
+                    <Icon name="trash" size={14} /> Remove
                   </Button>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -360,7 +360,7 @@ export function ExtractionReview({
                         }
                       />
                       {subject.derivedFields.includes(field) && (
-                        <span className="mt-1 text-[11px] text-muted">Derived from reported values</span>
+                        <span className="mt-1 text-[11px] text-muted-foreground">Derived from reported values</span>
                       )}
                     </label>
                   ))}
@@ -370,15 +370,15 @@ export function ExtractionReview({
                     onChange={(timeSeconds) => updateSubject(index, { timeSeconds })}
                   />
                 </div>
-                <details className="group mt-3 border border-rule-soft bg-canvas">
+                <details className="group mt-3 border border-border bg-muted/40">
                   <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs">
                     <span className="font-medium">Reported cross-check</span>
-                    <span className="tabular text-muted group-open:hidden">
+                    <span className="tabular text-muted-foreground group-open:hidden">
                       {subject.reported.score == null ? "Score —" : `Score ${subject.reported.score}`} · {subject.reported.attempted == null ? "Attempted —" : `${subject.reported.attempted} attempted`} · {subject.reported.unattempted == null ? "Skipped —" : `${subject.reported.unattempted} skipped`}
                     </span>
-                    <span className="hidden text-muted group-open:inline">Collapse</span>
+                    <span className="hidden text-muted-foreground group-open:inline">Collapse</span>
                   </summary>
-                  <div className="border-t border-rule-soft p-3">
+                  <div className="border-t border-border p-3">
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {(["score", "attempted", "unattempted"] as const).map((field) => (
                         <label key={field}>
@@ -401,11 +401,11 @@ export function ExtractionReview({
                       ))}
                     </div>
                     {subject.reported.timeText && (
-                      <p className="mt-2 text-xs tabular text-ink">
+                      <p className="mt-2 text-xs tabular text-foreground">
                         Reported time: {subject.reported.timeText}
                       </p>
                     )}
-                    <p className="mt-2 text-[11px] text-muted">
+                    <p className="mt-2 text-[11px] text-muted-foreground">
                       Used only to cross-check editable counts. Clear a value if the AI read it incorrectly.
                     </p>
                   </div>
@@ -417,7 +417,7 @@ export function ExtractionReview({
         </div>
       </div>
 
-      <div className="border-b border-rule-soft py-4">
+      <div className="border-b border-border py-4">
         <h4 className="font-serif text-base">Additional results</h4>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
           {(["rank", "participants", "percentile"] as const).map((field) => (
@@ -440,7 +440,7 @@ export function ExtractionReview({
 
       {/* The one ruled sticky bar: solid paper over the scrolling fields, no
           blur or z-index elevation. */}
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-rule-soft bg-paper px-4 py-3 sm:-mx-5 sm:px-5">
+      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-border bg-card px-4 py-3 sm:-mx-5 sm:px-5">
         <Button disabled={blockers.length > 0} onClick={onUse}>
           {blockers.length > 0
             ? `Complete ${blockers.length} required field${blockers.length === 1 ? "" : "s"}`
@@ -448,7 +448,7 @@ export function ExtractionReview({
         </Button>
         <Button variant="outline" onClick={onBack}>Back to report</Button>
         <Button variant="ghost" onClick={onDiscard}>Discard AI draft</Button>
-        <span className="ml-auto text-[11px] text-muted">Copies to form · does not save</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">Copies to form · does not save</span>
       </div>
     </section>
   );

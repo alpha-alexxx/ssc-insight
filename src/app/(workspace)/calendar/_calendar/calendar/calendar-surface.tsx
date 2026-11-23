@@ -10,6 +10,9 @@ import type { ComponentProps, ReactNode } from "react";
  * period twice. The head here answers "what shape is this", not "where am I".
  * `flush` removes the body's horizontal padding for surfaces whose rows carry
  * their own gutters.
+ *
+ * Hairline rebuild: the panel is the token-composed card
+ * (rounded-2xl bg-card + inset hairline border).
  */
 export function CalendarSurface({
   meta,
@@ -28,11 +31,11 @@ export function CalendarSurface({
   flush?: boolean;
 }) {
   return (
-    <section className="panel">
+    <section className="rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
       {(meta || actions) && (
-        <div className="section-head flex-row items-center justify-between gap-3 border-b border-rule-soft px-4 pb-2.5 pt-3 sm:px-6">
+        <div className="flex-row flex items-center justify-between gap-3 border-b border-border px-4 pb-2.5 pt-3 sm:px-6">
           <div className="min-w-0">
-            {meta && <p className="text-[length:var(--type-secondary)] text-muted">{meta}</p>}
+            {meta && <p className="text-[13px] text-muted-foreground">{meta}</p>}
           </div>
           {actions}
         </div>

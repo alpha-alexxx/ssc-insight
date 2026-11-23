@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Sparkles } from "@/components/ui/icons";
-import { Dialog } from "radix-ui";
-import { Button } from "@/components/ui/button";
+import { Add01Icon } from "@/components/animate-ui/icons/hugeicons/add-01";
+import { Button } from "@/components/button";
+import { Dialog } from "@/components/dialog";
+import { Input } from "@/components/input";
 import { PageHeader } from "@/components/page-header";
-import { DuotoneTile } from "@/components/icon";
-import { useToast } from "@/components/toast";
-import { useOverlayFocus } from "@/components/use-overlay-viewport";
+import { PlainIcon } from "@/components/icon";
+import { Skeleton } from "@/components/skeleton";
+import { toast } from "@/components/toast-stack";
 import { useUiStore } from "@/stores/ui-store";
 import {
   useInvalidateTodos,
@@ -77,8 +78,6 @@ export function MyTasksView({
   planApi: ReturnType<typeof usePlanData>;
 }) {
   const today = istTodayIso();
-  const toast = useToast();
-  const overlayFocus = useOverlayFocus();
   const {
     tab,
     layout,
@@ -197,6 +196,7 @@ export function MyTasksView({
     (id: string) => allLoaded.get(id),
     [allLoaded],
   );
+
   const groupName = useCallback(
     (id: string | null) =>
       id ? groups.find((group) => group.id === id)?.name : undefined,
@@ -301,13 +301,14 @@ export function MyTasksView({
     setBusy(true);
     try {
       await mutateTodoRequest("/api/todos", "POST", draft);
-      toast.success("Task added", `${draft.title} · due ${longDate(draft.dueDate ?? today)}`);
+      toast.success("Task added", {
+        description: `${draft.title} · due ${longDate(draft.dueDate ?? today)}`,
+      });
       return true;
     } catch (cause) {
-      toast.error(
-        "Could not add the task",
-        cause instanceof Error ? cause.message : "Try again.",
-      );
+      toast.error("Could not add the task", {
+        description: cause instanceof Error ? cause.message : "Try again.",
+      });
       return false;
     } finally {
       setBusy(false);
@@ -337,12 +338,11 @@ export function MyTasksView({
         cause instanceof Error ? cause.message : "Could not save. Try again.";
       if (message.includes("changed")) {
         void invalidateTodos();
-        toast.info(
-          "Task was updated elsewhere",
-          "Showing the latest version — try again.",
-        );
+        toast.info("Task was updated elsewhere", {
+          description: "Showing the latest version — try again.",
+        });
       } else {
-        toast.error("Could not update the task", message);
+        toast.error("Could not update the task", { description: message });
       }
       return false;
     } finally {
@@ -370,10 +370,9 @@ export function MyTasksView({
       toast.success(successMessage);
       return true;
     } catch (cause) {
-      toast.error(
-        "Bulk action did not finish",
-        `${cause instanceof Error ? cause.message : "Try again."} Some changes may already be applied.`,
-      );
+      toast.error("Bulk action did not finish", {
+        description: `${cause instanceof Error ? cause.message : "Try again."} Some changes may already be applied.`,
+      });
       return false;
     } finally {
       setBusy(false);
@@ -386,10 +385,9 @@ export function MyTasksView({
       await mutateTodoRequest("/api/todos", "DELETE", { ids });
       return true;
     } catch (cause) {
-      toast.error(
-        "Could not move tasks to Trash",
-        cause instanceof Error ? cause.message : "Try again.",
-      );
+      toast.error("Could not move tasks to Trash", {
+        description: cause instanceof Error ? cause.message : "Try again.",
+      });
       return false;
     } finally {
       setBusy(false);
@@ -467,7 +465,7 @@ export function MyTasksView({
     if (await trashByIds(ids))
       toast.success(
         `${ids.length} ${ids.length === 1 ? "task" : "tasks"} moved to Trash`,
-        "Restore from Trash within 15 days.",
+        { description: "Restore from Trash within 15 days." },
       );
   }
   async function scopeTrash() {
@@ -487,13 +485,15 @@ export function MyTasksView({
       });
       toast.success(
         `${confirm.count} ${confirm.count === 1 ? "task" : "tasks"} moved to Trash`,
-        "Everything matching the current view and filters. Restore from Trash within 15 days.",
+        {
+          description:
+            "Everything matching the current view and filters. Restore from Trash within 15 days.",
+        },
       );
     } catch (cause) {
-      toast.error(
-        "Could not move tasks to Trash",
-        cause instanceof Error ? cause.message : "Try again.",
-      );
+      toast.error("Could not move tasks to Trash", {
+        description: cause instanceof Error ? cause.message : "Try again.",
+      });
     } finally {
       setBusy(false);
       setConfirm(null);
@@ -557,7 +557,9 @@ export function MyTasksView({
           target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT" ||
           target.isContentEditable);
-      if (typing || document.querySelector("[role='dialog']")) return;
+      // Hairline dialogs are native <dialog open> elements; Radix used
+      // [role=dialog]. Both are checked so S never fires under an overlay.
+      if (typing || document.querySelector("dialog[open], [role='dialog']")) return;
       if (event.key === "s" || event.key === "S") {
         event.preventDefault();
         setSelecting((value) => !value);
@@ -610,14 +612,13 @@ export function MyTasksView({
       return (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-2 border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)]"
         >
           <p>{loadError}</p>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="border-danger/40 text-danger hover:bg-danger/10"
             onClick={() => void invalidateTodos()}
           >
             Retry
@@ -627,9 +628,16 @@ export function MyTasksView({
     }
     if (loading && !activeDataLoaded) {
       return (
-        <p role="status" className="py-10 text-center text-muted">
-          Loading your tasks…
-        </p>
+        <div
+          className="space-y-2 py-2"
+          role="status"
+          aria-label="Loading your tasks"
+        >
+          <span className="sr-only">Loading your tasks…</span>
+          {Array.from({ length: 6 }, (_, row) => (
+            <Skeleton key={row} height={56} />
+          ))}
+        </div>
       );
     }
     if (firstRun) {
@@ -639,10 +647,10 @@ export function MyTasksView({
           detail="Add your first task below, or describe what you need to get done and let AI prepare a draft for you to review."
         >
           <Button size="sm" onClick={() => quickAddRef.current?.focus()}>
-            <Plus size={14} /> Add your first task
+            <PlainIcon name="plus" size={14} /> Add your first task
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
-            <Sparkles size={14} /> Plan with AI
+            <PlainIcon name="sparkles" size={14} /> Plan with AI
           </Button>
         </TasksEmptyState>
       );
@@ -650,6 +658,7 @@ export function MyTasksView({
     if (boardMode) {
       return mainItems.length === 0 ? (
         <TasksEmptyState
+          scene={hasFilters ? "search" : "inbox"}
           title={hasFilters ? "Nothing on the board" : "No tasks yet"}
           detail={
             hasFilters
@@ -673,7 +682,7 @@ export function MyTasksView({
       ) : (
         <div className="space-y-3">
           {main.data && main.data.total > main.data.limit && (
-            <p className="text-xs text-muted">
+            <p className="text-xs text-muted-foreground">
               Showing the first {main.data.limit} of {main.data.total} tasks —
               narrow with search or filters to reach the rest.
             </p>
@@ -706,6 +715,7 @@ export function MyTasksView({
       if (overdueItems.length === 0 && todayItems.length === 0) {
         return hasFilters ? (
           <TasksEmptyState
+            scene="search"
             title="Nothing due today matches"
             detail="Your overdue and today lists are clear under the current search and filters."
           >
@@ -729,7 +739,7 @@ export function MyTasksView({
               See upcoming
             </Button>
             <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
-              <Sparkles size={14} /> Plan with AI
+              <PlainIcon name="sparkles" size={14} /> Plan with AI
             </Button>
           </TasksEmptyState>
         );
@@ -753,6 +763,9 @@ export function MyTasksView({
     if (mainItems.length === 0) {
       return (
         <TasksEmptyState
+          scene={
+            hasFilters ? "search" : tab === "completed" ? "done" : "inbox"
+          }
           title={
             hasFilters
               ? "No tasks match"
@@ -809,17 +822,24 @@ export function MyTasksView({
   return (
     <section aria-label="My tasks" className="personal-workspace min-w-0 @container/mt-page">
       <PageHeader
-        icon={<DuotoneTile name="check" tile="accent" className="size-12" />}
+        icon={
+          <span
+            aria-hidden="true"
+            className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary shadow-[inset_0_0_0_1px_var(--border)]"
+          >
+            <PlainIcon name="check" size={20} />
+          </span>
+        }
         title="My tasks"
         description="Your own checklist — capture work, decide what's next, and finish it. Separate from the study plan."
         meta={<span>{weekdayDate(today)}</span>}
         actions={
           <>
             <Button type="button" variant="outline" onClick={() => setAiOpen(true)}>
-              <Sparkles size={14} /> Plan with AI
+              <PlainIcon name="sparkles" size={14} /> Plan with AI
             </Button>
             <Button type="button" onClick={() => setCreating(true)}>
-              <Plus size={14} /> Add task
+              <Add01Icon size={14} /> Add task
             </Button>
           </>
         }
@@ -833,7 +853,7 @@ export function MyTasksView({
           <div
             role="tablist"
             aria-label="Task views"
-            className="-mx-3 flex gap-1 overflow-x-auto border-b border-rule-soft px-3"
+            className="-mx-3 flex gap-1 overflow-x-auto border-b border-border px-3"
           >
             {TAB_ITEMS.map((item) => {
               const count = tabCount(item.id);
@@ -846,10 +866,10 @@ export function MyTasksView({
                   aria-controls={`tasks-panel-${item.id}`}
                   onClick={() => openTab(item.id)}
                   className={cn(
-                    "min-h-11 whitespace-nowrap border-b-2 px-3 text-[0.8125rem] font-medium transition-colors",
+                    "min-h-11 whitespace-nowrap border-b-2 px-3 text-[13px] font-medium transition-colors",
                     tab === item.id
-                      ? "border-accent text-ink"
-                      : "border-transparent text-muted hover:text-ink",
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {item.label}
@@ -884,8 +904,8 @@ export function MyTasksView({
             )}
 
             {dayMode && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-accent/30 bg-accent-soft/40 px-3 py-2">
-                <p className="text-xs text-ink">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-primary/5 px-3 py-2 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
+                <p className="text-xs text-foreground">
                   Working on <span className="font-medium">{longDate(dayDetail ?? today)}</span>
                 </p>
                 <Button
@@ -934,7 +954,7 @@ export function MyTasksView({
                       patchFilters({ [entry.key]: "all" } as Partial<TaskFilters>);
                       resetPage();
                     }}
-                    className="inline-flex min-h-[var(--control-height-sm)] items-center gap-1.5 rounded-pill border border-accent/40 bg-accent-soft px-2.5 py-1 text-[length:var(--type-label)] font-medium text-accent tap-target transition-colors hover:bg-accent/15"
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_35%,transparent)] transition-colors hover:bg-primary/15"
                     aria-label={`Remove ${entry.key} filter`}
                   >
                     {entry.key === "group" && entry.value !== "ungrouped"
@@ -949,7 +969,7 @@ export function MyTasksView({
                     clearFilters();
                     resetPage();
                   }}
-                  className="inline-flex min-h-[var(--control-height-sm)] items-center text-[length:var(--type-label)] font-medium text-muted tap-target underline underline-offset-4 hover:text-ink"
+                  className="inline-flex min-h-8 items-center text-[11px] font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
                 >
                   Clear all
                 </button>
@@ -991,7 +1011,7 @@ export function MyTasksView({
               !myDayMode &&
               main.data &&
               main.data.total > main.data.limit && (
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule-soft pt-3 text-[length:var(--type-secondary)] text-muted">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[12px] text-muted-foreground">
                   <span>
                     {main.data.total} {main.data.total === 1 ? "task" : "tasks"} ·
                     Page {main.data.page} of{" "}
@@ -1028,16 +1048,16 @@ export function MyTasksView({
 
         <aside className="flex min-w-0 flex-col gap-4 @5xl/mt-page:col-start-2 @5xl/mt-page:row-start-1">
           <PlanRail plan={planApi.plan} today={today} />
-          <section className="panel p-4" aria-label="Task calendar">
+          <section className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]" aria-label="Task calendar">
             <PersonalCalendar
               selected={dayDetail ?? today}
               onSelect={openDate}
               onAdd={() => setCreating(true)}
             />
           </section>
-          <section className="panel p-4" aria-label="Groups">
+          <section className="rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]" aria-label="Groups">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-serif text-lg">Groups</h3>
+              <h3 className="text-base font-semibold text-foreground">Groups</h3>
               <Button
                 type="button"
                 variant="ghost"
@@ -1047,12 +1067,12 @@ export function MyTasksView({
                 Manage
               </Button>
             </div>
-            <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
+            <p className="mt-1 text-[12px] text-muted-foreground">
               Group tasks by subject or project. Click one to filter All tasks.
             </p>
             <ul className="mt-3 space-y-1">
               {groupsWithCounts.length === 0 && (
-                <li className="rounded-control border border-dashed border-rule px-3 py-3 text-center text-[length:var(--type-label)] text-muted">
+                <li className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-[11px] text-muted-foreground">
                   No groups yet — create one from any task&apos;s editor, or
                   open Manage.
                 </li>
@@ -1067,14 +1087,14 @@ export function MyTasksView({
                       openTab("all");
                     }}
                     className={cn(
-                      "flex min-h-[var(--control-height-sm)] w-full items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-left text-[length:var(--type-label)] tap-target transition-colors",
+                      "flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors",
                       filters.group === group.id
-                        ? "bg-accent-soft font-medium text-accent"
-                        : "text-ink hover:bg-soft",
+                        ? "bg-primary/10 font-medium text-primary"
+                        : "text-foreground hover:bg-accent",
                     )}
                   >
                     <span className="min-w-0 truncate">{group.name}</span>
-                    <span className="shrink-0 tabular text-muted">
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
                       {group.count}
                     </span>
                   </button>
@@ -1149,144 +1169,126 @@ export function MyTasksView({
         />
       )}
       {confirm?.kind === "task" && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setConfirm(null);
           }}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                Move to Trash?
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                “{confirm.task.title}” and its subtasks can be restored later
-                from Trash.
-              </Dialog.Description>
-              <div className="action-row-stack mt-4 justify-end gap-2 sm:mx-0">
-                <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  disabled={busy}
-                  onClick={async () => {
-                    const task = confirm.task;
-                    setConfirm(null);
-                    await trashByIds([task.id]);
-                    toast.success(`“${task.title}” moved to Trash`, "Restore it anytime from Trash.");
-                  }}
-                >
-                  Move to Trash
-                </Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          title="Move to Trash?"
+          description={`“${confirm.task.title}” and its subtasks can be restored later from Trash.`}
+          footer={
+            <>
+              <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy}
+                onClick={async () => {
+                  const task = confirm.task;
+                  setConfirm(null);
+                  await trashByIds([task.id]);
+                  toast.success(`“${task.title}” moved to Trash`, {
+                    description: "Restore it anytime from Trash.",
+                  });
+                }}
+              >
+                Move to Trash
+              </Button>
+            </>
+          }
+        />
       )}
       {confirm && confirm.kind !== "task" && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setConfirm(null);
           }}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                {confirm.kind === "selected"
-                  ? `Move ${confirm.count} ${confirm.count === 1 ? "task" : "tasks"} to Trash?`
-                  : `Move all ${confirm.count} matching ${confirm.count === 1 ? "task" : "tasks"} to Trash?`}
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {confirm.kind === "selected"
-                  ? "Selected tasks and their subtasks can be restored from Trash."
-                  : "Applies to everything matching the current view, search, and filters — not just this page. You can restore them from Trash."}
-              </Dialog.Description>
-              <div className="action-row-stack mt-4 justify-end gap-2 sm:mx-0">
-                <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => {
-                    if (confirm.kind === "selected") void bulkTrashSelected();
-                    else void scopeTrash();
-                    setConfirm(null);
-                  }}
-                >
-                  Move to Trash
-                </Button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          title={
+            confirm.kind === "selected"
+              ? `Move ${confirm.count} ${confirm.count === 1 ? "task" : "tasks"} to Trash?`
+              : `Move all ${confirm.count} matching ${confirm.count === 1 ? "task" : "tasks"} to Trash?`
+          }
+          description={
+            confirm.kind === "selected"
+              ? "Selected tasks and their subtasks can be restored from Trash."
+              : "Applies to everything matching the current view, search, and filters — not just this page. You can restore them from Trash."
+          }
+          footer={
+            <>
+              <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() => {
+                  if (confirm.kind === "selected") void bulkTrashSelected();
+                  else void scopeTrash();
+                  setConfirm(null);
+                }}
+              >
+                Move to Trash
+              </Button>
+            </>
+          }
+        />
       )}
       {rescheduling && (
-        <Dialog.Root
+        <Dialog
           open
           onOpenChange={(open) => {
             if (!open && !busy) setRescheduling(null);
           }}
+          title={
+            rescheduling.mode === "bulk"
+              ? `Reschedule ${selectedOnPage.length} ${selectedOnPage.length === 1 ? "task" : "tasks"}`
+              : "Reschedule task"
+          }
+          description={
+            rescheduling.mode === "bulk"
+              ? "Every selected task moves to this date. Subtasks move with their tasks."
+              : `“${rescheduling.task.title}”. Subtasks move with this task.`
+          }
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/25" />
-            <Dialog.Content {...overlayFocus} className="task-confirm-dialog">
-              <Dialog.Title className="font-serif text-xl">
-                {rescheduling.mode === "bulk"
-                  ? `Reschedule ${selectedOnPage.length} ${selectedOnPage.length === 1 ? "task" : "tasks"}`
-                  : "Reschedule task"}
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {rescheduling.mode === "bulk"
-                  ? "Every selected task moves to this date. Subtasks move with their tasks."
-                  : `“${rescheduling.task.title}”. Subtasks move with this task.`}
-              </Dialog.Description>
-              <form
-                className="mt-4 flex flex-col gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newDate) return;
-                  if (rescheduling.mode === "bulk") {
-                    void bulkRescheduleApply();
-                  } else {
-                    const task = rescheduling.task;
-                    setRescheduling(null);
-                    void patchTask(
-                      task,
-                      { dueDate: newDate },
-                      `Rescheduled to ${longDate(newDate)}`,
-                    );
-                  }
-                }}
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newDate) return;
+              if (rescheduling.mode === "bulk") {
+                void bulkRescheduleApply();
+              } else {
+                const task = rescheduling.task;
+                setRescheduling(null);
+                void patchTask(
+                  task,
+                  { dueDate: newDate },
+                  `Rescheduled to ${longDate(newDate)}`,
+                );
+              }
+            }}
+          >
+            <Input
+              label="New date"
+              type="date"
+              required
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setRescheduling(null)}
               >
-                <label>
-                  New date
-                  <input
-                    type="date"
-                    required
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                  />
-                </label>
-                <div className="action-row-stack justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => setRescheduling(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button disabled={busy}>Reschedule</Button>
-                </div>
-              </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+                Cancel
+              </Button>
+              <Button disabled={busy}>Reschedule</Button>
+            </div>
+          </form>
+        </Dialog>
       )}
       <GroupsManagerDialog
         open={groupsOpen}
@@ -1315,7 +1317,9 @@ export function MyTasksView({
           try {
             await mutateTodoRequest(`/api/todos/groups/${id}`, "DELETE");
             if (filters.group === id) patchFilters({ group: "all" });
-            toast.success("Group removed", "Its tasks are now Ungrouped.");
+            toast.success("Group removed", {
+              description: "Its tasks are now Ungrouped.",
+            });
             return true;
           } catch {
             return false;
@@ -1327,7 +1331,7 @@ export function MyTasksView({
   );
 }
 
-/** One grouped section of rows with an editorial serif header. */
+/** One grouped section of rows with a serif header. */
 function TaskSection({
   label,
   count,
@@ -1343,16 +1347,16 @@ function TaskSection({
 }) {
   return (
     <section aria-label={`${label}: ${count} tasks`}>
-      <div className="flex items-baseline justify-between gap-2 border-b border-rule-soft bg-canvas px-3 py-2">
+      <div className="flex items-baseline justify-between gap-2 border-b border-border bg-muted/30 px-3 py-2">
         <h3
           className={cn(
-            "font-serif text-[0.9375rem]",
-            danger && "text-danger",
+            "font-serif text-[15px] text-foreground",
+            danger && "text-destructive",
           )}
         >
           {label}
         </h3>
-        <span className="text-xs tabular text-muted">
+        <span className="text-xs tabular-nums text-muted-foreground">
           {count}
           {total !== undefined && total > count ? ` of ${total}` : ""}
         </span>

@@ -51,9 +51,6 @@ export function normalizeTheme(value: unknown): ThemeId {
     : DEFAULT_THEME;
 }
 
-/** Old palette ids from the previous design system, mapped forward. */
-const LEGACY_IDS: Record<string, ThemeId> = { orange: "terracotta" };
-
 const THEME_IDS_FOR_SCRIPT = JSON.stringify(THEMES.map(({ id }) => id));
 
 /**

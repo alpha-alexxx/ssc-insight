@@ -428,7 +428,7 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
           style={{ gridTemplateRows: error ? "1fr" : "0fr", transition: reduced ? "none" : `grid-template-rows 320ms ${EASE_OUT}` }}
         >
           <div className="min-h-0 overflow-clip">
-            <p role="alert" className="pt-3 text-[12.5px] text-red-600 dark:text-red-400">
+            <p role="alert" className="pt-3 text-[12.5px] text-destructive">
               {error}
             </p>
           </div>

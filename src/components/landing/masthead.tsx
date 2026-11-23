@@ -1,16 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet } from "@/components/sheet";
+import { Menu01Icon } from "@/components/animate-ui/icons/hugeicons/menu-01";
+import { LINK_BUTTON } from "./atoms";
 import { cn } from "@/lib/utils";
 
 export const NAV: { href: string; label: string }[] = [
@@ -22,12 +18,29 @@ export const NAV: { href: string; label: string }[] = [
 ];
 
 /**
+ * The mobile navigation trigger — Hairline's ghost icon Button with the
+ * animated menu glyph (the one dense-list exception on this page: it is the
+ * masthead's primary interactive control).
+ */
+const MOBILE_NAV_TRIGGER = (
+  <Button
+    variant="ghost"
+    size="icon"
+    type="button"
+    aria-label="Open navigation"
+    className="size-11 md:hidden"
+  >
+    <Menu01Icon size={16} animateOnHover animateOnTap />
+  </Button>
+);
+
+/**
  * The landing masthead.
  *
- * Client-side because it owns two pieces of UI state: the scroll-triggered
+ * Client-side because it owns three pieces of UI state: the scroll-triggered
  * hairline (so the bar reads as floating over content once you leave the
- * hero) and the mobile navigation sheet. Everything else — wordmark, nav
- * labels, the sign-in button — is ordinary markup.
+ * hero), the reading-progress rule, and the mobile navigation sheet. The
+ * theme toggle is Hairline's, driven by next-themes like the workspace's.
  *
  * The scroll listener is passive and only ever flips a boolean, so it does
  * not re-render on every frame; the progress rule is a transform driven by
@@ -36,6 +49,7 @@ export const NAV: { href: string; label: string }[] = [
 export function Masthead({ authAvailable }: { authAvailable: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     let frame = 0;
@@ -63,18 +77,18 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b bg-canvas/85 backdrop-blur transition-colors duration-200",
-        scrolled ? "border-rule-soft" : "border-transparent",
+        "sticky top-0 z-40 border-b bg-background/85 backdrop-blur-sm transition-colors duration-200",
+        scrolled ? "border-border" : "border-transparent",
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
         <a
           href="#top"
-          className="landing-wordmark text-[23px] text-ink md:text-2xl"
+          className="font-serif text-2xl tracking-[-0.02em] text-foreground transition-opacity hover:opacity-80"
           aria-label="SSC Insight — back to top"
         >
-          ssc<span className="text-accent">insight</span>
-          <span className="text-accent">.</span>
+          ssc<span className="text-primary">insight</span>
+          <span className="text-primary">.</span>
         </a>
 
         <nav aria-label="Landing sections" className="hidden md:block">
@@ -83,7 +97,7 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="text-[0.8125rem] text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                  className="rounded-sm text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-4 focus-visible:ring-offset-background"
                 >
                   {item.label}
                 </a>
@@ -93,85 +107,60 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-3">
-          <ThemeToggle />
+          <ThemeToggle
+            value={resolvedTheme === "dark" ? "dark" : "light"}
+            onValueChange={(next) => setTheme(next)}
+            className="shrink-0"
+          />
           {authAvailable ? (
             <>
               {/* The nav pair: ghost for the known, filled for the new. */}
-              <Button asChild variant="ghost" size="sm" className="gap-2">
-                <Link href="/sign-in" aria-label="Log in">
-                  Log in
-                </Link>
-              </Button>
-              <Button asChild size="sm" className="gap-2">
-                <Link href="/sign-up" aria-label="Sign up">
-                  Sign up
-                </Link>
-              </Button>
+              <Link href="/sign-in" aria-label="Log in" className={LINK_BUTTON.smGhost}>
+                Log in
+              </Link>
+              <Link href="/sign-up" aria-label="Sign up" className={LINK_BUTTON.smPrimary}>
+                Sign up
+              </Link>
             </>
           ) : (
             <Button variant="outline" size="sm" disabled>
               Sign-in unavailable
             </Button>
           )}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Open navigation"
-                className="-mr-1 md:hidden"
-              >
-                <span aria-hidden="true" className="flex w-4 flex-col gap-[3px]">
-                  <span className="h-px w-full bg-current" />
-                  <span className="h-px w-full bg-current" />
-                  <span className="h-px w-full bg-current" />
-                </span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[86vw] sm:max-w-[380px]">
-              <div className="flex h-full flex-col p-6">
-                <SheetTitle className="landing-wordmark text-2xl text-ink">
-                  ssc<span className="text-accent">insight</span>
-                  <span className="text-accent">.</span>
-                </SheetTitle>
-                <SheetDescription className="mt-1 text-xs text-muted">
-                  SSC CGL Tier 2 · Mock tracker
-                </SheetDescription>
-
-                <nav aria-label="Landing sections" className="mt-8">
-                  <ul className="flex flex-col">
-                    {NAV.map((item) => (
-                      <li key={item.href} className="border-b border-rule-soft">
-                        <SheetClose asChild>
-                          <a
-                            href={item.href}
-                            className="block py-3.5 font-serif text-lg tracking-[-0.02em] text-ink"
-                          >
-                            {item.label}
-                          </a>
-                        </SheetClose>
-                      </li>
-                    ))}
-                    <li className="border-b border-rule-soft">
-                      <SheetClose asChild>
-                        <a
-                          href="#faq"
-                          className="block py-3.5 font-serif text-lg tracking-[-0.02em] text-ink"
-                        >
-                          Questions
-                        </a>
-                      </SheetClose>
+          <Sheet
+            side="right"
+            width={380}
+            title={
+              <span className="font-serif tracking-[-0.02em]">
+                ssc<span className="text-primary">insight</span>
+                <span className="text-primary">.</span>
+              </span>
+            }
+            description="SSC CGL Tier 2 · Mock tracker"
+            trigger={MOBILE_NAV_TRIGGER}
+          >
+            {({ close }) => (
+              <nav aria-label="Landing sections">
+                <ul className="flex flex-col">
+                  {[...NAV, { href: "#faq", label: "Questions" }].map((item) => (
+                    <li key={item.href} className="border-b border-border">
+                      <a
+                        href={item.href}
+                        onClick={close}
+                        className="block py-3.5 font-serif text-lg tracking-[-0.02em] text-foreground"
+                      >
+                        {item.label}
+                      </a>
                     </li>
-                  </ul>
-                </nav>
+                  ))}
+                </ul>
 
-                <p className="mt-auto pt-6 text-xs leading-relaxed text-muted">
+                <p className="mt-8 pt-6 text-xs leading-relaxed text-muted-foreground">
                   A private tracker for SSC CGL Tier 2. One account, one
                   workspace, and a JSON export whenever you want out.
                 </p>
-              </div>
-            </SheetContent>
+              </nav>
+            )}
           </Sheet>
         </div>
       </div>
@@ -182,7 +171,7 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
         className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden"
       >
         <div
-          className="h-full origin-left bg-accent transition-transform duration-150 ease-out"
+          className="h-full origin-left bg-primary transition-transform duration-150 ease-out"
           style={{ transform: `scaleX(${progress})` }}
         />
       </div>

@@ -1,6 +1,6 @@
 "use client";
 import { PlainIcon } from "@/components/icon";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/segmented-control";
 import type { CalendarLayer, EntryCounts } from "@/lib/plan/calendar-entries";
 import type { CalendarMode } from "./visuals";
 import { CALENDAR_MODES } from "./visuals";
@@ -15,6 +15,10 @@ import { PeriodNav } from "./period-nav";
  * The period title is the page's single live region. In a narrow toolbar the
  * cluster stacks into three rows (title, movement, mode + layers); at the
  * `@lg/cal-toolbar` threshold it folds to two.
+ *
+ * Hairline rebuild: the mode control is the Hairline SegmentedControl
+ * (radiogroup semantics — one of a few), the layers keep their aria-pressed
+ * pill toggles.
  */
 export function CalendarToolbar({
   title,
@@ -42,10 +46,10 @@ export function CalendarToolbar({
   onToggleLayer: (layer: CalendarLayer, next: boolean) => void;
 }) {
   return (
-    <div className="cal-toolbar mt-4 @container/cal-toolbar border-b border-rule-soft pb-3">
+    <div className="mt-4 @container/cal-toolbar border-b border-border pb-3">
       <div className="flex flex-col gap-2 @lg/cal-toolbar:flex-row @lg/cal-toolbar:items-center @lg/cal-toolbar:justify-between">
         <h2
-          className="font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.02em] text-ink @lg/cal-toolbar:text-[1.25rem]"
+          className="font-serif text-[1.125rem] font-medium leading-tight tracking-[-0.02em] text-foreground @lg/cal-toolbar:text-[1.25rem]"
           aria-live="polite"
         >
           {title}
@@ -70,32 +74,27 @@ export function CalendarToolbar({
           pair wraps as a unit: when the toolbar is constrained by the open
           sidebar, a half-wrapped group reads as two broken controls. */}
       <div className="mt-2 flex flex-col gap-2 @lg/cal-toolbar:flex-row @lg/cal-toolbar:flex-wrap @lg/cal-toolbar:items-center @lg/cal-toolbar:justify-between">
-        <div
-          role="group"
-          aria-label="Calendar view"
-          className="segment-group grid w-full grid-cols-4 gap-0.5 @lg/cal-toolbar:inline-flex @lg/cal-toolbar:w-auto @lg/cal-toolbar:flex-none"
-        >
-          {CALENDAR_MODES.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              aria-pressed={mode === entry.id}
-              className="segment"
-              onClick={() => onMode(entry.id)}
-            >
-              <PlainIcon
-                name={entry.icon}
-                size={14}
-                className={cn(
-                  "shrink-0 max-[359px]:hidden",
-                  mode !== entry.id && "text-muted",
-                )}
-              />
-              <span className="max-[359px]:hidden">{entry.label}</span>
-              <span className="hidden max-[359px]:inline">{entry.short}</span>
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Calendar view"
+          value={mode}
+          onValueChange={(next) => onMode(next as CalendarMode)}
+          block
+          className="w-full @lg/cal-toolbar:w-auto @lg/cal-toolbar:flex-none"
+          options={CALENDAR_MODES.map((entry) => ({
+            value: entry.id,
+            label: (
+              <>
+                <span className="max-[359px]:hidden">{entry.label}</span>
+                <span className="hidden max-[359px]:inline">{entry.short}</span>
+              </>
+            ),
+            icon: (
+              <span className="max-[359px]:hidden">
+                <PlainIcon name={entry.icon} size={14} />
+              </span>
+            ),
+          }))}
+        />
         <LayerToggles layers={layers} totals={totals} onToggle={onToggleLayer} />
       </div>
     </div>

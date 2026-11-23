@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "motion/react";
-import { Loader2 } from "@/components/ui/icons";
 import {
   authFailureCopy,
   EmailAuthError,
@@ -23,18 +22,11 @@ import {
   type SignInEmailValues,
 } from "@/lib/auth/email-schemas";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { OtpInput } from "@/components/auth/otp-input";
-import { PasswordInput } from "@/components/auth/password-input";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/button";
+import { CodeInput } from "@/components/code-input";
+import { Input } from "@/components/input";
+import { PasswordInput } from "@/components/password-input";
+import { AuthFieldError } from "@/components/auth/auth-field-error";
 import { EASE, DUR } from "@/lib/motion";
 
 type SignInMode =
@@ -56,13 +48,27 @@ function StepPanel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** The divider between the provider and the email path, composed from tokens. */
+function OrWithEmailSeparator() {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-px flex-1 bg-border" />
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        or with email
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
 /**
- * The sign-in page's working part, rebuilt on the login-04 grammar: Google,
- * email + password (with the see-password affordance), the emailed
- * one-time-code login (boxed input), and the TOTP second step (boxed input).
- * Success replaces history with `/dashboard?welcome=1` — the workspace
- * toasts once off that param and strips it, so the sign-in page never
- * lingers in history.
+ * The sign-in page's working part, rebuilt on the Hairline controls: Google
+ * (the brand mark carried in the shared Button), email + password (the
+ * see-password affordance comes with the Hairline password input), the
+ * emailed one-time-code login and the TOTP second step (the boxed
+ * code input). Success replaces history with `/dashboard?welcome=1` — the
+ * workspace toasts once off that param and strips it, so the sign-in page
+ * never lingers in history.
  */
 export function SignInForm({
   googleEnabled,
@@ -94,26 +100,24 @@ export function SignInForm({
           {mode.step === "credentials" ? (
             <div className="flex flex-col gap-6">
               <header className="flex flex-col gap-2">
-                <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+                <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
                   Welcome back
                 </h1>
-                <p className="text-sm leading-relaxed text-muted">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   Sign in to your private mock tracker.
                 </p>
               </header>
 
-              <FieldGroup className="gap-5">
-                <Field>
-                  <GoogleSignInButton
-                    enabled={googleEnabled}
-                    label="Sign in with Google"
-                    className="w-full justify-center"
-                  />
-                </Field>
+              <div className="flex flex-col gap-5">
+                <GoogleSignInButton
+                  enabled={googleEnabled}
+                  label="Sign in with Google"
+                  className="w-full justify-center"
+                />
 
                 {emailEnabled ? (
                   <>
-                    <FieldSeparator>or with email</FieldSeparator>
+                    <OrWithEmailSeparator />
                     <SignInCredentialsForm
                       onDone={done}
                       onTwoFactor={(email) => {
@@ -133,16 +137,16 @@ export function SignInForm({
                   </>
                 ) : null}
 
-                <FieldDescription className="text-center">
+                <p className="text-center text-[13px] leading-relaxed text-muted-foreground">
                   New here?{" "}
                   <Link
                     href="/sign-up"
-                    className="font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+                    className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
                   >
                     Create an account
                   </Link>
-                </FieldDescription>
-              </FieldGroup>
+                </p>
+              </div>
             </div>
           ) : null}
 
@@ -211,62 +215,53 @@ function SignInCredentialsForm({
       })}
     >
       {notice ? (
-        <p role="status" className="text-xs leading-relaxed text-positive">
+        <p role="status" className="text-xs leading-relaxed text-success">
           {notice}
         </p>
       ) : null}
-      <Field data-invalid={!!form.formState.errors.email || undefined}>
-        <FieldLabel htmlFor="signin-email">Email</FieldLabel>
-        <Input
-          id="signin-email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          aria-invalid={!!form.formState.errors.email || undefined}
-          {...form.register("email")}
-        />
-        {form.formState.errors.email ? (
-          <FieldError>{form.formState.errors.email.message}</FieldError>
-        ) : null}
-      </Field>
-      <Field data-invalid={!!form.formState.errors.password || undefined}>
-        <div className="flex items-center justify-between gap-2">
-          <FieldLabel htmlFor="signin-password">Password</FieldLabel>
-          <button
-            type="button"
-            className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
-            onClick={() => onOtp(form.getValues("email"))}
-          >
-            Email a code instead
-          </button>
-        </div>
-        <PasswordInput
-          id="signin-password"
-          autoComplete="current-password"
-          aria-invalid={!!form.formState.errors.password || undefined}
-          {...form.register("password")}
-        />
-        {form.formState.errors.password ? (
-          <FieldError>{form.formState.errors.password.message}</FieldError>
-        ) : null}
-      </Field>
-      <FieldError>{formError}</FieldError>
+      <Input
+        id="signin-email"
+        type="email"
+        autoComplete="email"
+        placeholder="you@example.com"
+        label="Email"
+        error={form.formState.errors.email?.message}
+        {...form.register("email")}
+      />
+      {/* The password label row carries the emailed-code affordance on its
+          right end (the Input has no aside slot, so the row is composed). */}
+      <div className="flex items-baseline justify-between gap-3 px-3 pb-1.5">
+        <label htmlFor="signin-password" className="text-[13px] font-medium text-foreground">
+          Password
+        </label>
+        <button
+          type="button"
+          className="cursor-pointer text-[12px] font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          onClick={() => onOtp(form.getValues("email"))}
+        >
+          Email a code instead
+        </button>
+      </div>
+      <PasswordInput
+        id="signin-password"
+        autoComplete="current-password"
+        error={form.formState.errors.password?.message}
+        {...form.register("password")}
+      />
+      <AuthFieldError>{formError}</AuthFieldError>
       <Button
         type="submit"
+        size="lg"
         disabled={form.formState.isSubmitting}
+        loading={form.formState.isSubmitting}
+        statusLabels={{ pending: "Signing in…" }}
         className="w-full justify-center"
       >
-        {form.formState.isSubmitting ? (
-          <>
-            <Loader2 size={14} className="animate-spin" aria-hidden /> Signing in…
-          </>
-        ) : (
-          "Sign in"
-        )}
+        Sign in
       </Button>
       <button
         type="button"
-        className="text-left text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+        className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
         onClick={() => onForgot(form.getValues("email"))}
       >
         Forgot password?
@@ -300,7 +295,6 @@ function OtpLogin({
 }) {
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
-  const [codeInvalid, setCodeInvalid] = useState(false);
   const requestForm = useForm<OtpRequestValues>({
     resolver: zodResolver(otpRequestSchema),
     defaultValues: { email: mode.email },
@@ -314,10 +308,10 @@ function OtpLogin({
     return (
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-2">
-          <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+          <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
             Sign in with a code
           </h1>
-          <p className="text-sm leading-relaxed text-muted">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             We email a 6-digit code — no password needed.
           </p>
         </header>
@@ -338,39 +332,31 @@ function OtpLogin({
             }
           })}
         >
-          <Field data-invalid={!!requestForm.formState.errors.email || undefined}>
-            <FieldLabel htmlFor="otp-email">Email</FieldLabel>
-            <Input
-              id="otp-email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              autoFocus
-              aria-invalid={!!requestForm.formState.errors.email || undefined}
-              {...requestForm.register("email")}
-            />
-            {requestForm.formState.errors.email ? (
-              <FieldError>{requestForm.formState.errors.email.message}</FieldError>
-            ) : null}
-          </Field>
-          <FieldError>{error}</FieldError>
-          <FieldError>{formError}</FieldError>
+          <Input
+            id="otp-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            label="Email"
+            autoFocus
+            error={requestForm.formState.errors.email?.message}
+            {...requestForm.register("email")}
+          />
+          <AuthFieldError>{error}</AuthFieldError>
+          <AuthFieldError>{formError}</AuthFieldError>
           <Button
             type="submit"
+            size="lg"
             disabled={requestForm.formState.isSubmitting}
+            loading={requestForm.formState.isSubmitting}
+            statusLabels={{ pending: "Sending…" }}
             className="w-full justify-center"
           >
-            {requestForm.formState.isSubmitting ? (
-              <>
-                <Loader2 size={14} className="animate-spin" aria-hidden /> Sending…
-              </>
-            ) : (
-              "Email me the code"
-            )}
+            Email me the code
           </Button>
           <Link
             href="/sign-in"
-            className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+            className="text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
           >
             Back to sign in
           </Link>
@@ -382,10 +368,10 @@ function OtpLogin({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
           Check your email
         </h1>
-        <p className="text-sm leading-relaxed text-muted">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           A 6-digit code is on its way to {mode.email}.
         </p>
       </header>
@@ -397,7 +383,6 @@ function OtpLogin({
             await signInWithOtp({ email: mode.email, code: values.code });
             onDone();
           } catch (e) {
-            setCodeInvalid(true);
             setError(
               e instanceof EmailAuthError
                 ? authFailureCopy(e.reason, e.retryAfterSeconds)
@@ -406,48 +391,38 @@ function OtpLogin({
           }
         })}
       >
-        <Field data-invalid={codeInvalid || undefined}>
-          <FieldLabel htmlFor="otp-code">Code</FieldLabel>
-          <OtpInput
-            value={code}
-            onChange={(next) => {
-              setCodeInvalid(false);
-              setCode(next);
-              codeForm.setValue("code", next, { shouldValidate: next.length === 6 });
-            }}
-            label="Sign-in code"
-            invalid={codeInvalid}
-            autoFocus
-          />
-          {codeForm.formState.errors.code ? (
-            <FieldError>{codeForm.formState.errors.code.message}</FieldError>
-          ) : null}
-        </Field>
-        <FieldError>{error}</FieldError>
-        <FieldError>{formError}</FieldError>
+        <CodeInput
+          value={code}
+          onValueChange={(next) => {
+            setCode(next);
+            codeForm.setValue("code", next, { shouldValidate: next.length === 6 });
+          }}
+          label="Sign-in code"
+          autoFocus
+        />
+        <AuthFieldError>{codeForm.formState.errors.code?.message}</AuthFieldError>
+        <AuthFieldError>{error}</AuthFieldError>
+        <AuthFieldError>{formError}</AuthFieldError>
         <Button
           type="submit"
+          size="lg"
           disabled={codeForm.formState.isSubmitting}
+          loading={codeForm.formState.isSubmitting}
+          statusLabels={{ pending: "Verifying…" }}
           className="w-full justify-center"
         >
-          {codeForm.formState.isSubmitting ? (
-            <>
-              <Loader2 size={14} className="animate-spin" aria-hidden /> Verifying…
-            </>
-          ) : (
-            "Verify and sign in"
-          )}
+          Verify and sign in
         </Button>
         <button
           type="button"
-          className="text-left text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+          className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
           onClick={() => setMode({ step: "otp", stage: "request", email: mode.email })}
         >
           Use a different email
         </button>
         <Link
           href="/sign-in"
-          className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+          className="text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
         >
           Back to sign in
         </Link>
@@ -471,7 +446,6 @@ function TotpStep({
 }) {
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
-  const [codeInvalid, setCodeInvalid] = useState(false);
   const form = useForm<{ code: string }>({
     resolver: zodResolver(totpVerifySchema),
     defaultValues: { code: "" },
@@ -480,10 +454,10 @@ function TotpStep({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
           Two-factor check
         </h1>
-        <p className="text-sm leading-relaxed text-muted">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           Enter the 6-digit code from your authenticator app
           {email ? ` for ${email}` : ""}.
         </p>
@@ -496,7 +470,6 @@ function TotpStep({
             await verifyTotpSignIn(values.code);
             onDone();
           } catch (e) {
-            setCodeInvalid(true);
             setError(
               e instanceof EmailAuthError
                 ? authFailureCopy(e.reason, e.retryAfterSeconds)
@@ -506,37 +479,27 @@ function TotpStep({
           }
         })}
       >
-        <Field data-invalid={codeInvalid || undefined}>
-          <FieldLabel htmlFor="totp-code">Authenticator code</FieldLabel>
-          <OtpInput
-            value={code}
-            onChange={(next) => {
-              setCodeInvalid(false);
-              setCode(next);
-              form.setValue("code", next, { shouldValidate: next.length === 6 });
-            }}
-            label="Authenticator code"
-            invalid={codeInvalid}
-            autoFocus
-          />
-          {form.formState.errors.code ? (
-            <FieldError>{form.formState.errors.code.message}</FieldError>
-          ) : null}
-        </Field>
-        <FieldError>{error}</FieldError>
-        <FieldError>{formError}</FieldError>
+        <CodeInput
+          value={code}
+          onValueChange={(next) => {
+            setCode(next);
+            form.setValue("code", next, { shouldValidate: next.length === 6 });
+          }}
+          label="Authenticator code"
+          autoFocus
+        />
+        <AuthFieldError>{form.formState.errors.code?.message}</AuthFieldError>
+        <AuthFieldError>{error}</AuthFieldError>
+        <AuthFieldError>{formError}</AuthFieldError>
         <Button
           type="submit"
+          size="lg"
           disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
+          statusLabels={{ pending: "Verifying…" }}
           className="w-full justify-center"
         >
-          {form.formState.isSubmitting ? (
-            <>
-              <Loader2 size={14} className="animate-spin" aria-hidden /> Verifying…
-            </>
-          ) : (
-            "Verify and sign in"
-          )}
+          Verify and sign in
         </Button>
       </form>
     </div>

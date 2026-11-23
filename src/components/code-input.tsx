@@ -236,7 +236,7 @@ export function CodeInput({
 
   return (
     <div className={`@container w-full ${className}`} {...props}>
-      <label htmlFor={id} className={`block text-[12.5px] transition-colors duration-300 ${wrong ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+      <label htmlFor={id} className={`block text-[12.5px] transition-colors duration-300 ${wrong ? "text-destructive" : "text-muted-foreground"}`}>
         <TextMorph>{labelText}</TextMorph>
       </label>
 
@@ -274,8 +274,8 @@ export function CodeInput({
           aria-hidden="true"
           className={`relative flex items-center gap-[var(--code-gap,8px)] rounded-[12px] @max-[19rem]:gap-[var(--code-gap,4px)] transition-[box-shadow,background-color] duration-500 ${phase === "checking" ? SHEEN : ""}`}
           style={{
-            boxShadow: right ? "0 0 0 1px color-mix(in oklab, #10b981 55%, transparent)" : "0 0 0 1px transparent",
-            background: right ? "color-mix(in oklab, #10b981 6%, var(--background))" : "transparent",
+            boxShadow: right ? "0 0 0 1px color-mix(in oklab, var(--success) 55%, transparent)" : "0 0 0 1px transparent",
+            background: right ? "color-mix(in oklab, var(--success) 6%, var(--background))" : "transparent",
             transitionTimingFunction: EASE,
           }}
         >
@@ -297,7 +297,7 @@ export function CodeInput({
                     boxShadow: right
                       ? "inset 0 0 0 1px transparent"
                       : wrong
-                        ? "inset 0 0 0 1px color-mix(in oklab, #ef4444 60%, transparent)"
+                        ? "inset 0 0 0 1px color-mix(in oklab, var(--destructive) 60%, transparent)"
                         : isActive
                           ? "inset 0 0 0 1.5px color-mix(in oklab, var(--ring) 70%, transparent)"
                           : "inset 0 0 0 1px var(--border)",
@@ -320,7 +320,7 @@ export function CodeInput({
             style={{ gridTemplateColumns: right ? "1fr" : "0fr", opacity: right ? 1 : 0, transitionTimingFunction: EASE }}
           >
             <span className="flex min-w-0 items-center overflow-hidden">
-              <svg viewBox="0 0 16 16" className="ml-1 mr-3 size-4 shrink-0 text-emerald-600" fill="none">
+              <svg viewBox="0 0 16 16" className="ml-1 mr-3 size-4 shrink-0 text-success" fill="none">
                 <path
                   d="M3.5 8.5 6.5 11.5 12.5 4.5"
                   stroke="currentColor"

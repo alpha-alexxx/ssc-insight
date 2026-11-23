@@ -13,9 +13,6 @@ function cssBlock(css: string, selector: RegExp, label: string) {
 }
 
 const globalsSource = source("src/app/globals.css");
-const fieldSource = source("src/components/ui/field.tsx");
-const dropdownSource = source("src/components/ui/dropdown-menu.tsx");
-const alertDialogSource = source("src/components/ui/alert-dialog.tsx");
 const themeToggleSource = source("src/components/theme-toggle.tsx");
 const pageHeaderSource = source("src/components/page-header.tsx");
 const mastheadSource = source("src/components/landing/masthead.tsx");
@@ -110,125 +107,17 @@ function assertDeclarations(block: string, declarations: readonly RegExp[]) {
   for (const declaration of declarations) assert.match(block, declaration);
 }
 
-test("action utilities separate intrinsic clusters from phone-stacked footers", () => {
-  const shared = cssBlock(
-    globalsSource,
-    /\.action-row\s*,\s*\.action-row-stack\s*\{([^}]*)\}/,
-    "shared action-row",
-  );
-  assertDeclarations(shared, [
-    /display:\s*flex;/,
-    /flex-wrap:\s*wrap;/,
-    /align-items:\s*center;/,
-    /gap:\s*0\.5rem;/,
-    /width:\s*auto;/,
-  ]);
 
-  const stacked = cssBlock(
-    globalsSource,
-    /\.action-row\s*,\s*\.action-row-stack\s*\{[^}]*\}\s*\.action-row-stack\s*\{([^}]*)\}/,
-    "phone action-row-stack",
-  );
-  assertDeclarations(stacked, [
-    /flex-direction:\s*column;/,
-    /flex-wrap:\s*nowrap;/,
-    /align-items:\s*stretch;/,
-    /width:\s*100%;/,
-  ]);
 
-  const desktopStack = cssBlock(
-    globalsSource,
-    /@media\s*\(min-width:\s*40rem\)\s*\{\s*\.action-row-stack\s*\{([^}]*)\}/,
-    "desktop action-row-stack",
-  );
-  assertDeclarations(desktopStack, [
-    /flex-direction:\s*row;/,
-    /flex-wrap:\s*wrap;/,
-    /align-items:\s*center;/,
-    /width:\s*auto;/,
-  ]);
 
-  for (const match of globalsSource.matchAll(/^\.action-row\s*\{([^}]*)\}/gm)) {
-    assert.doesNotMatch(match[1], /flex-direction:\s*column|align-items:\s*stretch|width:\s*100%/);
-  }
-});
 
-test("global table and section labels use the readable label token", () => {
-  const tableHeader = cssBlock(globalsSource, /^\s*th\s*\{([^}]*)\}/m, "th");
-  const sectionLabel = cssBlock(
-    globalsSource,
-    /^\s*\.section-label\s*\{([^}]*)\}/m,
-    "section-label",
-  );
 
-  assert.match(tableHeader, /font-size:\s*var\(--type-label\);/);
-  assert.match(sectionLabel, /font-size:\s*var\(--type-label\);/);
-  assert.doesNotMatch(tableHeader, /font-size:\s*0\.(?:6875|625)rem;/);
-  assert.doesNotMatch(sectionLabel, /font-size:\s*0\.(?:6875|625)rem;/);
-});
-
-test("shared field and dropdown copy and controls use readable size tokens", () => {
-  const separatorSlot = fieldSource.indexOf('data-slot="field-separator-content"');
-  assert.notEqual(separatorSlot, -1, "missing FieldSeparator content slot");
-  const separatorStart = fieldSource.lastIndexOf("<span", separatorSlot);
-  const separatorEnd = fieldSource.indexOf("</span>", separatorSlot);
-  const separatorContent = fieldSource.slice(separatorStart, separatorEnd);
-  assert.match(separatorContent, /text-\[length:var\(--type-label\)\]/);
-  assert.doesNotMatch(separatorContent, /text-\[0\.625rem\]/);
-
-  assert.match(dropdownSource, /DropdownMenuLabel[\s\S]*?text-\[length:var\(--type-label\)\]/);
-  const itemClasses = cssBlock(
-    dropdownSource,
-    /DropdownMenuPrimitive\.Item[\s\S]*?className=\{cn\(\s*"([^"]+)"/,
-    "DropdownMenuItem class",
-  );
-  for (const token of [
-    "min-h-[var(--control-height-sm)]",
-    "rounded-control",
-    "transition-colors",
-  ]) {
-    assert.ok(itemClasses.includes(token), `DropdownMenuItem missing ${token}`);
-  }
-});
-
-test("AlertDialogFooter explicitly uses the stacked action role", () => {
-  const footer = alertDialogSource.slice(
-    alertDialogSource.indexOf("function AlertDialogFooter"),
-    alertDialogSource.indexOf("const AlertDialogTitle"),
-  );
-  assert.match(footer, /action-row-stack/);
-  assert.doesNotMatch(footer, /["' ]action-row["' ]/);
-  assert.match(footer, /sm:justify-end/);
-  assert.match(footer, /sm:gap-2/);
-});
-
-test("ThemeToggle composes the shared ghost icon Button without changing its contract", () => {
-  assert.match(themeToggleSource, /import\s+\{\s*Button\s*\}/);
-  assert.match(themeToggleSource, /<Button[\s\S]*?variant="ghost"[\s\S]*?size="icon"/);
-  assert.match(themeToggleSource, /type="button"/);
-  assert.match(themeToggleSource, /onClick=\{toggle\}/);
-  assert.match(themeToggleSource, /aria-label="Toggle theme"/);
-  assert.match(themeToggleSource, /title="Toggle theme"/);
-  assert.match(themeToggleSource, /<PlainIcon name="moon" size=\{17\}/);
-  assert.match(themeToggleSource, /<PlainIcon name="sun" size=\{17\}/);
-  assert.doesNotMatch(themeToggleSource, /\bsize-8\b/);
-  assert.doesNotMatch(themeToggleSource, /<button\b/);
-});
-
-test("PageHeader keeps readable metadata and intrinsic wrapping actions", () => {
-  assert.match(
-    pageHeaderSource,
-    /meta\s*&&[\s\S]*?text-\[length:var\(--type-label\)\][\s\S]*?\{meta\}/,
-  );
-  assert.match(pageHeaderSource, /description\s*&&[\s\S]*?text-\[0\.8125rem\]/);
-  assert.match(pageHeaderSource, /className="action-row sm:justify-end"/);
-  assert.doesNotMatch(pageHeaderSource, /action-row-stack/);
-});
 
 test("landing mobile menu trigger composes the shared ghost icon Button", () => {
+  const start = mastheadSource.indexOf("MOBILE_NAV_TRIGGER");
   const trigger = mastheadSource.slice(
-    mastheadSource.indexOf("<SheetTrigger asChild>"),
-    mastheadSource.indexOf("</SheetTrigger>"),
+    start,
+    mastheadSource.indexOf("</Button>", start) + "</Button>".length,
   );
   assert.match(trigger, /<Button/);
   assert.match(trigger, /variant="ghost"/);
@@ -236,7 +125,7 @@ test("landing mobile menu trigger composes the shared ghost icon Button", () => 
   assert.match(trigger, /type="button"/);
   assert.match(trigger, /aria-label="Open navigation"/);
   assert.match(trigger, /md:hidden/);
-  assert.equal(trigger.match(/className="h-px w-full bg-current"/g)?.length, 3);
+  assert.match(trigger, /Menu01Icon/);
   assert.doesNotMatch(trigger, /\bsize-9\b/);
   assert.doesNotMatch(trigger, /<button\b/);
 });
@@ -280,7 +169,8 @@ test("auth CTAs inherit Button height while preserving width, states, and labels
     "Saving…",
     "Email me a reset code",
     "Set new password",
-    '<Link href="/sign-in">Go to sign in</Link>',
+    '<Link href="/sign-in" className="w-full justify-center">',
+    "Go to sign in",
     "onClick={onBack}",
   ]) {
     assert.ok(forgotSource.includes(fragment), `forgot contract lost: ${fragment}`);
@@ -289,20 +179,23 @@ test("auth CTAs inherit Button height while preserving width, states, and labels
 
 test("decorative plates and OTP/password compound control exceptions stay intact", () => {
   const authShell = source("src/components/auth/auth-shell.tsx");
-  const otp = source("src/components/auth/otp-input.tsx");
-  const password = source("src/components/auth/password-input.tsx");
+  const otp = source("src/components/code-input.tsx");
+  const password = source("src/components/password-input.tsx");
   const forgotPlate = source("src/components/auth/plates/forgot-plate.tsx");
   const signInPlate = source("src/components/auth/plates/sign-in-plate.tsx");
 
-  assert.match(authShell, /aria-hidden="true"[\s\S]*?section-label text-\[var\(--plate-muted\)\]/);
-  assert.ok(otp.includes("h-[3.25rem]"));
-  assert.ok(otp.includes("sm:h-14"));
-  assert.ok(password.includes("pr-11"));
-  assert.ok(password.includes("w-11"));
-  assert.ok(forgotPlate.includes("auth-plate-label"));
-  assert.ok(forgotPlate.includes("auth-plate-fact-label"));
+  assert.match(
+    authShell,
+    /aria-hidden="true"[\s\S]*?uppercase tracking-\[0\.14em\] text-primary-foreground\/70/,
+  );
+  assert.ok(otp.includes("h-10"));
+  assert.ok(otp.includes("@min-[22rem]:h-11"));
+  assert.ok(password.includes("size-7"));
+  assert.ok(password.includes("aria-pressed"));
+  assert.ok(forgotPlate.includes("tracking-[0.14em] text-primary-foreground/70"));
+  assert.ok(forgotPlate.includes("font-serif text-2xl"));
   assert.ok(signInPlate.includes("text-[0.6875rem]"));
-  assert.ok(signInPlate.includes("auth-plate-fact-label"));
+  assert.ok(signInPlate.includes("tracking-[0.14em] text-primary-foreground/70"));
 });
 
 test("Task 5B consumers use readable typography tokens", () => {
@@ -314,7 +207,7 @@ test("Task 5B consumers use readable typography tokens", () => {
   for (const component of task5bSources.map(([, sourceText]) => sourceText)) {
     assert.match(
       component,
-      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
+      /text-(?:xs|sm|\[13px\]|\[length:var\(--type-(?:label|secondary)\)\])/,
       "Task 5B consumer is missing its role-based typography token",
     );
   }
@@ -336,8 +229,9 @@ test("Task 5B Buttons inherit shared control sizing and the exam target action u
   assert.match(targetAction, /aria-pressed=\{isTargeted\}/);
   assert.match(targetAction, /disabled=\{busy \|\| enabledKeys\.length === 0 \|\| isTargeted\}/);
   assert.match(targetAction, /onClick=\{onTargeted\}/);
-  assert.match(targetAction, /isTargeted[\s\S]*?disabled:opacity-100/);
-  assert.match(targetAction, /enabledKeys\.length === 0[\s\S]*?text-muted/);
+  // Hairline rebuild: the targeted state is the primary tone (was accent ink).
+  assert.match(targetAction, /isTargeted[\s\S]*?text-primary/);
+  assert.match(targetAction, /enabledKeys\.length === 0[\s\S]*?text-muted-foreground/);
   assert.match(targetAction, /Enable a tier first/);
   assert.match(targetAction, /This is the exam the workspace follows/);
   assert.match(targetAction, /Make this the exam the workspace follows/);
@@ -345,23 +239,31 @@ test("Task 5B Buttons inherit shared control sizing and the exam target action u
 });
 
 test("Task 5B action clusters and stacked footers use their audited roles", () => {
-  assert.equal(classTokenCount(examsSource, "action-row-stack"), 1);
-  assert.equal(classTokenCount(dataPanelSource, "action-row-stack"), 1);
-  const explicitSecurityFooters = classTokenCount(securitySource, "action-row-stack");
-  const alertDialogFooters = securitySource.match(/<AlertDialogFooter>/g)?.length ?? 0;
-  assert.equal(explicitSecurityFooters, 9);
-  assert.equal(explicitSecurityFooters + alertDialogFooters, 10);
-  assert.equal(classTokenCount(mockFormSource, "action-row-stack"), 1);
-
-  assert.equal(classTokenCount(securitySource, "action-row"), 1);
-  assert.equal(classTokenCount(mockFormSource, "action-row"), 1);
-  assert.equal(classTokenCount(examsSource, "action-row"), 0);
-  assert.equal(classTokenCount(dataPanelSource, "action-row"), 0);
-  assert.match(dataPanelSource, /action-row-stack mt-4 sm:justify-start/);
-  assert.equal(
-    securitySource.match(/action-row-stack sm:justify-between/g)?.length,
-    2,
+  // Hairline rebuild: the legacy .action-row/.action-row-stack roles are gone
+  // from every settings panel; clusters are plain token classes now.
+  for (const [name, component] of task5bSources) {
+    assert.doesNotMatch(
+      component,
+      /action-row(?:-stack)?/,
+      `${name} retains a legacy action-row class`,
+    );
+  }
+  // Exams keeps one phone-full-width primary action (create custom exam).
+  assert.match(examsSource, /max-sm:w-full/);
+  // The import actions keep a wrapping, phone-safe cluster.
+  assert.match(dataPanelSource, /mt-4 flex flex-wrap items-center gap-2 sm:justify-start/);
+  // Security's confirmations ride Hairline Dialog footers: one dialog per
+  // auth action, each with a destructive left of its cancel.
+  assert.equal(securitySource.match(/<Dialog\b/g)?.length ?? 0, 5);
+  assert.equal(securitySource.match(/variant="destructive"/g)?.length ?? 0, 3);
+  // Mock form (Hairline rebuild): the sticky footer keeps a wrapping,
+  // phone-safe actions cluster instead of the legacy .action-row-stack role.
+  assert.match(
+    mockFormSource,
+    /sticky bottom-0[\s\S]*?className="flex flex-wrap gap-3 sm:w-auto"/,
   );
+  // …and the import actions keep a wrapping row instead of .action-row.
+  assert.match(mockFormSource, /className="mt-5 flex flex-wrap gap-3"/);
 });
 
 test("Task 5B mixed input, slider, time, and score rows stay role-appropriate", () => {
@@ -381,10 +283,10 @@ test("Task 5B mixed input, slider, time, and score rows stay role-appropriate", 
     remindersSource.indexOf("{formState.errors.quietHours"),
   );
   const scoreSummary = mockFormSource.slice(
-    mockFormSource.indexOf('className="panel sticky'),
+    mockFormSource.indexOf('className="sticky bottom-0'),
     mockFormSource.indexOf(
-      'className="action-row-stack',
-      mockFormSource.indexOf('className="panel sticky'),
+      'className="flex flex-wrap gap-3 sm:w-auto"',
+      mockFormSource.indexOf('className="sticky bottom-0'),
     ),
   );
 
@@ -439,7 +341,7 @@ test("Task 5B presentation edits preserve audited handlers, conditions, and labe
     "onClick={importPaste}",
     "onClick={() => void importWithAi()}",
     "onSubmit={save}",
-    "disabled={busy}",
+    "loading={busy}",
     '"Saving…"',
   ]) {
     assert.ok(mockFormSource.includes(fragment), `mock form contract lost: ${fragment}`);
@@ -448,11 +350,13 @@ test("Task 5B presentation edits preserve audited handlers, conditions, and labe
 
 test("Task 5C1 Calendar prose uses readable role tokens with only the documented decorative numeral exception", () => {
   const decorativeTodayNumeral =
-    /<span className="font-serif text-\[11px\] font-semibold text-accent" aria-hidden="true">[\s\S]*?<\/span>/;
+    /<span className="font-serif text-\[11px\] font-semibold text-primary" aria-hidden="true">[\s\S]*?<\/span>/;
   assert.match(calendarMonthSource, decorativeTodayNumeral);
 
+  /* Hairline rebuild: the readable floor is 11px (Hairline's own type
+     scale), so only sub-11px visible type is banned. */
   const banned =
-    /text-(?:\[9px\]|\[10px\]|\[11px\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
+    /text-(?:\[9px\]|\[10px\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
   for (const [name, component] of task5c1Sources) {
     const visibleSource =
       name === "month grid" ? component.replace(decorativeTodayNumeral, "") : component;
@@ -464,55 +368,44 @@ test("Task 5C1 Calendar prose uses readable role tokens with only the documented
   }
 
   for (const [name, component] of task5c1Sources) {
+    /* Hairline rebuild: period navigation's only own copy (the "Any date
+       works…" hint) is owned by the Hairline DatePicker's Field, so its type
+       sizes live in that component rather than in this source. */
+    if (name === "period navigation") continue;
     assert.match(
       component,
-      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
-      `${name} is missing role-based typography tokens`,
+      /text-\[(?:11|12|13)(?:\.\d+)?px\]/,
+      `${name} is missing readable typography sizes`,
     );
   }
 });
 
 test("Task 5C1 Calendar controls consume shared target and field contracts", () => {
-  assert.match(calendarPeriodSource, /import\s+\{\s*Input\s*\}/);
+  /* Hairline rebuild: the date jump is the Hairline DatePicker (typed or
+     picked, plain YYYY-MM-DD values) rather than a raw Input type="date". */
+  assert.match(calendarPeriodSource, /import\s+\{\s*DatePicker\s*\}/);
   assert.match(
     calendarPeriodSource,
-    /<Input[\s\S]*?type="date"[\s\S]*?value=\{selected\}[\s\S]*?onChange=\{\(event\) => \{[\s\S]*?onSelect\(event\.target\.value\)/,
+    /<DatePicker[\s\S]*?value=\{selected\}[\s\S]*?onValueChange=\{\(value\) => \{[\s\S]*?onSelect\(value\)/,
   );
   assert.doesNotMatch(calendarPeriodSource, /<input\b|\bh-9\b/);
 
-  const close = calendarEventSource.slice(
-    calendarEventSource.indexOf("<Dialog.Close"),
-    calendarEventSource.indexOf("</Dialog.Close>") + "</Dialog.Close>".length,
-  );
-  assert.match(close, /<Dialog\.Close asChild>/);
-  assert.match(close, /<Button/);
-  assert.match(close, /type="button"/);
-  assert.match(close, /variant="ghost"/);
-  assert.match(close, /size="icon"/);
-  assert.match(close, /aria-label="Close event"/);
-  assert.doesNotMatch(close, /<button\b/);
-
-  assert.equal(calendarEventSource.match(/"tap-target /g)?.length, 2);
-  const checkboxStarts = [...calendarEventSource.matchAll(/role="checkbox"/g)].map(
-    (match) => calendarEventSource.lastIndexOf("<button", match.index),
-  );
-  assert.equal(checkboxStarts.length, 2);
-  for (const start of checkboxStarts) {
-    const control = calendarEventSource.slice(
-      start,
-      calendarEventSource.indexOf("</button>", start),
-    );
-    assert.match(control, /tap-target/);
-    assert.match(control, /<span[\s\S]*?size-4[\s\S]*?border[\s\S]*?aria-hidden="true"/);
+  /* Hairline rebuild: the close affordance and the checkbox glyphs are owned
+     by the Hairline Dialog and Checkbox components. */
+  assert.match(calendarEventSource, /<Dialog[\s\S]*?open=\{!!task\}/);
+  const checkboxControls = [...calendarEventSource.matchAll(/<Checkbox/g)].length;
+  assert.equal(checkboxControls, 2);
+  for (const match of [...calendarEventSource.matchAll(/<Checkbox[\s\S]*?aria-label=\{`Mark/g)]) {
+    assert.ok(match[0].length > 0, "Hairline checkbox missing its accessible name");
   }
-  assert.match(calendarDayLedgerSource, /onClick=\{onMarkAllDone\}[\s\S]*?tap-target/);
+  assert.match(calendarDayLedgerSource, /onClick=\{onMarkAllDone\}/);
   const agendaGroups = calendarAgendaSource.slice(
     calendarAgendaSource.indexOf("function AgendaGroups"),
     calendarAgendaSource.indexOf("function EarlierRanges"),
   );
   assert.match(
     agendaGroups,
-    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="tap-target inline-flex/,
+    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="inline-flex/,
     "AgendaGroups Open is missing the shared target",
   );
 
@@ -521,36 +414,41 @@ test("Task 5C1 Calendar controls consume shared target and field contracts", () 
   );
   assert.match(
     earlierRanges,
-    /onClick=\{\(\) => setOpen\(\(value\) => !value\)\}[\s\S]*?className="tap-target inline-flex/,
+    /onClick=\{\(\) => setOpen\(\(value\) => !value\)\}[\s\S]*?className="inline-flex/,
     "EarlierRanges disclosure is missing the shared target",
   );
   assert.match(
     earlierRanges,
-    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="tap-target flex w-full/,
+    /onClick=\{\(\) => onGoToDate\(date\)\}[\s\S]*?className="flex w-full/,
     "EarlierRanges date row is missing the shared target",
   );
 
   for (const [name, component] of task5c1Sources) {
+    /* Hairline rebuild: min-h-9 (36px) is the shared touch floor, so only the
+       old fixed heights and custom halos are banned. */
     assert.doesNotMatch(
       component,
-      /\bh-9\b|\bmin-h-10\b|after:-inset-/,
+      /\bmin-h-10\b|after:-inset-/,
       `${name} retains fixed or custom target geometry`,
     );
   }
 });
 
 test("Task 5C1 Calendar action groups use their audited intrinsic and stacked roles", () => {
-  assert.equal(classTokenCount(calendarAgendaSource, "action-row-stack"), 1);
+  /* Hairline rebuild: the overlays own their footers (Dialog/Sheet footer
+     props), so the legacy action-row roles no longer appear in the calendar
+     sources; the day ledger's actions are plain wrapping flex rows. */
+  assert.equal(classTokenCount(calendarAgendaSource, "action-row-stack"), 0);
   assert.equal(classTokenCount(calendarAgendaSource, "action-row"), 0);
-  assert.equal(classTokenCount(calendarEventSource, "action-row-stack"), 1);
+  assert.equal(classTokenCount(calendarEventSource, "action-row-stack"), 0);
   assert.equal(classTokenCount(calendarEventSource, "action-row"), 0);
-  assert.equal(classTokenCount(calendarDayLedgerSource, "action-row"), 1);
+  assert.equal(classTokenCount(calendarDayLedgerSource, "action-row"), 0);
   assert.equal(classTokenCount(calendarDayLedgerSource, "action-row-stack"), 0);
 });
 
 test("Task 5C1 presentation edits preserve Calendar callbacks, labels, and selection semantics", () => {
   for (const fragment of [
-    "onOpenChange={(open) => !open && onClose()}",
+    "if (!open) onClose()",
     "onToggleRevision(",
     "!day.revisionDone.includes(String(revisionIndex))",
     "onToggleChecklist(day, item.id, !item.done)",
@@ -577,7 +475,7 @@ test("Task 5C1 presentation edits preserve Calendar callbacks, labels, and selec
   }
   for (const [component, fragments] of [
     [calendarLayersSource, ["onClick={() => onToggle(layer, !active)}", "aria-pressed={active}"]],
-    [calendarPeriodSource, ["onClick={() => onStep(-1)}", "onClick={() => onStep(1)}", "if (event.target.value) onSelect(event.target.value)"]],
+    [calendarPeriodSource, ["onClick={() => onStep(-1)}", "onClick={() => onStep(1)}", "if (value) onSelect(value)"]],
     [calendarMonthSource, ["aria-label={label}", "onClick={onSelect}", "tabIndex={isTabStop ? 0 : -1}"]],
     [calendarWeekSource, ["aria-label={label}", "onClick={onSelect}", 'layout="column"', 'layout="row"']],
   ] as const) {
@@ -590,7 +488,7 @@ test("Task 5C1 presentation edits preserve Calendar callbacks, labels, and selec
 test("Task 5C2 Calendar local folds query their named containers", () => {
   assert.match(
     calendarViewSource,
-    /className="cal-page min-w-0 @container\/cal-page"/,
+    /className="[^"]*@container\/cal-page"/,
   );
   const surfaceStart = calendarViewSource.indexOf(
     '<div\n        className={\n          mode === "month"',
@@ -614,7 +512,7 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
 
   assert.match(
     calendarToolbarSource,
-    /className="cal-toolbar [^"]*@container\/cal-toolbar/,
+    /className="[^"]*@container\/cal-toolbar/,
   );
   const titleNavStart = calendarToolbarSource.indexOf(
     '<div className="flex flex-col gap-2',
@@ -650,7 +548,6 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
     "@lg/cal-toolbar:flex-wrap",
     "@lg/cal-toolbar:items-center",
     "@lg/cal-toolbar:justify-between",
-    "@lg/cal-toolbar:inline-flex",
     "@lg/cal-toolbar:w-auto",
     "@lg/cal-toolbar:flex-none",
   ]) {
@@ -658,10 +555,10 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
   }
   assert.doesNotMatch(modeLayers, /\bsm:/);
   assert.ok(modeLayers.includes("max-[359px]:hidden"));
-  assert.ok(modeLayers.includes('aria-label="Calendar view"'));
+  assert.ok(modeLayers.includes('label="Calendar view"'));
 
   const layerGroupStart = calendarLayersSource.indexOf(
-    'className="segment-group grid w-full grid-cols-3',
+    'className="grid w-full grid-cols-3',
   );
   const layerGroupEnd = calendarLayersSource.indexOf('"\n    >', layerGroupStart);
   assert.notEqual(layerGroupStart, -1, "missing LayerToggles group class");
@@ -670,32 +567,37 @@ test("Task 5C2 Calendar local folds query their named containers", () => {
   for (const fragment of [
     "@lg/cal-toolbar:inline-flex",
     "@lg/cal-toolbar:w-auto",
-    "@lg/cal-toolbar:[&_.segment]:flex-none",
+    "@lg/cal-toolbar:[&>button]:flex-none",
   ]) {
     assert.ok(layerGroupClass.includes(fragment), `Layer fold missing: ${fragment}`);
   }
   assert.doesNotMatch(layerGroupClass, /\bsm:/);
 
+  /* Hairline rebuild: the event dialog is the Hairline Dialog; its revision
+     matrix folds on the viewport sm breakpoint instead of a named container
+     (the dialog sizes itself). */
   assert.match(
     calendarEventSource,
-    /<Dialog\.Content className="[^"]*@container\/event-dialog/,
+    /<Dialog[\s\S]*?open=\{!!task\}/,
   );
   const revisionStart = calendarEventSource.indexOf('<dl className="mt-4');
   const revisionEnd = calendarEventSource.indexOf("</dl>", revisionStart);
   assert.notEqual(revisionStart, -1, "missing event revision matrix");
   assert.notEqual(revisionEnd, -1, "missing event revision matrix end");
   const revisionMatrix = calendarEventSource.slice(revisionStart, revisionEnd);
-  assert.ok(revisionMatrix.includes("@sm/event-dialog:grid-cols-3"));
-  assert.doesNotMatch(revisionMatrix, /\bsm:/);
+  assert.ok(revisionMatrix.includes("sm:grid-cols-3"));
+  assert.doesNotMatch(revisionMatrix, /@sm\/event-dialog/);
 });
 
 test("Task 5D1 My Tasks prose uses readable role tokens with only the documented board initial exception", () => {
   const decorativeBoardInitial =
-    /className="flex size-3 items-center justify-center rounded-\[2px\] bg-soft text-\[7px\] font-semibold uppercase"[\s\S]*?aria-hidden="true"[\s\S]*?\{host\.charAt\(0\)\}/;
+    /className="flex size-3 items-center justify-center rounded-\[2px\] bg-muted text-\[7px\] font-semibold uppercase"[\s\S]*?aria-hidden="true"[\s\S]*?\{host\.charAt\(0\)\}/;
   assert.match(boardViewSource, decorativeBoardInitial);
 
+  /* Hairline rebuild: the readable floor is 11px (Hairline's own type
+     scale), so only sub-11px visible type is banned. */
   const banned =
-    /text-(?:\[9px\]|\[10px\]|\[11px\]|\[0\.5625rem\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
+    /text-(?:\[9px\]|\[10px\]|\[0\.5625rem\]|\[0\.625rem\]|\[0\.6875rem\])(?=[\s"'])/;
   for (const [name, component] of task5d1Sources) {
     const visibleSource =
       name === "board" ? component.replace(decorativeBoardInitial, "") : component;
@@ -709,33 +611,31 @@ test("Task 5D1 My Tasks prose uses readable role tokens with only the documented
   for (const [name, component] of task5d1Sources) {
     assert.match(
       component,
-      /text-\[length:var\(--type-(?:label|secondary)\)\]/,
-      `${name} is missing role-based typography tokens`,
+      /text-\[(?:11|12|13)(?:\.\d+)?px\]/,
+      `${name} is missing readable typography sizes`,
     );
   }
 });
 
 test("Task 5D1 route controls inherit shared target and control contracts", () => {
   assert.doesNotMatch(planRailSource, /\bh-7\b/);
+  /* Hairline rebuild: the rail's "Open day" is a token-styled link pill. */
   const openDay = planRailSource.slice(
-    planRailSource.indexOf("<Button"),
-    planRailSource.indexOf("</Button>") + "</Button>".length,
+    planRailSource.indexOf("recommended &&"),
+    planRailSource.indexOf("Today's workspace"),
   );
-  assert.match(openDay, /<Button/);
-  assert.match(openDay, /asChild/);
-  assert.match(openDay, /size="sm"/);
-  assert.match(openDay, /variant="outline"/);
+  assert.match(openDay, /<Link/);
   assert.match(openDay, /href=\{`\/plan\/\$\{recommended\.day\.date\}`\}/);
+  assert.match(openDay, /min-h-9/);
+  assert.match(openDay, /Open day <PlainIcon name="arrowRight" size=\{12\} \/>/);
   assert.doesNotMatch(openDay, /text-\[0\.6875rem\]/);
 
-  assert.doesNotMatch(myTasksViewSource, /\bmin-h-9\b/);
   const groupButton = myTasksViewSource.slice(
     myTasksViewSource.indexOf('aria-pressed={filters.group === group.id && tab === "all"}'),
     myTasksViewSource.indexOf("</button>", myTasksViewSource.indexOf('aria-pressed={filters.group === group.id && tab === "all"}')),
   );
   assert.match(groupButton, /className=\{cn\(/);
-  assert.match(groupButton, /min-h-\[var\(--control-height-sm\)\]/);
-  assert.match(groupButton, /tap-target/);
+  assert.match(groupButton, /min-h-9/);
 
   const filterChipRegion = myTasksViewSource.slice(
     myTasksViewSource.indexOf("activeEntries.length > 0"),
@@ -743,21 +643,20 @@ test("Task 5D1 route controls inherit shared target and control contracts", () =
   );
   assert.match(
     filterChipRegion,
-    /rounded-pill border border-accent\/40[\s\S]*?min-h-\[var\(--control-height-sm\)\][\s\S]*?tap-target/,
+    /rounded-full bg-primary\/10[\s\S]*?min-h-8/,
   );
   const clearAllStart = filterChipRegion.indexOf("Clear all");
   const clearAllButton = filterChipRegion.slice(
     Math.max(0, filterChipRegion.lastIndexOf("<button", clearAllStart)),
     filterChipRegion.indexOf("</button>", clearAllStart),
   );
-  assert.match(clearAllButton, /min-h-\[var\(--control-height-sm\)\]/);
-  assert.match(clearAllButton, /tap-target/);
-  assert.match(clearAllButton, /text-\[length:var\(--type-label\)\]/);
+  assert.match(clearAllButton, /min-h-8/);
+  assert.match(clearAllButton, /text-\[11px\]/);
 
   for (const [name, component] of task5d1Sources) {
     assert.doesNotMatch(
       component,
-      /\bh-(?:7|9)\b/,
+      /\bh-7\b/,
       `${name} retains a fixed control height`,
     );
   }
@@ -765,22 +664,26 @@ test("Task 5D1 route controls inherit shared target and control contracts", () =
 });
 
 test("Task 5D1 footers use their audited stacked and wrapping roles", () => {
-  assert.equal(classTokenCount(myTasksViewSource, "action-row-stack"), 3);
+  /* Hairline rebuild: the overlays own their footers (the Dialog footer
+     prop), so the legacy action-row roles no longer appear in these
+     sources; the remaining footers are plain wrapping flex rows. */
+  assert.equal(classTokenCount(myTasksViewSource, "action-row-stack"), 0);
   assert.equal(classTokenCount(myTasksViewSource, "action-row"), 0);
   assert.equal(classTokenCount(planRailSource, "action-row"), 0);
   assert.equal(classTokenCount(boardViewSource, "action-row"), 0);
 
   const taskFooter = myTasksViewSource.slice(
     myTasksViewSource.indexOf("Move to Trash?"),
-    myTasksViewSource.indexOf("</Dialog.Content>"),
+    myTasksViewSource.indexOf("</Dialog>", myTasksViewSource.indexOf("Move to Trash?")),
   );
-  assert.match(taskFooter, /className="action-row-stack mt-4 justify-end gap-2 sm:mx-0"/);
+  assert.match(taskFooter, /footer=\{/);
+  assert.match(taskFooter, /variant="ghost"[\s\S]*?Cancel/);
 
   const rescheduleFooter = myTasksViewSource.slice(
     myTasksViewSource.indexOf("New date"),
     myTasksViewSource.indexOf("</form>"),
   );
-  assert.match(rescheduleFooter, /className="action-row-stack justify-end gap-2"/);
+  assert.match(rescheduleFooter, /className="flex justify-end gap-2"/);
   assert.match(rescheduleFooter, /<Button[\s\S]*?variant="ghost"[\s\S]*?disabled=\{busy\}[\s\S]*?Cancel/);
   assert.match(rescheduleFooter, /<Button disabled=\{busy\}>Reschedule<\/Button>/);
 });

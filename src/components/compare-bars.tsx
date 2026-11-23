@@ -326,7 +326,7 @@ export function CompareBars({
             <span className="min-w-0 [clip-path:inset(-4px_-2px)]">
               <span
                 className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11.5px] font-medium tabular-nums @md:text-[12.5px] ${
-                  up ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"
+                  up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
                 }`}
               >
                 <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3" style={{ transform: up ? "none" : "rotate(180deg)" }}>
@@ -399,7 +399,7 @@ export function CompareBars({
                         ref={(el) => {
                           lossRefs.current[i] = el;
                         }}
-                        className="absolute inset-x-0 bg-red-500/45 dark:bg-red-400/50"
+                        className="absolute inset-x-0 bg-destructive/45"
                         style={{ bottom: hc, height: hp - hc, opacity: 0 }}
                       />
                     )}
@@ -409,7 +409,7 @@ export function CompareBars({
                           ref={(el) => {
                             gainRefs.current[i] = el;
                           }}
-                          className="absolute inset-x-0 top-0 bg-emerald-500 dark:bg-emerald-400"
+                          className="absolute inset-x-0 top-0 bg-success"
                           style={{ height: Math.max(0, hc - hp), opacity: 0 }}
                         />
                       )}
@@ -453,7 +453,7 @@ export function CompareBars({
                 <span className="tabular-nums text-muted-foreground">
                   {shown ? fmt(shown.previous) : " "}
                 </span>
-                <span className={`font-medium tabular-nums ${shownChange >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`font-medium tabular-nums ${shownChange >= 0 ? "text-success" : "text-destructive"}`}>
                   {pct(shownChange)}
                 </span>
               </span>

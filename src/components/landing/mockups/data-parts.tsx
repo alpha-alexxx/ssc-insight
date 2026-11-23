@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { SubjectId } from "@/lib/domain";
 
 /**
  * Token-only display primitives for the landing page's product mockups.
@@ -8,24 +9,37 @@ import { cn } from "@/lib/utils";
  * static illustrations with their own sample data, and coupling them to the
  * live components would drag hooks, fetches and client state onto the public
  * page. What they DO share is the design language — the same divided metric
- * strip, the same chip grammar, the same chart tokens, the same square rules.
+ * strip, the same chip grammar, the same chart tokens, the same rules.
  *
  * Everything here is a server component with no hooks. Numbers arrive already
  * derived from `fixtures.ts`; nothing in this file computes or invents a
  * value.
  */
 
+/** Subject identity: quant/reasoning/english/ga/computer → chart-1..chart-5. */
+export function subjectChartColor(subjectId: SubjectId): string {
+  const index: Record<SubjectId, string> = {
+    quant: "var(--chart-1)",
+    reasoning: "var(--chart-2)",
+    english: "var(--chart-3)",
+    ga: "var(--chart-4)",
+    computer: "var(--chart-5)",
+  };
+  return index[subjectId] ?? "var(--primary)";
+}
+
 /* ---------- chips ---------- */
 
 export type ChipTone = "neutral" | "accent" | "positive" | "warning";
 
 const CHIP_TONES: Record<ChipTone, string> = {
-  neutral: "border-rule-soft bg-[var(--soft)] text-muted",
-  accent: "border-[color-mix(in_oklab,var(--accent)_28%,transparent)] bg-accent-soft text-accent",
+  neutral: "bg-muted text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]",
+  accent:
+    "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_28%,transparent)]",
   positive:
-    "border-[color-mix(in_oklab,var(--positive)_28%,transparent)] bg-positive-soft text-positive",
+    "bg-success/10 text-success shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--success)_28%,transparent)]",
   warning:
-    "border-[color-mix(in_oklab,var(--warning)_28%,transparent)] bg-warning-soft text-warning",
+    "bg-warning/10 text-warning shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--warning)_28%,transparent)]",
 };
 
 export function MockChip({
@@ -35,7 +49,16 @@ export function MockChip({
   children: ReactNode;
   tone?: ChipTone;
 }) {
-  return <span className={cn("mock-chip", CHIP_TONES[tone])}>{children}</span>;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center whitespace-nowrap rounded-full px-[0.65em] py-[0.22em] font-medium leading-none",
+        CHIP_TONES[tone],
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 /** Accuracy reads on a semantic ramp, never on a palette hue. */
@@ -47,6 +70,10 @@ export function accuracyTone(value: number | null): ChipTone {
 }
 
 /* ---------- figures ---------- */
+
+/** The small-caps label every mockup metric carries. */
+export const MOCK_LABEL =
+  "text-[0.78em] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
 export function MockStat({
   label,
@@ -63,25 +90,25 @@ export function MockStat({
 }) {
   return (
     <div className="min-w-0">
-      <p className="mock-label truncate">{label}</p>
-      <p className="mock-figure mt-1 flex items-baseline gap-1">
-        <span className={tone === "danger" ? "text-danger" : undefined}>
+      <p className={cn(MOCK_LABEL, "truncate")}>{label}</p>
+      <p className="mt-1 flex items-baseline gap-1 font-serif text-[1.2em] leading-none tabular-nums text-foreground">
+        <span className={tone === "danger" ? "text-destructive" : undefined}>
           {value}
         </span>
         {unit ? (
-          <span className="font-sans text-[0.62em] font-medium tracking-normal text-muted">
+          <span className="font-sans text-[0.62em] font-medium tracking-normal text-muted-foreground">
             {unit}
           </span>
         ) : null}
       </p>
       {hint ? (
-        <p className="mt-0.5 truncate text-[0.78em] text-muted">{hint}</p>
+        <p className="mt-0.5 truncate text-[0.78em] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-/** The real divided-strip grammar: ink rules, hairline dividers, no cards. */
+/** The real divided-strip grammar: hairline dividers, no cards. */
 export function MockMetricStrip({
   cells,
   five = false,
@@ -90,25 +117,38 @@ export function MockMetricStrip({
   /** A five-cell band (the score ledger with a target) instead of four. */
   five?: boolean;
 }) {
+  // The gap-px grid paints the hairlines between cells as the parent's border
+  // colour showing through — one rule per edge, no per-index border math.
   return (
-    <div className={five ? "mock-strip is-five" : "mock-strip"}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-4",
+        five && "lg:grid-cols-5",
+      )}
+    >
       {cells.map((cell) => (
-        <div key={cell.label} className="mock-strip-cell">
-          <p className="mock-label truncate">{cell.label}</p>
-          <p className="mock-figure mt-0.5 flex items-baseline gap-1">
+        <div key={cell.label} className="min-w-0 bg-card px-[0.7em] py-[0.55em]">
+          <p className={cn(MOCK_LABEL, "truncate")}>{cell.label}</p>
+          <p className="mt-0.5 flex items-baseline gap-1 font-serif text-[1.1em] leading-none tabular-nums text-foreground">
             {cell.value}
             {cell.unit ? (
-              <span className="font-sans text-[0.55em] font-medium tracking-normal text-muted">
+              <span className="font-sans text-[0.55em] font-medium tracking-normal text-muted-foreground">
                 {cell.unit}
               </span>
             ) : null}
           </p>
           {cell.hint ? (
-            <p className="mt-0.5 truncate text-[0.75em] text-muted">{cell.hint}</p>
+            <p className="mt-0.5 truncate text-[0.75em] text-muted-foreground">{cell.hint}</p>
           ) : null}
           {cell.pct != null ? (
-            <span className="mock-bar mt-1.5" aria-hidden="true">
-              <span style={{ width: `${Math.max(0, Math.min(100, cell.pct))}%` }} />
+            <span
+              className="mt-[0.35em] block h-[0.4em] overflow-hidden rounded-full bg-muted"
+              aria-hidden="true"
+            >
+              <span
+                className="block h-full rounded-full bg-primary"
+                style={{ width: `${Math.max(0, Math.min(100, cell.pct))}%` }}
+              />
             </span>
           ) : null}
         </div>
@@ -120,9 +160,9 @@ export function MockMetricStrip({
 /* ---------- the answer-distribution ring ---------- */
 
 /**
- * Three-segment ring: correct (olive), incorrect (accent), unattempted
- * (beige). The centre always shows score percentage — marks divided by the
- * maximum — never accuracy and never a borrowed percentile.
+ * Three-segment ring: correct (success), incorrect (destructive),
+ * unattempted (muted). The centre always shows score percentage — marks
+ * divided by the maximum — never accuracy and never a borrowed percentile.
  */
 export function MockRing({
   size = 96,
@@ -147,9 +187,9 @@ export function MockRing({
   const circumference = 2 * Math.PI * radius;
   const gap = 1.5;
   const segments = [
-    { value: correct / total, color: "var(--chart-average)" },
-    { value: incorrect / total, color: "var(--accent)" },
-    { value: unattempted / total, color: "var(--outcome-unattempted)" },
+    { value: correct / total, color: "var(--success)" },
+    { value: incorrect / total, color: "var(--destructive)" },
+    { value: unattempted / total, color: "var(--muted-foreground)" },
   ].filter((segment) => segment.value > 0);
 
   let offset = 0;
@@ -170,7 +210,7 @@ export function MockRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--soft)"
+          stroke="var(--muted)"
           strokeWidth={stroke}
         />
         {segments.map((segment, index) => {
@@ -196,8 +236,10 @@ export function MockRing({
         })}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="mock-ring-label text-[1.35em]">{centre}</span>
-        <span className="mock-label mt-0.5 text-[0.72em]">{caption}</span>
+        <span className="font-serif text-[1.35em] leading-none tabular-nums text-foreground">
+          {centre}
+        </span>
+        <span className={cn(MOCK_LABEL, "mt-0.5 text-[0.72em]")}>{caption}</span>
       </div>
     </div>
   );
@@ -211,13 +253,14 @@ const CHART = { width: 320, height: 120, padX: 6, padY: 10 };
 
 /**
  * A percentage trend with optional target reference. One axis only, a 2px
- * line, a light wash beneath it, hairline gridlines and a haloed final dot —
- * the same grammar as the dashboard's area chart, at mockup scale.
+ * primary line, a light wash beneath it, hairline gridlines and a haloed
+ * final dot — the same grammar as the workspace's area chart, at mockup
+ * scale.
  */
 export function MockTrend({
   points,
   target,
-  color = "var(--chart-score)",
+  color = "var(--primary)",
   className,
   showGrid = true,
 }: {
@@ -266,7 +309,7 @@ export function MockTrend({
               x2={width - padX}
               y1={y(tick)}
               y2={y(tick)}
-              stroke="var(--rule-soft)"
+              stroke="var(--border)"
               strokeWidth="0.75"
             />
           ))
@@ -277,7 +320,7 @@ export function MockTrend({
           x2={width - padX}
           y1={y(target)}
           y2={y(target)}
-          stroke="var(--chart-target)"
+          stroke="var(--muted-foreground)"
           strokeWidth="1"
           strokeDasharray="3 3"
         />
@@ -300,7 +343,7 @@ export function MockTrend({
           cx={cx}
           cy={cy}
           r="2.2"
-          fill="var(--paper)"
+          fill="var(--card)"
           stroke={color}
           strokeWidth="1.5"
           vectorEffect="non-scaling-stroke"
@@ -360,7 +403,7 @@ export function MockRadar({
               .map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`)
               .join(" ")}
             fill="none"
-            stroke="var(--rule-soft)"
+            stroke="var(--border)"
             strokeWidth="0.75"
           />
         ))}
@@ -373,7 +416,7 @@ export function MockRadar({
               y1={centre}
               x2={px}
               y2={py}
-              stroke="var(--rule-soft)"
+              stroke="var(--border)"
               strokeWidth="0.75"
             />
           );
@@ -381,9 +424,9 @@ export function MockRadar({
         {filled.length >= 3 ? (
           <polygon
             points={polygon}
-            fill="var(--accent)"
+            fill="var(--primary)"
             fillOpacity="0.12"
-            stroke="var(--accent)"
+            stroke="var(--primary)"
             strokeWidth="1.5"
             strokeLinejoin="round"
           />
@@ -392,7 +435,7 @@ export function MockRadar({
           const index = rows.indexOf(row);
           const [px, py] = pointAt(index, row.value);
           return (
-            <circle key={row.label} cx={px} cy={py} r="2" fill="var(--accent)" />
+            <circle key={row.label} cx={px} cy={py} r="2" fill="var(--primary)" />
           );
         })}
       </svg>
@@ -401,8 +444,8 @@ export function MockRadar({
       <dl className="mt-2 grid w-full grid-cols-2 gap-x-4 gap-y-1 text-[0.72em]">
         {rows.map((row) => (
           <div key={row.label} className="flex items-baseline justify-between gap-2">
-            <dt className="min-w-0 truncate text-muted">{row.label}</dt>
-            <dd className="shrink-0 font-medium tabular">
+            <dt className="min-w-0 truncate text-muted-foreground">{row.label}</dt>
+            <dd className="shrink-0 font-medium tabular-nums text-foreground">
               {row.value == null ? "—" : `${Math.round(row.value)}%`}
             </dd>
           </div>
@@ -427,18 +470,27 @@ export function MockLedger({
         <div key={row.label}>
           <div className="flex items-baseline gap-1.5">
             <span
-              className="mock-dot"
+              className="size-[0.85em] shrink-0 rounded-full"
               style={{ background: row.color }}
               aria-hidden="true"
             />
-            <dt className="flex-1 truncate text-[0.85em] text-muted">{row.label}</dt>
-            <span className="mock-figure text-[1.05em]">{row.count}</span>
-            <span className="w-[2.6em] text-right text-[0.78em] text-muted tabular">
+            <dt className="flex-1 truncate text-[0.85em] text-muted-foreground">{row.label}</dt>
+            <span className="font-serif text-[1.05em] tabular-nums text-foreground">{row.count}</span>
+            <span className="w-[2.6em] text-right text-[0.78em] tabular-nums text-muted-foreground">
               {row.share.toFixed(1)}%
             </span>
           </div>
-          <span className="mock-bar mt-1" aria-hidden="true">
-            <span style={{ width: `${Math.max(0, Math.min(100, row.share))}%`, background: row.color }} />
+          <span
+            className="mt-1 block h-[0.4em] overflow-hidden rounded-full bg-muted"
+            aria-hidden="true"
+          >
+            <span
+              className="block h-full rounded-full"
+              style={{
+                width: `${Math.max(0, Math.min(100, row.share))}%`,
+                background: row.color,
+              }}
+            />
           </span>
         </div>
       ))}
@@ -449,8 +501,20 @@ export function MockLedger({
 /* ---------- table ---------- */
 
 /**
+ * The shared ruled-table grammar: small-caps column heads, hairline row
+ * rules, and the first column sticky on narrow frames (the workspace's
+ * sticky-column behavior at mockup scale).
+ */
+export const MOCK_TABLE =
+  "w-full border-collapse text-left text-[0.86em] [&_td]:border-t [&_td]:border-border [&_td]:px-3 [&_td]:py-[0.6em] [&_td]:align-top [&_thead_th]:px-3 [&_thead_th]:py-[0.55em] [&_thead_th]:text-[0.78em] [&_thead_th]:font-semibold [&_thead_th]:uppercase [&_thead_th]:tracking-[0.06em] [&_thead_th]:text-muted-foreground [&_thead_th]:whitespace-nowrap";
+
+/** A row header (the sticky first column) — body weight, no small caps. */
+export const MOCK_ROW_HEAD =
+  "px-3 py-[0.6em] text-left font-medium text-foreground";
+
+/**
  * A ruled mockup table in its own scroll container. The first column sticks
- * on narrow frames, matching the workspace's `.sticky-col` behavior.
+ * on narrow frames, matching the workspace's sticky-column behavior.
  */
 export function MockTable({
   columns,
@@ -466,8 +530,8 @@ export function MockTable({
   caption?: string;
 }) {
   return (
-    <div className="table-scroll -mx-px">
-      <table className="mock-table">
+    <div className="overflow-x-auto">
+      <table className={MOCK_TABLE}>
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead>
           <tr>
@@ -490,7 +554,7 @@ export function MockTable({
                   <th
                     key={column.key}
                     scope="row"
-                    className="sticky-col text-left font-normal"
+                    className={`${MOCK_ROW_HEAD} sticky left-0 z-[1] bg-card`}
                   >
                     {row.sticky}
                   </th>

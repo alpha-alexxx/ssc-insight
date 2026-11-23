@@ -1,6 +1,6 @@
 "use client";
 import { type IconName } from "./icon";
-import { MetricCell, MetricStripSkeleton } from "./metric-strip";
+import { MetricBand, MetricCell, MetricStripSkeleton } from "./metric-strip";
 import type { Analytics } from "@/lib/analytics";
 import { formatNumber as n } from "@/lib/domain";
 import { headlineMetrics } from "@/lib/performance-metrics";
@@ -12,7 +12,7 @@ import {
 } from "@/lib/plan/view-model";
 
 /**
- * The dashboard overview: one divided metric strip, not four floating cards.
+ * The dashboard overview: one divided metric band, not four floating cards.
  * Each cell answers one question and is itself the link to the surface that
  * acts on it. Values come only from the merged plan, personal tasks, and the
  * current analytics scope; a missing plan/result renders as a placeholder
@@ -71,6 +71,7 @@ export function DashboardOverview({
     delta?: { tone: string; label: string } | null;
     onClick?: () => void;
     href?: string;
+    roll?: { value: number; suffix?: string; format?: Intl.NumberFormatOptions; locales?: string | string[] } | null;
   }[] = [
     {
       key: "today",
@@ -97,6 +98,7 @@ export function DashboardOverview({
       label: "Plan completed",
       icon: "success",
       value: stats ? `${stats.completionPct}%` : "—",
+      roll: stats ? { value: stats.completionPct, suffix: "%" } : null,
       hint: stats
         ? `${stats.completedAssignments} of ${stats.totalAssignments} assignments`
         : "Plan unavailable",
@@ -108,6 +110,7 @@ export function DashboardOverview({
       label: "Personal overdue",
       icon: "clock",
       value: personalOverdue == null ? "—" : n(personalOverdue),
+      roll: personalOverdue == null ? null : { value: personalOverdue },
       hint:
         personalOverdue == null
           ? "Personal tasks unavailable"
@@ -123,6 +126,14 @@ export function DashboardOverview({
       label: "Latest result",
       icon: "trend",
       value: latest ? `${n(latest.percentage)}%` : "—",
+      roll: latest
+        ? {
+            value: latest.percentage,
+            suffix: "%",
+            format: { maximumFractionDigits: 1 },
+            locales: "en-IN",
+          }
+        : null,
       hint: latest
         ? `${shortDate(latest.date)} · ${n(latest.score)}/${latest.maxScore}`
         : analytics
@@ -135,12 +146,10 @@ export function DashboardOverview({
   ];
 
   return (
-    <div className="strip-frame">
-      <div className="metric-strip">
-        {metrics.map(({ key, ...metric }) => (
-          <MetricCell key={key} {...metric} />
-        ))}
-      </div>
-    </div>
+    <MetricBand>
+      {metrics.map(({ key, ...metric }) => (
+        <MetricCell key={key} {...metric} />
+      ))}
+    </MetricBand>
   );
 }

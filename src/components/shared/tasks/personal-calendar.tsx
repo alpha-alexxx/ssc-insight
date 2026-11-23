@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { PlainIcon } from "@/components/icon";
 import { useTodoCalendar } from "@/components/use-todos-data";
 import { addIsoDays, istTodayIso } from "@/lib/plan/view-model";
 import { monthDate, longDate } from "@/lib/format";
@@ -15,6 +15,11 @@ export function personalMonthRange(date: string) {
   return { from, to: addIsoDays(from, 41) };
 }
 
+/**
+ * The personal-task month calendar. Hairline rebuild: cells are token-
+ * composed (the selected day inverts with bg-foreground, today carries the
+ * primary), the month stepper uses Hairline buttons and static icons.
+ */
 export function PersonalCalendar({
   selected,
   onSelect,
@@ -37,12 +42,12 @@ export function PersonalCalendar({
   };
   return (
     <section
-      className="personal-calendar min-w-0"
+      className="min-w-0"
       aria-label="Personal task calendar"
       aria-busy={loading}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="font-serif text-lg">{monthDate(month)}</h3>
+        <h3 className="font-serif text-lg text-foreground">{monthDate(month)}</h3>
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -51,7 +56,7 @@ export function PersonalCalendar({
             aria-label="Previous personal-task month"
             onClick={() => shift(-1)}
           >
-            <ChevronLeft size={16} />
+            <PlainIcon name="arrowLeft" size={16} />
           </Button>
           <Button
             type="button"
@@ -71,12 +76,12 @@ export function PersonalCalendar({
             aria-label="Next personal-task month"
             onClick={() => shift(1)}
           >
-            <ChevronRight size={16} />
+            <PlainIcon name="arrowRight" size={16} />
           </Button>
         </div>
       </div>
       <div
-        className="grid grid-cols-7 text-center text-[11px] text-muted"
+        className="grid grid-cols-7 text-center text-[11px] text-muted-foreground"
         aria-hidden="true"
       >
         {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
@@ -101,10 +106,10 @@ export function PersonalCalendar({
                 setMonth(date.slice(0, 7) + "-01");
               }}
               className={cn(
-                "flex min-h-10 min-w-0 flex-col items-center justify-center gap-1 rounded-control text-xs hover:bg-soft",
-                date.slice(0, 7) !== month.slice(0, 7) && "text-muted",
-                selected === date && "bg-ink text-paper hover:bg-ink",
-                date === today && selected !== date && "font-bold text-accent",
+                "flex min-h-10 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-xs hover:bg-accent",
+                date.slice(0, 7) !== month.slice(0, 7) && "text-muted-foreground",
+                selected === date && "bg-foreground text-background hover:bg-foreground",
+                date === today && selected !== date && "font-semibold text-primary",
               )}
             >
               <span>{Number(date.slice(-2))}</span>
@@ -113,7 +118,7 @@ export function PersonalCalendar({
                   <span
                     className={cn(
                       "size-1 rounded-full",
-                      selected === date ? "bg-paper" : "bg-accent",
+                      selected === date ? "bg-background" : "bg-primary",
                     )}
                   />
                 )}
@@ -121,7 +126,7 @@ export function PersonalCalendar({
                   <span
                     className={cn(
                       "size-1 rounded-full",
-                      selected === date ? "bg-paper" : "bg-positive",
+                      selected === date ? "bg-background" : "bg-success",
                     )}
                   />
                 )}
@@ -131,17 +136,17 @@ export function PersonalCalendar({
         })}
       </div>
       {error && (
-        <p role="alert" className="mt-2 text-xs text-danger">
+        <p role="alert" className="mt-2 text-xs text-destructive">
           {error}{" "}
           <button type="button" className="underline" onClick={refresh}>
             Retry
           </button>
         </p>
       )}
-      <p className="mt-3 text-xs text-muted">
+      <p className="mt-3 text-xs text-muted-foreground">
         Pending · Completed · Personal tasks only
       </p>
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-rule-soft pt-3">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
         <span className="text-xs">{longDate(selected)}</span>
         <Button type="button" size="sm" variant="outline" onClick={onAdd}>
           Add task

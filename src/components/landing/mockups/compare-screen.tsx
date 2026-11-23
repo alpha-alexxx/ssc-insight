@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { subjectStats, totals, SUBJECTS, type SubjectId } from "@/lib/domain";
 import { shortDate } from "@/lib/format";
 import { LANDING_FULL_MOCKS } from "../fixtures";
-import { MockChip, accuracyTone } from "./data-parts";
+import { MockChip, accuracyTone, subjectChartColor } from "./data-parts";
+import { MOCK_ROW_HEAD, MOCK_TABLE } from "./data-parts";
 import { MockPageHead, MockPanel, WorkspaceFrame } from "./workspace-frame";
 
 /**
@@ -25,13 +26,13 @@ function duration(seconds: number | null) {
  * numbers; percentages and minutes keep one decimal.
  */
 function delta(value: number, suffix: string) {
-  if (Math.abs(value) < 0.05) return <span className="text-muted">—</span>;
+  if (Math.abs(value) < 0.05) return <span className="text-muted-foreground">—</span>;
   const whole = suffix === "marks" || suffix === "questions" || suffix === "s";
   const magnitude = whole
     ? String(Math.round(Math.abs(value)))
     : Math.abs(value).toFixed(1);
   return (
-    <span className={value > 0 ? "text-positive" : "text-danger"}>
+    <span className={value > 0 ? "text-success" : "text-destructive"}>
       {value > 0 ? "↑" : "↓"} {magnitude} {suffix}
     </span>
   );
@@ -118,7 +119,7 @@ export function CompareScreen() {
           ? "—"
           : `${m.totals.score - first.totals.score > 0 ? "+" : ""}${m.totals.score - first.totals.score}`,
       ),
-      difference: <span className="text-muted">—</span>,
+      difference: <span className="text-muted-foreground">—</span>,
     },
     {
       label: "Accuracy change vs first",
@@ -127,7 +128,7 @@ export function CompareScreen() {
           ? "—"
           : `${(m.totals.accuracy - first.totals.accuracy).toFixed(1)} pp`,
       ),
-      difference: <span className="text-muted">—</span>,
+      difference: <span className="text-muted-foreground">—</span>,
     },
   ];
 
@@ -156,7 +157,7 @@ export function CompareScreen() {
       view="Compare mocks"
       active="Compare mocks"
       actions={
-        <span className="rounded-control bg-accent px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-paper">
+        <span className="rounded-full bg-primary px-[0.6em] py-[0.2em] text-[0.8em] font-medium text-primary-foreground">
           + Add mock
         </span>
       }
@@ -167,12 +168,12 @@ export function CompareScreen() {
       />
 
       <div className="px-[1.1em] py-[0.9em]">
-        <div className="flex flex-wrap items-center gap-[0.5em] rounded-control border border-rule-soft bg-paper px-[0.7em] py-[0.5em] text-[0.8em]">
-          <span className="font-medium">{columns.length} mocks selected</span>
+        <div className="flex flex-wrap items-center gap-[0.5em] rounded-lg bg-card px-[0.7em] py-[0.5em] text-[0.8em] shadow-[inset_0_0_0_1px_var(--border)]">
+          <span className="font-medium text-foreground">{columns.length} mocks selected</span>
           {columns.map((attempt) => (
             <MockChip key={attempt.id}>{attempt.name}</MockChip>
           ))}
-          <span className="ml-auto text-muted">Clear all</span>
+          <span className="ml-auto text-muted-foreground">Clear all</span>
         </div>
 
         <MockPanel
@@ -181,17 +182,17 @@ export function CompareScreen() {
           description="Read down a column for one result, across a row for the difference."
           bodyClassName="!px-0"
         >
-          <div className="table-scroll px-[0.9em]">
-            <table className="mock-table">
+          <div className="overflow-x-auto px-[0.9em]">
+            <table className={MOCK_TABLE}>
               <thead>
                 <tr>
-                  <th scope="col" className="sticky-col">
+                  <th scope="col" className="sticky left-0 z-[1] bg-card">
                     Metric
                   </th>
                   {metrics.map((m) => (
                     <th key={m.attempt.id} scope="col" className="text-right">
-                      <span className="block text-ink">{m.attempt.name}</span>
-                      <span className="block font-normal normal-case tracking-normal text-muted">
+                      <span className="block text-foreground">{m.attempt.name}</span>
+                      <span className="block font-normal normal-case tracking-normal text-muted-foreground">
                         {shortDate(m.attempt.completedAt)} · {m.attempt.platform}
                       </span>
                     </th>
@@ -204,15 +205,15 @@ export function CompareScreen() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.label}>
-                    <th scope="row" className="sticky-col text-left font-normal">
+                    <th scope="row" className={`${MOCK_ROW_HEAD} sticky left-0 z-[1] bg-card`}>
                       {row.label}
                     </th>
                     {row.values.map((value, index) => (
-                      <td key={index} className="text-right tabular">
+                      <td key={index} className="text-right tabular-nums">
                         {value}
                       </td>
                     ))}
-                    <td className="text-right tabular">{row.difference}</td>
+                    <td className="text-right tabular-nums">{row.difference}</td>
                   </tr>
                 ))}
               </tbody>
@@ -226,11 +227,11 @@ export function CompareScreen() {
           description="Marks, percentage and accuracy for every subject."
           bodyClassName="!px-0"
         >
-          <div className="table-scroll px-[0.9em]">
-            <table className="mock-table">
+          <div className="overflow-x-auto px-[0.9em]">
+            <table className={MOCK_TABLE}>
               <thead>
                 <tr>
-                  <th scope="col" className="sticky-col">
+                  <th scope="col" className="sticky left-0 z-[1] bg-card">
                     Subject
                   </th>
                   {metrics.map((m) => (
@@ -246,11 +247,11 @@ export function CompareScreen() {
               <tbody>
                 {subjectRows.map((row) => (
                   <tr key={row.subjectId}>
-                    <th scope="row" className="sticky-col text-left font-normal">
+                    <th scope="row" className={`${MOCK_ROW_HEAD} sticky left-0 z-[1] bg-card`}>
                       <span className="flex items-center gap-[0.4em]">
                         <span
-                          className="mock-dot"
-                          style={{ background: `var(--chart-${row.subjectId})` }}
+                          className="size-[0.85em] shrink-0 rounded-full"
+                          style={{ background: subjectChartColor(row.subjectId) }}
                           aria-hidden="true"
                         />
                         {row.label}
@@ -260,28 +261,29 @@ export function CompareScreen() {
                       <td key={index} className="text-right align-top">
                         {cell ? (
                           <>
-                            <span className="block font-medium">
+                            <span className="block font-medium text-foreground">
                               {cell.stats.score} / {cell.stats.maxScore}
                             </span>
-                            <span className="block text-[0.78em] text-muted">
+                            <span className="block text-[0.78em] text-muted-foreground">
                               {cell.percentage.toFixed(1)}% · {cell.stats.attempted}{" "}
                               attempted
                             </span>
-                            <span className="mock-bar mt-[0.2em]">
+                            <span className="mt-[0.2em] block h-[0.35em] overflow-hidden rounded-full bg-muted">
                               <span
+                                className="block h-full rounded-full"
                                 style={{
                                   width: `${Math.max(0, Math.min(100, cell.percentage))}%`,
-                                  background: `var(--chart-${row.subjectId})`,
+                                  background: subjectChartColor(row.subjectId),
                                 }}
                               />
                             </span>
                           </>
                         ) : (
-                          <span className="text-muted">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                     ))}
-                    <td className="text-right tabular">
+                    <td className="text-right tabular-nums">
                       {row.diff == null
                         ? "—"
                         : delta(row.diff, "pp")}
@@ -293,7 +295,7 @@ export function CompareScreen() {
           </div>
         </MockPanel>
 
-        <div className="mt-[0.6em] flex flex-wrap items-center gap-[0.4em] text-[0.78em] text-muted">
+        <div className="mt-[0.6em] flex flex-wrap items-center gap-[0.4em] text-[0.78em] text-muted-foreground">
           <MockChip tone={accuracyTone(last.totals.accuracy)}>
             {last.totals.accuracy?.toFixed(1)}% accuracy
           </MockChip>

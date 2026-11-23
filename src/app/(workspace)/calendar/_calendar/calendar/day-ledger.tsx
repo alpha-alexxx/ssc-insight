@@ -2,8 +2,8 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/dashboard-panels";
+import { Button } from "@/components/button";
+import { EmptyState } from "@/components/empty-state";
 import { ProgressRule } from "@/components/shared/plan/plan-shared";
 import { cn } from "@/lib/utils";
 import { longDate, shortDate } from "@/lib/format";
@@ -26,6 +26,12 @@ import { DaySections, type DayActions } from "./day-sections";
  *
  * One implementation, three hosts: the Day surface body (`variant="surface"`),
  * the desktop rail (`"rail"`), and the phone drawer (`"drawer"`).
+ *
+ * Hairline rebuild: the ledger is a token-composed card
+ * (rounded-2xl bg-card + inset hairline border); the timetable margin is a
+ * bordered gutter column, and an empty day (a rest day, or a date outside
+ * the plan with nothing on it) is the Hairline EmptyState with the same two
+ * actions the ledger footer offers.
  */
 
 export type DayLedgerProps = {
@@ -69,37 +75,34 @@ export function DayLedger({
   const isToday = date === today;
   const nothingAtAll = entries.length === 0;
   const rail = variant === "rail";
-  const emptyHint = inPlan
-    ? "Nothing scheduled. The plan marks this a rest day — add a task or log a mock."
-    : "Nothing on this date. Personal tasks and logged mocks work outside the plan window too.";
 
   const body = (
     <>
-      <div className={cn("cal-ledger", rail && "cal-ledger-rail")}>
+      <div className={cn("flex gap-4 border-b border-border px-4 py-4 sm:px-6", rail && "sm:px-5")}>
         {/* ---- margin: the date as a ledger entry ---- */}
-        <div className="cal-margin">
-          <span className="cal-margin-numeral font-serif tabular leading-none text-ink">
+        <div className="hidden w-16 shrink-0 border-r border-border pr-3 text-center sm:block">
+          <span className="block font-serif text-[1.375rem] tabular-nums leading-none text-foreground">
             {Number(date.slice(8))}
           </span>
-          <span className="cal-margin-weekday text-[length:var(--type-label)] font-semibold uppercase tracking-[0.12em] text-muted">
+          <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {isoWeekdayName(date).slice(0, 3)}
           </span>
         </div>
 
         {/* ---- body ---- */}
-        <div className="cal-ledger-body min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="font-serif text-[1.375rem] font-medium leading-tight tracking-[-0.02em] text-ink">
+            <h2 className="font-serif text-[1.375rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
               {isoWeekdayName(date)}, {longDate(date)}
             </h2>
             {isToday && (
-              <span className="rounded-pill bg-ink px-2 py-0.5 text-[length:var(--type-label)] font-medium uppercase tracking-wide text-paper">
+              <span className="rounded-full bg-foreground px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-background">
                 Today
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-[length:var(--type-secondary)] text-muted">
+          <p className="mt-1 text-[12px] text-muted-foreground">
             {day ? (
               <>
                 Day {day.day} of {planLength} · Phase {day.phase} ·{" "}
@@ -121,17 +124,19 @@ export function DayLedger({
                 label={`Day ${day.day}`}
                 className="mt-0 flex-1"
               />
-              <span className="shrink-0 text-[length:var(--type-label)] tabular text-muted">
+              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                 {counts.plan.done}/{counts.plan.total} scheduled
               </span>
               {onMarkAllDone && counts.plan.done < counts.plan.total && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-primary"
                   onClick={onMarkAllDone}
-                  className="tap-target shrink-0 text-[length:var(--type-label)] font-medium text-accent transition-colors hover:text-accent-hover"
                 >
                   Mark all done
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -152,12 +157,11 @@ export function DayLedger({
             inPlan={inPlan}
             onAddMock={onAddMock}
             onAddPersonal={onAddPersonal}
-            hint={emptyHint}
           />
         }
       />
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-rule-soft px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3">
         <Button variant="outline" size="sm" onClick={() => onAddPersonal(date)}>
           <PlainIcon name="plus" size={13} /> Add task
         </Button>
@@ -167,7 +171,7 @@ export function DayLedger({
         {inPlan ? (
           <Link
             href={`/plan/${date}`}
-            className="text-xs font-medium text-accent transition-colors hover:text-accent-hover"
+            className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
           >
             Open daily workspace →
           </Link>
@@ -177,7 +181,7 @@ export function DayLedger({
               <button
                 type="button"
                 onClick={onGoToToday}
-                className="font-medium text-accent hover:text-accent-hover"
+                className="font-medium text-primary hover:text-primary/80"
               >
                 Go to today
               </button>
@@ -186,7 +190,7 @@ export function DayLedger({
               <button
                 type="button"
                 onClick={onGoToPlanStart}
-                className="font-medium text-muted hover:text-ink"
+                className="font-medium text-muted-foreground hover:text-foreground"
               >
                 Day 1 · {shortDate(planStart)}
               </button>
@@ -199,18 +203,28 @@ export function DayLedger({
 
   if (rail) {
     return (
-      <Panel
-        dense
-        title="Selected day"
-        description="Your schedule, tasks and results for this date."
+      <section
+        className="rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+        aria-label="Selected day"
       >
+        <div className="px-4 pb-2 pt-3.5">
+          <h2 className="text-base font-semibold text-foreground">
+            Selected day
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Your schedule, tasks and results for this date.
+          </p>
+        </div>
         <div {...touchHandlers}>{body}</div>
-      </Panel>
+      </section>
     );
   }
 
   return (
-    <section className="panel" aria-label={`Schedule for ${longDate(date)}`}>
+    <section
+      className="rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+      aria-label={`Schedule for ${longDate(date)}`}
+    >
       <div {...touchHandlers}>{body}</div>
       {nothingAtAll && null}
     </section>
@@ -228,7 +242,7 @@ function LoadLine({ counts }: { counts: EntryCounts }) {
   if (counts.mocks) parts.push(`${counts.mocks} logged`);
   if (!parts.length) return null;
   return (
-    <p className="mt-2 border-t border-rule-soft pt-2 text-[length:var(--type-secondary)] text-muted">
+    <p className="mt-2 border-t border-border pt-2 text-[12px] text-muted-foreground">
       {parts.join(" · ")}
     </p>
   );
@@ -237,30 +251,33 @@ function LoadLine({ counts }: { counts: EntryCounts }) {
 function EmptyActions({
   date,
   inPlan,
-  hint,
   onAddMock,
   onAddPersonal,
 }: {
   date: string;
   inPlan: boolean;
-  hint: string;
   onAddMock: (date: string) => void;
   onAddPersonal: (date: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 px-4 py-6">
-      <p className="text-sm text-muted">{hint}</p>
-      <div className="action-row">
-        <Button variant="outline" size="sm" onClick={() => onAddPersonal(date)}>
-          <PlainIcon name="plus" size={13} /> Add task
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => onAddMock(date)}>
-          <PlainIcon name="plus" size={13} /> Log mock
-        </Button>
-      </div>
+    <EmptyState
+      scene="inbox"
+      title={inPlan ? "Nothing scheduled" : "Nothing on this date"}
+      description={
+        inPlan
+          ? "The plan marks this a rest day — add a task or log a mock."
+          : "Personal tasks and logged mocks work outside the plan window too."
+      }
+    >
+      <Button variant="outline" size="sm" onClick={() => onAddPersonal(date)}>
+        <PlainIcon name="plus" size={13} /> Add task
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => onAddMock(date)}>
+        <PlainIcon name="plus" size={13} /> Log mock
+      </Button>
       <span className="sr-only">
         {inPlan ? "Rest day in the plan" : "No plan work on this date"}
       </span>
-    </div>
+    </EmptyState>
   );
 }

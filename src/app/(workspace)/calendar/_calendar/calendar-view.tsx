@@ -2,12 +2,11 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
-import { DuotoneTile, PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { PlainIcon } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Skeleton } from "@/components/skeleton";
+import { toast } from "@/components/toast-stack";
 import { Swap } from "@/components/motion-swap";
-import { MetricStripSkeleton } from "@/components/metric-strip";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/toast";
 import { PlanErrorCard } from "@/components/shared/plan/plan-shared";
 import { EventDialog } from "./event-dialog";
 import { usePlanData } from "@/components/use-plan-data";
@@ -94,7 +93,6 @@ export function CalendarView({
     updatePersonalTask,
   } = planApi;
   const router = useRouter();
-  const toast = useToast();
   const isMobile = useIsMobile();
   const today = planToday ?? istTodayIso();
   const { mutateTodoRequest } = useTodoMutations();
@@ -216,7 +214,7 @@ export function CalendarView({
 
   const selectDate = useCallback((iso: string) => setRequested(iso), []);
 
-  /** Grid taps select the day and, on phones, present it in the bottom drawer
+  /** Grid taps select the day and, on phones, present it in the bottom sheet
    * — the inline panel only exists from md up. Period navigation never opens
    * it. */
   const selectDay = useCallback(
@@ -296,18 +294,19 @@ export function CalendarView({
             ...payload,
             status: draft.completed ? "completed" : "todo",
           });
-        toast.success(editing ? "Task updated" : "Task added", draft.title);
+        toast.success(editing ? "Task updated" : "Task added", {
+          description: draft.title,
+        });
         closeDrawers();
         return true;
       } catch (cause) {
-        toast.error(
-          "Couldn't save the task",
-          cause instanceof Error ? cause.message : undefined,
-        );
+        toast.error("Couldn't save the task", {
+          description: cause instanceof Error ? cause.message : undefined,
+        });
         return false;
       }
     },
-    [taskDrawer, updatePersonalTask, createPersonalTask, toast, closeDrawers],
+    [taskDrawer, updatePersonalTask, createPersonalTask, closeDrawers],
   );
 
   const createGroup = useCallback(
@@ -355,7 +354,7 @@ export function CalendarView({
       outstanding.length === 1
         ? "Task marked complete"
         : `Marked ${outstanding.length} tasks complete`,
-      `Day ${day.day} · ${longDate(day.date)}`,
+      { description: `Day ${day.day} · ${longDate(day.date)}` },
     );
   };
 
@@ -410,14 +409,17 @@ export function CalendarView({
   const selectMode = (next: CalendarMode) => setExplicitMode(next);
 
   return (
-    <div className="cal-page min-w-0 @container/cal-page">
+    <div className="flex min-w-0 flex-col @container/cal-page">
       <PageHeader
         title="Study calendar"
         description="Scheduled tests and revision, your own tasks, and every result you have logged — one ledger."
         icon={
-          <div className="hidden sm:block">
-            <DuotoneTile name="calendar" tile="accent" className="size-11" />
-          </div>
+          <span
+            aria-hidden="true"
+            className="hidden size-11 place-items-center rounded-2xl bg-primary/10 text-primary shadow-[inset_0_0_0_1px_var(--border)] sm:grid"
+          >
+            <PlainIcon name="calendar" size={20} />
+          </span>
         }
         meta={
           <>
@@ -426,7 +428,7 @@ export function CalendarView({
               {shortDate(plan.startDate)} – {shortDate(plan.endDate)}
             </span>
             <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-1.5 tabular">
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
               <PlainIcon name="target" size={12} />
               {selectedDay
                 ? `Day ${selectedDay.day} of ${planLength}`
@@ -455,8 +457,8 @@ export function CalendarView({
 
       {/* On phones the summary sits below the calendar so the calendar owns the
           first screen; from md it returns above, as DESIGN.md specifies. The
-          `order` utilities need a flex parent — `.cal-page` supplies it. */}
-      <div className="cal-strip">
+          `order` utilities need a flex parent — this root supplies it. */}
+      <div className="cal-strip order-3 @5xl/cal-page:order-1">
         <CalendarMetrics
           index={index}
           layers={layers}
@@ -470,7 +472,7 @@ export function CalendarView({
         />
       </div>
 
-      <div className="cal-toolbar-slot">
+      <div className="cal-toolbar-slot order-2">
         <CalendarToolbar
           title={periodTitle(mode, requested)}
           mode={mode}
@@ -684,8 +686,16 @@ function CalendarLoading() {
         title="Study calendar"
         description="Scheduled tests and revision, your own tasks, and every result you have logged."
       />
-      <MetricStripSkeleton label="Loading plan summary" />
-      <div className="panel mt-5 p-4 sm:p-6">
+      <div
+        aria-hidden="true"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+        role="status"
+      >
+        {Array.from({ length: 4 }).map((_, at) => (
+          <Skeleton key={at} shape="block" height={92} className="rounded-2xl" />
+        ))}
+      </div>
+      <div className="mt-5 rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)] sm:p-6">
         <Skeleton className="h-5 w-40" />
         <div className="mt-4 grid grid-cols-7 gap-1.5">
           {Array.from({ length: 35 }).map((_, at) => (
@@ -696,4 +706,3 @@ function CalendarLoading() {
     </div>
   );
 }
-

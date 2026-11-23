@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { ApprovalCard, type ApprovalDetail } from "@/components/approval-card";
 import { shortDate } from "@/lib/format";
-import { linkHost } from "@/lib/plan/view-model";
-import { istTodayIso } from "@/lib/plan/view-model";
+import { linkHost, istTodayIso } from "@/lib/plan/view-model";
 import type { TaskSuggestion } from "@/lib/ai/task-suggestion";
 
 /** What a chat surface needs beyond chat state to add a suggested task: the
@@ -24,9 +22,10 @@ export type AiSheetTaskApi = {
 };
 
 /**
- * A coach-suggested task rendered from a ```task-suggestion fenced block:
- * the model never writes; the user's Add click does. Dismissed cards leave
- * the conversation text untouched.
+ * A coach-suggested task rendered from a ```task-suggestion fenced block, on
+ * Hairline's `ApprovalCard`: the model never writes; the user's Add-task
+ * click does (approve = add, deny = dismiss). Dismissed cards leave the
+ * conversation text untouched.
  */
 export function TaskSuggestionCard({
   suggestion,
@@ -49,6 +48,7 @@ export function TaskSuggestionCard({
   const add = () => {
     if (!taskApi || (state !== "pending" && state !== "failed")) return;
     setState("busy");
+    setFailure("");
     taskApi
       .createPersonalTask({
         title: suggestion.title,
@@ -72,84 +72,44 @@ export function TaskSuggestionCard({
   };
 
   if (state === "dismissed") return null;
+
+  const details: ApprovalDetail[] = [
+    {
+      label: "Category",
+      value:
+        suggestion.category === "other"
+          ? "Personal"
+          : suggestion.category.replace(/_/g, " "),
+    },
+    { label: "Due", value: shortDate(dueDate) },
+  ];
+  if (suggestion.priority !== "normal") {
+    details.push({ label: "Priority", value: suggestion.priority });
+  }
+  if (host) {
+    details.push({ label: "Link", value: host });
+  }
+
   return (
-    <div
-      role="group"
-      aria-label="Task suggestion from the coach"
-      className="mt-3 border-l-2 border-l-accent bg-paper py-2 pl-3"
-    >
-      <p className="section-label text-accent">Suggested task</p>
-      <p className="mt-1.5 text-sm font-medium leading-snug">
-        {suggestion.title}
-      </p>
-      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-        <span className="rounded-pill border border-rule-soft bg-soft px-2 py-0.5">
-          {suggestion.category === "other"
-            ? "Personal"
-            : suggestion.category.replace(/_/g, " ")}
-        </span>
-        {dueDate && <span className="tabular">Due {shortDate(dueDate)}</span>}
-        {suggestion.priority !== "normal" && (
-          <span
-            className={
-              suggestion.priority === "high" ? "text-accent font-medium" : ""
-            }
-          >
-            {suggestion.priority} priority
-          </span>
-        )}
-        {host && <span className="truncate">Link: {host}</span>}
-      </p>
-      {suggestion.notes && (
-        <p className="mt-1 text-[11px] leading-relaxed text-muted">
-          {suggestion.notes}
+    <div className="mt-3">
+      <ApprovalCard
+        title={suggestion.title}
+        description={suggestion.notes || undefined}
+        details={details}
+        reason={suggestion.urlRemovedReason ?? undefined}
+        status={state === "added" ? "approved" : "pending"}
+        onApprove={add}
+        onDeny={() => {
+          if (state === "pending") setState("dismissed");
+        }}
+        approveLabel={state === "busy" ? "Adding…" : "Add task"}
+        denyLabel="Dismiss"
+      />
+      {state === "failed" && failure ? (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {failure}
         </p>
-      )}
-      {suggestion.urlRemovedReason && (
-        <p className="mt-1 text-[11px] text-warning">
-          {suggestion.urlRemovedReason}
-        </p>
-      )}
-      {state === "added" ? (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-positive">
-          <Check size={13} /> Added to My Tasks
-        </p>
-      ) : state === "failed" ? (
-        <div className="mt-2">
-          <p role="alert" className="text-xs text-danger">
-            {failure}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-1.5"
-            onClick={add}
-          >
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <div className="action-row mt-2.5">
-          <Button
-            type="button"
-            size="sm"
-            onClick={add}
-            disabled={!taskApi || state === "busy"}
-          >
-            {state === "busy" ? "Adding…" : "Add task"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setState("dismissed")}
-            disabled={state === "busy"}
-          >
-            Dismiss
-          </Button>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

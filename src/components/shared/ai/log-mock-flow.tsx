@@ -1,16 +1,12 @@
 "use client";
 import { useEffect, useLayoutEffect, useState } from "react";
-import {
-  ArrowLeft,
-  ChevronRight,
-  ClipboardPaste,
-  Info,
-  Sparkles,
-  X,
-} from "@/components/ui/icons";
+import { Icon } from "@/components/icon";
+import { Button } from "@/components/button";
+import { Input } from "@/components/input";
+import { Textarea } from "@/components/textarea";
+import { Spinner } from "@/components/spinner";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
-import { Button } from "@/components/ui/button";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 import { ExtractionReview } from "@/components/shared/add/extraction-review";
 import { useExamScope } from "@/components/exam-context";
@@ -34,6 +30,9 @@ export type LogMockPayload = {
   date: string;
 };
 
+/** The small uppercase field label grammar used across the flow. */
+const fieldLabel =
+  "text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground";
 
 /**
  * The parsed draft as a roster: one ruled row per subject with its question
@@ -80,23 +79,20 @@ function SubjectRoster({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-rule-soft px-4 pb-3 pt-4 sm:px-5">
+      <div className="shrink-0 border-b border-border px-4 pb-3 pt-4 sm:px-5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 className="min-w-0 break-words font-serif text-[1.25rem] font-medium leading-tight text-ink sm:text-[1.375rem]">
+          <h3 className="min-w-0 break-words font-serif text-[1.25rem] font-medium leading-tight text-foreground sm:text-[1.375rem]">
             {draft.name?.trim() || "Parsed result"}
           </h3>
           <span
-            className={cn(
-              "section-label",
-              ready ? "text-positive" : "text-warning",
-            )}
+            className={cn(fieldLabel, ready ? "text-success" : "text-warning")}
           >
             {ready
               ? "Ready"
               : `${blockers.length} unresolved`}
           </span>
         </div>
-        <p className="mt-1 text-[11px] text-muted">
+        <p className="mt-1 text-[11px] text-muted-foreground">
           {[
             draft.platform?.trim(),
             draft.date,
@@ -107,8 +103,8 @@ function SubjectRoster({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
-        <ul className="divide-y divide-rule-soft border-b border-rule-soft">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-1 sm:px-5">
+        <ul className="divide-y divide-border border-b border-border">
           {draft.subjects.map((subject, index) => {
             const incomplete =
               subject.questions == null ||
@@ -117,7 +113,7 @@ function SubjectRoster({
             return (
               <li key={`${subject.subjectId}-${index}`} className="py-2.5">
                 <div className="flex items-baseline gap-3">
-                  <span className="min-w-0 flex-1 truncate font-serif text-[15px] text-ink">
+                  <span className="min-w-0 flex-1 truncate font-serif text-[15px] text-foreground">
                     {SUBJECTS[subject.subjectId].name}
                   </span>
                   {incomplete ? (
@@ -125,12 +121,12 @@ function SubjectRoster({
                       Needs a value
                     </span>
                   ) : (
-                    <span className="flex shrink-0 items-baseline gap-2.5 text-[11px] tabular text-muted">
+                    <span className="flex shrink-0 items-baseline gap-2.5 text-[11px] tabular-nums text-muted-foreground">
                       <span>{subject.questions}Q</span>
-                      <span className="font-medium text-positive">
+                      <span className="font-medium text-success">
                         {subject.correct} ✓
                       </span>
-                      <span className="font-medium text-danger">
+                      <span className="font-medium text-destructive">
                         {subject.incorrect} ✗
                       </span>
                     </span>
@@ -145,24 +141,23 @@ function SubjectRoster({
                         ["incorrect", "Wrong"],
                       ] as const
                     ).map(([field, label]) => (
-                      <label key={field} className="section-label">
-                        {label}
-                        <input
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          value={subject[field] ?? ""}
-                          onChange={(event) =>
-                            setSubject(index, {
-                              [field]:
-                                event.target.value === ""
-                                  ? null
-                                  : Number(event.target.value),
-                            })
-                          }
-                          className="mt-1 h-10 w-full px-2 text-sm"
-                        />
-                      </label>
+                      <Input
+                        key={field}
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        label={label}
+                        size="sm"
+                        value={subject[field] ?? ""}
+                        onChange={(event) =>
+                          setSubject(index, {
+                            [field]:
+                              event.target.value === ""
+                                ? null
+                                : Number(event.target.value),
+                          })
+                        }
+                      />
                     ))}
                   </div>
                 )}
@@ -176,7 +171,7 @@ function SubjectRoster({
             {warnings.map((issue) => (
               <li
                 key={`${issue.code}-${issue.path ?? ""}`}
-                className="border-l-2 border-l-warning pl-2.5 text-[11px] leading-relaxed text-muted"
+                className="border-l-2 border-l-warning pl-2.5 text-[11px] leading-relaxed text-muted-foreground"
               >
                 {issue.message}
               </li>
@@ -189,7 +184,7 @@ function SubjectRoster({
               <li
                 key={`${issue.code}-${issue.path ?? ""}`}
                 role="alert"
-                className="border-l-2 border-l-danger pl-2.5 text-[11px] leading-relaxed text-danger"
+                className="border-l-2 border-l-destructive pl-2.5 text-[11px] leading-relaxed text-destructive"
               >
                 {issue.message}
               </li>
@@ -197,14 +192,14 @@ function SubjectRoster({
           </ul>
         )}
         {error && (
-          <p role="alert" className="mt-3 text-xs text-danger">
+          <p role="alert" className="mt-3 text-xs text-destructive">
             {error}
           </p>
         )}
       </div>
 
-      <div className="shrink-0 border-t border-rule-soft bg-paper px-4 py-3 sm:px-5">
-        <div className="action-row">
+      <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={onBack}>
             Back
           </Button>
@@ -222,9 +217,9 @@ function SubjectRoster({
             className="ml-auto"
             onClick={onContinue}
             disabled={!ready}
+            trailingIcon={<Icon name="chevronRight" size={13} />}
           >
             Continue to the form
-            <ChevronRight size={13} />
           </Button>
         </div>
       </div>
@@ -380,21 +375,22 @@ export function LogMockFlow({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {page ? (
-          <header className="flex shrink-0 items-center gap-2.5 border-b border-rule-soft px-4 pb-3 pt-4 sm:px-5">
-            <button
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-4 pb-3 pt-4 sm:px-5">
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               aria-label="Back to the roster"
               title="Back to the roster"
-              className="tap-target inline-flex size-8 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink"
               onClick={() => setReviewing("roster")}
             >
-              <ArrowLeft size={14} aria-hidden />
-            </button>
+              <Icon name="arrowLeft" size={14} />
+            </Button>
             <div className="min-w-0">
-              <p className="font-serif text-[1.125rem] font-medium leading-tight text-ink">
+              <p className="font-serif text-[1.125rem] font-medium leading-tight text-foreground">
                 Edit details
               </p>
-              <p className="section-label">Every field of the parsed draft</p>
+              <p className={fieldLabel}>Every field of the parsed draft</p>
             </div>
           </header>
         ) : null}
@@ -420,24 +416,25 @@ export function LogMockFlow({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {page ? (
-          <header className="flex shrink-0 items-center gap-2.5 border-b border-rule-soft px-4 pb-3 pt-4 sm:px-5">
-            <button
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-4 pb-3 pt-4 sm:px-5">
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               aria-label="Back to the paste step"
               title="Back to the paste step"
-              className="tap-target inline-flex size-8 items-center justify-center rounded-control border border-rule text-ink transition-colors hover:border-ink"
               onClick={() => {
                 setReviewing(false);
                 setError("");
               }}
             >
-              <ArrowLeft size={14} aria-hidden />
-            </button>
+              <Icon name="arrowLeft" size={14} />
+            </Button>
             <div className="min-w-0">
-              <p className="truncate font-serif text-[1.125rem] font-medium leading-tight text-ink">
+              <p className="truncate font-serif text-[1.125rem] font-medium leading-tight text-foreground">
                 {draft.name?.trim() || "Parsed result"}
               </p>
-              <p className="section-label">Review the parsed subjects</p>
+              <p className={fieldLabel}>Review the parsed subjects</p>
             </div>
           </header>
         ) : null}
@@ -461,43 +458,39 @@ export function LogMockFlow({
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
-      <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-ink">
+      <h3 className="font-serif text-[1.375rem] font-medium leading-tight text-foreground">
         Log a mock test
       </h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted">
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         Paste the scorecard. You review the parsed subjects here, then continue
         to the mock form — the only place that saves.
       </p>
-      <label htmlFor="ai-log-mock-paste" className="section-label mt-4 block">
-        Scorecard text
-      </label>
-      <textarea
+      <Textarea
         id="ai-log-mock-paste"
-        rows={10}
-        maxLength={MAX_EXTRACT_CHARS}
+        label="Scorecard text"
         value={paste}
-        onChange={(event) => setPaste(event.target.value)}
+        onValueChange={setPaste}
+        maxLength={MAX_EXTRACT_CHARS}
+        minRows={10}
+        maxRows={16}
         placeholder="Paste the full scorecard section…"
-        className="mt-1.5 min-h-48 max-h-80 resize-y text-sm leading-relaxed"
+        className="mt-4"
+        footer={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setPaste("")}
+            disabled={!paste}
+          >
+            Clear paste
+          </Button>
+        }
       />
-      <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
-        <span>
-          {paste.length.toLocaleString("en-IN")} /{" "}
-          {MAX_EXTRACT_CHARS.toLocaleString("en-IN")} characters
-        </span>
-        <button
-          type="button"
-          className="-my-2 inline-flex min-h-11 items-center px-1 hover:text-accent"
-          onClick={() => setPaste("")}
-          disabled={!paste}
-        >
-          Clear paste
-        </button>
-      </div>
 
       {visionEnabled && (
         <div className="mt-3">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-primary hover:underline">
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
@@ -528,19 +521,19 @@ export function LogMockFlow({
                   <img
                     src={image}
                     alt={`Scorecard screenshot ${index + 1}`}
-                    className="h-16 w-16 rounded-control border border-rule-soft object-cover"
+                    className="h-16 w-16 rounded-lg border border-border object-cover"
                   />
                   <button
                     type="button"
                     aria-label={`Remove screenshot ${index + 1}`}
-                    className="tap-target absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-control border border-rule bg-paper text-muted hover:text-ink"
+                    className="flex size-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:text-foreground absolute -right-1.5 -top-1.5"
                     onClick={() =>
                       setImages((current) =>
                         current.filter((_, at) => at !== index),
                       )
                     }
                   >
-                    <X size={11} aria-hidden />
+                    <Icon name="close" size={11} />
                   </button>
                 </span>
               ))}
@@ -552,33 +545,35 @@ export function LogMockFlow({
       {error && (
         <p
           role="alert"
-          className="mt-2 border border-warning bg-warning-soft px-3 py-2 text-xs text-warning"
+          className="mt-2 rounded-xl border border-warning bg-warning/10 px-3 py-2 text-xs text-warning"
         >
           {error}
         </p>
       )}
 
-      <div className="action-row mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {aiEnabled ? (
           <Button
             type="button"
             onClick={() => void importWithAi()}
             disabled={!paste.trim() || busy}
+            icon={<Icon name="sparkles" size={13} />}
           >
-            <Sparkles size={13} /> {busy ? "Reading…" : "Parse with AI"}
+            {busy ? "Reading…" : "Parse with AI"}
           </Button>
         ) : (
           <Button
             type="button"
             onClick={importStandard}
             disabled={!paste.trim()}
+            icon={<Icon name="paste" size={13} />}
           >
-            <ClipboardPaste size={13} /> Parse report
+            Parse report
           </Button>
         )}
       </div>
-      <p className="mt-4 flex items-start gap-2 border-t border-rule-soft pt-3 text-xs leading-relaxed text-muted">
-        <Info size={15} className="mt-0.5 shrink-0" />
+      <p className="mt-4 flex items-start gap-2 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+        <Icon name="info" size={15} className="mt-0.5 shrink-0" />
         <span>
           {aiEnabled
             ? "AI parsing returns an editable draft with cross-checks; you review every field before continuing."
@@ -587,23 +582,15 @@ export function LogMockFlow({
       </p>
 
       {!statusChecked && (
-        <p
-          className="mt-3 flex items-center gap-2.5 text-xs text-muted"
-          role="status"
-          aria-busy="true"
-        >
-          <span className="thinking-dots" aria-hidden>
-            <i />
-            <i />
-            <i />
-          </span>
+        <p className="mt-3 flex items-center gap-2.5 text-xs text-muted-foreground">
+          <Spinner size="xs" label="Checking AI availability…" />
           Checking AI availability…
         </p>
       )}
 
       {/* Keep provider setup reachable from this tab when AI is off. */}
       {!aiEnabled && !configured && (
-        <div className="mt-4 rounded-control border border-rule bg-canvas p-4">
+        <div className="mt-4 rounded-xl bg-muted p-4 shadow-[inset_0_0_0_1px_var(--border)]">
           <AiSettingsForm
             variant="panel"
             showHeading={false}

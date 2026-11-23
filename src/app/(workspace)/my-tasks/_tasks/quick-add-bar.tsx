@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, type RefObject } from "react";
-import { Plus, SlidersHorizontal } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
 import { PlainIcon } from "@/components/icon";
 import { shortDate } from "@/lib/format";
 
@@ -10,6 +9,9 @@ import { shortDate } from "@/lib/format";
  * The always-visible capture bar: type a title, press Enter, and the task is
  * created with sensible defaults (due on the shown date, normal priority).
  * "Details" opens the full editor for subtasks, links, and groups.
+ *
+ * Hairline rebuild: token-composed pill (rounded-full bg-card + inset
+ * hairline border; the ring follows the primary on focus-within).
  */
 export function QuickAddBar({
   date,
@@ -49,12 +51,12 @@ export function QuickAddBar({
         e.preventDefault();
         void submit();
       }}
-      className="flex items-center gap-1.5 rounded-control border border-rule bg-paper p-1.5 transition-colors focus-within:border-accent"
+      className="flex items-center gap-1.5 rounded-full bg-card p-1.5 shadow-[inset_0_0_0_1px_var(--border)] transition-shadow focus-within:shadow-[inset_0_0_0_1px_var(--ring)]"
     >
       <PlainIcon
         name="plus"
         size={15}
-        className="ml-2 shrink-0 text-muted"
+        className="ml-2 shrink-0 text-muted-foreground"
         aria-hidden="true"
       />
       <input
@@ -65,7 +67,7 @@ export function QuickAddBar({
         placeholder={`Add a task for ${shortDate(date)}…`}
         disabled={disabled || busy}
         onChange={(e) => setTitle(e.target.value)}
-        className="min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none"
+        className="min-w-0 flex-1 border-0 bg-transparent px-1.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70"
       />
       <Button
         type="button"
@@ -76,11 +78,11 @@ export function QuickAddBar({
         aria-label="Open the full task editor"
         title="More options: subtasks, link, notes, group"
       >
-        <SlidersHorizontal size={13} />
+        <PlainIcon name="sliders" size={13} />
         <span className="hidden sm:inline">Details</span>
       </Button>
       <Button type="submit" size="sm" disabled={disabled || busy || !title.trim()}>
-        <Plus size={14} />
+        <PlainIcon name="plus" size={14} />
         Add
       </Button>
     </form>

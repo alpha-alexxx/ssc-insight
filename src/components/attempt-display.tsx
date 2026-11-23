@@ -10,32 +10,34 @@ import { cn } from "@/lib/utils";
  * accuracy could be tinted differently on two screens.
  *
  * Everything here is presentation only: the numbers come from `totals()` and
- * `subjectStats()`, the single scoring source of truth.
+ * `subjectStats()`, the single scoring source of truth. Tones map to the
+ * Hairline semantic tokens (primary / success / warning / muted), never to
+ * palette utilities, so every theme renders the same meaning.
  */
 
 /** Mock-type chip tones. One mapping for both routes. */
 export function typeChip(type: string): string {
-  if (type === "full") return "bg-accent-soft text-accent";
-  if (type === "subject") return "bg-positive-soft text-positive";
-  if (type === "sectional") return "bg-warning-soft text-warning";
-  return "bg-soft text-muted";
+  if (type === "full") return "bg-primary/10 text-primary";
+  if (type === "subject") return "bg-success/10 text-success";
+  if (type === "sectional") return "bg-warning/10 text-warning";
+  return "bg-muted text-muted-foreground";
 }
 
-/** Score-bar tone. Thresholds are the documented ones: ≥70 positive, ≥50
- * neutral-accent, below warning. Color never carries the value alone — the
+/** Score-bar tone. Thresholds are the documented ones: ≥70 success, ≥50
+ * primary, below warning. Color never carries the value alone — the
  * number is always printed beside it. */
 export function scoreBarTone(pct: number): string {
-  if (pct >= 70) return "bg-positive";
-  if (pct >= 50) return "bg-accent";
+  if (pct >= 70) return "bg-success";
+  if (pct >= 50) return "bg-primary";
   return "bg-warning";
 }
 
 /** Accuracy chip tone: null reads as "not recorded", never as zero. */
 export function accuracyTone(accuracy: number | null): string {
-  if (accuracy == null) return "bg-soft text-muted";
-  if (accuracy >= 70) return "bg-positive-soft text-positive";
-  if (accuracy >= 50) return "bg-soft text-muted";
-  return "bg-warning-soft text-warning";
+  if (accuracy == null) return "bg-muted text-muted-foreground";
+  if (accuracy >= 70) return "bg-success/10 text-success";
+  if (accuracy >= 50) return "bg-muted text-muted-foreground";
+  return "bg-warning/10 text-warning";
 }
 
 /**
@@ -65,12 +67,12 @@ export function Delta({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-xs font-medium tabular",
+        "inline-flex items-center gap-1 text-xs font-medium tabular-nums",
         flat
-          ? "text-muted"
+          ? "text-muted-foreground"
           : improved
-            ? "text-positive"
-            : "text-danger",
+            ? "text-success"
+            : "text-destructive",
         className,
       )}
     >

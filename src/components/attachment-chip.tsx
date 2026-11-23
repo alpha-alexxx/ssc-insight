@@ -123,7 +123,7 @@ export function AttachmentChip({
   return (
     <div
       className={`group relative inline-flex h-12 max-w-[260px] items-center gap-2.5 rounded-xl border bg-background pl-1.5 pr-3 animate-[ui-fade-up_260ms_cubic-bezier(0.23,1,0.32,1)_both] motion-reduce:animate-none ${
-        failed ? "border-red-500/40" : "border-border"
+        failed ? "border-destructive/40" : "border-border"
       } ${className}`}
       {...props}
     >
@@ -136,7 +136,7 @@ export function AttachmentChip({
           )}
         </span>
         <span className="absolute inset-0 flex items-center justify-center" style={swap(failed, reduced)}>
-          <AlertCircle className="size-4 text-red-500" />
+          <AlertCircle className="size-4 text-destructive" />
         </span>
         {/* The ring fills while it uploads, then fades rather than vanishing. */}
         <svg
@@ -162,7 +162,7 @@ export function AttachmentChip({
 
       <span className="min-w-0">
         <span className="block truncate text-[12.5px] font-medium leading-4 text-foreground">{name}</span>
-        <span className={`mt-0.5 flex min-w-0 items-baseline text-[11.5px] leading-4 transition-colors duration-300 ${failed ? "text-red-500" : "text-muted-foreground"}`}>
+        <span className={`mt-0.5 flex min-w-0 items-baseline text-[11.5px] leading-4 transition-colors duration-300 ${failed ? "text-destructive" : "text-muted-foreground"}`}>
           <span aria-hidden="true" className={`min-w-0 truncate ${status === "processing" ? SHEEN : ""}`}>
             <TextMorph>{line}</TextMorph>
           </span>

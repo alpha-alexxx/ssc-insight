@@ -223,7 +223,7 @@ function TableRowView<T>(p: RowProps<T>) {
             <span className="absolute inset-0 flex items-center justify-center" style={swap(draft.status === "pending", reduced, 0)}>
               <span className="size-3 rounded-full border-[1.5px] border-muted-foreground border-t-transparent motion-safe:animate-spin" />
             </span>
-            <svg viewBox="0 0 16 16" className="absolute inset-0 size-3.5 text-emerald-600 dark:text-emerald-400" fill="none" style={{ opacity: draft.status === "done" ? 1 : 0, transition: `opacity 200ms ${EASE}` }}>
+            <svg viewBox="0 0 16 16" className="absolute inset-0 size-3.5 text-success" fill="none" style={{ opacity: draft.status === "done" ? 1 : 0, transition: `opacity 200ms ${EASE}` }}>
               <path d="M3.5 8.5 6.5 11.5 12.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} style={{ strokeDashoffset: draft.status === "done" ? 0 : 1, transition: reduced ? "none" : `stroke-dashoffset 380ms ${EASE} 80ms` }} />
             </svg>
           </span>
@@ -767,7 +767,7 @@ export function DataTable<T>({
               labels={{ idle: a.label, pending: a.progress?.[0] ?? a.label, success: a.progress?.[1] ?? "Done", error: "Try again" }}
               onClick={() => run(a)}
               onReset={() => setActionStatus((s) => ({ ...s, [a.id]: "idle" }))}
-              className={a.tone === "destructive" && (actionStatus[a.id] ?? "idle") === "idle" ? "!text-red-600 hover:!bg-red-500/10 dark:!text-red-400" : ""}
+              className={a.tone === "destructive" && (actionStatus[a.id] ?? "idle") === "idle" ? "!text-destructive hover:!bg-destructive/10" : ""}
             />
           ))}
         </div>
@@ -799,7 +799,7 @@ export function DataTable<T>({
       {/* Notice: one line that folds in when something went wrong. */}
       <div className="grid transition-[grid-template-rows] duration-300" style={{ gridTemplateRows: notice ? "1fr" : "0fr", transitionTimingFunction: EASE }}>
         <div className="min-w-0 overflow-hidden">
-          <p className="truncate pl-1 pt-2 text-[12.5px] text-red-600 dark:text-red-400">{notice?.text ?? " "}</p>
+          <p className="truncate pl-1 pt-2 text-[12.5px] text-destructive">{notice?.text ?? " "}</p>
         </div>
       </div>
 

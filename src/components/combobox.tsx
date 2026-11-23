@@ -1003,7 +1003,7 @@ export function Combobox(props: ComboboxProps) {
         aria-selected={false}
         onPointerMove={() => activeKey !== CREATE_KEY && setActiveKey(CREATE_KEY)}
         onClick={() => void create()}
-        className={`relative flex min-h-9 cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[13px] ${creating === "error" ? "text-red-600 dark:text-red-400" : ""}`}
+        className={`relative flex min-h-9 cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[13px] ${creating === "error" ? "text-destructive" : ""}`}
       >
         <span className="relative flex size-[22px] shrink-0 items-center justify-center rounded-full text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]">
           <span className="absolute inset-0 flex items-center justify-center" style={{ opacity: creating === "pending" ? 0 : 1, transition: `opacity 200ms ${EASE}` }}>
@@ -1031,7 +1031,7 @@ export function Combobox(props: ComboboxProps) {
     );
   else if (failed)
     rows.push(
-      <div key="!error" data-row="!error" role="presentation" className="flex min-h-10 items-center gap-2 px-2 text-[13px] text-red-600 dark:text-red-400">
+      <div key="!error" data-row="!error" role="presentation" className="flex min-h-10 items-center gap-2 px-2 text-[13px] text-destructive">
         <AlertIcon />
         <span className="min-w-0 flex-1 truncate">{failed}</span>
         <StatusButton
@@ -1154,7 +1154,7 @@ export function Combobox(props: ComboboxProps) {
 
           {multiple && (
             <div className={`flex shrink-0 items-center justify-between gap-3 px-3 text-[12px] text-muted-foreground ${fit.up ? "border-b" : "border-t"} border-border`} style={{ height: FOOTER_H }}>
-              <span className={`min-w-0 truncate tabular-nums ${notice ? "text-amber-700 dark:text-amber-400" : ""}`}>
+              <span className={`min-w-0 truncate tabular-nums ${notice ? "text-warning" : ""}`}>
                 {notice ? (
                   <span key={notice} className="inline-block animate-[ui-fade-in_320ms_cubic-bezier(0.16,1,0.3,1)_both]">
                     {notice}

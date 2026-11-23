@@ -71,7 +71,6 @@ export function WorkspaceChrome({
       `/dashboard${rest ? `?${rest}` : ""}`,
     );
     toast.success("Signed in", { description: "Your workspace is ready." });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on the dashboard arrival only; toast is stable
   }, [pathname]);
 
   const searchOpen = useUiStore((s) => s.searchOpen);

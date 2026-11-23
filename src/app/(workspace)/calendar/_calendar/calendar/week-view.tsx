@@ -30,6 +30,11 @@ const MAX_ROWS = 3;
  * busy, scrolls inside a capped column rather than compressing text. The head
  * is the day selector (one button); the rows are presentational, so a busy
  * week stays scannable without nesting controls inside controls.
+ *
+ * Hairline rebuild: day cells are `rounded-2xl bg-card` with the inset
+ * hairline border; the selected day carries `ring-2 ring-primary`. The wide
+ * list / narrow list switch is a Tailwind v4 container query on this
+ * component's own container.
  */
 export const WeekView = memo(function WeekView({
   index,
@@ -51,10 +56,10 @@ export const WeekView = memo(function WeekView({
   );
 
   return (
-    <div className="cal-week">
+    <div className="@container cal-week min-w-0">
       {/* Wide surfaces — seven columns */}
       <ul
-        className="cal-week-cols grid-cols-7 gap-1.5"
+        className="hidden grid-cols-7 gap-1.5 @min-[560px]:grid"
         aria-label={`Week of ${shortDate(from)}`}
       >
         {week.map((iso) => (
@@ -74,11 +79,11 @@ export const WeekView = memo(function WeekView({
 
       {/* Narrow surfaces — one row per day, still inside the week */}
       <ul
-        className="cal-week-rows flex flex-col"
+        className="flex flex-col @min-[560px]:hidden"
         aria-label={`Week of ${shortDate(from)}`}
       >
         {week.map((iso) => (
-          <li key={iso} className="border-b border-rule-soft last:border-0">
+          <li key={iso} className="border-b border-border last:border-0">
             <WeekDayCell
               iso={iso}
               entries={entriesFor(index, iso, layers)}
@@ -126,13 +131,13 @@ function WeekDayCell({
   const numeral = (
     <span
       className={cn(
-        "font-serif leading-none tabular",
+        "font-serif tabular-nums leading-none",
         layout === "column" ? "text-[17px]" : "text-base",
         isSelected
-          ? "text-ink"
+          ? "text-foreground"
           : isToday
-            ? "text-accent"
-            : "text-ink",
+            ? "text-primary"
+            : "text-foreground",
       )}
     >
       {Number(iso.slice(8))}
@@ -148,12 +153,12 @@ function WeekDayCell({
         aria-current={isToday ? "date" : undefined}
         aria-label={label}
         className={cn(
-          "flex w-full items-start gap-3 px-1 py-2.5 text-left transition-colors hover:bg-soft",
-          isSelected && "bg-accent-soft",
+          "flex w-full items-start gap-3 px-1 py-2.5 text-left transition-colors hover:bg-accent",
+          isSelected && "bg-primary/5",
         )}
       >
         <span className="flex w-11 shrink-0 flex-col items-center gap-0.5">
-          <span className="text-[length:var(--type-label)] font-medium uppercase tracking-[0.08em] text-muted">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             {isoWeekdayShort(iso)}
           </span>
           {numeral}
@@ -165,13 +170,13 @@ function WeekDayCell({
                 <CompactRow key={entry.id} entry={entry} layout={layout} />
               ))}
               {entries.length > shown && (
-                <span className="px-1.5 text-[length:var(--type-label)] text-muted">
+                <span className="px-1.5 text-[11px] text-muted-foreground">
                   +{entries.length - shown} more
                 </span>
               )}
             </>
           ) : (
-            <span className="py-0.5 text-[length:var(--type-secondary)] text-muted">No assignments</span>
+            <span className="py-0.5 text-[12.5px] text-muted-foreground">No assignments</span>
           )}
         </span>
         <DayTicks counts={counts} className="shrink-0 pt-1" />
@@ -187,36 +192,36 @@ function WeekDayCell({
       aria-current={isToday ? "date" : undefined}
       aria-label={label}
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-control border text-left transition-colors",
+        "flex h-full w-full flex-col overflow-hidden rounded-2xl bg-card text-left transition-colors",
         isSelected
-          ? "border-accent bg-accent-soft"
+          ? "bg-primary/5 ring-2 ring-primary"
           : isToday
-            ? "border-accent/50 bg-paper hover:bg-soft"
-            : "border-rule-soft bg-paper hover:border-accent/50 hover:bg-soft",
+            ? "ring-1 ring-primary/50 hover:bg-accent"
+            : "shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
       )}
     >
-      <span className="flex flex-col items-center gap-0.5 border-b border-rule-soft px-1.5 py-2">
-        <span className="text-[length:var(--type-label)] font-medium uppercase tracking-[0.08em] text-muted">
+      <span className="flex flex-col items-center gap-0.5 border-b border-border px-1.5 py-2">
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           {isoWeekdayShort(iso)}
         </span>
         {numeral}
         {counts.plan.total > 0 && (
-          <span className="text-[length:var(--type-label)] tabular text-muted">
+          <span className="text-[11px] tabular-nums text-muted-foreground">
             {counts.plan.done}/{counts.plan.total}
           </span>
         )}
       </span>
-      <span className="cal-week-body flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1.5">
+      <span className="flex min-h-0 max-h-64 flex-1 flex-col gap-1 overflow-y-auto p-1.5">
         {entries.slice(0, shown).map((entry) => (
           <CompactRow key={entry.id} entry={entry} layout="column" />
         ))}
         {entries.length > shown && (
-          <span className="px-1 text-[length:var(--type-label)] text-muted">
+          <span className="px-1 text-[11px] text-muted-foreground">
             +{entries.length - shown} more
           </span>
         )}
         {!entries.length && (
-          <span className="px-1 py-1 text-[length:var(--type-secondary)] text-muted">Nothing</span>
+          <span className="px-1 py-1 text-[12.5px] text-muted-foreground">Nothing</span>
         )}
       </span>
     </button>
@@ -231,8 +236,8 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     return (
       <span
         className={cn(
-          "flex items-center gap-1 overflow-hidden rounded-[2px] py-0.5 pl-1 text-[length:var(--type-label)] leading-tight",
-          entry.task.completed ? "text-muted line-through" : "text-ink",
+          "flex items-center gap-1 overflow-hidden rounded-[2px] py-0.5 pl-1 text-[11px] leading-tight",
+          entry.task.completed ? "text-muted-foreground line-through" : "text-foreground",
         )}
       >
         <span
@@ -246,8 +251,8 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     );
   if (entry.kind === "revision")
     return (
-      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 text-[length:var(--type-label)] leading-tight text-muted">
-        <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-rule" aria-hidden="true" />
+      <span className="flex items-center gap-1 truncate rounded-[2px] py-0.5 pl-1 text-[11px] leading-tight text-muted-foreground">
+        <span className="h-3 w-0.5 shrink-0 rounded-[1px] bg-border" aria-hidden="true" />
         <span className="truncate">Revision</span>
       </span>
     );
@@ -255,17 +260,17 @@ function CompactRow({ entry, layout }: { entry: CalendarEntry; layout: "column" 
     return (
       <span
         className={cn(
-          "flex items-center gap-1 truncate rounded-[2px] border border-rule-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight",
-          entry.status === "completed" ? "text-muted line-through" : "text-ink",
+          "flex items-center gap-1 truncate rounded-[2px] bg-background px-1 py-0.5 text-[11px] leading-tight shadow-[inset_0_0_0_1px_var(--border)]",
+          entry.status === "completed" ? "text-muted-foreground line-through" : "text-foreground",
         )}
       >
         <span className="truncate">{entry.task.title}</span>
       </span>
     );
   return (
-    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-ink/60 bg-soft px-1 py-0.5 text-[length:var(--type-label)] leading-tight text-ink">
+    <span className="flex items-center gap-1 truncate rounded-[2px] border-l-2 border-l-foreground/60 bg-muted px-1 py-0.5 text-[11px] leading-tight text-foreground">
       <span className="truncate">{entry.attempt.name}</span>
-      <span className="ml-auto tabular text-muted">{entry.scorePct}</span>
+      <span className="ml-auto tabular-nums text-muted-foreground">{entry.scorePct}</span>
     </span>
   );
 }

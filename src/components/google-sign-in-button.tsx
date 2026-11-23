@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { startGoogleSignIn } from "@/lib/auth/sign-in";
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/button";
+import { toast } from "@/components/toast-stack";
 import { GoogleGlyph } from "./google-glyph";
-import { useToast } from "./toast";
-import { Button } from "./ui/button";
 
 /** Props for {@link GoogleSignInButton}. */
 export interface GoogleSignInButtonProps {
@@ -14,18 +14,24 @@ export interface GoogleSignInButtonProps {
   label: string;
   compactLabel?: string;
   ariaLabel?: string;
+  /** Visual weight: `default` reads as the Hairline secondary button (the
+   *  brand mark next to neutral surface), `outline` as the outline one. */
   variant?: "default" | "outline";
   size?: "sm" | "default";
   className?: string;
 }
 
 /**
- * Google sign-in affordance for the public landing page.
+ * Google sign-in affordance for the auth pages.
  *
- * The landing is server-gated to anonymous visitors (`app/page.tsx`), so this
- * deliberately does not call `useSession()` — that would only add a pending
- * flash. Failures surface as a toast, because a failed OAuth round trip
- * returns to `/` with `?error=oauth` and the button may be off-screen.
+ * The brand mark is the inline `GoogleGlyph` (a brand drawing, not an icon
+ * from the house vocabulary), carried in the Hairline Button's leading slot
+ * so the pill, focus ring and busy spinner all come from the shared control.
+ *
+ * The pages are server-gated to anonymous visitors, so this deliberately
+ * does not call `useSession()` — that would only add a pending flash.
+ * Failures surface as a toast, because a failed OAuth round trip returns
+ * with `?error=oauth` and the button may be off-screen.
  */
 export function GoogleSignInButton({
   enabled,
@@ -36,12 +42,20 @@ export function GoogleSignInButton({
   size = "default",
   className,
 }: GoogleSignInButtonProps) {
-  const { error } = useToast();
   const [busy, setBusy] = useState(false);
+
+  const hairlineVariant: ButtonVariant =
+    variant === "outline" ? "outline" : "secondary";
+  const hairlineSize: ButtonSize = size === "sm" ? "sm" : "lg";
 
   if (!enabled) {
     return (
-      <Button variant="outline" size={size} disabled className={className}>
+      <Button
+        variant="outline"
+        size={hairlineSize}
+        disabled
+        className={className}
+      >
         Sign-in unavailable
       </Button>
     );
@@ -52,10 +66,9 @@ export function GoogleSignInButton({
     try {
       await startGoogleSignIn();
     } catch {
-      error(
-        "Sign-in didn't complete",
-        "Google sign-in is unavailable. Please retry shortly.",
-      );
+      toast.error("Sign-in didn't complete", {
+        description: "Google sign-in is unavailable. Please retry shortly.",
+      });
     } finally {
       setBusy(false);
     }
@@ -63,34 +76,25 @@ export function GoogleSignInButton({
 
   return (
     <Button
-      variant={variant}
-      size={size}
+      variant={hairlineVariant}
+      size={hairlineSize}
+      type="button"
       disabled={busy}
+      loading={busy}
       aria-busy={busy || undefined}
       aria-label={ariaLabel ?? label}
       onClick={signIn}
+      icon={<GoogleGlyph />}
+      statusLabels={{ pending: "Connecting…" }}
       className={className}
     >
-      {busy ? (
+      {compactLabel ? (
         <>
-          <span
-            aria-hidden
-            className="size-1.5 rounded-pill bg-current motion-safe:animate-pulse"
-          />
-          <span>Connecting…</span>
+          <span className="hidden sm:inline">{label}</span>
+          <span className="sm:hidden">{compactLabel}</span>
         </>
       ) : (
-        <>
-          <GoogleGlyph />
-          {compactLabel ? (
-            <>
-              <span className="hidden sm:inline">{label}</span>
-              <span className="sm:hidden">{compactLabel}</span>
-            </>
-          ) : (
-            <span>{label}</span>
-          )}
-        </>
+        label
       )}
     </Button>
   );

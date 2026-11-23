@@ -53,8 +53,8 @@ export function Progress({ value, label, doneLabel = "Done", error, showValue = 
   const known = value !== undefined && value !== null;
   const v = known ? Math.max(0, Math.min(100, value)) : 0;
   const done = known && v >= 100 && !error;
-  const tone = error ? "bg-red-500" : done ? "bg-emerald-500" : "bg-primary";
-  const text = error ? "text-red-600 dark:text-red-400" : done ? "text-emerald-600 dark:text-emerald-400" : "text-foreground";
+  const tone = error ? "bg-destructive" : done ? "bg-success" : "bg-primary";
+  const text = error ? "text-destructive" : done ? "text-success" : "text-foreground";
   const aria = {
     role: "progressbar" as const,
     "aria-label": label ?? "Progress",
@@ -79,7 +79,7 @@ export function Progress({ value, label, doneLabel = "Done", error, showValue = 
             strokeLinecap="round"
             pathLength={100}
             strokeDasharray="100"
-            className={`${error ? "stroke-red-500" : done ? "stroke-emerald-500" : "stroke-primary"} transition-[stroke] duration-300`}
+            className={`${error ? "stroke-destructive" : done ? "stroke-success" : "stroke-primary"} transition-[stroke] duration-300`}
             style={{ strokeDashoffset: known ? 100 - v : 72, transition: reduced ? "none" : `stroke-dashoffset 600ms ${EASE_OUT}, stroke 300ms` }}
           />
         </svg>

@@ -13,10 +13,9 @@ import {
   twoFactorEnable,
   twoFactorRegenerateBackupCodes,
   twoFactorVerifyTotp,
-  type AuthSessionRow,
   type TwoFactorEnrollment,
 } from "@/lib/auth/email-client";
-import { useToast } from "@/components/toast";
+import { toast } from "@/components/toast-stack";
 
 /**
  * The Sign-in & security panel's data and actions.
@@ -53,7 +52,6 @@ function readSecurityUser(data: unknown): SecurityUser | null {
 }
 
 export function useAuthSecurity() {
-  const toast = useToast();
   const queryClient = useQueryClient();
   const sessionQuery = authClient.useSession();
   const user = readSecurityUser(sessionQuery.data);
@@ -82,7 +80,9 @@ export function useAuthSecurity() {
     ): Promise<{ ok: boolean; failure?: string }> => {
       try {
         await action();
-        toast.success(successMessage, successDetail);
+        toast.success(successMessage, {
+          description: successDetail,
+        });
         // Session-affecting actions may change what the account exposes.
         await queryClient.invalidateQueries({ queryKey: ["auth"] });
         await refreshSessions();
@@ -97,7 +97,7 @@ export function useAuthSecurity() {
         };
       }
     },
-    [queryClient, refreshSessions, toast],
+    [queryClient, refreshSessions],
   );
 
   const actions = {

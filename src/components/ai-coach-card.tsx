@@ -1,7 +1,8 @@
 "use client";
-import { AlertCircle, MessageSquare, RefreshCw, Sparkles } from "@/components/ui/icons";
 import { Panel } from "./dashboard-panels";
-import { Button } from "./ui/button";
+import { Button } from "./button";
+import { Alert } from "./alert";
+import { PlainIcon } from "./icon";
 import type { AiStatus } from "@/lib/ai/client-types";
 import type { CoachInsight } from "@/lib/ai/schemas";
 
@@ -29,6 +30,7 @@ export function AiCoachCard({
   const usage = status.usage;
   return (
     <Panel
+      icon="sparkles"
       title="AI coach"
       description="Guidance from your recent mocks, in the chat panel."
       action={
@@ -37,64 +39,55 @@ export function AiCoachCard({
           variant="outline"
           onClick={onGenerate}
           disabled={busy}
+          loading={busy}
+          icon={!busy ? <PlainIcon name="sparkles" size={13} /> : undefined}
         >
-          {busy ? (
-            <RefreshCw size={14} className="animate-spin" />
-          ) : (
-            <Sparkles size={14} />
-          )}
           {busy ? "Reading…" : insight ? "Regenerate" : "Generate insight"}
         </Button>
       }
     >
       <div className="px-4 pb-4 sm:px-6 sm:pb-5">
         {error && (
-          <p
-            role="alert"
-            className="mb-4 flex items-start gap-2 border border-warning bg-warning-soft px-4 py-3 text-xs text-warning"
-          >
-            <AlertCircle size={14} className="mt-[1px] shrink-0" />
-            {error}
-          </p>
+          <Alert tone="warning" title={error} className="mb-4" />
         )}
 
         {insight ? (
           <button
             type="button"
             onClick={onOpenChat}
-            className="block w-full rounded-control border border-rule-soft bg-canvas px-4 py-3 text-left transition-colors hover:border-accent/40"
+            className="block w-full rounded-[14px] bg-background px-4 py-3 text-left shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
           >
-            <span className="flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-accent">
-              <Sparkles size={11} /> Latest insight
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+              <PlainIcon name="sparkles" size={11} tone="primary" /> Latest insight
             </span>
-            <span className="mt-1.5 block truncate font-serif text-[0.9375rem] font-medium leading-snug">
+            <span className="mt-1.5 block truncate font-serif text-[15px] font-medium leading-snug text-foreground">
               {insight.headline}
             </span>
-            <span className="mt-1 block truncate text-xs text-muted">
+            <span className="mt-1 block truncate text-xs text-muted-foreground">
               Open the chat to read the full breakdown
             </span>
           </button>
         ) : (
-          <p className="max-w-2xl text-sm leading-relaxed text-muted">
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {busy
               ? "Reading your saved mocks — the insight opens in the chat panel."
               : "Generate a short, evidence-based read of your preparation. It opens in the chat panel, where you can ask follow-ups."}
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rule-soft pt-4">
-          <p className="text-[0.6875rem] text-muted">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
             Only aggregates and the latest 20 full mocks are sent to the
             configured AI provider. Notes, email, and user identity are never
             sent.
           </p>
-          <Button size="sm" variant="outline" onClick={onOpenChat}>
-            <MessageSquare size={14} /> Ask a question
+          <Button size="sm" variant="outline" onClick={onOpenChat} icon={<PlainIcon name="chat" size={13} />}>
+            Ask a question
           </Button>
         </div>
 
         {usage && (
-          <p className="mt-3 text-[0.6875rem] text-muted tabular">
+          <p className="mt-3 text-[12px] tabular-nums text-muted-foreground">
             Today: {usage.requests} / {usage.limits.requests} requests ·{" "}
             {usage.tokens.toLocaleString("en-IN")} /{" "}
             {usage.limits.tokens.toLocaleString("en-IN")} tokens charged

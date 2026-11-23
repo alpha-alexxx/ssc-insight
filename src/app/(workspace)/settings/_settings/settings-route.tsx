@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
-import { Dialog } from "radix-ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Dialog } from "@/components/dialog";
+import { Alert } from "@/components/alert";
 import { useBackupImport } from "./use-backup-import";
 import { SettingsView } from "./settings-view";
 
@@ -99,73 +100,64 @@ export function SettingsRoute({
         backup={backup}
         onOpenReplace={() => backup.setReplaceOpen(true)}
       />
-      <Dialog.Root
+      <Dialog
         open={backup.replaceOpen && backup.preview !== null}
         onOpenChange={backup.setReplaceOpen}
+        title="Replace this account’s data?"
+        size="md"
+        description={`Signed in as ${userEmail || "the current account"}. This action cannot be undone from the app.`}
+        footer={({ close }) => (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => close()}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={busy || !backup.safetyDownloaded}
+              onClick={() => void backup.commitImport(true)}
+            >
+              Replace account data
+            </Button>
+          </>
+        )}
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay fixed inset-0 bg-ink/40 z-40" />
-          <Dialog.Content className="dialog-content fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-paper border border-rule rounded-panel w-[calc(100%-32px)] max-w-xl p-6 md:p-8 shadow-pop">
-            <Dialog.Title className="font-serif text-3xl leading-tight pr-8">
-              Replace this account’s data?
-            </Dialog.Title>
-            <Dialog.Description className="muted text-xs mt-2">
-              Signed in as {userEmail || "the current account"}. This action
-              cannot be undone from the app.
-            </Dialog.Description>
-            {backup.preview && (
-              <div className="mt-5 space-y-3 text-sm">
-                <p>
-                  This permanently deletes{" "}
-                  <strong className="tabular">
-                    {backup.preview.willDelete}
-                  </strong>{" "}
-                  existing mocks in this account and imports{" "}
-                  <strong className="tabular">
-                    {backup.preview.importable}
-                  </strong>{" "}
-                  mocks from the backup.
-                </p>
-                <p className="text-xs muted">
-                  Settings:{" "}
-                  {backup.applyTarget && backup.preview.settings.available
-                    ? backup.preview.settings.changed
-                      ? "apply the backup's exam scope and targets"
-                      : "same as the current scope"
-                    : "keep the current exam scope and targets"}
-                  .{" "}
-                  {backup.safetyDownloaded
-                    ? "A safety backup was downloaded."
-                    : "Download a safety backup first."}
-                </p>
-                <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs">
-                  Keep the downloaded safety backup until you have verified the
-                  imported data. This cannot be undone from the app. Your Trash
-                  is not affected.
-                </div>
-              </div>
-            )}
-            <div className="flex flex-wrap justify-end gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy}
-                onClick={() => backup.setReplaceOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={busy || !backup.safetyDownloaded}
-                onClick={() => void backup.commitImport(true)}
-              >
-                Replace account data
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+        {backup.preview && (
+          <div className="space-y-3 text-sm">
+            <p>
+              This permanently deletes{" "}
+              <strong className="tabular-nums">
+                {backup.preview.willDelete}
+              </strong>{" "}
+              existing mocks in this account and imports{" "}
+              <strong className="tabular-nums">
+                {backup.preview.importable}
+              </strong>{" "}
+              mocks from the backup.
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Settings:{" "}
+              {backup.applyTarget && backup.preview.settings.available
+                ? backup.preview.settings.changed
+                  ? "apply the backup's exam scope and targets"
+                  : "same as the current scope"
+                : "keep the current exam scope and targets"}
+              .{" "}
+              {backup.safetyDownloaded
+                ? "A safety backup was downloaded."
+                : "Download a safety backup first."}
+            </p>
+            <Alert tone="danger" title="Keep the downloaded safety backup until you have verified the imported data.">
+              This cannot be undone from the app. Your Trash is not affected.
+            </Alert>
+          </div>
+        )}
+      </Dialog>
     </>
   );
 }

@@ -5,7 +5,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/button";
+import { Spinner } from "@/components/spinner";
 import { ScopeFilters } from "@/components/scope-filters";
 import { useFiltersState } from "@/components/shared/use-filters-state";
 import { useAnalyticsData } from "@/components/shared/use-analytics-data";
@@ -71,8 +72,12 @@ export function HistoryRoute() {
         title="Mock history"
         description="Every saved result with its actual attempt date, score, and details."
         actions={
-          <Button size="sm" onClick={() => router.push("/add")}>
-            <PlainIcon name="plus" size={14} /> Add mock
+          <Button
+            size="sm"
+            onClick={() => router.push("/add")}
+            icon={<PlainIcon name="plus" size={14} />}
+          >
+            Add mock
           </Button>
         }
       />
@@ -88,9 +93,12 @@ export function HistoryRoute() {
         />
       </div>
       {list.isFetching && (
-        <p role="status" className="mb-3 flex items-center gap-2 text-xs text-muted">
-          <PlainIcon name="refresh" size={12} className="animate-spin" /> Updating
-          your results…
+        <p
+          role="status"
+          className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <Spinner size="xs" label="Updating your results" />
+          Updating your results…
         </p>
       )}
       <HistoryPanel
@@ -118,4 +126,3 @@ export function HistoryRoute() {
     </div>
   );
 }
-

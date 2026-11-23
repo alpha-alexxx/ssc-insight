@@ -113,7 +113,7 @@ export function StatusButton({
 
   const tone =
     status === "error"
-      ? "bg-red-500/10 text-red-600 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] dark:text-red-400"
+      ? "bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)]"
       : variant === "primary"
         ? "bg-primary text-primary-foreground hover:bg-primary/90"
         : variant === "ghost"

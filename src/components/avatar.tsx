@@ -29,7 +29,7 @@ export interface AvatarProps extends Omit<React.HTMLAttributes<HTMLSpanElement>,
 }
 
 const PX: Record<AvatarSize, number> = { xs: 20, sm: 28, md: 36, lg: 48 };
-const STATUS: Record<AvatarStatus, string> = { online: "bg-emerald-500", away: "bg-amber-500", busy: "bg-red-500", offline: "bg-muted-foreground/50" };
+const STATUS: Record<AvatarStatus, string> = { online: "bg-success", away: "bg-warning", busy: "bg-destructive", offline: "bg-muted-foreground/50" };
 
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);

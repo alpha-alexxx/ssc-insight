@@ -1,5 +1,5 @@
 "use client";
-import { Panel } from "@/components/dashboard-panels";
+import { Panel } from "./panel";
 import { PlainIcon } from "@/components/icon";
 import type { Finding } from "@/lib/performance-metrics";
 
@@ -16,9 +16,9 @@ import type { Finding } from "@/lib/performance-metrics";
  */
 
 const TONE_TEXT: Record<Finding["tone"], string> = {
-  positive: "text-positive",
+  positive: "text-success",
   warning: "text-warning",
-  neutral: "text-muted",
+  neutral: "text-muted-foreground",
 };
 
 const TONE_ICON: Record<Finding["tone"], "success" | "warning" | "info"> = {
@@ -61,7 +61,7 @@ export function FindingsPanel({
       description="Measured from the results in view — observations, not advice."
       className={className}
     >
-      <ul className="divide-y divide-rule-soft border-t border-rule-soft">
+      <ul className="-mx-4 divide-y divide-border border-t border-border sm:-mx-5">
         {findings.map((finding) => (
           <li
             key={finding.id}
@@ -72,10 +72,10 @@ export function FindingsPanel({
               size={13}
               className={`mt-[3px] shrink-0 ${TONE_TEXT[finding.tone]}`}
             />
-            <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink">
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground">
               {sentence(finding)}
             </p>
-            <span className="shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-muted">
+            <span className="shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-muted-foreground">
               Observation
             </span>
           </li>
