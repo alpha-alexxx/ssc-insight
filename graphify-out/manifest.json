@@ -642,10 +642,10 @@
     "semantic_hash": "8c6c7fe0d64f2627e2af6951334eaa55"
   },
   "src/app/(workspace)/performance/_performance/trend-panel.tsx": {
-    "mtime": 1795464265.174746,
-    "seen": 1795467504.0633097,
-    "ast_hash": "911428cdd393bec6ce70acffe67f0beb",
-    "semantic_hash": "911428cdd393bec6ce70acffe67f0beb"
+    "mtime": 1795469041.355412,
+    "seen": 1795469977.7374408,
+    "ast_hash": "828e933f9ff7b66ab9cfda9043871016",
+    "semantic_hash": ""
   },
   "src/app/(workspace)/performance/_performance/use-size.ts": {
     "mtime": 1795464265.1757462,
@@ -2784,10 +2784,10 @@
     "semantic_hash": "d948b50d905c6f936b7a6d617d231e5e"
   },
   "src/components/toast-stack.tsx": {
-    "mtime": 1795464265.4331715,
-    "seen": 1795467504.0639408,
-    "ast_hash": "efbb76cf025782b643a0d919fb8bcfd9",
-    "semantic_hash": "efbb76cf025782b643a0d919fb8bcfd9"
+    "mtime": 1795469041.3651488,
+    "seen": 1795469977.739781,
+    "ast_hash": "5e3c19920f8127c0bfed8c798eb6fcbc",
+    "semantic_hash": ""
   },
   "src/components/toggle-group.tsx": {
     "mtime": 1795464265.4341726,
@@ -2802,10 +2802,10 @@
     "semantic_hash": "b561057318a365f7aff3d148da27804e"
   },
   "src/components/trend-chart.tsx": {
-    "mtime": 1795464265.4351718,
-    "seen": 1795467504.063946,
-    "ast_hash": "ce0d1b60f704e5f90204c7eff9fc02ad",
-    "semantic_hash": "ce0d1b60f704e5f90204c7eff9fc02ad"
+    "mtime": 1795469041.390857,
+    "seen": 1795469977.7397997,
+    "ast_hash": "42c61f6d360182f7c8947858c60cf7a5",
+    "semantic_hash": ""
   },
   "src/components/ui-interaction-motion.ts": {
     "mtime": 1795464265.4351718,
@@ -3264,10 +3264,10 @@
     "semantic_hash": "f3bc21acf17318e0d1909daa7ee76476"
   },
   "src/lib/performance-metrics.ts": {
-    "mtime": 1795464265.5080411,
-    "seen": 1795467504.0640843,
-    "ast_hash": "016968dac7201a9f0d883c8ec5687205",
-    "semantic_hash": "016968dac7201a9f0d883c8ec5687205"
+    "mtime": 1795469041.4111388,
+    "seen": 1795469977.7403038,
+    "ast_hash": "60c2f83a8693dce76ae9f492fd82370c",
+    "semantic_hash": ""
   },
   "src/lib/plan/attempt-match.ts": {
     "mtime": 1795464265.5080411,
@@ -3708,10 +3708,10 @@
     "semantic_hash": "a589bb52a48537effa0a61c3d6467fb5"
   },
   "tests/performance-metrics.test.ts": {
-    "mtime": 1795464265.540559,
-    "seen": 1795467504.0642178,
-    "ast_hash": "02fffcfbf9d4eeedc63758c316fc53af",
-    "semantic_hash": "02fffcfbf9d4eeedc63758c316fc53af"
+    "mtime": 1795469041.4141674,
+    "seen": 1795469977.7407963,
+    "ast_hash": "97ac67503ab17d7ab952b2c8c5f93c34",
+    "semantic_hash": ""
   },
   "tests/personal-tasks.test.ts": {
     "mtime": 1795464265.540559,
@@ -3810,8 +3810,8 @@
     "semantic_hash": "eec4d834c8161126c41d97c2360ab301"
   },
   "tests/theme-style.test.ts": {
-    "mtime": 1795464265.5485668,
-    "seen": 1795467504.064247,
+    "mtime": 1795469814.265926,
+    "seen": 1795469977.740912,
     "ast_hash": "940f5544603c9fa8f110525b7a6eb0f0",
     "semantic_hash": "940f5544603c9fa8f110525b7a6eb0f0"
   },
@@ -4000,5 +4000,17 @@
     "seen": 1795467504.0642989,
     "ast_hash": "3d5a43d504c07148bee4a3b650b91dba",
     "semantic_hash": "3d5a43d504c07148bee4a3b650b91dba"
+  },
+  "tests/toast-store-contract.test.ts": {
+    "mtime": 1795468886.529265,
+    "seen": 1795469977.7409174,
+    "ast_hash": "342a492d7fd2772d7c623d8445729cd0",
+    "semantic_hash": ""
+  },
+  "package-lock.json": {
+    "mtime": 1795464889.214712,
+    "seen": 1795469977.7411675,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
   }
 }

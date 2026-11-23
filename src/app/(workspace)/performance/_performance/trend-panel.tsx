@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPath } from "@/lib/motion";
-import { shortDate } from "@/lib/format";
+import { shortDate, istDateKey } from "@/lib/format";
 import { formatNumber as n } from "@/lib/domain";
 import type { Analytics, PerformancePoint } from "@/lib/analytics";
+import { attemptDayBucket } from "@/lib/performance-metrics";
 import { TrendChart } from "@/components/trend-chart";
 import { Panel, subjectColor } from "./panel";
 import { useSize, smoothPath, niceDomain } from "./use-size";
@@ -78,14 +79,22 @@ function AreaTrendChart({
 }) {
   if (points.length === 0) return null;
 
-  // Buckets are the attempts' own dates (UTC midnight, so an IST reader's
-  // formatted day always matches the saved date). Two results on one day sit
-  // on one bucket — the note line and the sr-only table still carry both.
-  const buckets = points.map((p) => Date.parse(`${p.date}T00:00:00Z`));
-  const values = points.map((p) => p.percentage);
+  // One bucket per attempt's IST day. `p.date` is a full ISO timestamp, so the
+  // day must be read through attemptDayBucket — appending another time suffix
+  // used to yield NaN and crash the whole route. A result whose date cannot be
+  // read is dropped: an absent point is honest, a point at epoch is not.
+  // Two results on one day share a bucket; the note line and the sr-only table
+  // still carry both.
+  const rows = points
+    .map((point) => ({ point, bucket: attemptDayBucket(point.date) }))
+    .filter((row) => Number.isFinite(row.bucket));
+  if (rows.length === 0) return null;
+
+  const buckets = rows.map((row) => row.bucket);
+  const values = rows.map((row) => row.point.percentage);
 
   const note = (index: number): string => {
-    const point = points[index]!;
+    const point = rows[index]!.point;
     return [
       point.name,
       point.platform,
@@ -106,13 +115,17 @@ function AreaTrendChart({
         values={values}
         interval="day"
         kind="percent"
-        label={`Score percentage across ${points.length} results${target != null ? ", with the target line" : ""}`}
+        label={`Score percentage across ${rows.length} results${target != null ? ", with the target line" : ""}`}
         previous={target != null ? values.map(() => target) : undefined}
         previousLabel="target"
         note={note}
       />
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-        Percentages, not raw marks — the scope&apos;s own grain, {caption}.
+        Percentages, not raw marks — the scope&apos;s own grain, {caption}
+        {rows.length < points.length
+          ? ` (${points.length - rows.length} with an unreadable date left out)`
+          : ""}
+        .
       </p>
     </div>
   );
@@ -138,7 +151,9 @@ function seriesOf(points: PerformancePoint[]): SubjectSeries[] {
     byId.set(point.seriesId, series);
   }
   for (const series of byId.values())
-    series.points.sort((a, b) => a.date.localeCompare(b.date));
+    series.points.sort((a, b) =>
+      istDateKey(a.date).localeCompare(istDateKey(b.date)),
+    );
   return [...byId.values()].sort((a, b) => b.points.length - a.points.length);
 }
 
@@ -146,28 +161,39 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
   const reduced = useReducedMotion();
   const [ref, width] = useSize<HTMLDivElement>();
   const [hoverDate, setHoverDate] = useState<string | null>(null);
-  const series = useMemo(() => seriesOf(points), [points]);
+  // Every point is keyed by its IST day, read from the full timestamp it
+  // carries — never re-suffixed. A point with an unreadable date is dropped
+  // rather than plotted at NaN, which used to collapse the whole line.
+  const usable = useMemo(
+    () => points.filter((point) => istDateKey(point.date) !== ""),
+    [points],
+  );
+  const series = useMemo(() => seriesOf(usable), [usable]);
 
   const dates = useMemo(
     () =>
-      [...new Set(points.map((p) => p.date))].sort((a, b) => a.localeCompare(b)),
-    [points],
+      [...new Set(usable.map((p) => istDateKey(p.date)))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [usable],
   );
-  const values = points.map((p) => p.percentage);
+  const values = usable.map((p) => p.percentage);
   const [min, max] = useMemo(() => niceDomain(values, null), [values]);
 
   const innerW = Math.max(0, width - PAD.l - PAD.r);
   const innerH = HEIGHT - PAD.t - PAD.b;
-  const timeOf = (date: string) => new Date(`${date}T00:00:00+05:30`).getTime();
+  // A day key ("2026-10-09") parses as UTC midnight, so the axis is a pure
+  // day scale with no hour drift.
+  const timeOf = (dayKey: string) => Date.parse(`${dayKey}T00:00:00Z`);
   const tMin = dates.length ? timeOf(dates[0]!) : 0;
   const tMax = dates.length ? timeOf(dates[dates.length - 1]!) : 1;
-  const xAt = (date: string) =>
+  const xAt = (dayKey: string) =>
     dates.length > 1
-      ? PAD.l + ((timeOf(date) - tMin) / Math.max(1, tMax - tMin)) * innerW
+      ? PAD.l + ((timeOf(dayKey) - tMin) / Math.max(1, tMax - tMin)) * innerW
       : PAD.l + innerW / 2;
   const yAt = (v: number) => PAD.t + innerH * (1 - (v - min) / Math.max(1, max - min));
 
-  if (points.length === 0) return null;
+  if (usable.length === 0) return null;
 
   const colorOf = (series: SubjectSeries) => subjectColor(series.id);
 
@@ -175,7 +201,7 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
     ? series
         .map((s) => ({
           series: s,
-          point: s.points.find((p) => p.date === hoverDate),
+          point: s.points.find((p) => istDateKey(p.date) === hoverDate),
         }))
         .filter((row): row is { series: SubjectSeries; point: PerformancePoint } =>
           Boolean(row.point),
@@ -276,7 +302,11 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
               const stroke = colorOf(s);
               const path = smoothPath(
                 s.points.map(
-                  (p) => [xAt(p.date), yAt(p.percentage)] as [number, number],
+                  (p) =>
+                    [xAt(istDateKey(p.date)), yAt(p.percentage)] as [
+                      number,
+                      number,
+                    ],
                 ),
               );
               return (
@@ -295,7 +325,7 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
                     />
                   ) : (
                     <circle
-                      cx={xAt(s.points[0]!.date)}
+                      cx={xAt(istDateKey(s.points[0]!.date))}
                       cy={yAt(s.points[0]!.percentage)}
                       r="3.5"
                       fill={stroke}
@@ -304,9 +334,9 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
                   {s.points.map((p) => (
                     <circle
                       key={p.key}
-                      cx={xAt(p.date)}
+                      cx={xAt(istDateKey(p.date))}
                       cy={yAt(p.percentage)}
-                      r={hoverDate === p.date ? 4 : 2.5}
+                      r={hoverDate === istDateKey(p.date) ? 4 : 2.5}
                       fill="var(--background)"
                       stroke={stroke}
                       strokeWidth="1.75"

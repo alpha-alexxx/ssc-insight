@@ -1,5 +1,5 @@
 import type { Analytics, AnswerStack, PerformancePoint } from "./analytics";
-import { shortDate } from "./format";
+import { istDateKey, shortDate } from "./format";
 
 /**
  * The one place performance figures are derived.
@@ -302,6 +302,27 @@ export function sparklinePoints(
   return points
     .slice(-limit)
     .map((point) => ({ date: point.date, percentage: point.percentage }));
+}
+
+/**
+ * Epoch ms of an attempt's IST calendar day — the trend chart's bucket key.
+ *
+ * `PerformancePoint.date` carries `attempt.completedAt`, a FULL ISO timestamp
+ * (`2026-10-09T04:00:00.000Z`), not a date-only string. So its day has to be
+ * read, never string-sliced or re-suffixed: appending another time suffix
+ * (`${date}T00:00:00Z`) produces an unparseable string, and the resulting NaN
+ * reached `Intl.DateTimeFormat.format` as "RangeError: Invalid time value".
+ *
+ * Grouping on the IST day is also what keeps the chart honest: `targetSnapshots`
+ * groups by `istDateKey`, so a chart bucketing on anything else would draw its
+ * target line one bucket away from its trend line.
+ *
+ * Returns NaN for an unreadable date, so a caller can drop the point instead of
+ * letting NaN poison every coordinate.
+ */
+export function attemptDayBucket(date: string): number {
+  const key = istDateKey(date);
+  return key ? Date.parse(`${key}T00:00:00Z`) : Number.NaN;
 }
 
 /* ------------------------------------------------------------------ *

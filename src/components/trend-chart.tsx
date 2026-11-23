@@ -170,19 +170,35 @@ function dateWords(locale: string | undefined) {
   const clock = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" });
   const month = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" });
   const monthShort = new Intl.DateTimeFormat(locale, { month: "short" });
+  // An unreadable instant must degrade to a neutral dash, never throw: Intl
+  // raises RangeError("Invalid time value") on NaN, and that used to take the
+  // whole route down with it.
+  const safe = (formatter: Intl.DateTimeFormat, t: number) => (Number.isFinite(t) ? formatter.format(t) : "—");
   return {
     /** "Fri 18 Sep" · "Fri 18 Sep, 2 PM" · "Week of 14 Sep" · "September 2026". */
     title: (t: number, interval: TrendInterval) =>
-      interval === "hour" ? `${day.format(t)}, ${hour.format(t)}` : interval === "week" ? `Week of ${short.format(t)}` : interval === "month" ? month.format(t) : day.format(t),
+      interval === "hour"
+        ? `${safe(day, t)}, ${safe(hour, t)}`
+        : interval === "week"
+          ? `Week of ${safe(short, t)}`
+          : interval === "month"
+            ? safe(month, t)
+            : safe(day, t),
     /** "18 Sep", "2 PM", "Sep". */
-    tick: (t: number, interval: TrendInterval) => (interval === "hour" ? hour.format(t) : interval === "month" ? monthShort.format(t) : short.format(t)),
-    edge: (t: number, interval: TrendInterval) => (interval === "hour" ? clock.format(t) : interval === "month" ? monthShort.format(t) : short.format(t)),
+    tick: (t: number, interval: TrendInterval) =>
+      interval === "hour" ? safe(hour, t) : interval === "month" ? safe(monthShort, t) : safe(short, t),
+    edge: (t: number, interval: TrendInterval) =>
+      interval === "hour" ? safe(clock, t) : interval === "month" ? safe(monthShort, t) : safe(short, t),
   };
 }
 
 function snapshotOf(p: { buckets: number[]; values: number[]; previous: number[] | null; interval: TrendInterval; kind: TrendKind; now: number | null }): Snapshot | null {
   const n = p.buckets.length;
   if (!n) return null;
+  // A bucket that is not a real instant cannot be drawn or formatted. Refusing
+  // the whole series renders an empty chart, which is the honest outcome — the
+  // alternative is NaN coordinates and an Intl RangeError out of render.
+  if (!Number.isFinite(p.buckets[0])) return null;
   const ends = p.buckets.map((b, i) => p.buckets[i + 1] ?? nextBucket(b, p.interval));
   return {
     key: `${p.kind}|${p.interval}|${p.buckets[0]}|${n}|${p.values.join(",")}|${p.previous?.join(",") ?? ""}`,

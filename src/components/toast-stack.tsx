@@ -214,7 +214,17 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 const getToasts = () => toasts;
-const getNone = () => [] as ToastData[];
+/**
+ * The server render and the hydration pass show no toasts.
+ *
+ * This MUST be one cached reference. `useSyncExternalStore` compares snapshots
+ * with `Object.is`, so returning a fresh `[]` on every call never compares
+ * equal and React re-renders forever ("The result of getServerSnapshot should
+ * be cached to avoid an infinite loop"). `toasts` is only reassigned on
+ * mutation, so `getToasts` is already stable between changes.
+ */
+const NO_TOASTS: ToastData[] = [];
+const getNone = () => NO_TOASTS;
 
 /* ── Motion & Animation Constants ── */
 

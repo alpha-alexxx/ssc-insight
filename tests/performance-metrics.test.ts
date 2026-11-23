@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   DISTRIBUTION_MIN_POINTS,
   RANK_MIN_RESULTS,
+  attemptDayBucket,
   distributionBuckets,
   findings,
   headlineMetrics,
@@ -297,3 +298,51 @@ test("findings never describe an incomparable view with one gap", () => {
     false,
   );
 });
+
+/**
+ * Regression: the /performance trend crashed with
+ * "RangeError: Invalid time value" because the chart appended a second time
+ * suffix to `PerformancePoint.date`, which is already a full ISO timestamp.
+ */
+test("attemptDayBucket reads the IST day from a full timestamp", () => {
+  // 18:30Z on the 8th IS midnight of the 9th in Asia/Kolkata (+05:30).
+  const istMidnightOfNinth = Date.parse("2026-10-09T00:00:00Z");
+  assert.equal(attemptDayBucket("2026-10-08T18:30:00.000Z"), istMidnightOfNinth);
+  // Any time within the same IST day lands on the same bucket.
+  assert.equal(attemptDayBucket("2026-10-09T04:00:00.000Z"), istMidnightOfNinth);
+  assert.equal(attemptDayBucket("2026-10-09T18:29:59.999Z"), istMidnightOfNinth);
+  // A date-only value is already a day key.
+  assert.equal(attemptDayBucket("2026-10-09"), istMidnightOfNinth);
+});
+
+test("attemptDayBucket respects the one-second IST day boundary", () => {
+  assert.equal(
+    attemptDayBucket("2026-10-08T18:29:59.999Z"),
+    Date.parse("2026-10-08T00:00:00Z"),
+  );
+});
+
+test("attemptDayBucket never re-suffixes an existing timestamp", () => {
+  // The exact shape the old code built. Pinned so the fix cannot silently
+  // regress back into an unparseable string.
+  const doubled = Date.parse("2026-10-09T04:00:00.000ZT00:00:00Z");
+  assert.ok(Number.isNaN(doubled));
+  assert.equal(Number.isFinite(attemptDayBucket("2026-10-09T04:00:00.000Z")), true);
+});
+
+test("attemptDayBucket returns NaN for an unreadable date so callers can drop it", () => {
+  assert.equal(Number.isNaN(attemptDayBucket("not-a-date")), true);
+  assert.equal(Number.isNaN(attemptDayBucket("")), true);
+});
+
+test("two results on one IST day share a single bucket", () => {
+  const rows = [
+    attempt("a", "full", [quant, reasoning, english, ga], "2026-10-09T04:00:00.000Z"),
+    attempt("b", "full", [quant, reasoning, english, ga], "2026-10-09T15:30:00.000Z"),
+  ];
+  const analytics = analyze(rows, "full");
+  const buckets = analytics.trend.points.map((point) => attemptDayBucket(point.date));
+  assert.equal(buckets.length, 2);
+  assert.equal(buckets[0], buckets[1]);
+});
+
