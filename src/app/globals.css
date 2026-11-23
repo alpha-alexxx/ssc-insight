@@ -2950,8 +2950,6 @@ html {
   .metric-cell .metric-go {
     opacity: 1;
   }
-  .duotone .duotone-echo,
-  .duotone:hover .duotone-echo,
   .duotone-tile,
   .duotone-tile:hover {
     transform: none;
