@@ -795,16 +795,23 @@ test("Task 5D1 local folds query named containers", () => {
     /className="personal-workspace min-w-0 @container\/mt-page"/,
   );
   assert.ok(pageRegion.includes("@5xl/mt-page:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]"));
-  assert.ok(pageRegion.includes("@3xl/mt-page:col-start-2"));
+  assert.ok(pageRegion.includes("@5xl/mt-page:col-start-2"));
+  assert.ok(pageRegion.includes("@5xl/mt-page:col-start-1"));
+  assert.ok(pageRegion.includes("@5xl/mt-page:row-start-1"));
   assert.doesNotMatch(pageRegion, /\blg:/);
 
   const boardGridClass = boardViewSource.slice(
     boardViewSource.indexOf("// The board is its own container"),
-    boardViewSource.indexOf("{COLUMNS.map") - 8,
+    boardViewSource.indexOf("{COLUMNS.map"),
   );
   assert.match(boardGridClass, /@container\/board/);
-  assert.ok(boardGridClass.includes("@sm/board:grid-cols-2"));
-  assert.ok(boardGridClass.includes("@2xl/board:grid-cols-3"));
+  assert.match(boardGridClass, /<div className="@container\/board">/);
+  assert.ok(
+    boardGridClass.includes(
+      'className="grid items-start gap-3 @sm/board:grid-cols-2 @2xl/board:grid-cols-3"',
+    ),
+  );
+  assert.ok(boardViewSource.includes("})}\n      </div>\n    </div>\n  );"));
   assert.doesNotMatch(boardGridClass, /\b(?:sm|lg):/);
 
   const toolbarDesktop = taskToolbarSource.slice(

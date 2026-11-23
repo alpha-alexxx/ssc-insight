@@ -828,7 +828,7 @@ export function MyTasksView({
       <OverviewStrip counts={stripCounts} onOpen={openTab} />
 
       <div className="mt-5 grid min-w-0 items-start gap-5 @5xl/mt-page:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-        <main className="flex min-w-0 flex-col gap-3 @3xl/mt-page:col-start-1 @3xl/mt-page:row-start-1">
+        <main className="flex min-w-0 flex-col gap-3 @5xl/mt-page:col-start-1 @5xl/mt-page:row-start-1">
           {/* Tabs */}
           <div
             role="tablist"
@@ -1026,7 +1026,7 @@ export function MyTasksView({
           </div>
         </main>
 
-        <aside className="flex min-w-0 flex-col gap-4 @3xl/mt-page:col-start-2 @3xl/mt-page:row-start-1">
+        <aside className="flex min-w-0 flex-col gap-4 @5xl/mt-page:col-start-2 @5xl/mt-page:row-start-1">
           <PlanRail plan={planApi.plan} today={today} />
           <section className="panel p-4" aria-label="Task calendar">
             <PersonalCalendar

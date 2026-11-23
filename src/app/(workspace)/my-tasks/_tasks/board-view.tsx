@@ -62,7 +62,10 @@ export function BoardView({
     // The board is its own container: 768–1023 with the sidebar open leaves
     // ~490px of content, and three ~150px columns wrap every card's meta
     // into slivers, so columns fold by board width rather than viewport.
-    <div className="@container/board grid items-start gap-3 @sm/board:grid-cols-2 @2xl/board:grid-cols-3">
+    // The wrapper owns the query; a container query cannot resolve against
+    // the element that declares it.
+    <div className="@container/board">
+      <div className="grid items-start gap-3 @sm/board:grid-cols-2 @2xl/board:grid-cols-3">
       {COLUMNS.map((column) => {
         const items = byColumn.get(column.id)!;
         const highlighted = overColumn === column.id;
@@ -207,6 +210,7 @@ export function BoardView({
           </section>
         );
       })}
+      </div>
     </div>
   );
 }
