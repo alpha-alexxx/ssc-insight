@@ -61,6 +61,13 @@
   --chart-correct: var(--chart-average);
   --chart-incorrect: var(--chart-quant);
   --chart-skipped: var(--rule-soft);
+  /* shadcn chart-token aliases (registry chart components expect --chart-1..5).
+     Mapped to the fixed subject hues so palettes never re-color the data. */
+  --chart-1: var(--chart-quant);
+  --chart-2: var(--chart-reasoning);
+  --chart-3: var(--chart-english);
+  --chart-4: var(--chart-ga);
+  --chart-5: var(--chart-computer);
   --outcome-unattempted: #c9bda7;
 
   /* ---- geometry & elevation scale (Mira foundation) ---- */
@@ -506,6 +513,16 @@
   --color-chart-correct: var(--chart-correct);
   --color-chart-incorrect: var(--chart-incorrect);
   --color-chart-skipped: var(--chart-skipped);
+  /* shadcn chart-token utilities + named subject hues for registry chart comps */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-score: var(--chart-score);
+  --color-chart-average: var(--chart-average);
+  --color-chart-time: var(--chart-time);
+  --color-chart-target: var(--chart-target);
   /* radius / elevation / easing utilities (rounded-control, shadow-pop, …) */
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
@@ -1302,59 +1319,12 @@
   }
 
   /* ---------- Duotone icon system ----------
-     Two constructions share one treatment (two tones per glyph):
-     - @duo-icons/react glyphs: the primary layer carries ink (or accent),
-       the secondary layer carries the accent wash. CSS overrides the SVG
-       fill/opacity presentation attributes, so tokens flip in dark mode.
-     - Lucide fallbacks: the echo technique (offset tinted duplicate). */
-  .icon-duo .duo-icons-primary-layer {
-    fill: var(--ink);
-  }
-  .icon-duo .duo-icons-secondary-layer {
-    fill: var(--accent);
-    opacity: 0.5;
-  }
-  .icon-duo.icon-accent .duo-icons-primary-layer {
-    fill: var(--accent);
-  }
-  .icon-duo.icon-accent .duo-icons-secondary-layer {
-    fill: var(--accent);
-    opacity: 0.35;
-  }
-  .icon-duo.icon-paper .duo-icons-primary-layer {
-    fill: var(--paper);
-  }
-  .icon-duo.icon-paper .duo-icons-secondary-layer {
-    fill: var(--paper);
-    opacity: 0.4;
-  }
-  .icon-duo.icon-muted .duo-icons-primary-layer {
-    fill: var(--muted);
-  }
-  .icon-duo.icon-muted .duo-icons-secondary-layer {
-    fill: var(--muted);
-    opacity: 0.35;
-  }
-  /* mono: both layers follow currentColor (subject icons, custom contexts) */
-  .icon-duo.icon-mono .duo-icons-primary-layer {
-    fill: currentColor;
-  }
-  .icon-duo.icon-mono .duo-icons-secondary-layer {
-    fill: currentColor;
-    opacity: 0.3;
-  }
-  .duotone .duotone-echo {
-    transform: translate(2.5px, -2.5px);
-    opacity: 0.32;
-    transition:
-      transform var(--dur-enter) var(--ease-out-soft),
-      opacity var(--dur-enter) ease;
-  }
-  .duotone:hover .duotone-echo,
-  .duotone-tile:hover .duotone .duotone-echo {
-    transform: translate(4.5px, -4.5px);
-    opacity: 0.55;
-  }
+     Hugeicons renders true duotone natively via `primaryColor`/`secondaryColor`
+     props set from design tokens in `src/components/icon.tsx`. The prior
+     `.duo-icons-*-layer` CSS overrides (and the Lucide echo technique) are
+     retired — layer colors now come from the component, so dark mode and
+     palette/style switches flip them automatically through the token chain.
+     The tile hover lift is retained. */
   .duotone-tile {
     transition:
       transform var(--dur-enter) var(--ease-out-soft),
