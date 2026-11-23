@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog } from "radix-ui";
-import { X } from "@/components/ui/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useOverlayFocus } from "@/components/use-overlay-viewport";
 import type { GroupWithCount } from "./types";
@@ -66,7 +70,7 @@ export function GroupsManagerDialog({
   }
 
   return (
-    <Dialog.Root
+    <Dialog
       open={open}
       onOpenChange={(next) => {
         if (!next && !busy) {
@@ -77,166 +81,154 @@ export function GroupsManagerDialog({
         }
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
-        <Dialog.Content
-          {...overlayFocus}
-          aria-describedby="groups-manager-description"
-          className="task-editor-dialog"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <Dialog.Title className="font-serif text-2xl">
-                Groups
-              </Dialog.Title>
-              <Dialog.Description
-                id="groups-manager-description"
-                className="mt-1 text-xs text-muted"
-              >
-                Organize tasks by subject or project. Removing a group keeps
-                its tasks under Ungrouped.
-              </Dialog.Description>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Close groups"
-              disabled={busy}
-              onClick={() => onOpenChange(false)}
+      <DialogContent
+        {...overlayFocus}
+        aria-describedby="groups-manager-description"
+        className="task-editor-dialog block"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <DialogTitle className="font-serif text-2xl">
+              Groups
+            </DialogTitle>
+            <DialogDescription
+              id="groups-manager-description"
+              className="mt-1 text-xs text-muted"
             >
-              <X size={18} />
-            </Button>
+              Organize tasks by subject or project. Removing a group keeps
+              its tasks under Ungrouped.
+            </DialogDescription>
           </div>
-          <form
-            className="mt-4 flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void create();
-            }}
-          >
-            <label className="sr-only" htmlFor="new-group-name">
-              New group name
-            </label>
-            <input
-              id="new-group-name"
-              placeholder="New group, e.g. Maths revision"
-              value={name}
-              maxLength={80}
-              required
-              onChange={(e) => setName(e.target.value)}
-              disabled={busy}
-            />
-            <Button type="submit" disabled={busy || !name.trim()}>
-              Create
-            </Button>
-          </form>
-          {error && (
-            <p role="alert" className="mt-2 text-xs text-danger">
-              {error}
+        </div>
+        <form
+          className="mt-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void create();
+          }}
+        >
+          <label className="sr-only" htmlFor="new-group-name">
+            New group name
+          </label>
+          <input
+            id="new-group-name"
+            placeholder="New group, e.g. Maths revision"
+            value={name}
+            maxLength={80}
+            required
+            onChange={(e) => setName(e.target.value)}
+            disabled={busy}
+          />
+          <Button type="submit" disabled={busy || !name.trim()}>
+            Create
+          </Button>
+        </form>
+        {error && (
+          <p role="alert" className="mt-2 text-xs text-danger">
+            {error}
+          </p>
+        )}
+        <div className="mt-4 max-h-80 space-y-1 overflow-y-auto border-t border-rule-soft pt-3">
+          {groups.length === 0 && (
+            <p className="py-6 text-center text-xs text-muted">
+              No groups yet. Create one above, or from any task&apos;s editor.
             </p>
           )}
-          <div className="mt-4 max-h-80 space-y-1 overflow-y-auto border-t border-rule-soft pt-3">
-            {groups.length === 0 && (
-              <p className="py-6 text-center text-xs text-muted">
-                No groups yet. Create one above, or from any task&apos;s editor.
-              </p>
-            )}
-            {groups.map((group) =>
-              renaming === group.id ? (
-                <div key={group.id} className="flex gap-2 py-1">
-                  <input
-                    aria-label={`Rename ${group.name}`}
-                    value={renameValue}
-                    maxLength={80}
-                    autoFocus
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void rename(group.id);
-                      }
-                    }}
-                    disabled={busy}
-                  />
-                  <Button
-                    size="sm"
-                    disabled={busy || !renameValue.trim()}
-                    onClick={() => void rename(group.id)}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRenaming(null)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  key={group.id}
-                  className="flex items-center gap-2 py-1.5"
+          {groups.map((group) =>
+            renaming === group.id ? (
+              <div key={group.id} className="flex gap-2 py-1">
+                <input
+                  aria-label={`Rename ${group.name}`}
+                  value={renameValue}
+                  maxLength={80}
+                  autoFocus
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void rename(group.id);
+                    }
+                  }}
+                  disabled={busy}
+                />
+                <Button
+                  size="sm"
+                  disabled={busy || !renameValue.trim()}
+                  onClick={() => void rename(group.id)}
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                    {group.name}
-                  </span>
-                  <span className="shrink-0 text-xs tabular text-muted">
-                    {group.count} {group.count === 1 ? "task" : "tasks"}
-                  </span>
-                  {confirmingDelete === group.id ? (
-                    <>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void remove(group.id)}
-                      >
-                        Move to Trash
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setConfirmingDelete(null)}
-                      >
-                        Keep
-                      </Button>
-                      <p className="basis-full text-[0.6875rem] leading-relaxed text-muted">
-                        Recoverable from Trash for 15 days; restoring it brings
-                        its tasks back into the group. Until then they stay
-                        ungrouped and are never deleted.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => {
-                          setRenaming(group.id);
-                          setRenameValue(group.name);
-                        }}
-                      >
-                        Rename
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={busy}
-                        className="text-danger hover:bg-danger-soft hover:text-danger"
-                        onClick={() => setConfirmingDelete(group.id)}
-                      >
-                        Remove
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ),
-            )}
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRenaming(null)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div
+                key={group.id}
+                className="flex items-center gap-2 py-1.5"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                  {group.name}
+                </span>
+                <span className="shrink-0 text-xs tabular text-muted">
+                  {group.count} {group.count === 1 ? "task" : "tasks"}
+                </span>
+                {confirmingDelete === group.id ? (
+                  <>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void remove(group.id)}
+                    >
+                      Move to Trash
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmingDelete(null)}
+                    >
+                      Keep
+                    </Button>
+                    <p className="basis-full text-[0.6875rem] leading-relaxed text-muted">
+                      Recoverable from Trash for 15 days; restoring it brings
+                      its tasks back into the group. Until then they stay
+                      ungrouped and are never deleted.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => {
+                        setRenaming(group.id);
+                        setRenameValue(group.name);
+                      }}
+                    >
+                      Rename
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      className="text-danger hover:bg-danger-soft hover:text-danger"
+                      onClick={() => setConfirmingDelete(group.id)}
+                    >
+                      Remove
+                    </Button>
+                  </>
+                )}
+              </div>
+            ),
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

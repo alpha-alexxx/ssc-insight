@@ -1,5 +1,10 @@
 "use client";
-import { Accordion } from "radix-ui";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 /**
  * Questions, answered with the shipped behaviour rather than marketing.
@@ -9,6 +14,10 @@ import { Accordion } from "radix-ui";
  * `--radix-accordion-content-height`, which is the only way to animate an
  * unknown content height without measuring it in JS — and the reason the
  * project does not need `tw-animate-css`.
+ *
+ * The trigger wrapper injects a default chevron after the children; the
+ * landing section keeps its own plus/minus `.faq-mark` glyph, so the
+ * chevron is hidden via `[&>svg]:hidden` (the mark is a <span>, not an svg).
  */
 
 export const FAQ_ITEMS: { question: string; answer: string }[] = [
@@ -51,20 +60,22 @@ export const FAQ_ITEMS: { question: string; answer: string }[] = [
 
 export function Faq() {
   return (
-    <Accordion.Root type="single" collapsible className="mt-10">
+    <Accordion type="single" collapsible className="mt-10">
       {FAQ_ITEMS.map((item) => (
-        <Accordion.Item key={item.question} value={item.question} className="faq-item">
-          <Accordion.Header>
-            <Accordion.Trigger className="faq-trigger">
-              <span>{item.question}</span>
-              <span className="faq-mark" aria-hidden="true" />
-            </Accordion.Trigger>
-          </Accordion.Header>
-          <Accordion.Content className="faq-content">
+        <AccordionItem
+          key={item.question}
+          value={item.question}
+          className="faq-item border-b-0"
+        >
+          <AccordionTrigger className="faq-trigger [&>svg]:hidden">
+            <span>{item.question}</span>
+            <span className="faq-mark" aria-hidden="true" />
+          </AccordionTrigger>
+          <AccordionContent className="faq-content">
             <div className="faq-answer">{item.answer}</div>
-          </Accordion.Content>
-        </Accordion.Item>
+          </AccordionContent>
+        </AccordionItem>
       ))}
-    </Accordion.Root>
+    </Accordion>
   );
 }

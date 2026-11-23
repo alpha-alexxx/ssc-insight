@@ -2,7 +2,12 @@
 
 import { useState, type CSSProperties } from "react";
 import { ChevronDown, Plus, X } from "@/components/ui/icons";
-import { Dialog } from "radix-ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useOverlayFocus, useOverlayViewport } from "@/components/use-overlay-viewport";
 import { safeHttpUrlCore } from "@/lib/plan/view-model";
@@ -51,40 +56,37 @@ export function TaskEditor({
   const overlayFocus = useOverlayFocus();
 
   return (
-    <Dialog.Root
+    <Dialog
       open
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
-        <Dialog.Content
-          {...overlayFocus}
-          style={
-            viewport
-              ? ({
-                  "--task-viewport-height": `${viewport.height}px`,
-                  "--task-viewport-top": `${viewport.top}px`,
-                } as CSSProperties)
-              : undefined
-          }
-          aria-describedby="task-editor-description"
-          className="task-editor-dialog"
-        >
-          <TaskEditorForm
-            todo={todo}
-            groups={groups}
-            busy={busy}
-            error={error}
-            onSave={onSave}
-            onCreateGroup={onCreateGroup}
-            onClose={onClose}
-            variant="dialog"
-          />
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <DialogContent
+        {...overlayFocus}
+        style={
+          viewport
+            ? ({
+                "--task-viewport-height": `${viewport.height}px`,
+                "--task-viewport-top": `${viewport.top}px`,
+              } as CSSProperties)
+            : undefined
+        }
+        aria-describedby="task-editor-description"
+        className="task-editor-dialog block"
+      >
+        <TaskEditorForm
+          todo={todo}
+          groups={groups}
+          busy={busy}
+          error={error}
+          onSave={onSave}
+          onCreateGroup={onCreateGroup}
+          onClose={onClose}
+          variant="dialog"
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -214,27 +216,18 @@ export function TaskEditorForm({
       {variant === "dialog" && (
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Dialog.Title className="font-serif text-2xl">
+            <DialogTitle className="font-serif text-2xl">
               {editing ? "Edit task" : "Add task"}
-            </Dialog.Title>
-            <Dialog.Description
+            </DialogTitle>
+            <DialogDescription
               id="task-editor-description"
               className="mt-1 text-xs text-muted"
             >
               {editing
                 ? "Update the details below; status also cycles from the list."
                 : "Start with the essentials — subtasks and links can be added anytime."}
-            </Dialog.Description>
+            </DialogDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Close editor"
-            disabled={busy}
-            onClick={onClose}
-          >
-            <X size={18} />
-          </Button>
         </div>
       )}
       {variant === "drawer" && (

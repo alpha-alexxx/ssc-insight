@@ -1,5 +1,10 @@
 "use client";
-import { Popover } from "radix-ui";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverClose,
+} from "@/components/ui/popover";
 import { PlainIcon } from "./icon";
 import { Button } from "./ui/button";
 import type { Filters } from "@/lib/domain";
@@ -21,8 +26,8 @@ export function DateRangeFilter({
 }) {
   const active = !!(from || to);
   return (
-    <Popover.Root>
-      <Popover.Trigger
+    <Popover>
+      <PopoverTrigger
         className={`inline-flex min-h-[var(--control-height)] items-center gap-1.5 whitespace-nowrap rounded-control py-[var(--control-pad-y)] pl-3 pr-2.5 text-xs transition-colors sm:pr-3 ${
           active
             ? "border border-ink bg-soft text-ink"
@@ -33,39 +38,37 @@ export function DateRangeFilter({
         <PlainIcon name="calendar" size={14} className="icon-muted" />
         {active ? "Custom dates" : "All time"}
         <PlainIcon name="chevronRight" size={12} className="rotate-90" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          align="end"
-          sideOffset={8}
-          className="popover-content z-30 bg-paper border border-rule rounded-control p-4 w-64 space-y-3 shadow-pop"
-        >
-          <p className="section-label">Date range</p>
-          <label>
-            From
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => onChange({ from: e.target.value })}
-            />
-          </label>
-          <label>
-            Through
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => onChange({ to: e.target.value })}
-            />
-          </label>
-          <div className="flex justify-end gap-2 pt-1">
-            <Popover.Close asChild>
-              <Button variant="ghost" size="sm" onClick={() => onChange({ from: "", to: "" })}>
-                Clear dates
-              </Button>
-            </Popover.Close>
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="z-30 p-4 space-y-3"
+      >
+        <p className="section-label">Date range</p>
+        <label>
+          From
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => onChange({ from: e.target.value })}
+          />
+        </label>
+        <label>
+          Through
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => onChange({ to: e.target.value })}
+          />
+        </label>
+        <div className="flex justify-end gap-2 pt-1">
+          <PopoverClose asChild>
+            <Button variant="ghost" size="sm" onClick={() => onChange({ from: "", to: "" })}>
+              Clear dates
+            </Button>
+          </PopoverClose>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
