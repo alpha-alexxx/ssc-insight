@@ -3,3 +3,7 @@
 
 graphify-out/
 tools/graphify/
+
+# Vendored agent-skill toolboxes, not SSC Insight application material (scoped 2026-11-24).
+skills/
+.superpowers/
