@@ -1,545 +1,491 @@
 @import "tailwindcss";
 
-/* shadcn/ui dark-mode convention: the `dark:` variant follows the `.dark`
-   class on <html> (set by next-themes), not prefers-color-scheme. */
-@custom-variant dark (&:is(.dark *));
-
 /* ============================================================
-   SSC Insight — design tokens (warm editorial paper)
-   Multi-theme system: TWO independent attributes on <html>
-   (set before paint by the ThemeStyleProvider script):
-   - data-palette="orange|blue|lime|violet|rose|graphite"  (color identity;
-     chart series colors are fixed per subject and never vary per palette)
-   - data-style="mira|sera"                       (visual style)
-   Defaults (no attribute = orange + Mira) provide the refined foundation;
-   Sera is the sole geometry/density override. next-themes keeps owning
-   light/dark (.dark).
+   SSC Insight — Hairline UI theme system
+
+   Two theme axes, both on <html>, set before paint:
+   - class="dark"          light/dark   (owned by next-themes)
+   - data-theme="terracotta|blue|lime|violet|rose|graphite"
+                            palette      (owned by ThemeStyleProvider;
+                            default graphite = :root, no attribute)
+
+   Hairline UI reads the standard shadcn/ui CSS variables; every
+   value below is OKLCH. Geometry (radius, border width, density)
+   is Hairline's own per-component default and is never themed.
+   Chart hues are global subject identity and never vary per
+   palette: quant=terracotta, reasoning=blue, english=green,
+   ga=gold, computer=graphite.
    ============================================================ */
 
+@custom-variant dark (&:is(.dark *));
+
+/* ---------- Graphite (default palette, light) ---------- */
 :root {
   color-scheme: light;
   --font-body: "DM Sans Variable", "Segoe UI", sans-serif;
   --font-heading: "Source Serif 4 Variable", Georgia, serif;
 
-  /* ---- palette: orange (the original terracotta paper) ---- */
-  --canvas: #f4f1e8;
-  --paper: #faf8f2;
-  --ink: #25231f;
-  --muted: #6b665e;
-  --rule: #82796b;
-  --rule-soft: #d5cec1;
-  --soft: #eae5da;
-  --accent: #b65335;
-  --accent-hover: #934029;
-  --accent-soft: #efe0d5;
-  --positive: #535d37;
-  --positive-soft: #e6e9db;
-  --warning: #73551c;
-  --warning-soft: #eee4cc;
-  --danger: #962f28;
-  --danger-hover: #75231e;
-  --danger-soft: #f1dfd8;
+  --background: oklch(0.985 0.002 260);
+  --foreground: oklch(0.235 0.012 260);
+  --card: oklch(0.998 0.001 260);
+  --card-foreground: oklch(0.235 0.012 260);
+  --popover: oklch(0.998 0.001 260);
+  --popover-foreground: oklch(0.235 0.012 260);
+  --primary: oklch(0.42 0.012 260);
+  --primary-foreground: oklch(0.985 0.002 260);
+  --secondary: oklch(0.955 0.004 260);
+  --secondary-foreground: oklch(0.30 0.015 260);
+  --muted: oklch(0.955 0.003 260);
+  --muted-foreground: oklch(0.47 0.015 260);
+  --accent: oklch(0.945 0.006 260);
+  --accent-foreground: oklch(0.28 0.015 260);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.002 260);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.002 260);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.005 260);
+  --input: oklch(0.905 0.005 260);
+  --ring: var(--primary);
 
-  /* Chart hues — fixed per-subject identity, shared by every palette.
-     Switching palettes never re-colors the data: terracotta is Quant,
-     the score series, Section I and incorrect; blue is Reasoning and
-     Section II; olive correct; teal timing; warm gray Computer. The
-     accent stays in buttons, links and selected UI — never in a chart
-     series. Target (muted ink) and skipped (soft rule) are surface
-     semantics, so they still track the theme's neutrals. */
-  --chart-score: #b65335;
-  --chart-average: #656d4a;
-  --chart-time: #567276;
-  --chart-quant: #b65335;
-  --chart-reasoning: #2a78d6;
-  --chart-english: #1baf7a;
-  --chart-ga: #eda100;
-  --chart-computer: #767168;
-  --chart-section-1: var(--chart-quant);
-  --chart-section-2: var(--chart-reasoning);
-  --chart-target: var(--muted);
-  --chart-correct: var(--chart-average);
-  --chart-incorrect: var(--chart-quant);
-  --chart-skipped: var(--rule-soft);
-  /* shadcn chart-token aliases (registry chart components expect --chart-1..5).
-     Mapped to the fixed subject hues so palettes never re-color the data. */
-  --chart-1: var(--chart-quant);
-  --chart-2: var(--chart-reasoning);
-  --chart-3: var(--chart-english);
-  --chart-4: var(--chart-ga);
-  --chart-5: var(--chart-computer);
-  --outcome-unattempted: #c9bda7;
+  --sidebar: oklch(0.965 0.003 260);
+  --sidebar-foreground: oklch(0.235 0.012 260);
+  --sidebar-primary: oklch(0.42 0.012 260);
+  --sidebar-primary-foreground: oklch(0.985 0.002 260);
+  --sidebar-accent: oklch(0.945 0.006 260);
+  --sidebar-accent-foreground: oklch(0.28 0.015 260);
+  --sidebar-border: oklch(0.905 0.005 260);
+  --sidebar-ring: var(--primary);
 
-  /* ---- geometry & elevation scale (Mira foundation) ---- */
-  --radius-control: 0.5rem;
-  --radius-card: 0.625rem;
-  --radius-panel: 0.75rem;
-  --radius-floating: 0.75rem;
-  --radius-segment: 0.5rem;
-  --radius-pill: 999rem;
-  --panel-border-width: 1px;
-  --panel-border-color: var(--rule-soft);
-  --stat-rule-width: 1px;
-  /* Ink-tinted elevation is reserved for lifted surfaces. */
-  --elev-pop:
-    0 0.0625rem 0.125rem rgba(37, 35, 31, 0.05),
-    0 0.5rem 1.25rem -0.875rem rgba(37, 35, 31, 0.22);
-
-  /* ---- density scale (consumed by base + component classes) ---- */
-  --control-pad-y: 0.5rem;
-  --control-pad-x: 0.75rem;
-  --control-height: 2.25rem;
-  --control-height-sm: 2rem;
-  --table-cell-pad-y: 0.625rem;
-  --table-cell-pad-x: 0.75rem;
-  --label-gap: 0.375rem;
-  --nav-pad-y: 0.5rem;
-  --nav-pad-x: 0.75rem;
-  --segment-pad-y: 0.375rem;
-  --segment-pad-x: 0.625rem;
-  --stat-cell-pad-y: 1rem;
-  --stat-cell-pad-x: 1.25rem;
-
-  /* ---- type scale ----
-     Every heading and metric reads its size from one of these, so a breakpoint
-     can resize type by overriding the token rather than re-declaring a class. */
-  --type-page-title: clamp(1.75rem, 2.4vw, 2.25rem);
-  --type-workspace-title: clamp(1.5rem, 2.2vw, 1.875rem);
-  --type-section-title: 1.25rem;
-  --type-panel-title: 1rem;
-  --type-panel-title-dense: 0.9375rem;
-  --type-metric: clamp(1.5rem, 2.2vw, 1.875rem);
-  --type-stat: 2.25rem;
-  --type-section-label: 0.75rem;
-  --type-body: 0.875rem;
-  --type-secondary: 0.8125rem;
-  --type-label: 0.75rem;
-  --type-segment: 0.8125rem;
-
-  /* ---- component geometry (tokenised so phones can re-standardise it) ---- */
-  --metric-cell-pad-y: 0.75rem;
-  --metric-cell-pad-x: 0.875rem;
-  --band-cell-pad-y: 0.875rem;
-  --band-cell-pad-x: 1rem;
-  --day-nav-size: 2rem;
-  /* The sticky masthead's height. Sticky offsets elsewhere read this token. */
-  --app-header-h: 3.25rem;
-  /* WCAG 2.2 hit-area floor for icon-only controls. */
-  --tap-min: 2.75rem;
-
-  /* ---- sidebar chrome (style-adaptive) ---- */
-  --sidebar-rule-w: 1px;
-  --sidebar-rule-color: var(--rule);
-  --sidebar-row-h: 2rem;
-  --sidebar-row-h-lg: 2.5rem;
-  --sidebar-header-pad-y: 0.5rem;
-
-  /* ---- motion and focus tokens ---- */
-  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-quick: 140ms;
-  --dur-enter: 180ms;
-  --dur-view: 200ms;
-  --focus-ring: var(--accent);
-  --focus-keyline: var(--paper);
-  /* ---- sheen (optional gradient accents) ----
-     Solid accent fills and the page canvas can carry a quiet gradient.
-     The defaults are `none` — every palette ships flat; a palette that
-     wants a sheen (graphite) overrides these with ink/paper-derived
-     color-mix gradients, so they adapt to dark mode with no per-mode
-     rules and never hardcode palette hexes outside the palette block. */
-  --accent-sheen: none;
-  --canvas-sheen: none;
-  /* ---- ink plate (landing) ----
-     The landing alternates paper sections with inverted "plates". A plate
-     never remaps the semantic tokens: only these five are read, and only by
-     `.plate` descendants. Nested product mockups therefore keep the real
-     paper/ink tokens and look exactly like the workspace. Composed from
-     --ink/--paper so all five palettes follow with no per-palette rules. */
-  --plate-bg: var(--ink);
-  --plate-fg: var(--paper);
-  --plate-muted: color-mix(in oklab, var(--paper) 62%, var(--ink));
-  --plate-rule: color-mix(in oklab, var(--paper) 30%, var(--ink));
-  --plate-rule-soft: color-mix(in oklab, var(--paper) 16%, var(--ink));
-  --plate-surface: color-mix(in oklab, var(--paper) 7%, var(--ink));
-  /* Paper-equivalent surface for a card sitting ON a plate. */
-  --plate-card: var(--paper);
-  /* Landing elevation. The hero collage is the one place on the site that
-     uses depth, so it gets a token rather than a hard-coded shadow. The root
-     Mira treatment stays soft; Sera replaces it with a hard ink offset. */
-  --landing-lift:
-    0 0.0625rem 0.125rem color-mix(in oklab, var(--ink) 8%, transparent),
-    0 0.625rem 1.5rem -1rem color-mix(in oklab, var(--ink) 55%, transparent);
-  /* ---- shadcn compatibility aliases (all resolve to paper tokens) ----
-     The generated shadcn primitives use --background/--border/--sidebar-*;
-     map them onto the existing semantic system so every palette, style,
-     light/dark combination keeps working. --accent remains terracotta. */
-  --background: var(--paper);
-  --foreground: var(--ink);
-  --card: var(--paper);
-  --card-foreground: var(--ink);
-  --popover: var(--paper);
-  --popover-foreground: var(--ink);
-  --primary: var(--accent);
-  --primary-foreground: var(--paper);
-  --secondary: var(--soft);
-  --secondary-foreground: var(--ink);
-  --accent-foreground: var(--paper);
-  --muted-foreground: var(--muted);
-  --border: var(--rule-soft);
-  --input: var(--rule);
-  --ring: var(--accent);
-  --destructive: var(--danger);
-  --destructive-foreground: var(--paper);
-  --sidebar: var(--paper);
-  --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: var(--soft);
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: var(--rule-soft);
-  --sidebar-ring: var(--accent);
+  /* chart series — global subject identity (see header comment) */
+  --chart-1: oklch(0.55 0.16 40);
+  --chart-2: oklch(0.55 0.16 255);
+  --chart-3: oklch(0.60 0.14 150);
+  --chart-4: oklch(0.62 0.14 85);
+  --chart-5: oklch(0.55 0.02 260);
 }
 
-/* Dark mode: warm charcoal variant of the paper aesthetic. next-themes
-   (layout.tsx) resolves light / dark / system and sets the `.dark` class on
-   <html> before paint. Per-palette dark overrides below only need to restate
-   accent; the charcoal neutrals are shared, and the chart hues are fixed
-   per subject — dark restates the shared dark-tuned literals only. */
+/* ---------- Terracotta (light) ---------- */
+[data-theme="terracotta"] {
+  color-scheme: light;
+  --background: oklch(0.982 0.006 40);
+  --foreground: oklch(0.235 0.02 40);
+  --card: oklch(0.997 0.002 40);
+  --card-foreground: oklch(0.235 0.02 40);
+  --popover: oklch(0.997 0.002 40);
+  --popover-foreground: oklch(0.235 0.02 40);
+  --primary: oklch(0.52 0.16 40);
+  --primary-foreground: oklch(0.985 0.004 40);
+  --secondary: oklch(0.955 0.014 40);
+  --secondary-foreground: oklch(0.30 0.04 40);
+  --muted: oklch(0.955 0.010 40);
+  --muted-foreground: oklch(0.47 0.025 40);
+  --accent: oklch(0.945 0.02 40);
+  --accent-foreground: oklch(0.28 0.04 40);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.004 40);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.004 40);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.012 40);
+  --input: oklch(0.905 0.012 40);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.967 0.008 40);
+  --sidebar-foreground: oklch(0.235 0.02 40);
+  --sidebar-primary: oklch(0.52 0.16 40);
+  --sidebar-primary-foreground: oklch(0.985 0.004 40);
+  --sidebar-accent: oklch(0.945 0.02 40);
+  --sidebar-accent-foreground: oklch(0.28 0.04 40);
+  --sidebar-border: oklch(0.905 0.012 40);
+  --sidebar-ring: var(--primary);
+}
+
+/* ---------- Blue (light) ---------- */
+[data-theme="blue"] {
+  color-scheme: light;
+  --background: oklch(0.982 0.006 255);
+  --foreground: oklch(0.235 0.02 255);
+  --card: oklch(0.997 0.002 255);
+  --card-foreground: oklch(0.235 0.02 255);
+  --popover: oklch(0.997 0.002 255);
+  --popover-foreground: oklch(0.235 0.02 255);
+  --primary: oklch(0.51 0.16 255);
+  --primary-foreground: oklch(0.985 0.004 255);
+  --secondary: oklch(0.955 0.014 255);
+  --secondary-foreground: oklch(0.30 0.04 255);
+  --muted: oklch(0.955 0.010 255);
+  --muted-foreground: oklch(0.47 0.025 255);
+  --accent: oklch(0.945 0.02 255);
+  --accent-foreground: oklch(0.28 0.04 255);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.004 255);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.004 255);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.012 255);
+  --input: oklch(0.905 0.012 255);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.967 0.008 255);
+  --sidebar-foreground: oklch(0.235 0.02 255);
+  --sidebar-primary: oklch(0.51 0.16 255);
+  --sidebar-primary-foreground: oklch(0.985 0.004 255);
+  --sidebar-accent: oklch(0.945 0.02 255);
+  --sidebar-accent-foreground: oklch(0.28 0.04 255);
+  --sidebar-border: oklch(0.905 0.012 255);
+  --sidebar-ring: var(--primary);
+}
+
+/* ---------- Lime (light) ---------- */
+[data-theme="lime"] {
+  color-scheme: light;
+  --background: oklch(0.982 0.006 125);
+  --foreground: oklch(0.235 0.02 125);
+  --card: oklch(0.997 0.002 125);
+  --card-foreground: oklch(0.235 0.02 125);
+  --popover: oklch(0.997 0.002 125);
+  --popover-foreground: oklch(0.235 0.02 125);
+  --primary: oklch(0.50 0.15 125);
+  --primary-foreground: oklch(0.985 0.004 125);
+  --secondary: oklch(0.955 0.014 125);
+  --secondary-foreground: oklch(0.30 0.04 125);
+  --muted: oklch(0.955 0.010 125);
+  --muted-foreground: oklch(0.47 0.025 125);
+  --accent: oklch(0.945 0.02 125);
+  --accent-foreground: oklch(0.28 0.04 125);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.004 125);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.004 125);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.012 125);
+  --input: oklch(0.905 0.012 125);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.967 0.008 125);
+  --sidebar-foreground: oklch(0.235 0.02 125);
+  --sidebar-primary: oklch(0.50 0.15 125);
+  --sidebar-primary-foreground: oklch(0.985 0.004 125);
+  --sidebar-accent: oklch(0.945 0.02 125);
+  --sidebar-accent-foreground: oklch(0.28 0.04 125);
+  --sidebar-border: oklch(0.905 0.012 125);
+  --sidebar-ring: var(--primary);
+}
+
+/* ---------- Violet (light) ---------- */
+[data-theme="violet"] {
+  color-scheme: light;
+  --background: oklch(0.982 0.006 295);
+  --foreground: oklch(0.235 0.02 295);
+  --card: oklch(0.997 0.002 295);
+  --card-foreground: oklch(0.235 0.02 295);
+  --popover: oklch(0.997 0.002 295);
+  --popover-foreground: oklch(0.235 0.02 295);
+  --primary: oklch(0.52 0.16 295);
+  --primary-foreground: oklch(0.985 0.004 295);
+  --secondary: oklch(0.955 0.014 295);
+  --secondary-foreground: oklch(0.30 0.04 295);
+  --muted: oklch(0.955 0.010 295);
+  --muted-foreground: oklch(0.47 0.025 295);
+  --accent: oklch(0.945 0.02 295);
+  --accent-foreground: oklch(0.28 0.04 295);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.004 295);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.004 295);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.012 295);
+  --input: oklch(0.905 0.012 295);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.967 0.008 295);
+  --sidebar-foreground: oklch(0.235 0.02 295);
+  --sidebar-primary: oklch(0.52 0.16 295);
+  --sidebar-primary-foreground: oklch(0.985 0.004 295);
+  --sidebar-accent: oklch(0.945 0.02 295);
+  --sidebar-accent-foreground: oklch(0.28 0.04 295);
+  --sidebar-border: oklch(0.905 0.012 295);
+  --sidebar-ring: var(--primary);
+}
+
+/* ---------- Rose (light) ---------- */
+[data-theme="rose"] {
+  color-scheme: light;
+  --background: oklch(0.982 0.006 10);
+  --foreground: oklch(0.235 0.02 10);
+  --card: oklch(0.997 0.002 10);
+  --card-foreground: oklch(0.235 0.02 10);
+  --popover: oklch(0.997 0.002 10);
+  --popover-foreground: oklch(0.235 0.02 10);
+  --primary: oklch(0.52 0.16 10);
+  --primary-foreground: oklch(0.985 0.004 10);
+  --secondary: oklch(0.955 0.014 10);
+  --secondary-foreground: oklch(0.30 0.04 10);
+  --muted: oklch(0.955 0.010 10);
+  --muted-foreground: oklch(0.47 0.025 10);
+  --accent: oklch(0.945 0.02 10);
+  --accent-foreground: oklch(0.28 0.04 10);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.985 0.004 10);
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(0.985 0.004 10);
+  --warning: oklch(0.63 0.12 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.905 0.012 10);
+  --input: oklch(0.905 0.012 10);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.967 0.008 10);
+  --sidebar-foreground: oklch(0.235 0.02 10);
+  --sidebar-primary: oklch(0.52 0.16 10);
+  --sidebar-primary-foreground: oklch(0.985 0.004 10);
+  --sidebar-accent: oklch(0.945 0.02 10);
+  --sidebar-accent-foreground: oklch(0.28 0.04 10);
+  --sidebar-border: oklch(0.905 0.012 10);
+  --sidebar-ring: var(--primary);
+}
+
+/* ---------- Graphite (default palette, dark) ---------- */
 .dark {
   color-scheme: dark;
-  --canvas: #1a1815;
-  --paper: #221f1b;
-  --ink: #ede6d6;
-  --muted: #9a9489;
-  --rule: #5a5550;
-  --rule-soft: #38342f;
-  --soft: #2a2722;
-  --accent: #d97048;
-  --accent-hover: #c75d35;
-  --accent-soft: #2e2017;
-  --positive: #93a25c;
-  --positive-soft: #1d2316;
-  --warning: #c79a3a;
-  --warning-soft: #221b0c;
-  --danger: #d8655a;
-  --danger-hover: #c64f43;
-  --danger-soft: #2a1714;
-  /* Fixed series identity, dark-tuned lightness of the same hues. */
-  --chart-score: #d97048;
-  --chart-quant: #d97048;
-  --chart-average: #93a25c;
-  --chart-time: #7fa3a7;
-  --chart-reasoning: #5a9be8;
-  --chart-english: #4dd49f;
-  --chart-ga: #ffc340;
-  --chart-computer: #aaa094;
-  --outcome-unattempted: #3f3a32;
-  /* shadcn aliases inherit the dark canvas/paper/ink values above. */
-  /* Ink plate, dark mode: a fully inverted cream band would be hostile at
-     night, and ink-on-ink would be invisible. The plate becomes the raised
-     charcoal (--soft) with nested cards on --paper, so they read recessed. */
-  --plate-bg: var(--soft);
-  --plate-fg: var(--ink);
-  --plate-muted: var(--muted);
-  --plate-rule: var(--rule);
-  --plate-rule-soft: var(--rule-soft);
-  --plate-surface: var(--paper);
-  --plate-card: var(--paper);
+  --background: oklch(0.165 0.005 260);
+  --foreground: oklch(0.93 0.006 260);
+  --card: oklch(0.20 0.007 260);
+  --card-foreground: oklch(0.93 0.006 260);
+  --popover: oklch(0.21 0.007 260);
+  --popover-foreground: oklch(0.93 0.006 260);
+  --primary: oklch(0.88 0.008 260);
+  --primary-foreground: oklch(0.20 0.012 260);
+  --secondary: oklch(0.27 0.008 260);
+  --secondary-foreground: oklch(0.90 0.006 260);
+  --muted: oklch(0.25 0.007 260);
+  --muted-foreground: oklch(0.68 0.01 260);
+  --accent: oklch(0.30 0.01 260);
+  --accent-foreground: oklch(0.93 0.006 260);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.002 260);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.008 260);
+  --input: oklch(0.31 0.008 260);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.007 260);
+  --sidebar-foreground: oklch(0.93 0.006 260);
+  --sidebar-primary: oklch(0.88 0.008 260);
+  --sidebar-primary-foreground: oklch(0.20 0.012 260);
+  --sidebar-accent: oklch(0.30 0.01 260);
+  --sidebar-accent-foreground: oklch(0.93 0.006 260);
+  --sidebar-border: oklch(0.31 0.008 260);
+  --sidebar-ring: var(--primary);
+
+  --chart-1: oklch(0.70 0.15 40);
+  --chart-2: oklch(0.70 0.15 255);
+  --chart-3: oklch(0.72 0.14 150);
+  --chart-4: oklch(0.78 0.14 85);
+  --chart-5: oklch(0.72 0.02 260);
 }
 
-/* ---------- palette: blue — professional and precise ----------
-   Cool slate-tinted paper family. Chart hues are fixed per subject for
-   every palette, so this block declares colors only. */
-[data-palette="blue"] {
-  --canvas: #eef0f3;
-  --paper: #f9fafb;
-  --ink: #20252b;
-  --muted: #646c76;
-  --rule: #7d858f;
-  --rule-soft: #d6dade;
-  --soft: #e6e9ed;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-soft: #dbe5f8;
-}
-.dark[data-palette="blue"] {
-  --canvas: #16181d;
-  --paper: #1e2127;
-  --ink: #e5e8ee;
-  --muted: #98a0ac;
-  --rule: #545b66;
-  --rule-soft: #343a43;
-  --soft: #262b33;
-  --accent: #82a7f5;
-  --accent-hover: #6d94ea;
-  --accent-soft: #1d2438;
+/* ---------- Terracotta (dark) ---------- */
+.dark[data-theme="terracotta"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.01 40);
+  --foreground: oklch(0.93 0.008 40);
+  --card: oklch(0.20 0.012 40);
+  --card-foreground: oklch(0.93 0.008 40);
+  --popover: oklch(0.21 0.012 40);
+  --popover-foreground: oklch(0.93 0.008 40);
+  --primary: oklch(0.72 0.15 40);
+  --primary-foreground: oklch(0.20 0.03 40);
+  --secondary: oklch(0.27 0.014 40);
+  --secondary-foreground: oklch(0.90 0.008 40);
+  --muted: oklch(0.25 0.012 40);
+  --muted-foreground: oklch(0.68 0.015 40);
+  --accent: oklch(0.30 0.02 40);
+  --accent-foreground: oklch(0.93 0.008 40);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.004 40);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.012 40);
+  --input: oklch(0.31 0.012 40);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.012 40);
+  --sidebar-foreground: oklch(0.93 0.008 40);
+  --sidebar-primary: oklch(0.72 0.15 40);
+  --sidebar-primary-foreground: oklch(0.20 0.03 40);
+  --sidebar-accent: oklch(0.30 0.02 40);
+  --sidebar-accent-foreground: oklch(0.93 0.008 40);
+  --sidebar-border: oklch(0.31 0.012 40);
+  --sidebar-ring: var(--primary);
 }
 
-/* ---------- palette: lime — fresh and analytical ----------
-   Green-tinted warm paper; the accent deepens to green-700 so paper
-   text on accent buttons keeps AA contrast (never neon). */
-[data-palette="lime"] {
-  --canvas: #f0f2e6;
-  --paper: #f9faf2;
-  --ink: #23271d;
-  --muted: #6a7059;
-  --rule: #83887a;
-  --rule-soft: #dbdfc9;
-  --soft: #e9ecda;
-  --accent: #4d7c0f;
-  --accent-hover: #3f6212;
-  --accent-soft: #e3ecc7;
-}
-.dark[data-palette="lime"] {
-  --canvas: #16180f;
-  --paper: #1e2113;
-  --ink: #e7ead9;
-  --muted: #9ba18a;
-  --rule: #575c49;
-  --rule-soft: #353a26;
-  --soft: #262a17;
-  --accent: #94c33d;
-  --accent-hover: #84b132;
-  --accent-soft: #20260f;
+/* ---------- Blue (dark) ---------- */
+.dark[data-theme="blue"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.01 255);
+  --foreground: oklch(0.93 0.008 255);
+  --card: oklch(0.20 0.012 255);
+  --card-foreground: oklch(0.93 0.008 255);
+  --popover: oklch(0.21 0.012 255);
+  --popover-foreground: oklch(0.93 0.008 255);
+  --primary: oklch(0.72 0.15 255);
+  --primary-foreground: oklch(0.20 0.03 255);
+  --secondary: oklch(0.27 0.014 255);
+  --secondary-foreground: oklch(0.90 0.008 255);
+  --muted: oklch(0.25 0.012 255);
+  --muted-foreground: oklch(0.68 0.015 255);
+  --accent: oklch(0.30 0.02 255);
+  --accent-foreground: oklch(0.93 0.008 255);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.004 255);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.012 255);
+  --input: oklch(0.31 0.012 255);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.012 255);
+  --sidebar-foreground: oklch(0.93 0.008 255);
+  --sidebar-primary: oklch(0.72 0.15 255);
+  --sidebar-primary-foreground: oklch(0.20 0.03 255);
+  --sidebar-accent: oklch(0.30 0.02 255);
+  --sidebar-accent-foreground: oklch(0.93 0.008 255);
+  --sidebar-border: oklch(0.31 0.012 255);
+  --sidebar-ring: var(--primary);
 }
 
-/* ---------- palette: violet — futuristic and sophisticated ---------- */
-[data-palette="violet"] {
-  --canvas: #f1eff5;
-  --paper: #faf9fd;
-  --ink: #262233;
-  --muted: #6c6679;
-  --rule: #837c94;
-  --rule-soft: #dbd6e6;
-  --soft: #eae6f2;
-  --accent: #6d28d8;
-  --accent-hover: #5b21b6;
-  --accent-soft: #e7def8;
-}
-.dark[data-palette="violet"] {
-  --canvas: #17141f;
-  --paper: #201c2b;
-  --ink: #e9e5f2;
-  --muted: #9d96ad;
-  --rule: #59526b;
-  --rule-soft: #373145;
-  --soft: #2a2438;
-  --accent: #a684f5;
-  --accent-hover: #8f6ae8;
-  --accent-soft: #241a38;
+/* ---------- Lime (dark) ---------- */
+.dark[data-theme="lime"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.01 125);
+  --foreground: oklch(0.93 0.008 125);
+  --card: oklch(0.20 0.012 125);
+  --card-foreground: oklch(0.93 0.008 125);
+  --popover: oklch(0.21 0.012 125);
+  --popover-foreground: oklch(0.93 0.008 125);
+  --primary: oklch(0.75 0.16 125);
+  --primary-foreground: oklch(0.20 0.03 125);
+  --secondary: oklch(0.27 0.014 125);
+  --secondary-foreground: oklch(0.90 0.008 125);
+  --muted: oklch(0.25 0.012 125);
+  --muted-foreground: oklch(0.68 0.015 125);
+  --accent: oklch(0.30 0.02 125);
+  --accent-foreground: oklch(0.93 0.008 125);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.004 125);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.012 125);
+  --input: oklch(0.31 0.012 125);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.012 125);
+  --sidebar-foreground: oklch(0.93 0.008 125);
+  --sidebar-primary: oklch(0.75 0.16 125);
+  --sidebar-primary-foreground: oklch(0.20 0.03 125);
+  --sidebar-accent: oklch(0.30 0.02 125);
+  --sidebar-accent-foreground: oklch(0.93 0.008 125);
+  --sidebar-border: oklch(0.31 0.012 125);
+  --sidebar-ring: var(--primary);
 }
 
-/* ---------- palette: rose — elegant and expressive ---------- */
-[data-palette="rose"] {
-  --canvas: #f5eff1;
-  --paper: #fcf8f9;
-  --ink: #2b2226;
-  --muted: #75656b;
-  --rule: #8c7d82;
-  --rule-soft: #e3d7da;
-  --soft: #f1e8ea;
-  --accent: #be123c;
-  --accent-hover: #9f1239;
-  --accent-soft: #f6dee3;
-}
-.dark[data-palette="rose"] {
-  --canvas: #1b1416;
-  --paper: #241b1e;
-  --ink: #f0e5e8;
-  --muted: #a89299;
-  --rule: #635055;
-  --rule-soft: #3d2f33;
-  --soft: #2e2327;
-  --accent: #fb7185;
-  --accent-hover: #e56478;
-  --accent-soft: #3a1620;
+/* ---------- Violet (dark) ---------- */
+.dark[data-theme="violet"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.01 295);
+  --foreground: oklch(0.93 0.008 295);
+  --card: oklch(0.20 0.012 295);
+  --card-foreground: oklch(0.93 0.008 295);
+  --popover: oklch(0.21 0.012 295);
+  --popover-foreground: oklch(0.93 0.008 295);
+  --primary: oklch(0.72 0.15 295);
+  --primary-foreground: oklch(0.20 0.03 295);
+  --secondary: oklch(0.27 0.014 295);
+  --secondary-foreground: oklch(0.90 0.008 295);
+  --muted: oklch(0.25 0.012 295);
+  --muted-foreground: oklch(0.68 0.015 295);
+  --accent: oklch(0.30 0.02 295);
+  --accent-foreground: oklch(0.93 0.008 295);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.004 295);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.012 295);
+  --input: oklch(0.31 0.012 295);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.012 295);
+  --sidebar-foreground: oklch(0.93 0.008 295);
+  --sidebar-primary: oklch(0.72 0.15 295);
+  --sidebar-primary-foreground: oklch(0.20 0.03 295);
+  --sidebar-accent: oklch(0.30 0.02 295);
+  --sidebar-accent-foreground: oklch(0.93 0.008 295);
+  --sidebar-border: oklch(0.31 0.012 295);
+  --sidebar-ring: var(--primary);
 }
 
-/* ---------- palette: graphite — monochrome silver and black ----------
-   The "black diamond": neutral silver paper family, near-black accent.
-   The one palette that carries gradients — a quiet metallic sheen on
-   accent fills and a faint silver wash on the canvas. Both derive from
-   ink/paper, so dark mode inverts them with no extra rules. Chart hues
-   are fixed per subject for every palette, so this block declares
-   colors only — the monochrome chrome frames, but never re-colors,
-   the data. */
-[data-palette="graphite"] {
-  --canvas: #ececee;
-  --paper: #f7f7f8;
-  --ink: #1a1a1e;
-  --muted: #606268;
-  --rule: #82848c;
-  --rule-soft: #d9dadd;
-  --soft: #e7e8ea;
-  --accent: #1a1a1e;
-  --accent-hover: #0e0e10;
-  --accent-soft: #e2e3e6;
-  /* Metallic silver→graphite streak for solid accent fills. The var()
-     chain resolves against the winning --ink/--paper on <html>, so the
-     same declaration serves light (dark button, silver sheen) and dark
-     (silver button, graphite sheen). */
-  --accent-sheen: linear-gradient(
-    135deg,
-    color-mix(in oklab, var(--paper) 18%, transparent),
-    transparent 45%,
-    color-mix(in oklab, var(--ink) 16%, transparent)
-  );
-  --canvas-sheen: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--ink) 4%, transparent),
-    transparent 320px
-  );
-}
-.dark[data-palette="graphite"] {
-  --canvas: #0b0b0d;
-  --paper: #141416;
-  --ink: #e6e6e9;
-  --muted: #9d9fa6;
-  --rule: #55575e;
-  --rule-soft: #2c2e33;
-  --soft: #1f2024;
-  --accent: #e6e6e9;
-  --accent-hover: #f4f4f6;
-  --accent-soft: #26272c;
+/* ---------- Rose (dark) ---------- */
+.dark[data-theme="rose"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.01 10);
+  --foreground: oklch(0.93 0.008 10);
+  --card: oklch(0.20 0.012 10);
+  --card-foreground: oklch(0.93 0.008 10);
+  --popover: oklch(0.21 0.012 10);
+  --popover-foreground: oklch(0.93 0.008 10);
+  --primary: oklch(0.72 0.15 10);
+  --primary-foreground: oklch(0.20 0.03 10);
+  --secondary: oklch(0.27 0.014 10);
+  --secondary-foreground: oklch(0.90 0.008 10);
+  --muted: oklch(0.25 0.012 10);
+  --muted-foreground: oklch(0.68 0.015 10);
+  --accent: oklch(0.30 0.02 10);
+  --accent-foreground: oklch(0.93 0.008 10);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.004 10);
+  --success: oklch(0.70 0.13 150);
+  --success-foreground: oklch(0.20 0.03 150);
+  --warning: oklch(0.78 0.13 85);
+  --warning-foreground: oklch(0.24 0.03 85);
+  --border: oklch(0.31 0.012 10);
+  --input: oklch(0.31 0.012 10);
+  --ring: var(--primary);
+
+  --sidebar: oklch(0.185 0.012 10);
+  --sidebar-foreground: oklch(0.93 0.008 10);
+  --sidebar-primary: oklch(0.72 0.15 10);
+  --sidebar-primary-foreground: oklch(0.20 0.03 10);
+  --sidebar-accent: oklch(0.30 0.02 10);
+  --sidebar-accent-foreground: oklch(0.93 0.008 10);
+  --sidebar-border: oklch(0.31 0.012 10);
+  --sidebar-ring: var(--primary);
 }
 
-/* ---------- style: Sera — brutal ----------
-   Square everything, ink-weight rules, hard offset elevation, decisive
-   motion, heavier display type. Deliberate, not decorative. */
-[data-style="sera"] {
-  --radius-control: 0;
-  --radius-card: 0;
-  --radius-panel: 0;
-  --radius-floating: 0;
-  --radius-segment: 0;
-  --radius-pill: 0;
-  --panel-border-width: 2px;
-  --panel-border-color: var(--ink);
-  --stat-rule-width: 2px;
-  --elev-pop: 0.25rem 0.25rem 0 0 var(--ink);
-  --dur-quick: 100ms;
-  --dur-enter: 140ms;
-  --dur-view: 160ms;
-  --ease-out-soft: cubic-bezier(0.2, 0.9, 0.25, 1);
-  --focus-ring: var(--ink);
-  --focus-keyline: var(--paper);
-  --sidebar-rule-w: 2px;
-  --sidebar-rule-color: var(--ink);
-  --landing-lift: 0.375rem 0.375rem 0 0 var(--ink);
-}
-[data-style="sera"] .page-title {
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-[data-style="sera"] .panel-title {
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-[data-style="sera"] .stat-value {
-  font-weight: 600;
-}
-[data-style="sera"] .segment-group,
-[data-style="sera"] .dialog-content {
-  border-color: var(--ink);
-}
-/* Sera's flat ink-outline language: the active thumb trades the soft drop
-   shadow for a bold ink hairline that matches the outlined track. */
-[data-style="sera"] .segment[aria-pressed="true"],
-[data-style="sera"] .segment[aria-selected="true"],
-[data-style="sera"] .segment[aria-pressed="true"]:hover,
-[data-style="sera"] .segment[aria-selected="true"]:hover {
-  box-shadow: inset 0 0 0 1px var(--ink);
-}
-[data-style="sera"] .duotone-tile:hover {
-  box-shadow: -3px 3px 0 0 var(--ink);
-}
-/* Sera's flat ink-outline language: the accent callout's 35% hairline reads
-   washed out next to 2px ink panels, so it takes a full accent edge. */
-[data-style="sera"] .callout-accent {
-  border-color: var(--accent);
-}
-
-/* ---------- sidebar: style-adaptive chrome ----------
-   Edge width/color and row geometry come from tokens (:root + style blocks),
-   so every palette × style × dark combination resolves without per-combo
-   rules. Unlayered so it beats the primitives' border-r utility; scoped to
-   the desktop sidebar ([data-mobile="true"] is the Sheet, which keeps
-   .sheet-content's own border). */
-[data-sidebar="sidebar"]:not([data-mobile="true"]) {
-  border-right: var(--sidebar-rule-w) solid var(--sidebar-rule-color);
-}
-
-/* Sera brutal chrome: ink ring on the active item (echoes .segment), offset
-   shadow on the CTA (echoes .duotone-tile), ink-weight dividers, square
-   avatar. Colors stay on tokens, so dark mode flips them like every sera
-   surface. */
-[data-style="sera"] [data-sidebar="menu-button"][data-active="true"] {
-  box-shadow: inset 0 0 0 1px var(--ink);
-}
-[data-style="sera"] [data-sidebar="menu-button"].sidebar-cta {
-  box-shadow: 3px 3px 0 0 var(--ink);
-}
-[data-style="sera"] [data-sidebar="menu-button"].ask-cta {
-  box-shadow: 3px 3px 0 0 var(--ink);
-}
-[data-style="sera"] [data-sidebar="sidebar"] [data-sidebar="header"],
-[data-style="sera"] [data-sidebar="sidebar"] [data-sidebar="footer"] {
-  border-color: var(--rule);
-}
-[data-style="sera"] [data-sidebar="sidebar"] .sidebar-avatar {
-  border-radius: 0;
-}
-
+/* ============================================================
+   Tailwind v4 theme mapping — Hairline reads the shadcn set
+   ============================================================ */
 @theme inline {
   --font-sans: var(--font-body);
   --font-serif: var(--font-heading);
-  --color-canvas: var(--canvas);
-  --color-paper: var(--paper);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-rule: var(--rule);
-  --color-rule-soft: var(--rule-soft);
-  --color-soft: var(--soft);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-soft: var(--accent-soft);
-  --color-positive: var(--positive);
-  --color-positive-soft: var(--positive-soft);
-  --color-warning: var(--warning);
-  --color-warning-soft: var(--warning-soft);
-  --color-danger: var(--danger);
-  --color-danger-hover: var(--danger-hover);
-  --color-danger-soft: var(--danger-soft);
-  --color-chart-correct: var(--chart-correct);
-  --color-chart-incorrect: var(--chart-incorrect);
-  --color-chart-skipped: var(--chart-skipped);
-  /* shadcn chart-token utilities + named subject hues for registry chart comps */
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-chart-score: var(--chart-score);
-  --color-chart-average: var(--chart-average);
-  --color-chart-time: var(--chart-time);
-  --color-chart-target: var(--chart-target);
-  /* radius / elevation / easing utilities (rounded-control, shadow-pop, …) */
-  --radius-control: var(--radius-control);
-  --radius-card: var(--radius-card);
-  --radius-panel: var(--radius-panel);
-  --radius-floating: var(--radius-floating);
-  --radius-segment: var(--radius-segment);
-  --radius-pill: var(--radius-pill);
-  --shadow-pop: var(--elev-pop);
-  --ease-out-soft: var(--ease-out-soft);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -550,2609 +496,272 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Hairline animation keyframes (registry-injected, kept verbatim) */
   @keyframes ui-bounce {
-  0%, 80%, 100% {
-    transform: translateY(0);
-    opacity: 0.35;
+    0%,
+    80%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.35;
     }
-  40% {
-    transform: translateY(-3px);
-    opacity: 1;
+    40% {
+      transform: translateY(-3px);
+      opacity: 1;
     }
   }
   @keyframes ui-blink {
-  0%, 100% {
-    opacity: 1;
+    0%,
+    100% {
+      opacity: 1;
     }
-  50% {
-    opacity: 0;
+    50% {
+      opacity: 0;
     }
   }
   @keyframes ui-skeleton {
-  from {
-    transform: translateX(-100%);
+    from {
+      transform: translateX(-100%);
     }
-  to {
-    transform: translateX(100%);
+    to {
+      transform: translateX(100%);
     }
   }
   @keyframes ui-col-in {
-  from {
-    max-width: 0;
-    opacity: 0;
+    from {
+      max-width: 0;
+      opacity: 0;
     }
-  to {
-    max-width: 1em;
-    opacity: 1;
+    to {
+      max-width: 1em;
+      opacity: 1;
     }
   }
   @keyframes ui-col-out {
-  from {
-    max-width: 1em;
-    opacity: 1;
+    from {
+      max-width: 1em;
+      opacity: 1;
     }
-  to {
-    max-width: 0;
-    opacity: 0;
+    to {
+      max-width: 0;
+      opacity: 0;
     }
   }
   @keyframes ui-ping {
-  from {
-    transform: scale(1);
-    opacity: 0.55;
+    from {
+      transform: scale(1);
+      opacity: 0.55;
     }
-  to {
-    transform: scale(2.6);
-    opacity: 0;
+    to {
+      transform: scale(2.6);
+      opacity: 0;
     }
   }
   @keyframes ui-indeterminate {
-  from {
-    transform: translateX(-100%);
+    from {
+      transform: translateX(-100%);
     }
-  to {
-    transform: translateX(340%);
+    to {
+      transform: translateX(340%);
     }
   }
   @keyframes ui-scan {
-  from {
-    transform: translateX(-100%);
+    from {
+      transform: translateX(-100%);
     }
-  to {
-    transform: translateX(250%);
+    to {
+      transform: translateX(250%);
     }
   }
   @keyframes ui-fade-in {
-  from {
-    opacity: 0;
+    from {
+      opacity: 0;
     }
-  to {
-    opacity: 1;
+    to {
+      opacity: 1;
     }
   }
   @keyframes ui-pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.96);
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.96);
     }
-  to {
-    opacity: 1;
-    transform: none;
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
   @keyframes ui-empty-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-    filter: blur(4px);
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+      filter: blur(4px);
     }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
     }
   }
   @keyframes ui-empty-out {
-  from {
-    opacity: 1;
-    transform: none;
-    filter: none;
+    from {
+      opacity: 1;
+      transform: none;
+      filter: none;
     }
-  to {
-    opacity: 0;
-    transform: translateY(-4px);
-    filter: blur(4px);
+    to {
+      opacity: 0;
+      transform: translateY(-4px);
+      filter: blur(4px);
     }
   }
   @keyframes ui-sheen {
-  from {
-    mask-position: 150% 0;
+    from {
+      mask-position: 150% 0;
     }
-  to {
-    mask-position: -50% 0;
+    to {
+      mask-position: -50% 0;
     }
   }
   @keyframes ui-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+    from {
+      opacity: 0;
+      transform: translateY(4px);
     }
-  to {
-    opacity: 1;
-    transform: none;
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
   @keyframes ui-progress {
-  from {
-    transform: scaleX(0);
+    from {
+      transform: scaleX(0);
     }
-  to {
-    transform: scaleX(1);
+    to {
+      transform: scaleX(1);
     }
   }
   @keyframes ui-shimmer {
-  0% {
-    background-position: 150% 0;
+    from {
+      background-position: 150% 0;
     }
-  100% {
-    background-position: -50% 0;
+    to {
+      background-position: -50% 0;
     }
   }
   @keyframes ui-breathe {
-  0%, 100% {
-    transform: scale(0.82);
-    opacity: 0.55;
-    }
-  50% {
-    transform: scale(1);
-    opacity: 1;
-    }
-  }
-  @keyframes ui-drain {
-  from {
-    stroke-dashoffset: 0;
-    }
-  to {
-    stroke-dashoffset: var(--ui-ring);
-    }
-  }
-  @keyframes ui-drop-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.6);
-    }
-  to {
-    opacity: 1;
-    transform: none;
-    }
-  }
-  @keyframes ui-ring-fill {
-  from {
-    stroke-dashoffset: var(--ui-ring);
-    }
-  to {
-    stroke-dashoffset: 0;
-    }
-  }
-}
-
-/* ---------- Element defaults (layer: base) ----------
-   Living in the base layer means any Tailwind utility can override these
-   without `!important` — the root cause of the old `!flex`/`!w-auto` hacks. */
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0;
-    background: var(--canvas);
-    /* Palette sheen (graphite): a faint canvas wash; `none` elsewhere.
-       no-repeat keeps the fade from tiling down a tall page. The image
-       declaration follows the background shorthand, so it wins. */
-    background-image: var(--canvas-sheen);
-    background-repeat: no-repeat;
-    color: var(--ink);
-    font-family: var(--font-body);
-    font-size: var(--type-body);
-    -webkit-font-smoothing: antialiased;
-    text-size-adjust: 100%;
-    overflow-wrap: break-word;
-  }
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
-  button,
-  a,
-  select {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  button:not(:disabled),
-  select,
-  summary {
-    cursor: pointer;
-  }
-  ::selection {
-    background: var(--ink);
-    color: var(--paper);
-  }
-  :focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 1px var(--focus-keyline);
-  }
-  /* On ink-filled surfaces keep paper as the explicit focus color. */
-  .focus-paper:focus-visible {
-    outline-color: var(--paper);
-  }
-  input,
-  textarea {
-    caret-color: var(--accent);
-  }
-  /* The explicit element selectors (not :where) matter: Tailwind v4
-     preflight resets background-color/border-radius on form elements at
-     element specificity, which would beat a zero-specificity :where rule
-     and leave selects transparent and square. */
-  input:not([type="checkbox"]),
-  select,
-  textarea {
-    width: 100%;
-    min-width: 0;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-control);
-    padding: var(--control-pad-y) var(--control-pad-x);
-    background: var(--paper);
-    color: var(--ink);
-  }
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--muted);
-  }
-  input[readonly] {
-    background: var(--soft);
-  }
-  input[type="checkbox"] {
-    accent-color: var(--ink);
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
-  /* Numeric spinner suppression is opt-in via .no-spin (Phase 11). */
-  input.no-spin {
-    appearance: textfield;
-  }
-  input.no-spin::-webkit-inner-spin-button,
-  input.no-spin::-webkit-outer-spin-button {
-    appearance: none;
-    margin: 0;
-  }
-  label {
-    display: grid;
-    gap: var(--label-gap);
-    font-size: 0.75rem;
-    color: var(--muted);
-    font-weight: 500;
-    min-width: 0;
-  }
-  /* Checkbox / radio rows opt out of the grid label via .check-row. */
-  label.check-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--ink);
-    font-weight: 400;
-  }
-  /* Required-field marker (Phase 11): a quiet asterisk after the label
-     text; never the only signal (inputs are also natively required). */
-  .req {
-    color: var(--accent);
-    font-weight: 600;
-  }
-  ::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
-  }
-  ::-webkit-scrollbar-track {
-    background: var(--canvas);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--rule);
-  }
-  th {
-    position: relative;
-    font-weight: 500;
-    text-align: left;
-    color: var(--muted);
-    font-size: var(--type-label);
-    white-space: nowrap;
-  }
-  td,
-  th {
-    padding: var(--table-cell-pad-y) var(--table-cell-pad-x);
-    border-bottom: 1px solid var(--rule-soft);
-  }
-  thead th {
-    border-bottom: 1px solid var(--rule);
-    background: var(--canvas);
-  }
-  tbody tr:last-child td {
-    border-bottom: 0;
-  }
-  tbody tr:hover {
-    background: var(--soft);
-  }
-}
-
-@media (forced-colors: active) {
-  :focus-visible,
-  .focus-paper:focus-visible {
-    outline-color: Highlight;
-    box-shadow: none;
-  }
-}
-
-/* ---------- Design-system component classes ---------- */
-@layer components {
-  .panel {
-    min-width: 0;
-    border: var(--panel-border-width) solid var(--panel-border-color);
-    border-radius: var(--radius-panel);
-    background: var(--paper);
-  }
-  .panel-title {
-    font-family: var(--font-heading);
-    font-size: var(--type-panel-title);
-    line-height: 1.2;
-    font-weight: 500;
-    letter-spacing: -0.025em;
-  }
-  /* Dense-panel title: one step under .panel-title on every screen, so the
-     section title always outranks the compact panel chrome inside it. */
-  .panel-title-dense {
-    font-family: var(--font-heading);
-    font-size: var(--type-panel-title-dense);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-  }
-  .section-title {
-    font-family: var(--font-heading);
-    font-size: var(--type-section-title);
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -0.025em;
-  }
-  .page-title {
-    font-family: var(--font-heading);
-    font-size: var(--type-page-title);
-    line-height: 1.12;
-    font-weight: 450;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
-  }
-  .muted {
-    color: var(--muted);
-  }
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-  .section-label {
-    color: var(--muted);
-    font-size: var(--type-label);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
-  }
-  .chart-empty {
-    min-height: 9.375rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    color: var(--muted);
-    font-size: 0.8125rem;
-    text-align: center;
-    padding: 24px;
-  }
-  .stat-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-block: var(--stat-rule-width) solid var(--ink);
-    margin-block: 28px;
-  }
-  .stat-cell {
-    min-width: 0;
-    padding: var(--stat-cell-pad-y) var(--stat-cell-pad-x);
-  }
-  .stat-cell + .stat-cell {
-    border-left: 1px solid var(--rule-soft);
-  }
-  .stat-value {
-    font-family: var(--font-heading);
-    font-size: var(--type-stat);
-    font-weight: 450;
-    line-height: 1.2;
-    letter-spacing: -0.035em;
-    /* Value + unit suffix ("278.7 / 390") are one atom — a wrap between
-       them reads as two separate figures (Phase 5 fix). */
-    white-space: nowrap;
-  }
-  .wordmark {
-    font-family: var(--font-heading);
-    font-size: 1.9375rem;
-    font-weight: 550;
-    letter-spacing: -0.035em;
-    line-height: 1;
-  }
-  .wordmark-mobile {
-    font-family: var(--font-heading);
-    font-size: 1.4375rem;
-    font-weight: 550;
-    letter-spacing: -0.035em;
-  }
-  .nav-button {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    width: 100%;
-    padding: var(--nav-pad-y) var(--nav-pad-x);
-    border-radius: var(--radius-control);
-    font-weight: 500;
-    color: var(--muted);
-    text-align: left;
-    transition:
-      color var(--dur-quick) ease,
-      background-color var(--dur-quick) ease;
-  }
-  .nav-button:hover {
-    background: var(--soft);
-    color: var(--ink);
-  }
-  .nav-button.active {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
-  /* ---------- Segmented controls (one pattern, nine views) ----------
-     A softly rounded track holds the options; the active option is a raised
-     paper thumb. Scope tabs, form toggles, planner tabs and task filters share
-     this treatment, so they upgrade together. */
-  .segment-group {
-    display: inline-flex;
-    align-items: stretch;
-    flex-wrap: wrap;
-    gap: 2px;
-    padding: 3px;
-    border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-segment);
-    background: var(--soft);
-    max-width: 100%;
-  }
-  .segment {
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: var(--segment-pad-y) var(--segment-pad-x);
-    border-radius: var(--radius-segment);
-    font-size: var(--type-segment);
-    font-weight: 500;
-    color: var(--muted);
-    transition:
-      color var(--dur-quick) ease,
-      background-color var(--dur-quick) ease,
-      box-shadow var(--dur-quick) ease;
-  }
-  .segment:hover {
-    background: var(--canvas);
-    color: var(--ink);
-  }
-  /* `aria-pressed` for toggle buttons; `aria-selected` for the tab variant
-     (the AI panel), because role="tab" does not permit aria-pressed. */
-  .segment[aria-pressed="true"],
-  .segment[aria-pressed="true"]:hover,
-  .segment[aria-selected="true"],
-  .segment[aria-selected="true"]:hover {
-    background: var(--paper);
-    color: var(--ink);
-    /* The inset hairline stands in for a border so toggling never shifts
-       layout; the drop shadow lifts the thumb off the track. */
-    box-shadow:
-      inset 0 0 0 1px var(--rule-soft),
-      0 1px 2px rgba(0, 0, 0, 0.06),
-      0 3px 8px -3px rgba(0, 0, 0, 0.16);
-  }
-  .segment[aria-pressed="true"] svg,
-  .segment[aria-selected="true"] svg {
-    color: var(--accent);
-  }
-  .segment:disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  /* Rings live inside the pill: an outside ring detaches from the rounded
-     shape and gets clipped by any scroll container. */
-  .segment:focus-visible {
-    outline-offset: -2px;
-  }
-
-  /* Scope tabs (the four-option analytical scope, shared by three views):
-     phones get a deterministic 2×2 pill grid — every option visible, no
-     scrolling, no ragged 3+1 wrap — while sm-and-up keeps one shared row. */
-  @media (max-width: 639.98px) {
-    .segment-group.scope-tabs {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  /* ---------- Tables in scroll containers ----------
-     Keeps the row identity visible while the remaining columns scroll
-     on narrow viewports (Phase 5). Pair with .sticky-col on the first
-     header/body cell. */
-  .table-scroll {
-    overflow: auto;
-  }
-  .sticky-col {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    background: var(--paper);
-    /* Edge rule separates the pinned column from the scrolling ones. */
-    border-right: 1px solid var(--rule-soft);
-    min-width: 0;
-  }
-  thead .sticky-col {
-    background: var(--canvas);
-    z-index: 2;
-  }
-  .recharts-default-tooltip {
-    background: var(--paper) !important;
-    border: 1px solid var(--rule) !important;
-    border-radius: var(--radius-control) !important;
-    color: var(--ink);
-    font-size: 0.75rem;
-    box-shadow: var(--elev-pop);
-  }
-  .recharts-tooltip-cursor {
-    stroke: var(--rule-soft);
-  }
-
-  /* ---------- Overlays: dialogs, popovers, alerts ----------
-     Radix drives data-state; CSS owns the animation so reduced-motion and
-     the duration tokens live in one place. Uses the individual `scale`
-     property (not `transform`) so it composes with Tailwind's `translate`
-     positioning; popovers fade only — their position transform is Radix's. */
-  .dialog-overlay {
-    animation: overlay-in 160ms ease;
-  }
-  .dialog-overlay[data-state="closed"] {
-    animation: overlay-out 150ms ease;
-  }
-  .dialog-content {
-    animation: dialog-in 200ms var(--ease-out-soft);
-  }
-  .dialog-content[data-state="closed"] {
-    animation: dialog-out 150ms ease;
-  }
-  .popover-content {
-    animation: popover-in 180ms var(--ease-out-soft);
-  }
-  .dropdown-content {
-    animation: popover-in 160ms var(--ease-out-soft);
-  }
-  .dropdown-content[data-state="closed"] {
-    animation: none;
-  }
-
-  /* ---------- Sheet (shadcn Dialog primitive, project motion) ----------
-     The generated shadcn component was written for tw-animate-css, which
-     this project does not use. These data-state rules keep the animation
-     dependency-free and respect the global reduced-motion override. */
-  .sheet-overlay {
-    animation: overlay-in 180ms ease;
-  }
-  .sheet-overlay[data-state="closed"] {
-    animation: overlay-out 150ms ease;
-  }
-  .sheet-content {
-    animation: sheet-in-right 220ms var(--ease-out-soft);
-  }
-  .ai-workspace-sheet {
-    min-height: 0;
-    overflow: hidden;
-    box-shadow: none;
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  .ai-composer {
-    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  }
-  /* The coach's composer card: an elevated container that holds the
-     textarea and the toolbar (mode chips, paperclip, usage, send ⇄ stop)
-     together — the floating-pill grammar from the reference. */
-  .ai-composer-card {
-    border: 1px solid var(--rule-soft);
-    border-radius: 1rem;
-    background: var(--paper);
-    box-shadow:
-      0 4px 20px -2px rgba(0, 0, 0, 0.06),
-      0 0 1px 1px rgba(0, 0, 0, 0.08);
-    transition:
-      border-color var(--dur-quick) ease,
-      box-shadow var(--dur-quick) ease;
-  }
-  .ai-composer-card:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 55%, var(--rule-soft));
-    box-shadow:
-      inset 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent),
-      0 4px 20px -2px rgba(0, 0, 0, 0.06),
-      0 0 1px 1px rgba(0, 0, 0, 0.08);
-  }
-  /* A memo is a document, not a bubble: the label sits in a fixed margin
-     column beside its body, the way the day ledger lays out a section. */
-  .ai-memo-section {
-    display: grid;
-    gap: 2px;
-  }
-  /* The running answer's terminal caret: an inline block that sits at the
-     end of the streaming body, blinking like the guard screens' typed log. */
-  .stream-caret {
-    display: inline-block;
-    width: 2px;
-    height: 1em;
-    margin-left: 3px;
-    vertical-align: -0.15em;
-    background: var(--accent);
-    animation: stream-blink 1.1s step-end infinite;
-  }
-  @keyframes stream-blink {
     0%,
     100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0;
-    }
-  }
-  /* The pre-first-token indicator: three staggered dots and a seconds clock.
-     Thinking models can spend tens of seconds before any text lands, so the
-     wait is shown, not hidden. */
-  .thinking-dots {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-  }
-  .thinking-dots i {
-    width: 4px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--muted);
-    animation: thinking-pulse 1.2s ease-in-out infinite;
-  }
-  .thinking-dots i:nth-child(2) {
-    animation-delay: 0.15s;
-  }
-  .thinking-dots i:nth-child(3) {
-    animation-delay: 0.3s;
-  }
-  @keyframes thinking-pulse {
-    0%,
-    100% {
-      opacity: 0.25;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-  /* The live "Thinking… · Ns" label inside the thinking block: a gradient
-     that sweeps muted → accent → muted across the text. Reduced motion
-     renders it static muted (the label itself still ticks every second). */
-  .thinking-shimmer {
-    background: linear-gradient(
-      90deg,
-      var(--muted) 25%,
-      var(--accent) 50%,
-      var(--muted) 75%
-    );
-    background-size: 200% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    animation: thinking-shimmer 2.2s linear infinite;
-  }
-  @keyframes thinking-shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .thinking-shimmer {
-      animation: none;
-      background: none;
-      -webkit-text-fill-color: currentColor;
-      color: var(--muted);
-    }
-  }
-  /* --- Chat transcript grammar (side sheet + /ask page) ---
-     Legacy chat grammar (Claude/ChatGPT/z.ai): NO avatars anywhere. The
-     reader's question is the only bubble — right-aligned, soft, fully
-     rounded, hugging the column's right edge; the coach's answer is plain
-     typeset prose flush with the column edge, set in the serif face (the
-     one place body serif ships) with tables/code keeping their faces.
-     Turn actions are muted ICON buttons in an always-visible bar under
-     each turn — no hover reveal on any width. */
-  /* The running answer's caret lives at the end of the last rendered block,
-     so it hugs the text the way a typed line does. */
-  .ai-answer.is-streaming > :last-child::after {
-    content: "";
-    display: inline-block;
-    width: 2px;
-    height: 1em;
-    margin-left: 3px;
-    vertical-align: -0.15em;
-    background: var(--accent);
-    animation: stream-blink 1.1s step-end infinite;
-  }
-  .ai-answer.is-streaming > table:last-child::after {
-    content: none;
-  }
-  @media (min-width: 480px) {
-    .ai-memo-section {
-      grid-template-columns: 7.5rem minmax(0, 1fr);
-      gap: 12px;
-      align-items: baseline;
-    }
-    .ai-memo-body {
-      margin-top: 0;
-    }
-  }
-  .task-editor-dialog,
-  .task-confirm-dialog {
-    position: fixed;
-    z-index: 50;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% - 24px);
-    max-width: 36rem;
-    max-height: 90dvh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-panel);
-    background: var(--paper);
-    padding: 20px;
-  }
-  .task-confirm-dialog {
-    max-width: 28rem;
-  }
-  @media (max-width: 639px) {
-    .task-editor-dialog {
-      top: auto;
-      bottom: 0;
-      left: 0;
-      transform: none;
-      width: 100%;
-      max-height: min(90dvh, calc(var(--task-viewport-height, 100dvh) - 24px));
-      bottom: max(
-        0px,
-        calc(
-          100dvh - var(--task-viewport-height, 100dvh) -
-            var(--task-viewport-top, 0px)
-        )
-      );
-      padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
-      scroll-padding-bottom: 24px;
-    }
-    /* The 16px field rule is app-wide now (end of file), so the old
-       per-surface list is gone — it missed the mock form, settings and the
-       portaled task filter sheet, which still zoomed on iOS. */
-  }
-  /* Search-palette hit highlighting: the accent-soft wash says "you matched"
-     without shouting, stays legible in every palette × style combination,
-     and keeps <mark>'s semantic emphasis while overriding its default ink. */
-  .search-mark {
-    background: var(--accent-soft);
-    color: var(--ink);
-    border-radius: 2px;
-    padding: 0 1px;
-  }
-  /* ---------- Drawer (vaul) ----------
-     A bottom drawer that follows the finger. Vaul owns the drag transform, so
-     these rules only supply the paper surface, the handle and the entrance for
-     programmatic opens (which vaul does not animate itself). Motion reads the
-     same tokens as the Sheet; the global reduced-motion block freezes it. */
-  .drawer-overlay {
-    animation: overlay-in var(--dur-quick) ease;
-  }
-  .drawer-overlay[data-state="closed"] {
-    animation: overlay-out 150ms ease;
-  }
-  .drawer-content {
-    animation: sheet-in-bottom var(--dur-enter) var(--ease-out-soft);
-  }
-  .drawer-content[data-state="closed"] {
-    animation: sheet-out-bottom 160ms ease;
-  }
-  /* The grab strip: a 44px hit area around a 4px bar, so the thumb finds it
-     without a 44px block of dead space in the layout. */
-  .drawer-handle {
-    display: grid;
-    place-items: center;
-    height: 22px;
-    touch-action: none;
-  }
-  .drawer-handle-bar {
-    width: 40px;
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--rule-soft);
-  }
-  .sheet-content[data-state="closed"] {
-    animation: sheet-out-right 160ms ease;
-  }
-  .sheet-content[data-side="left"] {
-    animation-name: sheet-in-left;
-  }
-  .sheet-content[data-side="left"][data-state="closed"] {
-    animation-name: sheet-out-left;
-  }
-  .sheet-content[data-side="top"] {
-    animation-name: sheet-in-top;
-  }
-  .sheet-content[data-side="top"][data-state="closed"] {
-    animation-name: sheet-out-top;
-  }
-  .sheet-content[data-side="bottom"] {
-    animation-name: sheet-in-bottom;
-  }
-  .sheet-content[data-side="bottom"][data-state="closed"] {
-    animation-name: sheet-out-bottom;
-  }
-  @keyframes sheet-in-right {
-    from {
-      opacity: 0.7;
-      translate: 24px 0;
-    }
-  }
-  @keyframes sheet-out-right {
-    to {
-      opacity: 0.7;
-      translate: 24px 0;
-    }
-  }
-  @keyframes sheet-in-left {
-    from {
-      opacity: 0.7;
-      translate: -24px 0;
-    }
-  }
-  @keyframes sheet-out-left {
-    to {
-      opacity: 0.7;
-      translate: -24px 0;
-    }
-  }
-  @keyframes sheet-in-top {
-    from {
-      opacity: 0.7;
-      translate: 0 -24px;
-    }
-  }
-  @keyframes sheet-out-top {
-    to {
-      opacity: 0.7;
-      translate: 0 -24px;
-    }
-  }
-  @keyframes sheet-in-bottom {
-    from {
-      opacity: 0.7;
-      translate: 0 24px;
-    }
-  }
-  @keyframes sheet-out-bottom {
-    to {
-      opacity: 0.7;
-      translate: 0 24px;
-    }
-  }
-  @keyframes overlay-in {
-    from {
-      opacity: 0;
-    }
-  }
-  @keyframes overlay-out {
-    to {
-      opacity: 0;
-    }
-  }
-  @keyframes dialog-in {
-    from {
-      opacity: 0;
-      scale: 0.98;
-    }
-  }
-  @keyframes dialog-out {
-    to {
-      opacity: 0;
-      scale: 0.98;
-    }
-  }
-  @keyframes popover-in {
-    from {
-      opacity: 0;
-      translate: 0 -4px;
-    }
-  }
-
-  /* ---------- Duotone icon system ----------
-     Hugeicons renders true duotone natively via `primaryColor`/`secondaryColor`
-     props set from design tokens in `src/components/icon.tsx`. The prior
-     `.duo-icons-*-layer` CSS overrides (and the Lucide echo technique) are
-     retired — layer colors now come from the component, so dark mode and
-     palette/style switches flip them automatically through the token chain.
-     The tile hover lift is retained. */
-  .duotone-tile {
-    transition:
-      transform var(--dur-enter) var(--ease-out-soft),
-      box-shadow var(--dur-enter) ease;
-  }
-  .duotone-tile:hover {
-    transform: translateY(-2px);
-    box-shadow: -3px 3px 0 0 var(--accent-soft);
-  }
-
-  /* ---------- Skip link (keyboard a11y) ---------- */
-  .skip-link {
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 100;
-    padding: 10px 14px;
-    border-radius: var(--radius-control);
-    background: var(--ink);
-    color: var(--paper);
-    font-size: 0.8125rem;
-    font-weight: 500;
-    text-decoration: none;
-    transform: translateY(-200%);
-    transition: transform var(--dur-quick) ease;
-  }
-  .skip-link:focus-visible {
-    transform: translateY(0);
-    outline-color: var(--paper);
-  }
-
-  /* ---------- Compact workspace primitives ---------- */
-  .workspace-title {
-    font-family: var(--font-heading);
-    font-size: var(--type-workspace-title);
-    line-height: 1.12;
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    text-wrap: balance;
-  }
-  .workspace-subtitle {
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1.5;
-  }
-  /* The dashboard overview is one divided strip, not four floating cards:
-     thin rules carry the structure, cells stay square (style radius), and
-     each cell is a single large hit target for its destination. */
-  .metric-strip {
-    display: grid;
-    /* Cells stretch to equal height per row; the tallest cell wins, so the
-       2×2 fold keeps clean horizontal rules instead of ragged ones. */
-    align-content: stretch;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    /* Editorial ink band: strong rules above and below the figures, hairlines
-       between cells. --stat-rule-width lets sera double the rule weight. */
-    border-block: var(--stat-rule-width) solid var(--ink);
-    background: var(--paper);
-    overflow: hidden;
-  }
-  .metric-cell {
-    display: block;
-    min-width: 0;
-    padding: var(--metric-cell-pad-y) var(--metric-cell-pad-x);
-    text-align: left;
-    transition: background-color var(--dur-quick) ease;
-  }
-  .metric-cell + .metric-cell {
-    border-left: 1px solid var(--rule-soft);
-  }
-  .metric-cell:hover,
-  .metric-cell:focus-visible {
-    background: var(--soft);
-  }
-  /* Inset ring: the strip clips its overflow, so an outward offset would be
-     cut off. Keyboard focus must stay visible on every cell. */
-  .metric-cell:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-  .metric-cell:hover .metric-label,
-  .metric-cell:focus-visible .metric-label {
-    color: var(--ink);
-  }
-  /* The chevron is decoration for pointer users; keyboard focus reveals it
-     too, and reduced motion keeps it permanently visible (below). */
-  .metric-cell .metric-go {
-    opacity: 0;
-    transition: opacity var(--dur-quick) ease;
-  }
-  .metric-cell:hover .metric-go,
-  .metric-cell:focus-visible .metric-go {
-    opacity: 1;
-  }
-  .metric-head {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-  }
-  .metric-label {
-    min-width: 0;
-    color: var(--muted);
-    font-size: var(--type-section-label);
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: color var(--dur-quick) ease;
-  }
-  .metric-figure {
-    display: flex;
-    min-width: 0;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 8px;
-    margin-top: 4px;
-  }
-  .metric-value {
-    font-family: var(--font-heading);
-    font-size: var(--type-metric);
-    line-height: 1.15;
-    font-weight: 550;
-    letter-spacing: -0.025em;
-    white-space: nowrap;
-  }
-  /* Trend delta beside the figure: the sign carries the direction, the tone
-     carries the meaning (up reads positive). No icon, no chip — type only. */
-  .metric-delta {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.01em;
-  }
-  .metric-delta.is-up {
-    color: var(--positive);
-  }
-  .metric-delta.is-down {
-    color: var(--danger);
-  }
-  .metric-delta.is-flat {
-    color: var(--muted);
-  }
-  .metric-hint {
-    margin-top: 3px;
-    color: var(--muted);
-    font-size: 0.625rem;
-    line-height: 1.35;
-  }
-  /* Square progress rule: a 2px track, never a pill. */
-  .metric-rule {
-    margin-top: 8px;
-    height: 2px;
-    overflow: hidden;
-    background: var(--soft);
-  }
-  .metric-rule > span {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    transition: width var(--dur-enter) var(--ease-out-soft);
-  }
-  /* Accent callout: the "Next up" / "Next milestone" strips. One wash and
-     one border for every accent callout on the dashboard, so they upgrade
-     together and sera can trade the hairline for a full accent edge. */
-  .callout-accent {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 8px;
-    border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
-    border-radius: var(--radius-control);
-    background: var(--accent-soft);
-    padding: 10px 12px;
-  }
-  /* ---------- Performance score band ----------
-     The analytical headline of the Performance section: one ink-ruled
-     strip of serif figures, re-read with every scope/filter change. Pure
-     type — no icons, no chevrons, no hover fill — so it reads as the
-     ledger the charts below are drawn from, distinct from the dashboard's
-     linked metric-strip cells. Cell innards reuse the metric-* classes. */
-  .score-band {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-block: var(--stat-rule-width) solid var(--ink);
-    background: var(--paper);
-    overflow: hidden;
-  }
-  .score-band > div {
-    min-width: 0;
-    padding: var(--band-cell-pad-y) var(--band-cell-pad-x);
-  }
-  .score-band > div + div {
-    border-left: 1px solid var(--rule-soft);
-  }
-  /* With a target set the band carries a fifth cell. */
-  .score-band.is-five {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  /* Two-up segmented control: same components, full-row hit areas. */
-  .segment-group.is-block {
-    display: flex;
-    width: 100%;
-  }
-  .segment-group.is-block .segment {
-    flex: 1 1 0;
-    text-align: center;
-  }
-  /* Section header: title block and its inline controls. Stacks below lg so
-     the control never squeezes the heading into two ragged lines. */
-  .section-head {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  /* Day stepping: arrows flank a bordered date pill (the mockup's dateline
-     row — every element sits in its own bordered control at one height).
-     The return-to-today chip keeps its space reserved so stepping days
-     never slides the arrows out from under the pointer. */
-  .day-nav {
-    display: flex;
-    align-self: stretch;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 0;
-  }
-  .day-nav-step {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    width: var(--day-nav-size);
-    height: var(--day-nav-size);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-control);
-    background: var(--paper);
-    color: var(--muted);
-    transition:
-      background-color var(--dur-quick) ease,
-      color var(--dur-quick) ease;
-  }
-  .day-nav-step:hover:not(:disabled) {
-    background: var(--soft);
-    color: var(--ink);
-  }
-  .day-nav-step:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-  .day-nav-step:disabled {
-    opacity: 0.35;
-    pointer-events: none;
-  }
-  .day-nav-step:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .day-nav-body {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 8px;
-    height: var(--day-nav-size);
-    min-width: 0;
-    padding: 0 12px;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-control);
-    background: var(--paper);
-  }
-  .day-nav-today {
-    flex: 0 0 auto;
-    height: var(--day-nav-size);
-    padding: 0 12px;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-control);
-    background: var(--paper);
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 500;
-    white-space: nowrap;
-    transition:
-      background-color var(--dur-quick) ease,
-      border-color var(--dur-quick) ease,
-      color var(--dur-quick) ease;
-  }
-  .day-nav-today:hover {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-  .day-nav-today:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .day-nav-date {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    color: var(--ink);
-  }
-  @media (min-width: 1024px) {
-    .section-head {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .day-nav {
-      flex: 0 0 auto;
-      align-self: auto;
-      justify-content: flex-start;
-    }
-  }
-
-  /* ---------- Landing page helpers ---------- */
-  .landing-blob {
-    position: absolute;
-    border-radius: var(--radius-pill);
-    pointer-events: none;
-    filter: blur(90px);
-  }
-
-  /* PrivateWorkspace guard screens — one staggered entrance on mount.
-     The only loop is the verifying arc (.animate-spin, frozen below). */
-  .guard-rise {
-    animation: guard-rise 0.45s var(--ease-out-soft) both;
-  }
-  @keyframes guard-rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  /* Typed command + blinking caret on the guard screens' verification log.
-     Duration/steps come in as vars so the CSS owns the animation. */
-  .guard-type {
-    animation: guard-type var(--guard-type-dur, 400ms)
-      steps(var(--guard-type-steps, 12), end) 200ms both;
-  }
-  .guard-blink {
-    animation: guard-blink 1s step-end infinite;
-  }
-  @keyframes guard-type {
-    from {
-      width: 0;
-    }
-    to {
-      width: var(--guard-cmd-len, 100%);
-    }
-  }
-  @keyframes guard-blink {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0;
-    }
-  }
-  .landing-grid-lines {
-    background-image:
-      linear-gradient(to right, var(--rule-soft) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--rule-soft) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(
-      ellipse 90% 70% at 50% 0%,
-      black 30%,
-      transparent 75%
-    );
-  }
-  .landing-wordmark {
-    font-family: var(--font-heading);
-    font-weight: 550;
-    letter-spacing: -0.035em;
-    line-height: 1;
-  }
-  /* Hero collage elevation — see the `--landing-lift` token. */
-  .landing-lift {
-    box-shadow: var(--landing-lift);
-  }
-
-  /* ==========================================================
-     Landing page system — a printed preparation ledger.
-     Editorial sections sit on paper; two inverted "plates" carry the
-     product showcase and the privacy argument. Everything here reads
-     from tokens, so all five palettes x three styles x light/dark
-     resolve without a single per-combination rule.
-     ========================================================== */
-
-  /* ---------- sections ---------- */
-  /* Anchor targets must clear the 64px sticky masthead. */
-  .landing-section {
-    scroll-margin-top: 5rem;
-  }
-  /* The page spine: a numbered margin rule beside each editorial section.
-     Purely decorative, so it disappears below lg where there is no margin. */
-  .landing-spine {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-  @media (min-width: 1024px) {
-    .landing-spine {
-      grid-template-columns: 4.5rem minmax(0, 1fr);
-    }
-  }
-  .landing-spine-no {
-    font-family: var(--font-heading);
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    letter-spacing: 0.02em;
-    padding-top: 6px;
-  }
-  .landing-spine-no::after {
-    content: "";
-    display: block;
-    width: 1px;
-    height: 26px;
-    margin-top: 10px;
-    background: var(--rule-soft);
-  }
-
-  /* ---------- the ink plate ---------- */
-  .plate {
-    position: relative;
-    background: var(--plate-bg);
-    color: var(--plate-fg);
-    border-block: 1px solid var(--plate-rule);
-    /* Plates are full-bleed bands; their inner container re-applies padding. */
-    isolation: isolate;
-  }
-  .plate-label {
-    color: var(--plate-muted);
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
-  }
-  .plate-title {
-    font-family: var(--font-heading);
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    line-height: 1.12;
-    font-weight: 450;
-    letter-spacing: -0.03em;
-    text-wrap: balance;
-    color: var(--plate-fg);
-  }
-  .plate-body {
-    color: var(--plate-muted);
-    font-size: 0.9375rem;
-    line-height: 1.65;
-    max-width: 34rem;
-  }
-  .plate-rule {
-    height: 1px;
-    background: var(--plate-rule);
-    border: 0;
-  }
-  .plate-rule-soft {
-    height: 1px;
-    background: var(--plate-rule-soft);
-    border: 0;
-  }
-  .plate-surface {
-    background: var(--plate-surface);
-    border: 1px solid var(--plate-rule-soft);
-    border-radius: var(--radius-card);
-  }
-  /* A paper card placed on a plate: the product mockup, the AI card. */
-  .plate-card {
-    background: var(--plate-card);
-    color: var(--ink);
-    border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-card);
-    overflow: hidden;
-  }
-  .plate a.plate-link {
-    color: var(--plate-fg);
-    text-decoration: underline;
-    text-decoration-color: var(--plate-rule);
-    text-underline-offset: 3px;
-    transition: text-decoration-color var(--dur-quick) ease;
-  }
-  .plate a.plate-link:hover {
-    text-decoration-color: var(--plate-fg);
-  }
-
-  /* ---------- auth plates (login-04 card art) ----------
-     The auth card's art side reuses the plate vocabulary at card scale:
-     same tone-inverted variables, quieter type. */
-  .auth-plate-label {
-    color: var(--plate-muted);
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
-  }
-  .auth-plate-title {
-    margin-top: 0.75rem;
-    font-family: var(--font-heading);
-    font-size: 1.5rem;
-    line-height: 1.18;
-    font-weight: 450;
-    letter-spacing: -0.025em;
-    color: var(--plate-fg);
-  }
-  .auth-plate-fact-label {
-    color: var(--plate-muted);
-    font-size: 0.6875rem;
-    font-weight: 500;
-  }
-  /* The OTP cell pop: a digit lands, the glyph pulses once. */
-  @keyframes otp-pop {
-    0% {
       transform: scale(0.82);
-      opacity: 0.4;
+      opacity: 0.55;
     }
-    100% {
+    50% {
       transform: scale(1);
       opacity: 1;
     }
   }
-  .otp-pop {
-    animation: otp-pop 180ms var(--ease-out-soft);
-  }
-
-  /* ---------- ruled ledger strip (the facts row) ---------- */
-  .ledger-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-block: 1px solid var(--ink);
-  }
-  @media (min-width: 640px) {
-    .ledger-row {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-  @media (min-width: 1024px) {
-    .ledger-row {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-  }
-  .ledger-cell {
-    min-width: 0;
-    padding: 18px 16px 16px;
-    border-top: 1px solid var(--rule-soft);
-    border-left: 0;
-  }
-  /* Two-across: the right-hand cell of each pair carries the divider. */
-  @media (max-width: 639px) {
-    .ledger-cell:nth-child(even) {
-      border-left: 1px solid var(--rule-soft);
-    }
-  }
-  /* Every cell in the first visual row has no top rule; the row's own
-     border-block supplies the rest. */
-  .ledger-cell:nth-child(-n + 2) {
-    border-top: 0;
-  }
-  @media (min-width: 640px) {
-    .ledger-cell:nth-child(-n + 3) {
-      border-top: 0;
-    }
-  }
-  @media (min-width: 640px) and (max-width: 1023px) {
-    /* Three-across: the fourth and fifth cells start a new row, and the
-       fifth spans (since it would otherwise sit alone). */
-    .ledger-cell {
-      border-left: 1px solid var(--rule-soft);
-    }
-    .ledger-cell:nth-child(1),
-    .ledger-cell:nth-child(4) {
-      border-left: 0;
-    }
-    .ledger-cell:nth-child(4) {
-      border-top: 1px solid var(--rule-soft);
-    }
-  }
-  /* Only below the five-across layout does the fifth fact sit alone: let it
-     span the full row instead of leaving a half-empty cell. */
-  @media (max-width: 1023px) {
-    .ledger-cell:last-child:nth-child(odd) {
-      grid-column: 1 / -1;
-      border-left: 0;
-    }
-  }
-  @media (min-width: 1024px) {
-    .ledger-cell {
-      border-top: 0;
-      border-left: 1px solid var(--rule-soft);
-    }
-    .ledger-cell:first-child {
-      border-left: 0;
-    }
-  }
-  .ledger-value {
-    font-family: var(--font-heading);
-    font-size: 1.875rem;
-    line-height: 1.1;
-    font-weight: 450;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
-  }
-  .ledger-unit {
-    font-size: 0.6875rem;
-    color: var(--muted);
-    margin-left: 4px;
-  }
-  .ledger-note {
-    margin-top: 6px;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    color: var(--muted);
-  }
-
-  /* ---------- specimen frame (the browser chrome) ---------- */
-  .specimen {
-    background: var(--paper);
-    border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-card);
-    overflow: hidden;
-  }
-  .specimen-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--rule-soft);
-    background: var(--canvas);
-  }
-  .specimen-dots {
-    display: flex;
-    gap: 5px;
-    flex-shrink: 0;
-  }
-  /* Frame Rule: only status dots and the answer ring are round. These are
-     window controls, so they stay square. */
-  .specimen-dots > span {
-    width: 6px;
-    height: 6px;
-    background: var(--rule);
-    border-radius: 1px;
-  }
-  .specimen-url {
-    font-size: 0.625rem;
-    color: var(--muted);
-    letter-spacing: 0.01em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .specimen-tabs {
-    display: flex;
-    gap: 18px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    border-bottom: 1px solid var(--plate-rule-soft);
-  }
-  .specimen-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .specimen-tab {
-    position: relative;
-    flex: 0 0 auto;
-    padding: 12px 0 11px;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-    color: var(--plate-muted);
-    transition: color var(--dur-quick) ease;
-  }
-  .specimen-tab:hover {
-    color: var(--plate-fg);
-  }
-  .specimen-tab[data-state="active"] {
-    color: var(--plate-fg);
-  }
-  .specimen-tab[data-state="active"]::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 2px;
-    background: var(--plate-fg);
-  }
-  .specimen-caption {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px 16px;
-    margin-top: 14px;
-    font-size: 0.75rem;
-    line-height: 1.5;
-    color: var(--plate-muted);
-  }
-  .specimen-badge {
-    flex-shrink: 0;
-    font-size: 0.5625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--plate-muted);
-    border: 1px solid var(--plate-rule-soft);
-    border-radius: var(--radius-control);
-    padding: 3px 7px;
-  }
-
-  /* ---------- product mockup typography ----------
-     A mockup is a miniature of a real screen, so it needs its own, much
-     smaller type scale. Container queries let each mockup adapt to the frame
-     it is placed in rather than to the viewport. */
-  .mock {
-    container-type: inline-size;
-    background: var(--canvas);
-    color: var(--ink);
-    font-size: 10px;
-    line-height: 1.4;
-  }
-  @container (min-width: 520px) {
-    .mock {
-      font-size: 11px;
-    }
-  }
-  @container (min-width: 860px) {
-    .mock {
-      font-size: 12px;
-    }
-  }
-  .mock-panel {
-    background: var(--paper);
-    /* The mockups claim to be the workspace, so their panels consume the same
-       Mira hairline and soft corners or Sera's 2px square geometry. */
-    border: var(--panel-border-width) solid var(--panel-border-color);
-    border-radius: var(--radius-panel);
-    min-width: 0;
-  }
-  .mock-title {
-    font-family: var(--font-heading);
-    font-weight: 500;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-  }
-  .mock-label {
-    font-size: 0.7em;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-  }
-  .mock-muted {
-    color: var(--muted);
-  }
-  .mock-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 1px 5px;
-    border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-control);
-    font-size: 0.8em;
-    line-height: 1.5;
-    white-space: nowrap;
-  }
-  .mock-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  /* Mockup metric strip reuses the real divided-strip grammar, scaled. */
-  .mock-strip {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-block: 1px solid var(--ink);
-    background: var(--paper);
-  }
-  @container (min-width: 640px) {
-    .mock-strip {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    /* The score band carries five cells when a target is set. */
-    .mock-strip.is-five {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-    .mock-strip.is-five .mock-strip-cell:nth-child(odd) {
-      border-left: 1px solid var(--rule-soft);
-    }
-    .mock-strip.is-five .mock-strip-cell:first-child {
-      border-left: 0;
-    }
-  }
-  .mock-strip-cell {
-    padding: 8px 10px;
-    border-left: 1px solid var(--rule-soft);
-    min-width: 0;
-  }
-  .mock-strip-cell:first-child {
-    border-left: 0;
-  }
-  .mock-strip-cell:nth-child(odd) {
-    border-left: 0;
-  }
-  @container (min-width: 640px) {
-    .mock-strip-cell:nth-child(odd) {
-      border-left: 1px solid var(--rule-soft);
-    }
-    .mock-strip-cell:first-child {
-      border-left: 0;
-    }
-  }
-  .mock-figure {
-    font-family: var(--font-heading);
-    font-size: 1.5em;
-    font-weight: 550;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
-    font-variant-numeric: tabular-nums;
-  }
-  .mock-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-variant-numeric: tabular-nums;
-  }
-  .mock-table th {
-    font-size: 0.72em;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    text-align: left;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--rule);
-    white-space: nowrap;
-  }
-  .mock-table td {
-    padding: 7px 8px;
-    border-bottom: 1px solid var(--rule-soft);
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  /* The identity column gets the free space; every other column stays as
-     narrow as its content so the numbers line up. */
-  .mock-table .sticky-col {
-    width: 34%;
-    min-width: 9em;
-  }
-  .mock-table tr:last-child td {
-    border-bottom: 0;
-  }
-  .mock-bar {
-    display: block;
-    height: 2px;
-    background: var(--soft);
-    overflow: hidden;
-  }
-  .mock-bar > span {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-  }
-  .mock-ring-label {
-    font-family: var(--font-heading);
-    font-variant-numeric: tabular-nums;
-    font-weight: 550;
-    letter-spacing: -0.02em;
-  }
-
-  /* ---------- 50-day plan grid ---------- */
-  .plan-grid {
-    display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    gap: 3px;
-  }
-  .plan-cell {
-    position: relative;
-    /* Fixed height, not aspect-ratio: ten columns on a wide screen would
-       otherwise give 90px-tall cells for a single day number. */
-    height: 2.25rem;
-    border: 1px solid var(--rule-soft);
-    border-radius: var(--radius-control);
-    background: var(--paper);
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 3px 4px;
-    font-size: 0.5625rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    overflow: hidden;
-  }
-  @media (max-width: 639px) {
-    .plan-cell {
-      height: 1.75rem;
-      padding: 2px 3px;
-      font-size: 0.5rem;
-    }
-  }
-  .plan-cell[data-phase="1"] {
-    background: var(--accent-soft);
-    border-color: color-mix(in oklab, var(--accent) 24%, transparent);
-  }
-  .plan-cell[data-phase="2"] {
-    background: var(--soft);
-  }
-  .plan-cell[data-phase="3"] {
-    background: var(--positive-soft);
-  }
-  /* A mock day carries a square rule along the bottom, never a ring. Most
-     days carry a mock (44 of 50), so the mark stays quiet: a 2px accent rule
-     would turn the grid into stripes. */
-  .plan-cell[data-mock="true"]::after {
-    content: "";
-    position: absolute;
-    left: 4px;
-    right: 4px;
-    bottom: 4px;
-    height: 2px;
-    background: color-mix(in oklab, var(--accent) 55%, transparent);
-  }
-  .plan-cell[data-today="true"] {
-    border-color: var(--ink);
-    box-shadow: inset 0 0 0 1px var(--ink);
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  /* ---------- FAQ accordion ---------- */
-  /* The first item inherits the section head's closing hairline, so it does
-     not draw its own top rule. */
-  .faq-item + .faq-item {
-    border-top: 1px solid var(--rule-soft);
-  }
-  .faq-item:last-child {
-    border-bottom: 1px solid var(--rule-soft);
-  }
-  .faq-trigger {
-    display: flex;
-    width: 100%;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 18px 2px;
-    text-align: left;
-    font-family: var(--font-heading);
-    font-size: 1.0625rem;
-    font-weight: 500;
-    letter-spacing: -0.015em;
-    color: var(--ink);
-    transition: color var(--dur-quick) ease;
-  }
-  .faq-trigger:hover {
-    color: var(--accent);
-  }
-  .faq-mark {
-    position: relative;
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    transform: translateY(1px);
-  }
-  .faq-mark::before,
-  .faq-mark::after {
-    content: "";
-    position: absolute;
-    inset: 50% 0 auto 0;
-    height: 1px;
-    background: currentColor;
-  }
-  .faq-mark::after {
-    inset: 0 50% auto auto;
-    width: 1px;
-    height: 100%;
-    transition: transform var(--dur-enter) var(--ease-out-soft);
-  }
-  .faq-trigger[data-state="open"] .faq-mark::after {
-    transform: scaleY(0);
-  }
-  .faq-content {
-    overflow: hidden;
-  }
-  .faq-content[data-state="open"] {
-    animation: faq-open var(--dur-enter) var(--ease-out-soft);
-  }
-  .faq-content[data-state="closed"] {
-    animation: faq-close var(--dur-enter) var(--ease-out-soft);
-  }
-  @keyframes faq-open {
+  @keyframes ui-drain {
     from {
-      height: 0;
+      stroke-dashoffset: 0;
     }
     to {
-      height: var(--radix-accordion-content-height);
+      stroke-dashoffset: var(--ui-ring);
     }
   }
-  @keyframes faq-close {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
-  .faq-answer {
-    padding: 0 2px 20px;
-    max-width: 46rem;
-    font-size: 0.875rem;
-    line-height: 1.65;
-    color: var(--muted);
-  }
-
-  /* ---------- hero entrance (CSS only — never blocks the LCP) ---------- */
-  @keyframes landing-rise {
+  @keyframes ui-drop-in {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(-8px) scale(0.6);
     }
     to {
       opacity: 1;
       transform: none;
     }
   }
-  .landing-rise {
-    animation: landing-rise 0.62s var(--ease-out-soft) both;
-  }
-  /* Three drift periods so floating cards never pulse in unison. */
-  @keyframes landing-float-a {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -7px, 0);
-    }
-  }
-  @keyframes landing-float-b {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -10px, 0);
-    }
-  }
-  @keyframes landing-float-c {
-    0%,
-    100% {
-      transform: translate3d(0, -3px, 0);
-    }
-    50% {
-      transform: translate3d(0, 6px, 0);
-    }
-  }
-  .landing-float-a {
-    animation: landing-float-a 9s ease-in-out infinite;
-  }
-  .landing-float-b {
-    animation: landing-float-b 11s ease-in-out infinite;
-  }
-  .landing-float-c {
-    animation: landing-float-c 13s ease-in-out infinite;
-  }
-  /* One-shot sweep behind the hero art — never loops. */
-  @keyframes landing-sweep {
+  @keyframes ui-ring-fill {
     from {
-      opacity: 0;
-      transform: translateY(16px) scale(0.985);
+      stroke-dashoffset: var(--ui-ring);
     }
     to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  .landing-sweep {
-    animation: landing-sweep 0.8s var(--ease-out-soft) both;
-  }
-
-  /* The scope diagram's fan. Drawn by default (the `dashoffset` is 0 in the
-     base rule); the draw-in is an enhancement layered on top for browsers
-     with scroll timelines. */
-  .scope-fan {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 0;
-    vector-effect: non-scaling-stroke;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) {
-      .scope-fan {
-        animation: fan-draw 0.9s var(--ease-out-soft) both;
-        animation-timeline: view();
-        animation-range: entry 10% entry 50%;
-      }
-      @keyframes fan-draw {
-        from {
-          stroke-dashoffset: 1;
-        }
-        to {
-          stroke-dashoffset: 0;
-        }
-      }
-    }
-  }
-
-  /* ---------- scroll reveals ----------
-     Visible is the BASE state; the reveal is layered on top only where the
-     browser supports scroll-driven animations and the reader allows motion.
-     That single inversion means a failed observer cannot blank a section,
-     and no JavaScript is involved at all. */
-  .rise {
-    opacity: 1;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) {
-      .rise {
-        animation: rise-in 1ms linear both;
-        animation-timeline: view();
-        animation-range: entry 5% entry 45%;
-      }
-      @keyframes rise-in {
-        from {
-          opacity: 0;
-          translate: 0 var(--rise-y, 12px);
-        }
-        to {
-          opacity: 1;
-          translate: 0 0;
-        }
-      }
+      stroke-dashoffset: 0;
     }
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rise {
-    animation: none !important;
-    opacity: 1 !important;
-    translate: none !important;
+/* ============================================================
+   Base layer
+   ============================================================ */
+@layer base {
+  * {
+    border-color: var(--color-border);
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
   }
-  .landing-rise,
-  .landing-sweep,
-  .landing-float-a,
-  .landing-float-b,
-  .landing-float-c {
-    animation: none !important;
-  }
-  .faq-content[data-state="open"],
-  .faq-content[data-state="closed"] {
-    animation: none !important;
-  }
-  .faq-mark::after {
-    transition: none !important;
-  }
-}
 
-/* ---------- Ink art: generated washes assimilate into the paper ----------
-   The source images sit on a flat cream field, so multiply erases the field
-   into the page in light mode. In dark mode the image is inverted and screened
-   (dark field disappears; strokes become light) and re-warmed with sepia. */
-.ink-art {
-  mix-blend-mode: multiply;
-}
-.dark .ink-art {
-  mix-blend-mode: screen;
-  filter: invert(1) sepia(0.32) saturate(0.85) brightness(0.94);
-}
-
-/* ---------- Falling petals (landing ambience) ---------- */
-/* Each petal gets its drift vars (--fall-x, --fall-r, --fall-dur,
-   --fall-delay) inline from a fixed literal table; the keyframes own the
-   motion, so render output never depends on Math.random() and SSR agrees
-   with the client. */
-@keyframes landing-fall {
-  0% {
-    transform: translate3d(0, -4vh, 0) rotate(0deg);
-    opacity: 0;
-  }
-  8% {
-    opacity: var(--fall-opacity, 0.85);
-  }
-  50% {
-    transform: translate3d(calc(var(--fall-x, 4vw) * 0.6), 52vh, 0)
-      rotate(calc(var(--fall-r, 160deg) * 0.5));
-  }
-  92% {
-    opacity: var(--fall-opacity, 0.85);
-  }
-  100% {
-    transform: translate3d(var(--fall-x, 4vw), 106vh, 0) rotate(var(--fall-r, 160deg));
-    opacity: 0;
-  }
-}
-.petal {
-  position: absolute;
-  top: 0;
-  left: var(--fall-left, 50%);
-  width: var(--fall-size, 14px);
-  height: calc(var(--fall-size, 14px) * 0.72);
-  pointer-events: none;
-  border-radius: 999px 2px 999px 2px;
-  background: var(--petal-color, var(--accent));
-  opacity: 0;
-  animation: landing-fall var(--fall-dur, 14s) linear var(--fall-delay, 0s) infinite;
-  will-change: transform, opacity;
-}
-.petal-ink {
-  background: color-mix(in oklab, var(--ink) 22%, transparent);
-}
-@media (prefers-reduced-motion: reduce) {
-  .petal {
-    animation: none;
-    opacity: 0;
-  }
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
   html {
-    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
   }
-}
 
-@media (max-width: 767px) {
-  :root {
-    --table-cell-pad-y: 13px;
-    --table-cell-pad-x: 12px;
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  .stat-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .stat-cell {
-    padding: 20px 14px;
-  }
-  .stat-cell:nth-child(3) {
-    border-left: 0;
-  }
-  .stat-cell:nth-child(n + 3) {
-    border-top: 1px solid var(--rule-soft);
-  }
-  .stat-value {
-    font-size: 2.1875rem;
-  }
-}
 
-/* ---------- Phone touch density ----------
-   LAST token override in the file, deliberately. The 2.75rem floor is an
-   accessibility requirement, not a style preference, so it supersedes every
-   style density. A style block appended below this one would silently win on
-   phones again. */
-@media (max-width: 639.98px), (pointer: coarse) and (max-width: 1279.98px) {
-  :root {
-    --control-height: 2.75rem;
-    --control-height-sm: 2.75rem;
-    --control-pad-y: 0.75rem;
-    --control-pad-x: 1rem;
-    --segment-pad-y: 0.625rem;
-    --segment-pad-x: 0.625rem;
-    --day-nav-size: 2.75rem;
-    --tap-min: 2.75rem;
-    --metric-cell-pad-y: 0.75rem;
-    --metric-cell-pad-x: 0.75rem;
-    --band-cell-pad-y: 0.75rem;
-    --band-cell-pad-x: 0.875rem;
-    --sidebar-row-h: 1.75rem;
-    --sidebar-row-h-lg: 2.625rem;
-    --nav-pad-y: 0.5625rem;
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
 
-    /* Titles step down while metrics retain a readable 1.5rem floor. */
-    --type-panel-title: 1rem;
-    --type-panel-title-dense: 1rem;
-    --type-section-title: 1.25rem;
-    --type-metric: 1.5rem;
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 24%, transparent);
   }
-}
 
-/* ---------- Page-level action rows ----------
-   Intrinsic action clusters wrap without changing role at narrow widths.
-   Explicit form and dialog footers opt into `.action-row-stack`, which stacks
-   below 40rem and returns to an intrinsic wrapping row above it. */
-.action-row,
-.action-row-stack {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  width: auto;
-}
-.action-row-stack {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: stretch;
-  width: 100%;
-}
-@media (min-width: 40rem) {
-  .action-row-stack {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    width: auto;
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+    outline-offset: 2px;
   }
-}
 
-/* Icon-only controls keep their visual size but owe the finger 44px. The
-   pseudo-element grows the hit area without touching layout, so rows do not
-   reflow between pointer types. */
-.tap-target {
-  position: relative;
-}
-.tap-target::after {
-  content: "";
-  position: absolute;
-  inset: 50%;
-  translate: -50% -50%;
-  min-width: var(--tap-min);
-  min-height: var(--tap-min);
-  width: 100%;
-  height: 100%;
-}
-
-/* ---------- iOS focus zoom ----------
-   Safari zooms the viewport when a focused field is under 16px. Applies to
-   every text control app-wide, including portaled sheets and dialogs, which
-   is why it is unlayered rather than scoped per surface (the earlier scoped
-   list is what let the mock form and the task filter sheet still zoom). */
-@media (max-width: 639.98px), (pointer: coarse) {
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-  select,
-  textarea {
-    font-size: 1rem;
-  }
-}
-
-/* ---------- Divider strips respond to their own width, not the viewport ----
-   The sidebar opens at md, so a 768px viewport has ~488px of content while a
-   767px viewport has ~735px. A viewport query cannot see that difference, and
-   four 120px cells were the result. The frames below are query containers, so
-   the strip folds to 2×2 whenever the content column drops under 680px —
-   phones, and 768–1023 with the sidebar open — and keeps its shipped
-   4-across geometry from ~680px up (1024 with the sidebar is ~744px).
-   Unlayered, so it beats the utilities that set the container's padding. */
-.workspace-content,
-.strip-frame {
-  container-type: inline-size;
-}
-@container (max-width: 679.98px) {
-  .metric-strip:not(.metric-strip-scroll) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .metric-strip:not(.metric-strip-scroll) .metric-cell {
-    padding: var(--metric-cell-pad-y) var(--metric-cell-pad-x);
-  }
-  .metric-strip:not(.metric-strip-scroll) .metric-cell:nth-child(3) {
-    border-left: 0;
-  }
-  .metric-strip:not(.metric-strip-scroll) .metric-cell:nth-child(n + 3) {
-    border-top: 1px solid var(--rule-soft);
-  }
-  /* The opt-in swipeable variant (My Tasks overview) folds the same way the
-     2×2 grid does — by container width, not viewport — so the 768–1023
-     sidebar squeeze gets the readable scroll row instead of four ~120px
-     desktop cells. */
-  .metric-strip-scroll {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-  }
-  .metric-strip-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .metric-strip-scroll .metric-cell {
-    flex: 0 0 9.5rem;
-    scroll-snap-align: start;
-    padding: 12px;
-  }
-  /* The swipe row is a single line, so every cell keeps a left hairline and
-     none gets the 2×2 top border the divided strip uses. */
-  .metric-strip-scroll .metric-cell + .metric-cell {
-    border-left: 1px solid var(--rule-soft);
-  }
-  .metric-strip-scroll .metric-cell:nth-child(n + 3) {
-    border-top: 0;
-  }
-  .score-band,
-  .score-band.is-five {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .score-band > div {
-    padding: var(--band-cell-pad-y) var(--band-cell-pad-x);
-  }
-  .score-band > div:nth-child(3) {
-    border-left: 0;
-  }
-  .score-band > div:nth-child(n + 3) {
-    border-top: 1px solid var(--rule-soft);
-  }
-  /* The conditional target cell closes the band full-width. */
-  .score-band > div:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    border-left: 0;
-  }
-}
-
-/* ---------- Calendar page order ----------
-   Phones: header → toolbar → surface → summary, so the calendar owns the first
-   screen (four metric cells above it cost ~180px of a 640px viewport). From md
-   the summary returns above the toolbar, as DESIGN.md specifies. */
-.cal-page {
-  display: flex;
-  flex-direction: column;
-}
-.cal-page .cal-toolbar-slot {
-  order: 2;
-}
-.cal-page .cal-surface {
-  order: 3;
-}
-.cal-page .cal-strip {
-  order: 4;
-}
-@media (min-width: 768px) {
-  .cal-page .cal-strip {
-    order: 1;
-  }
-  .cal-page .cal-toolbar-slot {
-    order: 2;
-  }
-  .cal-page .cal-surface {
-    order: 3;
-  }
-}
-
-/* ---------- Calendar ledger ----------
-   The day surface reads as a printed timetable: the date sits in a narrow
-   margin with a vertical rule, the day's work runs beside it. Placed before
-   the phone token block so the phone rules below still win where they must. */
-.cal-ledger {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px 20px;
-  padding: 16px 16px 12px;
-}
-.cal-margin {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-.cal-margin-numeral {
-  font-size: 2.5rem;
-}
-.cal-margin-weekday {
-  line-height: 1;
-}
-@media (min-width: 640px) {
-  .cal-margin {
-    display: block;
-    text-align: right;
-    padding-right: 4px;
-  }
-  .cal-margin-numeral {
-    display: block;
-    font-size: 2.75rem;
-  }
-  .cal-margin-weekday {
-    display: block;
-    margin-top: 4px;
-  }
-}
-/* The rule belongs to the body, not the margin: it should start at the
-   dateline and stop at the last row, like a ledger's column divider. */
-.cal-ledger-body {
-  position: relative;
-  padding-left: 16px;
-  border-left: 1px solid var(--rule-soft);
-}
-.cal-ledger-rail .cal-ledger-body {
-  border-left: 0;
-  padding-left: 0;
-}
-@media (min-width: 640px) {
-  .cal-ledger {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-    padding: 20px 20px 14px;
-  }
-}
-
-/* The rule under a section head is the only divider inside a section; rows
-   are separated by spacing, not more lines. Keeps long days calm. */
-.cal-rows > li + li {
-  border-top: 1px solid var(--rule-soft);
-}
-
-/* A busy week column scrolls inside a cap rather than compressing text. */
-.cal-week-body {
-  max-height: 15rem;
-  scrollbar-width: thin;
-}
-
-/* Month cells respond to the grid's own width, not the viewport: 768px with
-   the 15rem sidebar leaves ~488px of content, a 767px phone leaves ~735px.
-   Above 560px three ruled rows are legible; below, the cell falls back to one
-   square tick per layer. Same container-query principle as the metric strip. */
-.cal-month {
-  container-type: inline-size;
-}
-@container (min-width: 560px) {
-  .cal-cell {
-    min-height: 6.5rem;
-  }
-}
-.cal-cell-rows {
-  display: none;
-}
-.cal-cell-ticks {
-  display: flex;
-}
-@container (min-width: 560px) {
-  .cal-cell-rows {
-    display: flex;
-  }
-  .cal-cell-ticks {
-    display: none;
-  }
-}
-
-/* The week surface reuses the month grid's container logic: seven real
-   columns only once there is room for them (~80px each), a scannable row
-   list below that — so the 768–1023 sidebar squeeze gets the rows, not
-   seven 60px slivers. */
-.cal-week {
-  container-type: inline-size;
-}
-.cal-week-cols {
-  display: none;
-}
-@container (min-width: 560px) {
-  .cal-week-cols {
-    display: grid;
-  }
-  .cal-week-rows {
-    display: none;
-  }
-}
-
-/* Weekday headers abbreviate by the month surface's own width, in step with
-   the cell fold above, not the viewport. */
-.cal-weekday-full {
-  display: none;
-}
-@container (min-width: 560px) {
-  .cal-weekday-full {
-    display: inline;
-  }
-  .cal-weekday-initial {
-    display: none;
-  }
-}
-
-/* The event dialog bottoms out on phones — same treatment as the task editor:
-   full-width, anchored under the header safe area, rounded top corners only.
-   Unlayered so it beats the inline utilities on the content element. */
-@media (max-width: 639px) {
-  .event-dialog {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    translate: none;
-    transform: none;
-    width: 100%;
-    max-width: none;
-    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-spin,
-  .animate-pulse,
-  .guard-rise,
-  .guard-type,
-  .guard-blink,
-  .stream-caret,
-  .thinking-dots i,
-  .dialog-overlay,
-  .dialog-content,
-  .popover-content,
-  .sheet-overlay,
-  .sheet-content,
-  .drawer-overlay,
-  .drawer-content {
-    animation: none !important;
-  }
-  /* The caret and dots stay visible without their motion cues. */
-  .thinking-dots i {
-    opacity: 0.6;
-  }
-  /* Dashboard state changes are transitions, not animations — freeze them
-     and keep the hover affordances permanently legible without motion. */
-  .metric-cell,
-  .metric-label,
-  .metric-rule > span,
-  .metric-cell .metric-go,
-  .day-nav-step,
-  .segment {
-    transition: none !important;
-  }
-  .day-nav-step:active:not(:disabled) {
-    transform: none;
-  }
-  .metric-cell .metric-go {
-    opacity: 1;
-  }
-  .duotone-tile,
-  .duotone-tile:hover {
-    transform: none;
-    transition: none;
-    box-shadow: none;
-  }
-}
-
-/* Preserve compact desktop density while giving coarse pointers comfortable
-   hit areas. WCAG 2.2's 24px floor is exceeded without stretching text links.
-   Narrow viewports are included so a phone is fully usable even when the
-   browser reports a fine pointer (touch laptops, emulation, CDP harnesses). */
-@media (pointer: coarse), (max-width: 639.98px) {
-  [data-slot="button"],
-  [data-sidebar="menu-button"],
-  .day-nav-step,
-  .segment,
-  .tap-target {
-    min-width: var(--tap-min);
-    min-height: var(--tap-min);
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

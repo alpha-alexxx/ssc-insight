@@ -70,13 +70,14 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/ws": "^8.18.2",
+    "culori": "^4.0.2",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
     "prettier": "^3.9.10",
     "prisma": "7.10.1",
     "react-is": "^19.3.1",
     "tailwindcss": "^4.0.0",
-    "tsx": "^4.20.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.0"
   },
   "overrides": {
