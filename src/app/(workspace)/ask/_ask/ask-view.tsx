@@ -56,7 +56,12 @@ export function AskView({ firstName }: { firstName?: string }) {
 
   // Tool outcomes surface as quiet system lines at the transcript tail.
   // Per-visit state: they are conversation-adjacent, not conversation.
-  type ToolNote = { id: number; icon: "check" | "arrow"; text: string; time: string };
+  type ToolNote = {
+    id: number;
+    icon: "check" | "arrow";
+    text: string;
+    time: string;
+  };
   const [toolNotes, setToolNotes] = useState<ToolNote[]>([]);
   const noteId = useRef(0);
   function addToolNote(icon: "check" | "arrow", text: string) {
@@ -110,10 +115,7 @@ export function AskView({ firstName }: { firstName?: string }) {
   }, [ai.chat.messages.length, ai.chat.history]);
 
   const conversationList = (
-    <ConversationList
-      history={ai.chat.history}
-      streaming={ai.chat.streaming}
-    />
+    <ConversationList history={ai.chat.history} streaming={ai.chat.streaming} />
   );
 
   const modeChips = (
@@ -282,44 +284,46 @@ export function AskView({ firstName }: { firstName?: string }) {
                 the whole column (their takeover views included), so the
                 transcript only renders when it is the active surface. */}
             {mode === "chat" && !todosTakeover && !mockTakeover ? (
-            <ChatTranscript
-              messages={ai.chat.messages}
-              streaming={ai.chat.streaming}
-              phase={ai.chat.phase}
-              model={ai.aiStatus?.credential?.model ?? undefined}
-              systemLines={systemLineNodes}
-              onRetry={() => ai.chat.retryLast()}
-              onEditResend={(id, text) => ai.chat.editResend(id, text)}
-              onRegenerate={() => ai.chat.regenerateLast()}
-              taskApi={{ createPersonalTask: planApi.createPersonalTask }}
-              onTaskAdded={() => toast.success("Task added to My Tasks")}
-              error={ai.chat.error}
-              emptyState={
-                enabled ? (
-                  <ChatEmptyState
-                    firstName={firstName}
-                    onSend={(text) => ai.chat.send(text, screenContext, false)}
-                  />
-                ) : (
-                  <div className="mx-auto max-w-xl rounded-2xl bg-card p-5 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
-                    <h3 className="text-base font-semibold text-foreground">
-                      Set up your AI provider
-                    </h3>
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                      Ask AI runs on your own provider key. It is encrypted
-                      before storage and never returned to this page.
-                    </p>
-                    <div className="mt-4">
-                      <AiSettingsForm
-                        variant="panel"
-                        showHeading={false}
-                        onChanged={() => void ai.refreshAiStatus()}
-                      />
+              <ChatTranscript
+                messages={ai.chat.messages}
+                streaming={ai.chat.streaming}
+                phase={ai.chat.phase}
+                model={ai.aiStatus?.credential?.model ?? undefined}
+                systemLines={systemLineNodes}
+                onRetry={() => ai.chat.retryLast()}
+                onEditResend={(id, text) => ai.chat.editResend(id, text)}
+                onRegenerate={() => ai.chat.regenerateLast()}
+                taskApi={{ createPersonalTask: planApi.createPersonalTask }}
+                onTaskAdded={() => toast.success("Task added to My Tasks")}
+                error={ai.chat.error}
+                emptyState={
+                  enabled ? (
+                    <ChatEmptyState
+                      firstName={firstName}
+                      onSend={(text) =>
+                        ai.chat.send(text, screenContext, false)
+                      }
+                    />
+                  ) : (
+                    <div className="mx-auto max-w-xl rounded-2xl bg-card p-5 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+                      <h3 className="text-base font-semibold text-foreground">
+                        Set up your AI provider
+                      </h3>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                        Ask AI runs on your own provider key. It is encrypted
+                        before storage and never returned to this page.
+                      </p>
+                      <div className="mt-4">
+                        <AiSettingsForm
+                          variant="panel"
+                          showHeading={false}
+                          onChanged={() => void ai.refreshAiStatus()}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )
-              }
-            />
+                  )
+                }
+              />
             ) : null}
             {enabled && (
               <div
@@ -347,7 +351,9 @@ export function AskView({ firstName }: { firstName?: string }) {
                       }}
                       onStop={ai.chat.stop}
                       streaming={ai.chat.streaming}
-                      visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                      visionEnabled={
+                        ai.aiStatus?.credential?.visionEnabled === true
+                      }
                       placeholder="Ask about your mocks, targets, or plan…"
                       usage={usage}
                       modes={MODES}
@@ -380,7 +386,8 @@ export function AskView({ firstName }: { firstName?: string }) {
                       onApplied={(count) =>
                         addToolNote(
                           "check",
-                          count + (count === 1 ? " todo created" : " todos created"),
+                          count +
+                            (count === 1 ? " todo created" : " todos created"),
                         )
                       }
                     />
@@ -413,7 +420,9 @@ export function AskView({ firstName }: { firstName?: string }) {
                     <LogMockFlow
                       variant="page"
                       configured={enabled}
-                      visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
+                      visionEnabled={
+                        ai.aiStatus?.credential?.visionEnabled === true
+                      }
                       onAiConfigured={() => void ai.refreshAiStatus()}
                       onTakeoverChange={setMockTakeover}
                       onHandoff={() =>

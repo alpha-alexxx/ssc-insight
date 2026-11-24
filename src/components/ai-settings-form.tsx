@@ -156,10 +156,10 @@ export function AiSettingsForm({
         }
       })
       .catch(() => {
-        if (!mounted.current) setLoadFailed(true);
+        if (mounted.current) setLoadFailed(true);
       })
       .finally(() => {
-        if (!mounted.current) setLoading(false);
+        if (mounted.current) setLoading(false);
       });
   }, [reset]);
 
@@ -264,7 +264,11 @@ export function AiSettingsForm({
     setManual(provider === "custom");
   }
 
-  function payloadFrom(source: AiValues) {
+  // Memoized: it sits in `save`'s dependency array, and `save` reaches the
+  // settings guard's draft registration through `submitSave`. A fresh identity
+  // here re-registers the draft on every render — the register/unregister
+  // ping-pong that exceeds React's update depth on this panel.
+  const payloadFrom = useCallback((source: AiValues) => {
     const maxOutput = source.maxOutputTokens.trim();
     const turns = source.historyTurns.trim();
     return {
@@ -283,7 +287,7 @@ export function AiSettingsForm({
       historyTurns: turns === "" ? null : Number(turns),
       visionEnabled: source.visionEnabled,
     };
-  }
+  }, [isLocal]);
 
   async function fetchModels() {
     catalogRequest.current?.abort();

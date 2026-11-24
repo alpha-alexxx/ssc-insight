@@ -110,8 +110,8 @@ import {
   Upload04Icon,
   UserCircleIcon,
   ViewIcon,
+  CogFreeIcons,
 } from "@hugeicons/core-free-icons";
-
 
 export type IconName =
   // navigation & views
@@ -225,7 +225,7 @@ const STATIC_ICONS: Record<IconName, IconSvgElement> = {
   dashboard: DashboardSquare02Icon,
   history: HistoryIcon,
   compare: GitCompareArrowsIcon,
-  settings: Search01Icon,
+  settings: CogFreeIcons,
   help: QuestionIcon,
   menu: Menu01Icon,
   panelLeft: Menu01Icon,
@@ -417,7 +417,13 @@ export function PlainIcon({
   strokeWidth?: number;
 }) {
   return (
-    <Icon name={name} size={size} tone={tone} className={className} strokeWidth={strokeWidth} />
+    <Icon
+      name={name}
+      size={size}
+      tone={tone}
+      className={className}
+      strokeWidth={strokeWidth}
+    />
   );
 }
 
@@ -441,7 +447,13 @@ export function DuotoneIcon({
   title?: string;
 }) {
   return (
-    <Icon name={name} size={size} tone={tone} className={className} title={title} />
+    <Icon
+      name={name}
+      size={size}
+      tone={tone}
+      className={className}
+      title={title}
+    />
   );
 }
 

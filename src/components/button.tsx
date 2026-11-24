@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { TextMorph } from "./text-morph";
-import { EASE_OUT, INTERACTION_PRESS, interactionIcon } from "./ui-interaction-motion";
+import {
+  EASE_OUT,
+  INTERACTION_PRESS,
+  interactionIcon,
+} from "./ui-interaction-motion";
 
 export type ButtonVariant =
   | "primary"
@@ -37,9 +41,12 @@ const FOCUS =
 const variantStyles: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/90",
   brand: "bg-primary text-primary-foreground hover:bg-primary/90",
-  secondary: "bg-card text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
-  outline: "bg-transparent text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
-  ghost: "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+  secondary:
+    "bg-card text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
+  outline:
+    "bg-transparent text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent",
+  ghost:
+    "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
   destructive:
     "bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-destructive)_30%,transparent)] hover:bg-destructive/15",
   link: "bg-transparent text-primary underline-offset-4 hover:underline p-0 h-auto font-normal",
@@ -101,12 +108,26 @@ const useReducedMotion = () =>
   React.useSyncExternalStore(
     subscribeReduced,
     () => window.matchMedia(reducedQuery).matches,
-    () => false
+    () => false,
   );
 
-function SelfDrawingCheck({ drawn, reduced, size }: { drawn: boolean; reduced: boolean; size: number }) {
+function SelfDrawingCheck({
+  drawn,
+  reduced,
+  size,
+}: {
+  drawn: boolean;
+  reduced: boolean;
+  size: number;
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className="shrink-0">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      className="shrink-0"
+    >
       <path
         d="M3.5 8.5 6.5 11.5 12.5 4.5"
         stroke="currentColor"
@@ -117,7 +138,10 @@ function SelfDrawingCheck({ drawn, reduced, size }: { drawn: boolean; reduced: b
         strokeDasharray={1}
         style={{
           strokeDashoffset: drawn ? 0 : 1,
-          transition: drawn && !reduced ? `stroke-dashoffset 420ms ${EASE_OUT} 100ms` : "none",
+          transition:
+            drawn && !reduced
+              ? `stroke-dashoffset 420ms ${EASE_OUT} 100ms`
+              : "none",
         }}
       />
     </svg>
@@ -126,9 +150,20 @@ function SelfDrawingCheck({ drawn, reduced, size }: { drawn: boolean; reduced: b
 
 function StatusAlert({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className="shrink-0">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      className="shrink-0"
+    >
       <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 4.75v3.75" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path
+        d="M8 4.75v3.75"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
       <circle cx="8" cy="11" r="1" fill="currentColor" />
     </svg>
   );
@@ -142,27 +177,27 @@ const DEFAULT_LABELS: Record<ActionStatus, string> = {
 };
 
 /**
- * Hairline Button: high-craft tactile action primitive with rounded-full pill geometry,
+ * Hairline Button: high-craft tactile action primitive with rounded-xl pill geometry,
  * StatusButton visual parity, self-drawing checkmark morphs, TextMorph label transitions,
  * and error shake physics.
  */
 export function Button({
-    ref,
-    variant = "primary",
-    size = "md",
-    loading = false,
-    status,
-    statusLabels,
-    resetAfter = 1800,
-    onReset,
-    disabled = false,
-    icon,
-    trailingIcon,
-    className = "",
-    children,
-    onClick,
-    ...props
-  }: ButtonProps) {
+  ref,
+  variant = "primary",
+  size = "md",
+  loading = false,
+  status,
+  statusLabels,
+  resetAfter = 1800,
+  onReset,
+  disabled = false,
+  icon,
+  trailingIcon,
+  className = "",
+  children,
+  onClick,
+  ...props
+}: ButtonProps) {
   const innerRef = React.useRef<HTMLButtonElement | null>(null);
   const reduced = useReducedMotion();
 
@@ -173,7 +208,8 @@ export function Button({
   const isAsyncFlow = status !== undefined || loading;
 
   // Resolve current text label
-  const idleLabel = typeof children === "string" ? children : DEFAULT_LABELS.idle;
+  const idleLabel =
+    typeof children === "string" ? children : DEFAULT_LABELS.idle;
   const labels: Record<ActionStatus, string> = {
     idle: statusLabels?.idle ?? idleLabel,
     pending: statusLabels?.pending ?? DEFAULT_LABELS.pending,
@@ -184,7 +220,8 @@ export function Button({
 
   // Auto-reset timer for success or error states
   React.useEffect(() => {
-    if ((currentStatus !== "success" && currentStatus !== "error") || !onReset) return;
+    if ((currentStatus !== "success" && currentStatus !== "error") || !onReset)
+      return;
     const timer = window.setTimeout(onReset, resetAfter);
     return () => window.clearTimeout(timer);
   }, [currentStatus, onReset, resetAfter]);
@@ -200,7 +237,7 @@ export function Button({
         { transform: "translateX(-2px)" },
         { transform: "none" },
       ],
-      { duration: 380, easing: "ease-out" }
+      { duration: 380, easing: "ease-out" },
     );
   }, [currentStatus, reduced]);
 
@@ -210,21 +247,30 @@ export function Button({
 
   // Icon slot state: open if an icon was provided, or if in async status
   const showLeadingSlot =
-    size !== "icon" && (Boolean(icon) || (isAsyncFlow && currentStatus !== "idle"));
+    size !== "icon" &&
+    (Boolean(icon) || (isAsyncFlow && currentStatus !== "idle"));
 
   const icons: Record<ActionStatus, React.ReactNode> = {
     idle: icon,
     pending: (
       <span
         style={{ width: cfg.iconSize, height: cfg.iconSize }}
-        className={`rounded-full border-[1.5px] border-current border-t-transparent motion-reduce:animate-none opacity-85 ${
+        className={`rounded-xl border-[1.5px] border-current border-t-transparent motion-reduce:animate-none opacity-85 ${
           currentStatus === "pending" ? "animate-spin" : ""
         }`}
       />
     ),
     success: (
-      <span className={variant === "primary" ? "text-primary-foreground" : "text-success"}>
-        <SelfDrawingCheck drawn={currentStatus === "success"} reduced={reduced} size={cfg.iconSize} />
+      <span
+        className={
+          variant === "primary" ? "text-primary-foreground" : "text-success"
+        }
+      >
+        <SelfDrawingCheck
+          drawn={currentStatus === "success"}
+          reduced={reduced}
+          size={cfg.iconSize}
+        />
       </span>
     ),
     error: (
@@ -257,7 +303,7 @@ export function Button({
         aria-disabled={isInert ? true : undefined}
         aria-busy={isBusy ? true : undefined}
         onClick={handleClick}
-        className={`relative inline-flex items-center justify-center font-medium select-none whitespace-nowrap cursor-pointer rounded-full disabled:cursor-default disabled:opacity-45 ${variant === "link" ? "transition-colors" : INTERACTION_PRESS} ${FOCUS} ${
+        className={`relative inline-flex items-center justify-center font-medium select-none whitespace-nowrap cursor-pointer rounded-xl disabled:cursor-default disabled:opacity-45 ${variant === "link" ? "transition-colors" : INTERACTION_PRESS} ${FOCUS} ${
           toneClass
         } ${cfg.height} ${cfg.padding} ${cfg.fontSize} ${className}`}
         {...props}
@@ -290,10 +336,18 @@ export function Button({
 
         {/* Icon-only mode: the same stacked layers, so the icon never hard-swaps. */}
         {size === "icon" && (
-          <span aria-hidden="true" className="relative shrink-0" style={{ width: cfg.iconSize, height: cfg.iconSize }}>
+          <span
+            aria-hidden="true"
+            className="relative shrink-0"
+            style={{ width: cfg.iconSize, height: cfg.iconSize }}
+          >
             {(Object.keys(icons) as ActionStatus[]).map((st) => (
-              <span key={st} className="absolute inset-0 flex items-center justify-center" style={interactionIcon(st === currentStatus, reduced)}>
-                {st === "idle" ? icon ?? children : icons[st]}
+              <span
+                key={st}
+                className="absolute inset-0 flex items-center justify-center"
+                style={interactionIcon(st === currentStatus, reduced)}
+              >
+                {st === "idle" ? (icon ?? children) : icons[st]}
               </span>
             ))}
           </span>

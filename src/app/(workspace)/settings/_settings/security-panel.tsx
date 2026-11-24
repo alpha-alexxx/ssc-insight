@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import QRCode from "qrcode";
+import { cn } from "@/lib/utils";
 import { PlainIcon } from "@/components/icon";
 import {
   authFailureCopy,
@@ -60,93 +61,233 @@ export function SecurityPanel({
   const twoFactorEnabled = user?.twoFactorEnabled ?? null;
 
   return (
-    <>
-      <PanelCard icon="user" title="This account" description="Who you are signed in as, and how.">
-        <div className="flex flex-wrap items-center gap-4">
-          <Avatar name={name || "Private workspace"} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{name || "Private workspace"}</p>
-            <p className="truncate text-xs text-muted-foreground">{email || "Account email unavailable"}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <Badge tone="success" dot>
-                Google
-              </Badge>
-              {email && user?.emailVerified === false ? (
-                <Badge tone="warning" outline icon={<PlainIcon name="mail" size={12} />}>
-                  Email unverified
+    <div className={cn("space-y-4")}>
+      {/* ── Account Identity Card ── */}
+      <PanelCard
+        icon="user"
+        title="This account"
+        description="Who you are signed in as, and how."
+      >
+        <div
+          className={cn(
+            "flex flex-col justify-between gap-4 rounded-xl border border-border/60",
+            "bg-muted/25 p-4 sm:flex-row sm:items-center",
+          )}
+        >
+          <div className={cn("flex min-w-0 items-center gap-3.5")}>
+            <div className={cn("relative shrink-0")}>
+              <Avatar name={name || "Private workspace"} size="lg" />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 size-3 rounded-full",
+                  "bg-emerald-500 ring-2 ring-card",
+                )}
+              />
+            </div>
+
+            <div className={cn("min-w-0 flex-1")}>
+              <p
+                className={cn("truncate text-sm font-semibold text-foreground")}
+              >
+                {name || "Private workspace"}
+              </p>
+              <p
+                className={cn("mt-0.5 truncate text-xs text-muted-foreground")}
+              >
+                {email || "Account email unavailable"}
+              </p>
+
+              <div className={cn("mt-2.5 flex flex-wrap items-center gap-1.5")}>
+                <Badge tone="success" dot>
+                  Google
                 </Badge>
-              ) : email && user?.emailVerified === true ? (
-                <Badge tone="success" outline icon={<PlainIcon name="check" size={12} />}>
-                  Email verified
-                </Badge>
-              ) : null}
+                {email && user?.emailVerified === false ? (
+                  <Badge
+                    tone="warning"
+                    outline
+                    icon={<PlainIcon name="mail" size={12} />}
+                  >
+                    Email unverified
+                  </Badge>
+                ) : email && user?.emailVerified === true ? (
+                  <Badge
+                    tone="success"
+                    outline
+                    icon={<PlainIcon name="check" size={12} />}
+                  >
+                    Email verified
+                  </Badge>
+                ) : null}
+                {twoFactorEnabled === true && (
+                  <Badge
+                    tone="success"
+                    outline
+                    icon={<PlainIcon name="lock" size={12} />}
+                  >
+                    2FA active
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </PanelCard>
 
-      <PanelCard icon="shield" title="Password" description="For accounts that sign in with email.">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
-            Confirm a change with your current password, or with a code emailed
-            to your account address — the emailed code also sets a{" "}
-            <span className="text-foreground">first</span> password on a Google-only
-            account. It adds an email way in; Google sign-in stays.
-          </p>
-          <Button variant="outline" size="sm" onClick={() => setPasswordOpen(true)}>
-            Set or change password
-          </Button>
+      {/* ── Password Card ── */}
+      <PanelCard
+        icon="shield"
+        title="Password"
+        description="For accounts that sign in with email."
+      >
+        <div
+          className={cn(
+            "flex flex-col justify-between gap-4 rounded-xl border border-border/60",
+            "bg-muted/20 p-4 sm:flex-row sm:items-center",
+          )}
+        >
+          <div className={cn("flex items-start gap-3")}>
+            <span
+              className={cn(
+                "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg",
+                "border border-border/70 bg-background text-muted-foreground shadow-2xs",
+              )}
+            >
+              <PlainIcon name="key" size={16} tone="primary" />
+            </span>
+            <div className={cn("min-w-0 flex-1 space-y-1")}>
+              <p className={cn("text-xs font-semibold text-foreground")}>
+                Email &amp; password credentials
+              </p>
+              <p
+                className={cn("text-xs leading-relaxed text-muted-foreground")}
+              >
+                Confirm a change with your current password, or with a code
+                emailed to your account address — the emailed code also sets a{" "}
+                <span className={cn("font-medium text-foreground")}>first</span>{" "}
+                password on a Google-only account. It adds an email way in;
+                Google sign-in stays.
+              </p>
+            </div>
+          </div>
+
+          <div className={cn("flex shrink-0 items-center sm:pl-2")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPasswordOpen(true)}
+            >
+              Set or change password
+            </Button>
+          </div>
         </div>
       </PanelCard>
 
+      {/* ── Two-Factor Authentication Card ── */}
       <PanelCard
         icon="timer"
         title="Two-factor authentication"
         description="A 6-digit authenticator code on every email + password sign-in."
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {twoFactorEnabled == null ? (
-            <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
-              Two-factor isn&apos;t available on this project&apos;s auth provider — the
-              hosted auth service needs the two-factor plugin enabled first.
-            </p>
-          ) : (
-            <>
-              <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
-                {twoFactorEnabled
-                  ? "On. Password sign-ins ask for an authenticator code; backup codes unlock a lost device."
-                  : "Off. Password sign-ins only need the password. Adding an authenticator app protects the email path."}
-              </p>
-              <Badge tone={twoFactorEnabled ? "success" : "neutral"}>
-                {twoFactorEnabled ? "On" : "Off"}
-              </Badge>
-              <div className="flex flex-wrap items-center gap-2">
-                {twoFactorEnabled ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRegenerateOpen(true)}
-                    >
-                      New backup codes
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => setDisableOpen(true)}>
-                      Turn off
-                    </Button>
-                  </>
+        <div
+          className={cn(
+            "flex flex-col justify-between gap-4 rounded-xl border p-4 sm:flex-row sm:items-center",
+            twoFactorEnabled
+              ? "border-emerald-500/25 bg-emerald-500/[0.03]"
+              : "border-border/60 bg-muted/20",
+          )}
+        >
+          <div className={cn("flex items-start gap-3")}>
+            <span
+              className={cn(
+                "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-2xs",
+                twoFactorEnabled
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border/70 bg-background text-muted-foreground",
+              )}
+            >
+              <PlainIcon
+                name="lock"
+                size={16}
+                tone={twoFactorEnabled ? "success" : "muted"}
+              />
+            </span>
+
+            <div className={cn("min-w-0 flex-1 space-y-1")}>
+              <div className={cn("flex flex-wrap items-center gap-2")}>
+                <p className={cn("text-xs font-semibold text-foreground")}>
+                  Authenticator app (TOTP)
+                </p>
+                {twoFactorEnabled == null ? (
+                  <Badge tone="neutral">Unavailable</Badge>
                 ) : (
-                  <Button size="sm" onClick={() => setEnrollOpen(true)}>
-                    Turn on
-                  </Button>
+                  <Badge tone={twoFactorEnabled ? "success" : "neutral"} dot>
+                    {twoFactorEnabled ? "On" : "Off"}
+                  </Badge>
                 )}
               </div>
-            </>
+
+              {twoFactorEnabled == null ? (
+                <p
+                  className={cn(
+                    "text-xs leading-relaxed text-muted-foreground",
+                  )}
+                >
+                  Two-factor isn&apos;t available on this project&apos;s auth
+                  provider — the hosted auth service needs the two-factor plugin
+                  enabled first.
+                </p>
+              ) : (
+                <p
+                  className={cn(
+                    "text-xs leading-relaxed text-muted-foreground",
+                  )}
+                >
+                  {twoFactorEnabled
+                    ? "On. Password sign-ins ask for an authenticator code; backup codes unlock a lost device."
+                    : "Off. Password sign-ins only need the password. Adding an authenticator app protects the email path."}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {twoFactorEnabled != null && (
+            <div
+              className={cn(
+                "flex shrink-0 flex-wrap items-center gap-2 sm:pl-2",
+              )}
+            >
+              {twoFactorEnabled ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRegenerateOpen(true)}
+                  >
+                    New backup codes
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setDisableOpen(true)}
+                  >
+                    Turn off
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={() => setEnrollOpen(true)}>
+                  Turn on
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </PanelCard>
 
+      {/* ── Active Sessions Card ── */}
       <SessionsCard />
 
+      {/* ── Dialogs ── */}
       <ChangePasswordDialog
         open={passwordOpen}
         onOpenChange={setPasswordOpen}
@@ -159,7 +300,12 @@ export function SecurityPanel({
           })
         }
       />
-      <EnrollDialog open={enrollOpen} onOpenChange={setEnrollOpen} enroll={actions.enrollTwoFactor} verify={actions.verifyEnrollment} />
+      <EnrollDialog
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
+        enroll={actions.enrollTwoFactor}
+        verify={actions.verifyEnrollment}
+      />
       <DisableTwoFactorDialog
         open={disableOpen}
         onOpenChange={setDisableOpen}
@@ -170,14 +316,17 @@ export function SecurityPanel({
         onOpenChange={setRegenerateOpen}
         submit={actions.regenerateBackupCodes}
       />
-    </>
+    </div>
   );
 }
 
-/* -------------------------------------------------------------- sessions */
+/* ------------------------------------------------------------------ */
+/*  Sessions Card                                                      */
+/* ------------------------------------------------------------------ */
 
 function SessionsCard() {
-  const { sessions, sessionsBusy, actions, refreshSessions } = useAuthSecurity();
+  const { sessions, sessionsBusy, actions, refreshSessions } =
+    useAuthSecurity();
   const [revokeOpen, setRevokeOpen] = useState(false);
   const [revokeError, setRevokeError] = useState("");
 
@@ -189,56 +338,167 @@ function SessionsCard() {
         description="Devices signed into this account right now."
       >
         {sessionsBusy && sessions == null ? (
-          <p className="text-xs text-muted-foreground" aria-busy="true">
-            Loading sessions…
-          </p>
+          <div className={cn("space-y-2")} aria-busy="true">
+            {[0, 1].map((idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border border-border/50 bg-muted/20 p-3",
+                )}
+              >
+                <div
+                  className={cn("size-8 animate-pulse rounded-lg bg-muted")}
+                />
+                <div className={cn("flex-1 space-y-1.5")}>
+                  <div
+                    className={cn("h-3 w-32 animate-pulse rounded bg-muted")}
+                  />
+                  <div
+                    className={cn(
+                      "h-2.5 w-20 animate-pulse rounded bg-muted/70",
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : !sessions || sessions.length === 0 ? (
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            The session list isn&apos;t available from this provider.{" "}
-            <button
-              type="button"
-              className="underline underline-offset-4 hover:text-foreground"
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-3 rounded-xl",
+              "border border-border/60 bg-muted/20 px-4 py-3",
+            )}
+          >
+            <p className={cn("text-xs leading-relaxed text-muted-foreground")}>
+              The session list isn&apos;t available from this provider.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<PlainIcon name="refresh" size={13} />}
               onClick={() => void refreshSessions()}
             >
               Retry
-            </button>
-          </p>
+            </Button>
+          </div>
         ) : (
-          <div>
-            <ul className="divide-y divide-border border-y border-border">
-              {sessions.map((session) => (
-                <li key={session.id} className="flex items-center gap-3 py-2.5">
-                  <PlainIcon name="battery" size={14} tone="muted" className="shrink-0" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-medium text-foreground">
-                      {describeDevice(session.userAgent)}
+          <div className={cn("space-y-3")}>
+            <ul
+              className={cn(
+                "divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-muted/15",
+              )}
+            >
+              {sessions.map((session, idx) => (
+                <li
+                  key={session.id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-muted/30",
+                  )}
+                >
+                  <div className={cn("flex min-w-0 items-center gap-3")}>
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                        "border border-border/70 bg-background text-muted-foreground shadow-2xs",
+                      )}
+                    >
+                      <PlainIcon
+                        name="computer"
+                        size={15}
+                        tone={idx === 0 ? "primary" : "muted"}
+                      />
                     </span>
-                    <span className="block tabular-nums text-[13px] text-muted-foreground">
-                      {session.createdAt
-                        ? `Since ${new Date(session.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
-                        : "Unknown start"}
+
+                    <span className={cn("min-w-0 flex-1")}>
+                      <span className={cn("flex flex-wrap items-center gap-2")}>
+                        <span
+                          className={cn(
+                            "truncate text-xs font-semibold text-foreground",
+                          )}
+                        >
+                          {describeDevice(session.userAgent)}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-0.5 block text-[11px] tabular-nums text-muted-foreground",
+                        )}
+                      >
+                        {session.createdAt
+                          ? `Since ${new Date(
+                              session.createdAt,
+                            ).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                            })}`
+                          : "Unknown start"}
+                      </span>
                     </span>
+                  </div>
+
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full",
+                      "bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400",
+                    )}
+                  >
+                    <span
+                      className={cn("size-1.5 rounded-full bg-emerald-500")}
+                    />
+                    Active
                   </span>
                 </li>
               ))}
             </ul>
-            <div className="mt-3 flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => setRevokeOpen(true)}>
+
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 pt-0.5",
+              )}
+            >
+              <button
+                type="button"
+                disabled={sessionsBusy}
+                onClick={() => void refreshSessions()}
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground",
+                  "transition-colors hover:text-foreground disabled:opacity-50",
+                )}
+              >
+                <PlainIcon name="refresh" size={12} />
+                <span>Refresh list</span>
+              </button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRevokeOpen(true)}
+              >
                 Sign out other sessions
               </Button>
             </div>
           </div>
         )}
       </PanelCard>
+
       <Dialog
         open={revokeOpen}
-        onOpenChange={(open) => !open && setRevokeOpen(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRevokeOpen(false);
+            setRevokeError("");
+          }
+        }}
         title="Sign out every other device?"
         size="sm"
         description="All sessions except this browser lose access immediately. Any device still open there must sign in again."
         footer={
           <>
-            <Button variant="outline" disabled={sessionsBusy} onClick={() => setRevokeOpen(false)}>
+            <Button
+              variant="outline"
+              disabled={sessionsBusy}
+              onClick={() => setRevokeOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -251,7 +511,9 @@ function SessionsCard() {
                     setRevokeOpen(false);
                     setRevokeError("");
                   } else {
-                    setRevokeError(result.failure ?? "Could not revoke sessions.");
+                    setRevokeError(
+                      result.failure ?? "Could not revoke sessions.",
+                    );
                   }
                 })();
               }}
@@ -261,11 +523,7 @@ function SessionsCard() {
           </>
         }
       >
-        {revokeError ? (
-          <p role="alert" className="text-xs text-destructive">
-            {revokeError}
-          </p>
-        ) : null}
+        {revokeError ? <ErrorBanner message={revokeError} /> : null}
       </Dialog>
     </>
   );
@@ -273,7 +531,6 @@ function SessionsCard() {
 
 function describeDevice(userAgent: string | null): string {
   if (!userAgent) return "Unknown device";
-  // A quiet parse: the product names matter, the full UA string never shows.
   const browser = /Edg\//.test(userAgent)
     ? "Edge"
     : /Chrome\//.test(userAgent)
@@ -297,17 +554,10 @@ function describeDevice(userAgent: string | null): string {
   return [browser, os].filter(Boolean).join(" · ") || "Unknown device";
 }
 
-/* -------------------------------------------------------------- password */
+/* ------------------------------------------------------------------ */
+/*  Change Password Dialog                                             */
+/* ------------------------------------------------------------------ */
 
-/**
- * The password dialog with two confirmation methods: the account's current
- * password, or a 6-digit code emailed to the account address. The code path
- * rides better-auth's email-otp reset endpoints and CREATES a credential
- * account when none exists — it is how a Google-only account sets a first
- * password. After a code-path change the session may have been revoked by
- * the provider's managed config, so the dialog re-checks the session and
- * bounces to the landing sign-in when it died.
- */
 function ChangePasswordDialog({
   open,
   onOpenChange,
@@ -316,16 +566,21 @@ function ChangePasswordDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The signed-in account's email — the reset code goes here, locked. */
   email: string;
-  submit: (values: ChangePasswordValues & { revokeOtherSessions: boolean }) => Promise<{ ok: boolean; failure?: string }>;
+  submit: (
+    values: ChangePasswordValues & { revokeOtherSessions: boolean },
+  ) => Promise<{ ok: boolean; failure?: string }>;
 }) {
   const [method, setMethod] = useState<"password" | "code">("password");
   const [revokeOtherSessions, setRevokeOtherSessions] = useState(false);
   const [error, setError] = useState("");
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
   function close() {
@@ -336,22 +591,23 @@ function ChangePasswordDialog({
     form.reset({ currentPassword: "", newPassword: "", confirmPassword: "" });
   }
 
-  /* ---- emailed-code state (kept at the dialog level so both stages share close()) ---- */
   const [codeStage, setCodeStage] = useState<"request" | "verify">("request");
   const [codeBusy, setCodeBusy] = useState(false);
   const resetForm = useForm<OtpResetValues>({
     resolver: zodResolver(otpResetSchema),
-    defaultValues: { email: email, code: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      email: email,
+      code: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
-  // Re-sync the locked email whenever the dialog reopens with a fresh user.
   if (open && resetForm.getValues("email") !== email) {
     resetForm.setValue("email", email);
   }
 
   async function checkSessionOrExit() {
-    // The provider may revoke every session on a reset (its managed config
-    // decides). If ours died, get out of the dead workspace immediately.
     const session = await authClient.getSession({
       query: { disableCookieCache: true },
     });
@@ -388,7 +644,7 @@ function ChangePasswordDialog({
 
       {method === "password" ? (
         <form
-          className="mt-4 flex flex-col gap-3"
+          className={cn("mt-4 flex flex-col gap-3.5")}
           onSubmit={form.handleSubmit(async (values) => {
             setError("");
             const result = await submit({ ...values, revokeOtherSessions });
@@ -418,20 +674,35 @@ function ChangePasswordDialog({
             error={form.formState.errors.confirmPassword?.message}
             {...form.register("confirmPassword")}
           />
-          <label className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-            Sign out other devices
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-center justify-between gap-3 rounded-xl",
+              "border border-border/70 bg-muted/30 px-3.5 py-2.5 text-xs transition-colors hover:bg-muted/50",
+            )}
+          >
+            <span className={cn("space-y-0.5")}>
+              <span className={cn("block font-medium text-foreground")}>
+                Sign out other devices
+              </span>
+              <span className={cn("block text-[11px] text-muted-foreground")}>
+                Require re-login on all other browsers
+              </span>
+            </span>
             <Switch
               checked={revokeOtherSessions}
               onCheckedChange={setRevokeOtherSessions}
               aria-label="Sign out other devices after changing the password"
             />
           </label>
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+
+          {error ? <ErrorBanner message={error} /> : null}
+
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+            )}
+          >
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
@@ -441,28 +712,48 @@ function ChangePasswordDialog({
           </div>
         </form>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className={cn("mt-4 flex flex-col gap-3.5")}>
           {codeStage === "request" ? (
             <>
-              <div className="rounded-[14px] border border-border bg-muted px-3 py-2.5">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  Code goes to
-                </p>
-                <p className="truncate text-sm text-foreground">
-                  {email || "your account address"}
-                </p>
+              <div
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                    "border border-border/60 bg-background text-primary",
+                  )}
+                >
+                  <PlainIcon name="mail" size={15} tone="primary" />
+                </span>
+                <div className={cn("min-w-0 flex-1")}>
+                  <p
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+                    )}
+                  >
+                    Code goes to
+                  </p>
+                  <p
+                    className={cn(
+                      "truncate text-sm font-medium text-foreground",
+                    )}
+                  >
+                    {email || "your account address"}
+                  </p>
+                </div>
               </div>
-              {error ? (
-                <p role="alert" className="text-xs leading-relaxed text-destructive">
-                  {error}
-                </p>
-              ) : null}
-              <div className="flex flex-col gap-2">
+
+              {error ? <ErrorBanner message={error} /> : null}
+
+              <div className={cn("flex flex-col gap-2.5")}>
                 <Button
                   type="button"
                   loading={codeBusy}
                   disabled={codeBusy || !email}
-                  className="w-full justify-center"
+                  className={cn("w-full justify-center")}
                   onClick={() =>
                     void (async () => {
                       setCodeBusy(true);
@@ -484,7 +775,11 @@ function ChangePasswordDialog({
                 >
                   Email me a code
                 </Button>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                <p
+                  className={cn(
+                    "rounded-xl border border-border/50 bg-muted/20 px-3 py-2 text-xs leading-relaxed text-muted-foreground",
+                  )}
+                >
                   No password yet (Google-only account)? This same code sets
                   your first password.
                 </p>
@@ -492,7 +787,7 @@ function ChangePasswordDialog({
             </>
           ) : (
             <form
-              className="flex flex-col gap-3"
+              className={cn("flex flex-col gap-3.5")}
               onSubmit={resetForm.handleSubmit(async (values) => {
                 setError("");
                 try {
@@ -513,9 +808,28 @@ function ChangePasswordDialog({
                 }
               })}
             >
-              <p className="text-xs text-muted-foreground">
-                Code sent to <span className="text-foreground">{email}</span>.
-              </p>
+              <div
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs",
+                )}
+              >
+                <span className={cn("truncate text-muted-foreground")}>
+                  Code sent to{" "}
+                  <span className={cn("font-medium text-foreground")}>
+                    {email}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCodeStage("request")}
+                  className={cn(
+                    "shrink-0 font-medium text-primary hover:underline",
+                  )}
+                >
+                  Resend
+                </button>
+              </div>
+
               <Input
                 label="Code"
                 inputMode="numeric"
@@ -538,16 +852,21 @@ function ChangePasswordDialog({
                 error={resetForm.formState.errors.confirmPassword?.message}
                 {...resetForm.register("confirmPassword")}
               />
-              {error ? (
-                <p role="alert" className="text-xs leading-relaxed text-destructive">
-                  {error}
-                </p>
-              ) : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+
+              {error ? <ErrorBanner message={error} /> : null}
+
+              <div
+                className={cn(
+                  "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+                )}
+              >
                 <Button type="button" variant="outline" onClick={close}>
                   Cancel
                 </Button>
-                <Button type="submit" loading={resetForm.formState.isSubmitting}>
+                <Button
+                  type="submit"
+                  loading={resetForm.formState.isSubmitting}
+                >
                   Save password
                 </Button>
               </div>
@@ -559,9 +878,18 @@ function ChangePasswordDialog({
   );
 }
 
-/* ------------------------------------------------------------- two-factor */
+/* ------------------------------------------------------------------ */
+/*  Two-Factor Dialogs                                                 */
+/* ------------------------------------------------------------------ */
 
 type EnrollStep = "password" | "scan" | "verify" | "codes";
+
+const ENROLL_STEPS: { id: EnrollStep; label: string }[] = [
+  { id: "password", label: "Confirm" },
+  { id: "scan", label: "Scan QR" },
+  { id: "verify", label: "Verify" },
+  { id: "codes", label: "Backup" },
+];
 
 function EnrollDialog({
   open,
@@ -590,6 +918,7 @@ function EnrollDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [secretCopied, setSecretCopied] = useState(false);
 
   function close() {
     onOpenChange(false);
@@ -600,6 +929,7 @@ function EnrollDialog({
     setCode("");
     setError("");
     setCopied(false);
+    setSecretCopied(false);
   }
 
   async function copyCodes() {
@@ -614,6 +944,19 @@ function EnrollDialog({
       });
     }
   }
+
+  async function copySecret() {
+    if (!enrollment?.secret) return;
+    try {
+      await navigator.clipboard.writeText(enrollment.secret);
+      setSecretCopied(true);
+      window.setTimeout(() => setSecretCopied(false), 1600);
+    } catch {
+      // Ignore clipboard failure
+    }
+  }
+
+  const currentStepIdx = ENROLL_STEPS.findIndex((s) => s.id === step);
 
   return (
     <Dialog
@@ -639,9 +982,39 @@ function EnrollDialog({
               : "Each code works once, instead of the authenticator, when the device is lost. They are shown once — copy them now."
       }
     >
+      {/* Stepper Indicator */}
+      <div aria-hidden="true" className={cn("mb-4 grid grid-cols-4 gap-1.5")}>
+        {ENROLL_STEPS.map((item, idx) => {
+          const done = idx < currentStepIdx;
+          const active = idx === currentStepIdx;
+          return (
+            <div key={item.id} className={cn("space-y-1")}>
+              <div
+                className={cn(
+                  "h-1 rounded-full transition-colors",
+                  done || active ? "bg-primary" : "bg-muted",
+                )}
+              />
+              <p
+                className={cn(
+                  "truncate text-[10px] font-medium",
+                  active
+                    ? "text-foreground"
+                    : done
+                      ? "text-primary"
+                      : "text-muted-foreground/60",
+                )}
+              >
+                {idx + 1}. {item.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
       {step === "password" ? (
         <form
-          className="flex flex-col gap-3"
+          className={cn("flex flex-col gap-3.5")}
           onSubmit={async (event) => {
             event.preventDefault();
             setBusy(true);
@@ -675,12 +1048,12 @@ function EnrollDialog({
             onValueChange={setPassword}
             autoFocus
           />
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {error ? <ErrorBanner message={error} /> : null}
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+            )}
+          >
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
@@ -692,32 +1065,62 @@ function EnrollDialog({
       ) : null}
 
       {step === "scan" ? (
-        <div className="flex flex-col items-center gap-3">
+        <div className={cn("flex flex-col items-center gap-4")}>
           {qrDataUrl ? (
-            // A QR code needs a light quiet zone to scan; bg-white is functional, not decorative.
-            // eslint-disable-next-line @next/next/no-img-element -- locally generated QR data URL
-            <img
-              src={qrDataUrl}
-              alt="Two-factor QR code to scan with your authenticator app"
-              className="size-44 rounded-[14px] border border-border bg-white p-2"
-            />
+            <div
+              className={cn(
+                "rounded-2xl border border-border/80 bg-muted/30 p-3 shadow-2xs",
+              )}
+            >
+              {/* A QR code needs a light quiet zone to scan; bg-white is functional, not decorative. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- locally generated QR data URL */}
+              <img
+                src={qrDataUrl}
+                alt="Two-factor QR code to scan with your authenticator app"
+                className={cn("size-44 rounded-xl bg-white p-2")}
+              />
+            </div>
           ) : null}
+
           {enrollment?.secret ? (
-            <div className="w-full">
-              <p className="text-[12.5px] font-medium text-foreground">Secret key</p>
+            <div className={cn("w-full space-y-1.5")}>
+              <div className={cn("flex items-center justify-between")}>
+                <p className={cn("text-xs font-medium text-foreground")}>
+                  Secret key
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void copySecret()}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline",
+                  )}
+                >
+                  <PlainIcon
+                    name={secretCopied ? "check" : "copy"}
+                    size={12}
+                    tone={secretCopied ? "success" : "primary"}
+                  />
+                  <span>{secretCopied ? "Copied" : "Copy key"}</span>
+                </button>
+              </div>
               <p
-                className="mt-1 rounded-[14px] border border-border bg-muted px-3 py-2 text-center font-mono text-xs tabular-nums text-foreground"
+                className={cn(
+                  "select-all break-all rounded-xl border border-border bg-muted/50",
+                  "px-3 py-2.5 text-center font-mono text-xs tabular-nums tracking-wider text-foreground",
+                )}
               >
                 {enrollment.secret}
               </p>
             </div>
           ) : null}
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+
+          {error ? <ErrorBanner message={error} /> : null}
+
+          <div
+            className={cn(
+              "flex w-full flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+            )}
+          >
             <Button variant="outline" onClick={close}>
               Cancel
             </Button>
@@ -728,7 +1131,7 @@ function EnrollDialog({
 
       {step === "verify" ? (
         <form
-          className="flex flex-col gap-3"
+          className={cn("flex flex-col gap-3.5")}
           onSubmit={async (event) => {
             event.preventDefault();
             setBusy(true);
@@ -749,12 +1152,12 @@ function EnrollDialog({
             onValueChange={setCode}
             autoFocus
           />
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {error ? <ErrorBanner message={error} /> : null}
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+            )}
+          >
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
@@ -766,23 +1169,13 @@ function EnrollDialog({
       ) : null}
 
       {step === "codes" ? (
-        <div className="flex flex-col gap-3">
-          <div className="rounded-[14px] border border-border bg-muted px-3 py-3">
-            <ol className="grid grid-cols-2 gap-x-4 gap-y-1">
-              {(enrollment?.backupCodes ?? []).map((backup, index) => (
-                <li key={`${backup}-${index}`} className="font-mono text-xs tabular-nums text-foreground">
-                  {backup}
-                </li>
-              ))}
-            </ol>
-            {enrollment && enrollment.backupCodes.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                The provider didn&apos;t return backup codes — you can generate a
-                set later.
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+        <div className={cn("flex flex-col gap-3.5")}>
+          <BackupCodesGrid codes={enrollment?.backupCodes ?? []} />
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-between",
+            )}
+          >
             <Button
               type="button"
               variant="outline"
@@ -834,7 +1227,7 @@ function DisableTwoFactorDialog({
       description="Password sign-ins will stop asking for the authenticator code. Your account is less protected on the email path."
     >
       <form
-        className="flex flex-col gap-3"
+        className={cn("flex flex-col gap-3.5")}
         onSubmit={async (event) => {
           event.preventDefault();
           setBusy(true);
@@ -852,12 +1245,12 @@ function DisableTwoFactorDialog({
           onValueChange={setPassword}
           autoFocus
         />
-        {error ? (
-          <p role="alert" className="text-xs leading-relaxed text-destructive">
-            {error}
-          </p>
-        ) : null}
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {error ? <ErrorBanner message={error} /> : null}
+        <div
+          className={cn(
+            "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+          )}
+        >
           <Button type="button" variant="outline" onClick={close}>
             Keep it on
           </Button>
@@ -907,7 +1300,9 @@ function RegenerateCodesDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => (next ? onOpenChange(true) : close())}
-      title={codes == null ? "Generate new backup codes?" : "Your new backup codes"}
+      title={
+        codes == null ? "Generate new backup codes?" : "Your new backup codes"
+      }
       size="sm"
       description={
         codes == null
@@ -917,7 +1312,7 @@ function RegenerateCodesDialog({
     >
       {codes == null ? (
         <form
-          className="flex flex-col gap-3"
+          className={cn("flex flex-col gap-3.5")}
           onSubmit={async (event) => {
             event.preventDefault();
             setBusy(true);
@@ -943,12 +1338,12 @@ function RegenerateCodesDialog({
             onValueChange={setPassword}
             autoFocus
           />
-          {error ? (
-            <p role="alert" className="text-xs leading-relaxed text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {error ? <ErrorBanner message={error} /> : null}
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
+            )}
+          >
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
@@ -958,17 +1353,13 @@ function RegenerateCodesDialog({
           </div>
         </form>
       ) : (
-        <div className="flex flex-col gap-3">
-          <div className="rounded-[14px] border border-border bg-muted px-3 py-3">
-            <ol className="grid grid-cols-2 gap-x-4 gap-y-1">
-              {codes.map((backup, index) => (
-                <li key={`${backup}-${index}`} className="font-mono text-xs tabular-nums text-foreground">
-                  {backup}
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+        <div className={cn("flex flex-col gap-3.5")}>
+          <BackupCodesGrid codes={codes} />
+          <div
+            className={cn(
+              "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-between",
+            )}
+          >
             <Button
               type="button"
               variant="outline"
@@ -999,3 +1390,67 @@ function RegenerateCodesDialog({
     </Dialog>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Shared UI Helpers                                                  */
+/* ------------------------------------------------------------------ */
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "flex items-start gap-2 rounded-xl border border-destructive/30",
+        "bg-destructive/10 px-3 py-2.5 text-xs leading-relaxed text-destructive",
+      )}
+    >
+      <PlainIcon
+        name="danger"
+        size={14}
+        tone="destructive"
+        className={cn("mt-0.5 shrink-0")}
+      />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function BackupCodesGrid({ codes }: { codes: string[] }) {
+  if (codes.length === 0) {
+    return (
+      <div
+        className={cn(
+          "rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-xs text-muted-foreground",
+        )}
+      >
+        The provider didn&apos;t return backup codes — you can generate a set
+        later.
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("rounded-xl border border-border/80 bg-muted/35 p-3")}>
+      <ol className={cn("grid grid-cols-2 gap-2")}>
+        {codes.map((backup, index) => (
+          <li
+            key={`${backup}-${index}`}
+            className={cn(
+              "flex items-center justify-between rounded-lg border border-border/60",
+              "bg-background/80 px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground",
+            )}
+          >
+            <span
+              className={cn("select-none text-[10px] text-muted-foreground/70")}
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className={cn("select-all font-medium")}>{backup}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+export default SecurityPanel;
