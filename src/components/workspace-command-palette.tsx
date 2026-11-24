@@ -1,12 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUiStore } from "@/stores/ui-store";
-import { Dialog } from "@/components/dialog";
-import { Input } from "@/components/input";
+import { CommandPalette, type CommandItem } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
-import { Spinner } from "@/components/spinner";
 import { PlainIcon } from "@/components/icon";
 import {
   collectResultsByType,
@@ -19,17 +17,26 @@ import { NAV_GROUPS, VIEW_META, planHref } from "@/components/workspace-sidebar"
 import { cn } from "@/lib/utils";
 
 /**
- * Global search palette (⌘K) — Hairline composition.
+ * Global search palette (⌘K) — Hairline's command-palette, fed by this app.
  *
- * Hairline's command-palette owns its query state internally, so it cannot
- * drive this app's async server search. Following the audit's composed-gap
- * pattern, this surface composes Hairline primitives instead: Dialog (the
- * overlay), Input (the field), Kbd, Spinner, and token-styled result rows.
- * Behavior is preserved exactly: pages and quick actions are static client
- * data and render instantly; everything else queries `/api/search` — 350ms
- * debounce, two-character minimum, abortable, cached by TanStack Query,
- * keyset-paginated with Load-more. Recent queries persist under the app's
- * ssc.* convention.
+ * The vendored `command-palette` owns every piece of the interaction Hairline
+ * ships: the pill that grows into the panel, fuzzy ranking with the matched
+ * letters marked, the highlight gliding between rows, the panel easing to fit
+ * its results, nested pages, and a shortcut that blurs into a spinner and then
+ * a drawn check. What it cannot own is this app's async search — it ranks a
+ * static `items` array — so this file is the adapter: it composes the live
+ * groups out of pages, quick actions and server results and hands them over as
+ * one list.
+ *
+ * Behaviour preserved exactly: pages and quick actions are static client data
+ * and render instantly; everything else queries `/api/search` — 350ms debounce,
+ * two-character minimum, abortable, cached by TanStack Query, keyset-paginated
+ * with a Load more row. Recent queries persist under the app's `ssc.*`
+ * convention.
+ *
+ * The search words stay HERE, not inside the primitive, because the debounced
+ * copy is what queries the server. Both are passed back down (`query` /
+ * `onQueryChange`), which is also how a "Recent searches" row refills the field.
  */
 
 const RECENT_KEY = "ssc.search.recent";
@@ -66,56 +73,32 @@ function persistRecentSearches(list: string[]) {
   }
 }
 
+/** Every row's icon, sized for the palette's 16px slot. */
+function Icon({ name }: { name: Parameters<typeof PlainIcon>[0]["name"] }) {
+  return <PlainIcon name={name} size={16} />;
+}
+
 export interface WorkspaceCommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   aiEnabled: boolean;
   onAddMock: () => void;
   onOpenAi: () => void;
+  /**
+   * The header's search pill. It has to be a node in the header's own tree so
+   * the palette can measure it — the palette clones it with the ref, the click
+   * and `aria-expanded`, which is why the header only has to draw it.
+   */
+  trigger?: React.ReactElement<CommandTriggerProps>;
 }
 
-/** One result row — token-styled, keyboard-focusable, icon + label + meta. */
-function Row({
-  icon,
-  children,
-  meta,
-  shortcut,
-  onClick,
-  tone = "muted",
-}: {
-  icon: Parameters<typeof PlainIcon>[0]["name"];
-  children: React.ReactNode;
-  meta?: string;
-  shortcut?: string;
-  onClick: () => void;
-  tone?: "muted" | "primary";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-10 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[13px] text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-    >
-      <PlainIcon name={icon} size={16} tone={tone} className="shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{children}</span>
-      {meta && (
-        <span className="max-w-[45%] shrink-0 truncate text-[11px] text-muted-foreground">
-          {meta}
-        </span>
-      )}
-      {shortcut && <Kbd keys={[shortcut]} size="sm" />}
-    </button>
-  );
-}
-
-function GroupHeading({ label, count }: { label: string; count?: number }) {
-  return (
-    <p className="flex items-center gap-2 px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-      {label}
-      {count != null && <span className="font-medium normal-case tracking-normal opacity-70">{count}</span>}
-    </p>
-  );
-}
+/** What the palette gives the pill it clones. */
+export type CommandTriggerProps = {
+  ref?: React.Ref<HTMLButtonElement>;
+  "aria-haspopup"?: "dialog";
+  "aria-expanded"?: boolean;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+};
 
 export function WorkspaceCommandPalette({
   open,
@@ -123,6 +106,7 @@ export function WorkspaceCommandPalette({
   aiEnabled,
   onAddMock,
   onOpenAi,
+  trigger,
 }: WorkspaceCommandPaletteProps) {
   const router = useRouter();
   const [raw, setRaw] = useState("");
@@ -141,7 +125,7 @@ export function WorkspaceCommandPalette({
 
   const [recent, setRecent] = useState<string[]>(loadRecentSearches);
 
-  const remember = (value: string) => {
+  const remember = useCallback((value: string) => {
     const normalized = normalizeForSearch(value);
     if (normalized.length < 2) return;
     const next = [
@@ -152,16 +136,11 @@ export function WorkspaceCommandPalette({
     ].slice(0, RECENT_MAX);
     persistRecentSearches(next);
     setRecent(next);
-  };
+  }, []);
 
   const clearRecent = () => {
     persistRecentSearches([]);
     setRecent([]);
-  };
-
-  const run = (action: () => void) => {
-    onOpenChange(false);
-    action();
   };
 
   // "New task" mirrors the `n` shortcut on My Tasks: bump the quick-add
@@ -173,330 +152,268 @@ export function WorkspaceCommandPalette({
     useUiStore.getState().requestQuickAdd();
   };
 
-  const pageActions = useMemo(() => {
-    const actions: {
-      label: string;
-      keywords: string[];
-      icon: Parameters<typeof PlainIcon>[0]["name"];
-      shortcut?: string;
-      run: () => void;
-    }[] = [];
+  // The static half: every page, then the quick actions. Grouped in the order
+  // they first appear, which is the order Hairline draws the headings in.
+  const staticItems = useMemo<CommandItem[]>(() => {
+    const rows: CommandItem[] = [];
     for (const group of NAV_GROUPS) {
       for (const item of group.items) {
-        actions.push({
+        const { label, icon } = VIEW_META[item.view];
+        rows.push({
+          id: `page:${item.view}:${item.label}`,
           label: item.label,
-          keywords: [VIEW_META[item.view].label, group.label],
-          icon: VIEW_META[item.view].icon,
-          run: () =>
+          group: "Go to",
+          icon: <Icon name={icon} />,
+          keywords: [label, group.label],
+          onSelect: () =>
             router.push(
               typeof item.href === "function" ? item.href() : item.href,
             ),
         });
       }
     }
-    actions.push(
+    rows.push(
       {
+        id: "action:add-mock",
         label: "Log a mock",
+        group: "Actions",
+        icon: <Icon name="plus" />,
         keywords: ["add attempt", "new mock", "record score"],
-        icon: "plus",
-        shortcut: "N",
-        run: onAddMock,
+        onSelect: onAddMock,
       },
       {
+        id: "action:new-task",
         label: "New task",
+        group: "Actions",
+        icon: <Icon name="list" />,
         keywords: ["add task", "quick add", "personal task"],
-        icon: "list",
-        run: newTask,
+        onSelect: newTask,
       },
     );
     if (aiEnabled) {
-      actions.push({
+      rows.push({
+        id: "action:ask-ai",
         label: "Ask AI",
+        group: "Actions",
+        icon: <Icon name="sparkles" />,
         keywords: ["chat", "assistant", "coach"],
-        icon: "sparkles",
-        run: onOpenAi,
+        onSelect: onOpenAi,
       });
     }
-    return actions;
+    return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- static nav data; router stable
   }, [aiEnabled, onAddMock, onOpenAi, router]);
 
-  const needle = query.toLowerCase();
-  const matchesStatic = (action: (typeof pageActions)[number]) =>
-    !searching ||
-    action.label.toLowerCase().includes(needle) ||
-    (action.keywords ?? []).some((k) => k.toLowerCase().includes(needle));
-  const visiblePages = pageActions.filter((entry) => matchesStatic(entry));
+  // Recent searches lead the first page — rows that refill the field instead of
+  // navigating. The palette clears its own field on open, so these only show
+  // while it is empty, which is exactly when they are useful.
+  const items = useMemo<CommandItem[]>(() => {
+    if (recent.length === 0) return staticItems;
+    const recents: CommandItem[] = recent.map((entry) => ({
+      id: `recent:${entry}`,
+      label: entry,
+      group: "Recent searches",
+      icon: <Icon name="history" />,
+      setQuery: entry,
+    }));
+    const withClear: CommandItem[] = [
+      ...recents,
+      {
+        id: "recent:clear",
+        label: "Clear history",
+        group: "Recent searches",
+        icon: <Icon name="close" />,
+        onSelect: clearRecent,
+      },
+    ];
+    return [...withClear, ...staticItems];
+  }, [recent, staticItems]);
 
-  const loadingFirstPage = searching && search.isPending;
+  // The async half. Only while the query is real: before that the static list
+  // is the whole answer, and the debounce has not asked the server yet.
+  const searchItems = useMemo<CommandItem[]>(() => {
+    if (!searching) return [];
+    const rows: CommandItem[] = [];
+
+    for (const item of grouped.attempts) {
+      rows.push({
+        id: `attempt:${item.id}`,
+        label: item.title,
+        group: "Mock history",
+        icon: <Icon name="history" />,
+        description: item.subtitle ?? undefined,
+        onSelect: () => {
+          remember(query);
+          // The URL param is the handoff: /history seeds its filter state from
+          // the address bar on mount, so ?search=… restores the filter and the
+          // mirror keeps it shareable.
+          router.push(`/history?search=${encodeURIComponent(item.title)}`);
+        },
+      });
+    }
+    for (const item of grouped.tasks) {
+      rows.push({
+        id: `task:${item.id}`,
+        label: item.title,
+        group: "Your tasks",
+        icon: <Icon name="check" />,
+        description: item.subtitle ?? undefined,
+        onSelect: () => {
+          remember(query);
+          router.push("/my-tasks");
+        },
+      });
+    }
+    for (const item of grouped.groups) {
+      rows.push({
+        id: `group:${item.id}`,
+        label: item.title,
+        group: "Task groups",
+        icon: <Icon name="layers" />,
+        description: item.subtitle ?? undefined,
+        onSelect: () => {
+          remember(query);
+          router.push("/my-tasks");
+        },
+      });
+    }
+    for (const item of grouped.plan) {
+      rows.push({
+        id: `plan:${item.id}`,
+        label: item.title,
+        group: "Study plan",
+        icon: <Icon name="calendar" />,
+        description: item.subtitle ?? undefined,
+        onSelect: () => {
+          remember(query);
+          if (item.date) router.push(planHref(item.date));
+        },
+      });
+    }
+
+    // Pagination is a row, so it is reachable from the keyboard like any other.
+    if (hasMore) {
+      rows.push({
+        id: "search:more",
+        label: search.isFetchingNextPage ? "Loading…" : "Load more results",
+        group: "More",
+        icon: <Icon name="chevronDown" />,
+        keepOpen: true,
+        onSelect: () => search.fetchNextPage(),
+      });
+    }
+    return rows;
+  }, [searching, grouped, hasMore, query, remember, router, search]);
+
+  const allItems = useMemo(
+    () => [...items, ...searchItems],
+    [items, searchItems],
+  );
+
+  const placeholder = searching
+    ? `Searching ${resultCount} ${resultCount === 1 ? "result" : "results"}…`
+    : "Search mocks, tasks, plan days…";
+
+  const loadingFirstPage = searching && search.isPending && !search.data;
   const searchFailed = searching && search.isError;
-  const empty =
-    searching &&
-    !loadingFirstPage &&
-    !searchFailed &&
-    resultCount === 0 &&
-    visiblePages.length === 0;
+  const nothingFound =
+    searching && !loadingFirstPage && !searchFailed && resultCount === 0;
 
   return (
-    <Dialog
+    <CommandPalette
+      items={allItems}
       open={open}
       onOpenChange={onOpenChange}
-      title="Search workspace"
-      size="md"
-      className="p-0"
+      // ⌘K stays owned by `use-keyboard-shortcuts`; a second listener here
+      // would toggle twice and land back on the state it started in.
+      hotkey=""
+      placeholder={placeholder}
+      query={raw}
+      onQueryChange={setRaw}
+      // The pill is drawn in the app header and cloned here, so the palette can
+      // fade it out as the panel grows out of its box — the hand-off Hairline is
+      // built for.
+      trigger={trigger}
     >
-      <div className="p-4">
-        <Input
-          autoFocus
-          value={raw}
-          onValueChange={setRaw}
-          placeholder="Search mocks, tasks, plan days…"
-          leading={<PlainIcon name="search" size={14} tone="muted" />}
-          trailing={
-            <span className="hidden items-center gap-1 sm:flex">
-              {searching && loadingFirstPage ? (
-                <Spinner size="xs" />
-              ) : (
-                <Kbd keys={["esc"]} size="sm" />
-              )}
-            </span>
-          }
-          aria-label="Search mocks, tasks, plan days"
-        />
-      </div>
-
-      <div className="max-h-[26rem] overflow-y-auto border-t border-border px-2 pb-2">
-        {/* Recent searches — only while the input is empty. */}
-        {!searching && recent.length > 0 && (
-          <div>
-            <GroupHeading label="Recent searches" count={recent.length} />
-            {recent.map((entry) => (
-              <Row
-                key={entry}
-                icon="history"
-                onClick={() => setRaw(entry)}
-              >
-                {entry}
-              </Row>
-            ))}
-            <button
-              type="button"
-              onClick={clearRecent}
-              className="flex h-9 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent"
-            >
-              <PlainIcon name="close" size={16} tone="muted" />
-              <span className="min-w-0 flex-1">Clear history</span>
-            </button>
-          </div>
-        )}
-
-        {/* Pages & quick actions — static, instant, no fetch. */}
-        {visiblePages.length > 0 && (
-          <div>
-            <GroupHeading
-              label={searching ? "Pages & actions" : "Pages"}
-              count={visiblePages.length}
-            />
-            {visiblePages.map((action) => (
-              <Row
-                key={action.label}
-                icon={action.icon}
-                shortcut={action.shortcut}
-                tone={action.shortcut ? "primary" : "muted"}
-                onClick={() => {
-                  remember(query);
-                  run(() => action.run());
-                }}
-              >
-                {action.label}
-              </Row>
-            ))}
-          </div>
-        )}
-
-        {loadingFirstPage && (
-          <div>
-            <GroupHeading label="Searching…" />
-            {[0, 1, 2].map((row) => (
-              <div
-                key={row}
-                className="flex h-10 items-center gap-2.5 px-3 opacity-60"
-              >
-                <span className="size-4 shrink-0 animate-[ui-blink_1.2s_ease-in-out_infinite] rounded-full bg-muted" />
-                <span
-                  className="h-3.5 rounded-full bg-muted"
-                  style={{ width: `${68 - row * 14}%` }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {searchFailed && (
-          <div role="alert" className="px-3 py-6">
-            <p className="font-serif text-base text-foreground">
-              Search could not load.
-            </p>
-            <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              {search.error instanceof Error
-                ? search.error.message
-                : "The connection dropped before results arrived."}
-            </p>
-            <button
-              type="button"
-              onClick={() => void search.refetch()}
-              className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
-            >
-              <PlainIcon name="refresh" size={13} /> Retry
-            </button>
-          </div>
-        )}
-
-        {searching && grouped.attempts.length > 0 && (
-          <div>
-            <GroupHeading label="Mock history" count={grouped.attempts.length} />
-            {grouped.attempts.map((item) => (
-              <Row
-                key={item.id}
-                icon="history"
-                meta={item.subtitle}
-                onClick={() =>
-                  run(() => {
-                    remember(query);
-                    // The URL param is the handoff: /history seeds its filter
-                    // state from the address bar on mount, so ?search=…
-                    // restores the filter and the mirror keeps it shareable.
-                    router.push(
-                      `/history?search=${encodeURIComponent(item.title)}`,
-                    );
-                  })
-                }
-              >
-                {item.title}
-              </Row>
-            ))}
-          </div>
-        )}
-
-        {searching && grouped.tasks.length > 0 && (
-          <div>
-            <GroupHeading label="Your tasks" count={grouped.tasks.length} />
-            {grouped.tasks.map((item) => (
-              <Row
-                key={item.id}
-                icon="check"
-                meta={item.subtitle}
-                onClick={() =>
-                  run(() => {
-                    remember(query);
-                    router.push("/my-tasks");
-                  })
-                }
-              >
-                {item.title}
-              </Row>
-            ))}
-          </div>
-        )}
-
-        {searching && grouped.groups.length > 0 && (
-          <div>
-            <GroupHeading label="Task groups" count={grouped.groups.length} />
-            {grouped.groups.map((item) => (
-              <Row
-                key={item.id}
-                icon="layers"
-                meta={item.subtitle}
-                onClick={() =>
-                  run(() => {
-                    remember(query);
-                    router.push("/my-tasks");
-                  })
-                }
-              >
-                {item.title}
-              </Row>
-            ))}
-          </div>
-        )}
-
-        {searching && grouped.plan.length > 0 && (
-          <div>
-            <GroupHeading label="Study plan" count={grouped.plan.length} />
-            {grouped.plan.map((item) => (
-              <Row
-                key={item.id}
-                icon="calendar"
-                meta={item.subtitle}
-                onClick={() =>
-                  run(() => {
-                    remember(query);
-                    if (item.date) router.push(planHref(item.date));
-                  })
-                }
-              >
-                {item.title}
-              </Row>
-            ))}
-          </div>
-        )}
-
-        {searching && hasMore && !loadingFirstPage && (
+      {loadingFirstPage && <SearchSkeleton />}
+      {searchFailed && (
+        <div role="alert" className="px-3 py-5">
+          <p className="font-serif text-[15px] text-foreground">
+            Search could not load.
+          </p>
+          <p className="mt-1 max-w-xs text-[12px] leading-relaxed text-muted-foreground">
+            {search.error instanceof Error
+              ? search.error.message
+              : "The connection dropped before results arrived."}
+          </p>
           <button
             type="button"
-            onClick={() => void search.fetchNextPage()}
-            className={cn(
-              "flex h-10 w-full items-center justify-center gap-2 rounded-xl px-3 text-[13px] text-muted-foreground transition-colors hover:bg-accent",
-            )}
+            onClick={() => void search.refetch()}
+            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           >
-            {search.isFetchingNextPage ? (
-              <>
-                <Spinner size="xs" />
-                <span>Loading more…</span>
-              </>
-            ) : (
-              <>
-                <PlainIcon name="chevronDown" size={14} />
-                <span>Load more</span>
-              </>
-            )}
+            <PlainIcon name="refresh" size={13} /> Retry
           </button>
-        )}
+        </div>
+      )}
+      {nothingFound && (
+        <div role="status" className="px-3 py-5">
+          <p className="font-serif text-[15px] text-foreground">
+            No matches for “{query}”.
+          </p>
+          <p className="mt-1 max-w-xs text-[12px] leading-relaxed text-muted-foreground">
+            {allItems.length > 0
+              ? `Nothing in your records matches — the ${allItems.length} ${allItems.length === 1 ? "page above" : "pages above"} did.`
+              : "Try a mock name, a task title, a group, or a plan day."}
+          </p>
+        </div>
+      )}
+    </CommandPalette>
+  );
+}
 
-        {empty && (
-          <div className="px-3 py-8 text-center">
-            <p className="font-serif text-base text-foreground">
-              No matches for “{query}”.
-            </p>
-            <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Try a mock name, a task title, a group, or a plan day.
-            </p>
-          </div>
-        )}
+/** The first page is on its way: three quiet rows where results will land. */
+function SearchSkeleton() {
+  return (
+    <div aria-hidden="true" className="px-1.5 py-1">
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="flex h-10 items-center gap-3 px-3 opacity-60">
+          <span className="size-4 shrink-0 animate-[ui-blink_1.2s_ease-in-out_infinite] rounded-full bg-muted" />
+          <span
+            className="h-3.5 rounded-full bg-muted"
+            style={{ width: `${68 - row * 14}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-        {searching &&
-          !loadingFirstPage &&
-          !searchFailed &&
-          resultCount === 0 &&
-          visiblePages.length > 0 && (
-            <p className="px-3 pb-3 pt-1 text-xs text-muted-foreground">
-              Nothing in your records matches — the pages above did.
-            </p>
-          )}
-      </div>
-
-      {/* Keyboard legend. Hidden on phones (no keyboard row to spare). */}
-      <div className="hidden items-center gap-4 border-t border-border px-4 py-2 text-[10px] text-muted-foreground sm:flex">
-        <span>
-          <Kbd keys={["↑", "↓"]} size="sm" /> move
-        </span>
-        <span>
-          <Kbd keys={["↵"]} size="sm" /> open
-        </span>
-        <span>
-          <Kbd keys={["esc"]} size="sm" /> close
-        </span>
-      </div>
-    </Dialog>
+/**
+ * The pill's face, drawn in the header: search icon, "Search…", ⌘K. It has to
+ * look exactly like the face the palette paints while it folds back into the
+ * pill, or the hand-off would show — so the geometry here is Hairline's. The
+ * palette clones this element with its own ref and click.
+ */
+export function CommandPaletteTrigger({
+  className,
+  ...props
+}: CommandTriggerProps & { className?: string }) {
+  return (
+    <button
+      {...props}
+      type="button"
+      aria-label="Search"
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-background pl-3 pr-1.5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,color] duration-300 hover:text-foreground hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
+      )}
+    >
+      <PlainIcon name="search" size={16} />
+      <span className="hidden pr-6 sm:inline">Search…</span>
+      <span className="flex items-center gap-0.5">
+        <Kbd keys={["mod"]} size="sm" />
+        <Kbd keys={["k"]} size="sm" />
+      </span>
+    </button>
   );
 }

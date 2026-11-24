@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MotionConfig } from "motion/react";
 import { AppFrame } from "./app-shell";
-import { WorkspaceCommandPalette } from "./workspace-command-palette";
+import { WorkspaceCommandPalette, CommandPaletteTrigger } from "./workspace-command-palette";
 import { AiChatSheet } from "./ai-chat-sheet";
 import { aiUsageLabel, useAiWorkspace } from "./use-ai-workspace";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
@@ -140,6 +140,21 @@ export function WorkspaceChrome({
   const addMock = useMemo(() => () => router.push("/add"), [router]);
   const openSearch = useMemo(() => () => setSearchOpen(true), [setSearchOpen]);
 
+  // One palette, mounted once: it draws the header's search pill AND the panel
+  // that grows out of it. Splitting them would leave the pill unmeasurable and
+  // the growth would start from an empty box. `trigger` hands the pill to the
+  // header's own tree while the palette keeps its ref and click.
+  const commandPalette = (
+    <WorkspaceCommandPalette
+      open={searchOpen}
+      onOpenChange={setSearchOpen}
+      aiEnabled={!!ai.aiStatus?.enabled}
+      onAddMock={addMock}
+      onOpenAi={() => openAiChat("chat")}
+      trigger={<CommandPaletteTrigger />}
+    />
+  );
+
   useKeyboardShortcuts(
     useMemo(
       () => ({
@@ -172,6 +187,7 @@ export function WorkspaceChrome({
           onOpenSearch={openSearch}
           onOpenSettings={() => go("settings")}
           onOpenTrash={() => go("trash")}
+          searchSlot={commandPalette}
         >
           {/* px-* lives here once, so a route cannot forget it (one did). */}
           <div className="workspace-content mx-auto w-full max-w-[1560px] px-3 py-4 sm:px-5 md:py-5">
@@ -191,13 +207,6 @@ export function WorkspaceChrome({
           }}
           onDelete={() => void removeAttempt()}
           busy={false}
-        />
-        <WorkspaceCommandPalette
-          open={searchOpen}
-          onOpenChange={setSearchOpen}
-          aiEnabled={!!ai.aiStatus?.enabled}
-          onAddMock={addMock}
-          onOpenAi={() => openAiChat("chat")}
         />
         <AiChatSheet
           open={ai.chat.open}

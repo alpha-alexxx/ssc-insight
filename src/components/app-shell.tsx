@@ -53,6 +53,7 @@ export function AppFrame({
   onOpenSearch,
   onOpenSettings,
   onOpenTrash,
+  searchSlot,
   children,
   defaultSidebarOpen = true,
 }: {
@@ -67,6 +68,11 @@ export function AppFrame({
   onOpenSearch: () => void;
   onOpenSettings: () => void;
   onOpenTrash: () => void;
+  /**
+   * The command palette's own search pill, rendered by the header because the
+   * palette grows out of it. The header only places it; the palette owns it.
+   */
+  searchSlot?: ReactNode;
   children: ReactNode;
   defaultSidebarOpen?: boolean;
 }) {
@@ -160,6 +166,7 @@ export function AppFrame({
           onToggleSidebar={toggleExpanded}
           onOpenMobileNav={() => setMobileOpen(true)}
           sidebarExpanded={expanded}
+          searchSlot={searchSlot}
         />
         <main
           id="main-content"
@@ -186,6 +193,7 @@ export function AppHeader({
   onToggleSidebar,
   onOpenMobileNav,
   sidebarExpanded,
+  searchSlot,
 }: {
   view: AppView;
   aiEnabled: boolean;
@@ -194,6 +202,7 @@ export function AppHeader({
   onToggleSidebar: () => void;
   onOpenMobileNav: () => void;
   sidebarExpanded: boolean;
+  searchSlot?: ReactNode;
 }) {
   const router = useRouter();
   const { label } = VIEW_META[view];
@@ -228,22 +237,26 @@ export function AppHeader({
       <HeaderLocation label={label} />
 
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onOpenSearch}
-          aria-label="Search"
-          className="h-8 gap-2 px-3"
-        >
-          <Icon name="search" size={14} />
-          <span className="hidden sm:inline">Search</span>
-          <kbd
-            aria-hidden="true"
-            className="hidden rounded-sm px-1 font-sans text-[10px] font-medium tracking-wide text-muted-foreground md:inline"
+        {/* The palette's pill. It replaces the old Search button: the palette
+            grows out of this exact box, so it has to be the real trigger. */}
+        {searchSlot ?? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onOpenSearch}
+            aria-label="Search"
+            className="h-8 gap-2 px-3"
           >
-            {IS_APPLE_PLATFORM ? "⌘K" : "Ctrl K"}
-          </kbd>
-        </Button>
+            <Icon name="search" size={14} />
+            <span className="hidden sm:inline">Search</span>
+            <kbd
+              aria-hidden="true"
+              className="hidden rounded-sm px-1 font-sans text-[10px] font-medium tracking-wide text-muted-foreground md:inline"
+            >
+              {IS_APPLE_PLATFORM ? "⌘K" : "Ctrl K"}
+            </kbd>
+          </Button>
+        )}
 
         <ExamSwitcher onManageExams={openSettings} compact />
 

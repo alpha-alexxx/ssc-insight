@@ -44,9 +44,16 @@ export interface CommandItem {
   onSelect?: () => void | Promise<unknown>;
   /** A nested list, opened in place (e.g. "Change theme…"). */
   items?: CommandItem[];
+  /** Run it and stay open — a "Load more" row, or a retry. */
+  keepOpen?: boolean;
+  /** Fill the field with this instead of acting — a recent search. */
+  setQuery?: string;
 }
 
-export interface CommandPaletteProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSelect"> {
+export interface CommandPaletteProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "onSelect"
+> {
   items: CommandItem[];
   placeholder?: string;
   /** The letter that opens it with ⌘ (or Ctrl). Empty string turns the hotkey off. */
@@ -58,20 +65,53 @@ export interface CommandPaletteProps extends Omit<React.HTMLAttributes<HTMLDivEl
   showTrigger?: boolean;
   /** The pill's words. */
   triggerLabel?: string;
+  /**
+   * Draw the pill the palette grows from somewhere else — the app header — while
+   * this component keeps owning its behaviour. Pass the pill element; the
+   * palette clones it with the ref, the click and `aria-expanded` it needs.
+   */
+  trigger?: React.ReactElement<PillTriggerProps>;
+  /**
+   * The field's text. Supply both to control it — an async search needs to read
+   * it, and a "Recent searches" row needs to fill it.
+   */
+  query?: string;
+  onQueryChange?: (query: string) => void;
+  /**
+   * Extra content under the rows (a loading shimmer, an error card, a hint).
+   * It lives inside the list, so the panel still eases to fit it.
+   */
+  children?: React.ReactNode;
 }
 
 type Phase = "closed" | "opening" | "open" | "closing";
 type Page = { title: string; items: CommandItem[] };
 type Row = { item: CommandItem; marks: number[]; score: number };
-type Rect = { left: number; top: number; width: number; height: number; radius: number };
+type Rect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  radius: number;
+};
 type RunState = { id: string; state: "pending" | "done" | "error" };
+
+/** What the palette hands a trigger it did not draw itself. */
+export interface PillTriggerProps {
+  ref?: React.Ref<HTMLButtonElement>;
+  "aria-haspopup"?: "dialog";
+  "aria-expanded"?: boolean;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 const DURATION = 440;
 const WIDTH = 580;
 const ROW = 40;
 const LIST_MAX = 352;
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+const CHROME = 52 + 12 + 37; // header (52) + list padding (12) + footer (37)
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const reducedQuery = "(prefers-reduced-motion: reduce)";
 const subscribeReduced = (onChange: () => void) => {
@@ -80,14 +120,20 @@ const subscribeReduced = (onChange: () => void) => {
   return () => query.removeEventListener("change", onChange);
 };
 const useReducedMotion = () =>
-  React.useSyncExternalStore(subscribeReduced, () => window.matchMedia(reducedQuery).matches, () => false);
+  React.useSyncExternalStore(
+    subscribeReduced,
+    () => window.matchMedia(reducedQuery).matches,
+    () => false,
+  );
 
 /** Icons trade places through a blur: the old one shrinks away as the new one grows in. */
 const swap = (on: boolean, reduced: boolean): React.CSSProperties => ({
   opacity: on ? 1 : 0,
   transform: on ? "none" : "scale(0.6)",
   filter: on ? "none" : "blur(3px)",
-  transition: reduced ? "none" : `opacity 220ms ${EASE}, transform 340ms ${EASE}, filter 220ms ${EASE}`,
+  transition: reduced
+    ? "none"
+    : `opacity 220ms ${EASE}, transform 340ms ${EASE}, filter 220ms ${EASE}`,
 });
 
 /** Where the query's letters land in the text: one run if it's there whole, otherwise in order. */
@@ -116,12 +162,20 @@ function rank(items: CommandItem[], query: string): Row[] {
   for (const item of items) {
     const marks = match(item.label, q);
     if (marks) {
-      const contiguous = marks.length > 1 && marks[marks.length - 1] - marks[0] === marks.length - 1;
+      const contiguous =
+        marks.length > 1 &&
+        marks[marks.length - 1] - marks[0] === marks.length - 1;
       const start = marks[0] ?? 0;
       const wordStart = start === 0 || item.label[start - 1] === " ";
-      const score = (contiguous ? 60 : 30) + (start === 0 ? 40 : wordStart ? 20 : 0) - (marks[marks.length - 1] - start) * 0.5;
+      const score =
+        (contiguous ? 60 : 30) +
+        (start === 0 ? 40 : wordStart ? 20 : 0) -
+        (marks[marks.length - 1] - start) * 0.5;
       rows.push({ item, marks, score });
-    } else if (item.keywords?.some((k) => match(k, q)) || (item.description && match(item.description, q))) {
+    } else if (
+      item.keywords?.some((k) => match(k, q)) ||
+      (item.description && match(item.description, q))
+    ) {
       rows.push({ item, marks: [], score: 10 });
     }
   }
@@ -140,7 +194,7 @@ function Marked({ text, marks }: { text: string; marks: number[] }) {
           </span>
         ) : (
           <React.Fragment key={i}>{ch}</React.Fragment>
-        )
+        ),
       )}
     </>
   );
@@ -156,9 +210,19 @@ function Kbd({ children }: { children: React.ReactNode }) {
 
 function SearchIcon({ className = "" }: { className?: string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={`size-4 shrink-0 ${className}`}>
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={`size-4 shrink-0 ${className}`}
+    >
       <circle cx="7" cy="7" r="4.75" stroke="currentColor" strokeWidth="1.5" />
-      <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="m10.5 10.5 3 3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -191,7 +255,11 @@ function Check({ drawn, reduced }: { drawn: boolean; reduced: boolean }) {
         strokeLinejoin="round"
         pathLength={1}
         strokeDasharray={1}
-        style={{ strokeDashoffset: drawn ? 0 : 1, transition: drawn && !reduced ? `stroke-dashoffset 360ms ${EASE} 80ms` : "none" }}
+        style={{
+          strokeDashoffset: drawn ? 0 : 1,
+          transition:
+            drawn && !reduced ? `stroke-dashoffset 360ms ${EASE} 80ms` : "none",
+        }}
       />
     </svg>
   );
@@ -220,16 +288,26 @@ function Results({
   rowRefs?: React.MutableRefObject<(HTMLDivElement | null)[]>;
 }) {
   return (
-    <div id={listId} role={listId ? "listbox" : undefined} aria-label={listId ? "Commands" : undefined}>
+    <div
+      id={listId}
+      role={listId ? "listbox" : undefined}
+      aria-label={listId ? "Commands" : undefined}
+    >
       {rows.map((row, i) => {
         const { item } = row;
-        const heading = item.group && item.group !== rows[i - 1]?.item.group ? item.group : null;
+        const heading =
+          item.group && item.group !== rows[i - 1]?.item.group
+            ? item.group
+            : null;
         const running = run?.id === item.id;
         const state = running ? run.state : null;
         return (
           <React.Fragment key={item.id}>
             {heading && (
-              <div role="presentation" className="px-3 pb-1 pt-2.5 text-[11.5px] font-medium text-muted-foreground first:pt-1">
+              <div
+                role="presentation"
+                className="px-3 pb-1 pt-2.5 text-[11.5px] font-medium text-muted-foreground first:pt-1"
+              >
                 {heading}
               </div>
             )}
@@ -247,7 +325,10 @@ function Results({
               style={{ height: ROW }}
             >
               {item.icon && (
-                <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4 [&_svg]:stroke-[1.7]">
+                <span
+                  aria-hidden="true"
+                  className="flex size-4 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4 [&_svg]:stroke-[1.7]"
+                >
                   {item.icon}
                 </span>
               )}
@@ -255,22 +336,50 @@ function Results({
                 <Marked text={item.label} marks={row.marks} />
                 {item.items && <span className="text-muted-foreground">…</span>}
               </span>
-              {item.description && <span className="hidden min-w-0 flex-1 truncate text-[12px] text-muted-foreground sm:block">{item.description}</span>}
+              {item.description && (
+                <span className="hidden min-w-0 flex-1 truncate text-[12px] text-muted-foreground sm:block">
+                  {item.description}
+                </span>
+              )}
               {/* The right edge: shortcut or chevron, which blurs into a spinner and then a check while it runs. */}
               <span className="relative ml-auto flex h-5 shrink-0 items-center justify-end">
-                <span className="flex items-center gap-1" style={swap(!state, reduced)}>
+                <span
+                  className="flex items-center gap-1"
+                  style={swap(!state, reduced)}
+                >
                   {item.items ? (
-                    <svg aria-hidden="true" viewBox="0 0 12 12" className="size-3 text-muted-foreground">
-                      <path d="m4.5 2.5 3.5 3.5-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 12 12"
+                      className="size-3 text-muted-foreground"
+                    >
+                      <path
+                        d="m4.5 2.5 3.5 3.5-3.5 3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   ) : (
                     item.shortcut?.map((k) => <Kbd key={k}>{k}</Kbd>)
                   )}
                 </span>
-                <span aria-hidden="true" className="absolute inset-y-0 right-0 flex items-center" style={swap(state === "pending", reduced)}>
-                  <span className={`size-3.5 rounded-full border-[1.5px] border-border border-t-foreground/70 motion-reduce:animate-none ${state === "pending" ? "animate-spin" : ""}`} />
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 right-0 flex items-center"
+                  style={swap(state === "pending", reduced)}
+                >
+                  <span
+                    className={`size-3.5 rounded-full border-[1.5px] border-border border-t-foreground/70 motion-reduce:animate-none ${state === "pending" ? "animate-spin" : ""}`}
+                  />
                 </span>
-                <span aria-hidden="true" className="absolute inset-y-0 right-0 flex items-center text-success" style={swap(state === "done", reduced)}>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 right-0 flex items-center text-success"
+                  style={swap(state === "done", reduced)}
+                >
                   <Check drawn={state === "done"} reduced={reduced} />
                 </span>
               </span>
@@ -290,7 +399,13 @@ function pillBox(el: HTMLElement | null): Rect | null {
   const r = el.getBoundingClientRect();
   // Off screen, or hidden (a pill tucked away on narrow screens has no box): open in place instead.
   if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return null;
-  return { left: r.left, top: r.top, width: r.width, height: r.height, radius: r.height / 2 };
+  return {
+    left: r.left,
+    top: r.top,
+    width: r.width,
+    height: r.height,
+    radius: r.height / 2,
+  };
 }
 
 export function CommandPalette({
@@ -302,13 +417,30 @@ export function CommandPalette({
   onOpenChange,
   showTrigger = true,
   triggerLabel = "Search…",
+  trigger,
+  query: queryProp,
+  onQueryChange,
+  children,
   className = "",
   ...props
 }: CommandPaletteProps) {
   const reduced = useReducedMotion();
   const id = React.useId();
-  const [phase, setPhase] = React.useState<Phase>(defaultOpen ? "open" : "closed");
-  const [query, setQuery] = React.useState("");
+  const [phase, setPhase] = React.useState<Phase>(
+    defaultOpen ? "open" : "closed",
+  );
+  // Controlled when the caller passes a query: the async search has to read the
+  // same string the field shows, and a recent-search row has to refill it.
+  const [queryState, setQueryState] = React.useState("");
+  const controlledQuery = queryProp !== undefined;
+  const query = controlledQuery ? queryProp : queryState;
+  const setQuery = React.useCallback(
+    (next: string) => {
+      if (!controlledQuery) setQueryState(next);
+      onQueryChange?.(next);
+    },
+    [controlledQuery, onQueryChange],
+  );
   const [stack, setStack] = React.useState<Page[]>([]);
   const [active, setActive] = React.useState(0);
   const [run, setRun] = React.useState<RunState | null>(null);
@@ -317,10 +449,20 @@ export function CommandPalette({
   const from = fromState === "measure" ? null : fromState;
   const [listHeight, setListHeight] = React.useState(0);
   const [highlight, setHighlight] = React.useState({ top: 0, ready: false });
-  const [leaving, setLeaving] = React.useState<{ key: number; rows: Row[]; active: number; dir: number }[]>([]);
+  const [leaving, setLeaving] = React.useState<
+    { key: number; rows: Row[]; active: number; dir: number }[]
+  >([]);
   const [enterDir, setEnterDir] = React.useState(0);
-  const mac = React.useSyncExternalStore(subscribeNothing, () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent), () => true);
-  const portal = React.useSyncExternalStore(subscribeNothing, () => document.body, () => null);
+  const mac = React.useSyncExternalStore(
+    subscribeNothing,
+    () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent),
+    () => true,
+  );
+  const portal = React.useSyncExternalStore(
+    subscribeNothing,
+    () => document.body,
+    () => null,
+  );
 
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -340,12 +482,41 @@ export function CommandPalette({
   // The active row, kept in range as the results change.
   const current = Math.min(active, Math.max(0, rows.length - 1));
 
-  const pillRect = () => pillBox(showTrigger ? triggerRef.current : null);
+  // Re-center smoothly if the window is resized or toggled to/from fullscreen while open.
+  const [, setViewportTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!mounted) return;
+    const onResize = () => setViewportTick((t) => t + 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [mounted]);
 
-  const target = (): Rect => {
+  const pillRect = () =>
+    pillBox(showTrigger || trigger ? triggerRef.current : null);
+
+  const layout = (): { rect: Rect; listMax: number } => {
     const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
     const width = Math.min(WIDTH, vw - 24);
-    return { left: (vw - width) / 2, top: Math.max(48, Math.round(window.innerHeight * 0.16)), width, height: 0, radius: 20 };
+
+    // Cap list height on shorter browser windows so the bottom never touches the edge.
+    const listMax = Math.min(LIST_MAX, Math.max(ROW * 4, vh - CHROME - 140));
+    const maxPanelHeight = CHROME + listMax;
+
+    // Browser top chrome (tabs + URL + bookmarks) is ~90-120px in windowed mode and 0 in fullscreen.
+    const browserTopBar = Math.min(120, Math.max(0, window.outerHeight - vh));
+    const freeSpace = Math.max(48, vh - maxPanelHeight);
+
+    // Center the full panel in the viewport, shifted up to optically balance the browser top bar.
+    const top = Math.max(
+      24,
+      Math.min(180, Math.round(freeSpace * 0.45 - browserTopBar * 0.35)),
+    );
+
+    return {
+      rect: { left: (vw - width) / 2, top, width, height: 0, radius: 20 },
+      listMax,
+    };
   };
 
   const freshStart = () => {
@@ -370,13 +541,18 @@ export function CommandPalette({
           setFrom(pillRect());
           setPhase(reduced ? "closed" : "closing");
           const back = returnFocus.current;
-          requestAnimationFrame(() => (back && document.contains(back) ? back : triggerRef.current)?.focus({ preventScroll: true }));
+          requestAnimationFrame(() =>
+            (back && document.contains(back)
+              ? back
+              : triggerRef.current
+            )?.focus({ preventScroll: true }),
+          );
         }
       }
       onOpenChange?.(next);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openProp, onOpenChange, reduced, showTrigger]
+    [openProp, onOpenChange, reduced, showTrigger, trigger],
   );
 
   // Controlled: follow the prop through the same phases, as soon as it changes.
@@ -387,7 +563,10 @@ export function CommandPalette({
       freshStart();
       setFrom("measure");
       setPhase(reduced ? "open" : "opening");
-    } else if (openProp === false && (phase === "open" || phase === "opening")) {
+    } else if (
+      openProp === false &&
+      (phase === "open" || phase === "opening")
+    ) {
       setFrom("measure");
       setPhase(reduced ? "closed" : "closing");
     }
@@ -396,8 +575,9 @@ export function CommandPalette({
   // ...and before that first frame is painted, read the pill it grows from (and the focus to give back on close).
   React.useLayoutEffect(() => {
     if (fromState !== "measure") return;
-    if (phase === "opening" || phase === "open") returnFocus.current = document.activeElement as HTMLElement | null;
-    setFrom(pillBox(showTrigger ? triggerRef.current : null));
+    if (phase === "opening" || phase === "open")
+      returnFocus.current = document.activeElement as HTMLElement | null;
+    setFrom(pillBox(showTrigger || trigger ? triggerRef.current : null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromState]);
 
@@ -412,7 +592,9 @@ export function CommandPalette({
   React.useEffect(() => {
     if (phase !== "opening") return;
     let inner = 0;
-    const outer = requestAnimationFrame(() => (inner = requestAnimationFrame(() => setPhase("open"))));
+    const outer = requestAnimationFrame(
+      () => (inner = requestAnimationFrame(() => setPhase("open"))),
+    );
     return () => {
       cancelAnimationFrame(outer);
       cancelAnimationFrame(inner);
@@ -429,7 +611,13 @@ export function CommandPalette({
   React.useEffect(() => {
     if (!hotkey) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== hotkey.toLowerCase() || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (
+        e.key.toLowerCase() !== hotkey.toLowerCase() ||
+        !(e.metaKey || e.ctrlKey) ||
+        e.altKey ||
+        e.shiftKey
+      )
+        return;
       e.preventDefault();
       setOpen(!(phase === "open" || phase === "opening"));
     };
@@ -442,7 +630,10 @@ export function CommandPalette({
     if (!mounted) return;
     const html = document.documentElement;
     const gap = window.innerWidth - html.clientWidth;
-    const before = { overflow: html.style.overflow, paddingRight: html.style.paddingRight };
+    const before = {
+      overflow: html.style.overflow,
+      paddingRight: html.style.paddingRight,
+    };
     html.style.overflow = "hidden";
     if (gap > 0) html.style.paddingRight = `${gap}px`;
     return () => {
@@ -455,7 +646,8 @@ export function CommandPalette({
   React.useLayoutEffect(() => {
     const el = innerRef.current;
     if (!el) return;
-    const measure = () => setListHeight((h) => (h === el.offsetHeight ? h : el.offsetHeight));
+    const measure = () =>
+      setListHeight((h) => (h === el.offsetHeight ? h : el.offsetHeight));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -468,9 +660,12 @@ export function CommandPalette({
     const list = listRef.current;
     if (!row || !list) return;
     const top = row.offsetTop;
-    setHighlight((h) => (h.top === top && h.ready ? h : { top, ready: h.ready || isOpen }));
+    setHighlight((h) =>
+      h.top === top && h.ready ? h : { top, ready: h.ready || isOpen },
+    );
     if (top < list.scrollTop) list.scrollTop = top - 4;
-    else if (top + ROW > list.scrollTop + list.clientHeight) list.scrollTop = top + ROW - list.clientHeight + 4;
+    else if (top + ROW > list.scrollTop + list.clientHeight)
+      list.scrollTop = top + ROW - list.clientHeight + 4;
   }, [current, rows, isOpen]);
 
   // A new page slides in from the side you went.
@@ -478,10 +673,14 @@ export function CommandPalette({
     if (!enterDir || reduced) return;
     paneRef.current?.animate(
       [
-        { opacity: 0, filter: "blur(4px)", transform: `translateX(${enterDir * 28}px)` },
+        {
+          opacity: 0,
+          filter: "blur(4px)",
+          transform: `translateX(${enterDir * 28}px)`,
+        },
         { opacity: 1, filter: "blur(0px)", transform: "none" },
       ],
-      { duration: 360, easing: EASE, delay: 40, fill: "backwards" }
+      { duration: 360, easing: EASE, delay: 40, fill: "backwards" },
     );
   }, [stack.length, enterDir, reduced]);
 
@@ -492,7 +691,11 @@ export function CommandPalette({
   }, [leaving]);
 
   const go = (dir: 1 | -1, next: Page[]) => {
-    if (!reduced) setLeaving((l) => [...l, { key: ++leaveKey.current, rows, active: current, dir }]);
+    if (!reduced)
+      setLeaving((l) => [
+        ...l,
+        { key: ++leaveKey.current, rows, active: current, dir },
+      ]);
     setEnterDir(dir);
     setStack(next);
     setQuery("");
@@ -505,31 +708,68 @@ export function CommandPalette({
     if (!row || run) return;
     const { item } = row;
     setActive(i);
-    if (item.items) return go(1, [...stack, { title: item.label.replace(/…$/, ""), items: item.items }]);
+    // A recent search fills the field again rather than acting.
+    if (item.setQuery !== undefined) {
+      setQuery(item.setQuery);
+      setActive(0);
+      inputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (item.items)
+      return go(1, [
+        ...stack,
+        { title: item.label.replace(/…$/, ""), items: item.items },
+      ]);
     if (item.href && !item.onSelect) {
       setOpen(false);
       window.location.assign(item.href);
       return;
     }
     const result = item.onSelect?.();
-    if (!(result instanceof Promise)) return setOpen(false);
+    if (!(result instanceof Promise)) {
+      if (!item.keepOpen) setOpen(false);
+      return;
+    }
     setRun({ id: item.id, state: "pending" });
     try {
       await result;
       setRun({ id: item.id, state: "done" });
-      timer.current = window.setTimeout(() => setOpen(false), reduced ? 0 : 520);
+      // A keep-open row shows its spinner and check without closing the palette.
+      if (item.keepOpen) {
+        timer.current = window.setTimeout(
+          () => setRun(null),
+          reduced ? 0 : 520,
+        );
+        return;
+      }
+      timer.current = window.setTimeout(
+        () => setOpen(false),
+        reduced ? 0 : 520,
+      );
     } catch {
       setRun(null);
+      if (item.keepOpen) return;
       rowRefs.current[i]?.animate(
-        [{ transform: "none" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(-2px)" }, { transform: "none" }],
-        { duration: 380, easing: "ease-out" }
+        [
+          { transform: "none" },
+          { transform: "translateX(-4px)" },
+          { transform: "translateX(4px)" },
+          { transform: "translateX(-2px)" },
+          { transform: "none" },
+        ],
+        { duration: 380, easing: "ease-out" },
       );
     }
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.nativeEvent.isComposing) return;
-    const moves: Record<string, number> = { ArrowDown: current + 1, ArrowUp: current - 1, Home: 0, End: rows.length - 1 };
+    const moves: Record<string, number> = {
+      ArrowDown: current + 1,
+      ArrowUp: current - 1,
+      Home: 0,
+      End: rows.length - 1,
+    };
     if (e.key in moves && rows.length) {
       if ((e.key === "Home" || e.key === "End") && query) return;
       e.preventDefault();
@@ -551,22 +791,26 @@ export function CommandPalette({
     }
   };
 
-  const final = mounted ? target() : null;
+  const currentLayout = mounted ? layout() : null;
+  const final = currentLayout?.rect ?? null;
   const shape = isOpen || !from ? final : from;
-  const listVisible = Math.min(listHeight, LIST_MAX);
+  const listVisible = Math.min(listHeight, currentLayout?.listMax ?? LIST_MAX);
   const panelHeight = 52 + (listVisible ? listVisible + 12 : 0) + 37;
   const empty = rows.length === 0;
   const keys = hotkey ? [mac ? "⌘" : "Ctrl", hotkey.toUpperCase()] : [];
 
   const panel =
     mounted && final && shape ? (
-      <div className="fixed inset-0 z-[100]" onKeyDown={onKeyDown}>
+      <div className="fixed inset-0 z-100" onKeyDown={onKeyDown}>
         {/* A faint veil over the page; clicking it closes. */}
         <div
           aria-hidden="true"
           onPointerDown={() => setOpen(false)}
           className="absolute inset-0 bg-background/55"
-          style={{ opacity: isOpen ? 1 : 0, transition: reduced ? "none" : `opacity ${DURATION}ms ${EASE}` }}
+          style={{
+            opacity: isOpen ? 1 : 0,
+            transition: reduced ? "none" : `opacity ${DURATION}ms ${EASE}`,
+          }}
         />
         <div
           role="dialog"
@@ -579,10 +823,12 @@ export function CommandPalette({
             width: shape.width,
             height: isOpen || !from ? panelHeight : from.height,
             borderRadius: shape.radius,
-            backgroundColor: !isOpen && from ? "var(--background)" : "var(--popover)",
+            backgroundColor:
+              !isOpen && from ? "var(--background)" : "var(--popover)",
             boxShadow: "inset 0 0 0 1px var(--border)",
             opacity: !from && !isOpen ? 0 : 1,
-            transform: !from && !isOpen ? "scale(0.97) translateY(-6px)" : "none",
+            transform:
+              !from && !isOpen ? "scale(0.97) translateY(-6px)" : "none",
             transition: reduced
               ? "none"
               : `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, border-radius ${DURATION}ms ${EASE}, background-color ${DURATION}ms ${EASE}, opacity 240ms ${EASE}, transform ${DURATION}ms ${EASE}`,
@@ -593,7 +839,15 @@ export function CommandPalette({
             <span
               aria-hidden="true"
               className="pointer-events-none absolute left-0 top-0 flex items-center gap-2 whitespace-nowrap pl-3 pr-1.5 text-[13px] text-muted-foreground"
-              style={{ height: from.height, opacity: isOpen ? 0 : 1, transition: reduced ? "none" : isOpen ? "opacity 120ms ease-out" : "opacity 200ms ease-out 200ms" }}
+              style={{
+                height: from.height,
+                opacity: isOpen ? 0 : 1,
+                transition: reduced
+                  ? "none"
+                  : isOpen
+                    ? "opacity 120ms ease-out"
+                    : "opacity 200ms ease-out 200ms",
+              }}
             >
               <PillFace label={triggerLabel} keys={keys} />
             </span>
@@ -605,10 +859,14 @@ export function CommandPalette({
             style={{
               width: final.width,
               opacity: isOpen ? 1 : 0,
-              transition: reduced ? "none" : isOpen ? `opacity 260ms ease-out 120ms` : "opacity 100ms ease-out",
+              transition: reduced
+                ? "none"
+                : isOpen
+                  ? `opacity 260ms ease-out 120ms`
+                  : "opacity 100ms ease-out",
             }}
           >
-            <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b border-border px-4">
+            <div className="flex h-13 shrink-0 items-center gap-2.5 border-b border-border px-4">
               <SearchIcon className="text-muted-foreground" />
               {/* Where you are, as a chip that opens in when you go into a list. */}
               <span
@@ -616,7 +874,9 @@ export function CommandPalette({
                 style={{
                   gridTemplateColumns: page ? "1fr" : "0fr",
                   opacity: page ? 1 : 0,
-                  transition: reduced ? "none" : `grid-template-columns 360ms ${EASE}, opacity 240ms ${EASE}`,
+                  transition: reduced
+                    ? "none"
+                    : `grid-template-columns 360ms ${EASE}, opacity 240ms ${EASE}`,
                 }}
               >
                 <span className="min-w-0 overflow-hidden">
@@ -632,11 +892,15 @@ export function CommandPalette({
                   setQuery(e.target.value);
                   setActive(0);
                 }}
-                placeholder={page ? `Search ${page.title.toLowerCase()}…` : placeholder}
+                placeholder={
+                  page ? `Search ${page.title.toLowerCase()}…` : placeholder
+                }
                 role="combobox"
                 aria-expanded="true"
                 aria-controls={`${id}-list`}
-                aria-activedescendant={rows.length ? `${id}-opt-${current}` : undefined}
+                aria-activedescendant={
+                  rows.length ? `${id}-opt-${current}` : undefined
+                }
                 aria-autocomplete="list"
                 spellCheck={false}
                 className="h-full min-w-0 flex-1 bg-transparent text-[14.5px] text-foreground outline-none placeholder:text-muted-foreground"
@@ -646,8 +910,12 @@ export function CommandPalette({
 
             <div
               ref={listRef}
-              className="relative overflow-y-auto overscroll-contain px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              style={{ height: listVisible ? listVisible + 12 : 0, transition: reduced || !isOpen ? "none" : `height 300ms ${EASE}` }}
+              className="relative overflow-y-auto overscroll-contain px-1.5 scrollbar-none [&::-webkit-scrollbar]:hidden"
+              style={{
+                height: listVisible ? listVisible + 12 : 0,
+                transition:
+                  reduced || !isOpen ? "none" : `height 300ms ${EASE}`,
+              }}
             >
               <div ref={innerRef} className="relative py-1.5">
                 {!empty && (
@@ -658,13 +926,21 @@ export function CommandPalette({
                       top: 0,
                       height: ROW,
                       transform: `translateY(${highlight.top}px)`,
-                      transition: highlight.ready && !reduced ? `transform 200ms ${EASE}` : "none",
+                      transition:
+                        highlight.ready && !reduced
+                          ? `transform 200ms ${EASE}`
+                          : "none",
                     }}
                   />
                 )}
                 {leaving.map((l) => (
                   <LeavingPane key={l.key} dir={l.dir}>
-                    <Results rows={l.rows} active={l.active} run={null} reduced={reduced} />
+                    <Results
+                      rows={l.rows}
+                      active={l.active}
+                      run={null}
+                      reduced={reduced}
+                    />
                   </LeavingPane>
                 ))}
                 <div ref={paneRef} key={stack.length}>
@@ -680,15 +956,25 @@ export function CommandPalette({
                     rowRefs={rowRefs}
                   />
                 </div>
-                {empty && (
-                  <p role="status" className="flex items-center px-3 text-[13px] text-muted-foreground" style={{ height: ROW }}>
-                    <TextMorph>{query ? `No results for “${query.trim()}”` : "Nothing here yet"}</TextMorph>
+                {empty && !children && (
+                  <p
+                    role="status"
+                    className="flex items-center px-3 text-[13px] text-muted-foreground"
+                    style={{ height: ROW }}
+                  >
+                    <TextMorph>
+                      {query
+                        ? `No results for “${query.trim()}”`
+                        : "Nothing here yet"}
+                    </TextMorph>
                   </p>
                 )}
+                {/* Loading and error states: inside the list, so the panel still eases to fit them. */}
+                {children && <div>{children}</div>}
               </div>
             </div>
 
-            <div className="flex h-[37px] shrink-0 items-center gap-4 border-t border-border px-4 text-[11.5px] text-muted-foreground">
+            <div className="flex h-9.25 shrink-0 items-center gap-4 border-t border-border px-4 text-[11.5px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Kbd>↑</Kbd>
                 <Kbd>↓</Kbd>
@@ -703,7 +989,9 @@ export function CommandPalette({
                 style={{
                   gridTemplateColumns: page ? "1fr" : "0fr",
                   opacity: page ? 1 : 0,
-                  transition: reduced ? "none" : `grid-template-columns 360ms ${EASE}, opacity 240ms ${EASE}`,
+                  transition: reduced
+                    ? "none"
+                    : `grid-template-columns 360ms ${EASE}, opacity 240ms ${EASE}`,
                 }}
               >
                 <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap">
@@ -719,40 +1007,70 @@ export function CommandPalette({
 
   return (
     <div className={`inline-flex ${className}`} {...props}>
-      {showTrigger && (
-        <button
-          ref={triggerRef}
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
-          onClick={() => setOpen(true)}
-          className={`cursor-pointer group inline-flex h-9 items-center gap-2 rounded-full bg-background pl-3 pr-1.5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,color] duration-300 hover:text-foreground hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] ${FOCUS}`}
-          // When the palette folded back into the pill, it already looks exactly like it: take over without a fade.
-          style={{ opacity: mounted ? 0 : 1, transition: mounted || reduced || from ? "none" : "opacity 160ms ease-out" }}
-        >
-          <PillFace label={triggerLabel} keys={keys} />
-        </button>
-      )}
+      {trigger
+        ? // The pill lives in the header, but its state, its focus hand-back and
+          // the box the palette grows from all stay here.
+          React.cloneElement(trigger, {
+            ref: triggerRef,
+            "aria-haspopup": "dialog",
+            "aria-expanded": isOpen,
+            onClick: () => setOpen(true),
+          })
+        : showTrigger && (
+            <button
+              ref={triggerRef}
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={isOpen}
+              onClick={() => setOpen(true)}
+              className={`cursor-pointer group inline-flex h-9 items-center gap-2 rounded-full bg-background pl-3 pr-1.5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,color] duration-300 hover:text-foreground hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] ${FOCUS}`}
+              // When the palette folded back into the pill, it already looks exactly like it: take over without a fade.
+              style={{
+                opacity: mounted ? 0 : 1,
+                transition:
+                  mounted || reduced || from
+                    ? "none"
+                    : "opacity 160ms ease-out",
+              }}
+            >
+              <PillFace label={triggerLabel} keys={keys} />
+            </button>
+          )}
       {portal && panel ? createPortal(panel, portal) : null}
     </div>
   );
 }
 
 /** The page you left: it slides out toward the side you came from, then removes itself. */
-function LeavingPane({ dir, children }: { dir: number; children: React.ReactNode }) {
+function LeavingPane({
+  dir,
+  children,
+}: {
+  dir: number;
+  children: React.ReactNode;
+}) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     const animation = ref.current?.animate(
       [
         { opacity: 1, filter: "blur(0px)", transform: "none" },
-        { opacity: 0, filter: "blur(4px)", transform: `translateX(${-dir * 28}px)` },
+        {
+          opacity: 0,
+          filter: "blur(4px)",
+          transform: `translateX(${-dir * 28}px)`,
+        },
       ],
-      { duration: 240, easing: EASE, fill: "forwards" }
+      { duration: 240, easing: EASE, fill: "forwards" },
     );
     return () => animation?.cancel();
   }, [dir]);
   return (
-    <div ref={ref} inert aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1.5">
+    <div
+      ref={ref}
+      inert
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-1.5"
+    >
       {children}
     </div>
   );
