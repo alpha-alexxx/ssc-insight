@@ -18,7 +18,11 @@ import { analyticsKeys } from "@/lib/queries/analytics";
 import { toast } from "./toast-stack";
 import { VIEW_HREF, viewForPathname, type AppView } from "@/lib/routes";
 import { useUiStore } from "@/stores/ui-store";
-import { AI_VIEWS, type AiScreenContext, type AiView } from "@/lib/ai/client-types";
+import {
+  AI_VIEWS,
+  type AiScreenContext,
+  type AiView,
+} from "@/lib/ai/client-types";
 import { istTodayIso } from "@/lib/plan/view-model";
 import { shortDate } from "@/lib/format";
 import { VIEW_META } from "./app-shell";
@@ -104,10 +108,13 @@ export function WorkspaceChrome({
         queryClient.invalidateQueries({ queryKey: attemptKeys.all }),
         queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
       ]);
-      toast.success("Moved to Trash", { description: "Recoverable for 15 days" });
+      toast.success("Moved to Trash", {
+        description: "Recoverable for 15 days",
+      });
     } catch (error) {
       toast.error("Couldn't delete", {
-        description: error instanceof Error ? error.message : "Could not delete",
+        description:
+          error instanceof Error ? error.message : "Could not delete",
       });
     }
   };
@@ -141,7 +148,8 @@ export function WorkspaceChrome({
         onOpenSearch: openSearch,
         onShowHelp: () =>
           toast.info("Shortcuts", {
-            description: "⌘K=search · n=new · g d/h/c/s=navigate · /=focus search · ?=help",
+            description:
+              "⌘K=search · n=new · g d/h/c/s=navigate · /=focus search · ?=help",
           }),
       }),
       [addMock, go, openSearch],
@@ -151,9 +159,6 @@ export function WorkspaceChrome({
   return (
     <MotionConfig reducedMotion="user">
       <div className="min-h-screen">
-        <a href="#main-content" className="skip-link">
-          Skip to content
-        </a>
         <AppFrame
           defaultSidebarOpen={defaultSidebarOpen}
           view={view}
@@ -217,7 +222,9 @@ export function WorkspaceChrome({
           }
           onRetry={() => ai.chat.retryLast()}
           onRegenerate={() => ai.chat.regenerateLast()}
-          onEditResend={(messageId, text) => ai.chat.editResend(messageId, text)}
+          onEditResend={(messageId, text) =>
+            ai.chat.editResend(messageId, text)
+          }
           history={ai.chat.history}
           onStop={ai.chat.stop}
           onClear={ai.chat.clear}

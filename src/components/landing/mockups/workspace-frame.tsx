@@ -65,7 +65,9 @@ export function MockSidebar({ active }: { active: string }) {
           <NavItem key={item.label} {...item} active={item.label === active} />
         ))}
       </div>
-      <p className={cn(MOCK_LABEL, "mt-[0.9em] px-[0.6em] pb-[0.35em]")}>Results</p>
+      <p className={cn(MOCK_LABEL, "mt-[0.9em] px-[0.6em] pb-[0.35em]")}>
+        Results
+      </p>
       <div className="flex flex-col gap-[0.1em]">
         {RESULTS.map((item) => (
           <NavItem key={item.label} {...item} active={item.label === active} />
@@ -81,9 +83,6 @@ export function MockSidebar({ active }: { active: string }) {
           </span>
           <span className="truncate">Local Developer</span>
         </div>
-        <p className={cn(MOCK_LABEL, "mt-[0.5em] px-[0.6em] text-[0.68em]")}>
-          SSC CGL Tier 2 · dates in IST
-        </p>
       </div>
     </aside>
   );
@@ -99,23 +98,27 @@ export function MockTopBar({
   return (
     <div className="flex h-[2.8em] items-center gap-[0.8em] border-b border-border bg-card px-[1em]">
       <div className="flex min-w-0 items-center gap-[0.45em]">
-        <span aria-hidden="true" className="flex w-[1em] flex-col gap-[2px]">
+        <span aria-hidden="true" className="flex w-[1em] flex-col gap-xs">
           <span className="h-px bg-foreground" />
           <span className="h-px bg-foreground" />
           <span className="h-px bg-foreground" />
         </span>
         <span className={cn(MOCK_LABEL, "truncate")}>Workspace</span>
         <span className="text-muted-foreground">›</span>
-        <span className="truncate text-[0.9em] font-medium text-foreground">{view}</span>
+        <span className="truncate text-[0.9em] font-medium text-foreground">
+          {view}
+        </span>
       </div>
       <div className="ml-auto flex items-center gap-[0.6em]">
         <span className="hidden items-center gap-[0.35em] rounded-full px-[0.5em] py-[0.2em] text-[0.8em] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] @[520px]:flex">
           Search…
-          <span className="rounded-[2px] px-[0.25em] shadow-[inset_0_0_0_1px_var(--border)] text-[0.85em]">
+          <span className="rounded-xs px-[0.25em] shadow-[inset_0_0_0_1px_var(--border)] text-[0.85em]">
             ⌘K
           </span>
         </span>
-        <span className="hidden text-[0.82em] text-muted-foreground @[420px]:inline">Ask coach</span>
+        <span className="hidden text-[0.82em] text-muted-foreground @[420px]:inline">
+          Ask coach
+        </span>
         {actions}
         <span className="flex size-[1.35em] items-center justify-center rounded-full bg-primary/10 text-[0.68em] font-semibold text-primary">
           LD
@@ -145,11 +148,15 @@ export function MockPageHead({
             {title}
           </h3>
           {subtitle ? (
-            <p className="mt-[0.2em] text-[0.85em] text-muted-foreground">{subtitle}</p>
+            <p className="mt-[0.2em] text-[0.85em] text-muted-foreground">
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {actions ? (
-          <div className="flex shrink-0 items-center gap-[0.4em]">{actions}</div>
+          <div className="flex shrink-0 items-center gap-[0.4em]">
+            {actions}
+          </div>
         ) : null}
       </div>
       {meta ? <p className={cn(MOCK_LABEL, "mt-[0.55em]")}>{meta}</p> : null}
@@ -189,10 +196,18 @@ export function MockPanel({
               </p>
             ) : null}
           </div>
-          {action ? <div className="shrink-0 text-[0.8em]">{action}</div> : null}
+          {action ? (
+            <div className="shrink-0 text-[0.8em]">{action}</div>
+          ) : null}
         </div>
       ) : null}
-      <div className={cn("px-[0.9em] pb-[0.9em]", !title && "pt-[0.9em]", bodyClassName)}>
+      <div
+        className={cn(
+          "px-[0.9em] pb-[0.9em]",
+          !title && "pt-[0.9em]",
+          bodyClassName,
+        )}
+      >
         {children}
       </div>
     </section>

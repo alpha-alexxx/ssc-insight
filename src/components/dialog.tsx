@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { MODAL_ROOT, SCRIM, useModal } from "./modal";
-import { EASE_OUT, INTERACTION_FOCUS, INTERACTION_PRESS, useInteractionReducedMotion } from "./ui-interaction-motion";
+import {
+  EASE_OUT,
+  INTERACTION_FOCUS,
+  INTERACTION_PRESS,
+  useInteractionReducedMotion,
+} from "./ui-interaction-motion";
 
 /* ─────────────────────────────────────────────────────────
  * DIALOG: a decision that needs the whole screen
@@ -28,7 +33,8 @@ export interface DialogProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   /** The body, or a function that gets `close`. */
-  children?: React.ReactNode | ((api: { close: () => void }) => React.ReactNode);
+  children?:
+    React.ReactNode | ((api: { close: () => void }) => React.ReactNode);
   /** Buttons along the bottom, or a function that gets `close`. */
   footer?: React.ReactNode | ((api: { close: () => void }) => React.ReactNode);
   /** 400, 520 or 680px wide. */
@@ -77,11 +83,19 @@ export function Dialog({
           },
         })}
       {mounted && (
-        <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descId : undefined} className={MODAL_ROOT}>
+        <dialog
+          ref={dialog}
+          aria-labelledby={titleId}
+          aria-describedby={description ? descId : undefined}
+          className={MODAL_ROOT}
+        >
           <div
             className={SCRIM}
             onClick={() => dismissible && close()}
-            style={{ opacity: shown ? 1 : 0, transition: `opacity ${shown ? 260 : 200}ms ${ease}` }}
+            style={{
+              opacity: shown ? 1 : 0,
+              transition: `opacity ${shown ? 260 : 200}ms ${ease}`,
+            }}
           />
           <div className="pointer-events-none absolute inset-0 flex items-end justify-center p-3 sm:items-center sm:p-6">
             <div
@@ -103,11 +117,17 @@ export function Dialog({
             >
               <div className="flex items-start gap-4 px-6 pb-2 pt-5">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <h2 id={titleId} className="text-[16px] font-semibold tracking-[-0.01em] text-foreground">
+                  <h2
+                    id={titleId}
+                    className="text-[16px] font-semibold tracking-[-0.01em] text-foreground sr-only"
+                  >
                     {title}
                   </h2>
                   {description && (
-                    <p id={descId} className="text-[13.5px] leading-relaxed text-muted-foreground">
+                    <p
+                      id={descId}
+                      className="text-[13.5px] leading-relaxed text-muted-foreground"
+                    >
                       {description}
                     </p>
                   )}
@@ -119,17 +139,26 @@ export function Dialog({
                   className={`-mr-2 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
                 >
                   <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
-                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    <path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </button>
               </div>
               {children !== undefined && (
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-2 text-[13.5px] leading-relaxed text-foreground">
-                  {typeof children === "function" ? children({ close }) : children}
+                  {typeof children === "function"
+                    ? children({ close })
+                    : children}
                 </div>
               )}
               {footer !== undefined && (
-                <div className="flex flex-col-reverse gap-2 px-6 pb-5 pt-4 sm:flex-row sm:justify-end">{typeof footer === "function" ? footer({ close }) : footer}</div>
+                <div className="flex flex-col-reverse gap-2 px-6 pb-5 pt-4 sm:flex-row sm:justify-end">
+                  {typeof footer === "function" ? footer({ close }) : footer}
+                </div>
               )}
               {footer === undefined && <div className="h-4" />}
             </div>

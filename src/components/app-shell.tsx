@@ -9,14 +9,21 @@ import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-lef
 import { Sheet } from "@/components/sheet";
 import { Tooltip } from "@/components/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { WorkspaceSidebarBody, VIEW_META } from "@/components/workspace-sidebar";
+import {
+  WorkspaceSidebarBody,
+  VIEW_META,
+} from "@/components/workspace-sidebar";
 import { ExamSwitcher } from "@/components/exam-switcher";
 import { VIEW_HREF, type AppView } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 export { PATH_VIEW, VIEW_HREF, VIEW_PATH, viewForPathname } from "@/lib/routes";
 export type { AppView } from "@/lib/routes";
-export { NAV_GROUPS, VIEW_META, planHref } from "@/components/workspace-sidebar";
+export {
+  NAV_GROUPS,
+  VIEW_META,
+  planHref,
+} from "@/components/workspace-sidebar";
 
 /** Platform check for the search kbd hint — the shortcut itself accepts both. */
 const IS_APPLE_PLATFORM =
@@ -115,7 +122,7 @@ export function AppFrame({
         side="left"
         title="Navigation"
         width={272}
-        className="p-0"
+        className="p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
       >
         <div className="h-full">
           <WorkspaceSidebarBody
@@ -193,9 +200,7 @@ export function AppHeader({
   const openSettings = () => router.push(VIEW_HREF.settings);
 
   return (
-    <header
-      className="sticky inset-x-0 top-0 z-20 flex h-14 w-full shrink-0 items-center gap-1 border-b border-border bg-background/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4"
-    >
+    <header className="sticky inset-x-0 top-0 z-20 flex h-14 w-full shrink-0 items-center gap-1 border-b border-border bg-background/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4">
       {/* Mobile: open the nav Sheet. Desktop: fold/unfold the sidebar rail. */}
       <Button
         variant="ghost"
@@ -206,7 +211,9 @@ export function AppHeader({
       >
         <Menu01Icon size={16} animateOnHover animateOnTap />
       </Button>
-      <Tooltip content={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}>
+      <Tooltip
+        content={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -277,7 +284,10 @@ function HeaderLocation({ label }: { label: string }) {
         className="hidden shrink-0 text-muted-foreground sm:inline"
       />
       {/* The leaf title is the one thing that must survive a narrow bar. */}
-      <span className="min-w-0 truncate text-[13px] font-semibold text-foreground" aria-current="page">
+      <span
+        className="min-w-0 truncate text-[13px] font-semibold text-foreground"
+        aria-current="page"
+      >
         {label}
       </span>
     </nav>

@@ -68,7 +68,11 @@ export const NAV_GROUPS: {
     items: [
       { view: "history", label: "Mock history", href: VIEW_HREF.history },
       { view: "compare", label: "Compare mocks", href: VIEW_HREF.compare },
-      { view: "performance", label: "Performance", href: VIEW_HREF.performance },
+      {
+        view: "performance",
+        label: "Performance",
+        href: VIEW_HREF.performance,
+      },
     ],
   },
   {
@@ -146,7 +150,12 @@ function AskAiButton({
         !inHeader && (expanded ? "justify-start px-3" : "justify-center px-0"),
       )}
     >
-      <SparklesIcon size={16} color="var(--primary)" animateOnHover animateOnTap />
+      <SparklesIcon
+        size={16}
+        color="var(--primary)"
+        animateOnHover
+        animateOnTap
+      />
       {(expanded || inHeader) && <span>Ask AI</span>}
     </Button>
   );
@@ -178,7 +187,11 @@ export function SidebarUserMenu({
         expanded ? "justify-start" : "justify-center p-0",
       )}
     >
-      <Avatar name={name || "My workspace"} src={imageUrl || undefined} size="sm" />
+      <Avatar
+        name={name || "My workspace"}
+        src={imageUrl || undefined}
+        size="sm"
+      />
       {expanded && (
         <span className="grid min-w-0 flex-1 text-left">
           <span className="truncate text-[12px] font-medium leading-none text-foreground">
@@ -194,10 +207,26 @@ export function SidebarUserMenu({
 
   const items: MenuEntry[] = [
     { type: "label", label: name || "My workspace" },
-    { id: "settings", label: "Settings", icon: <PlainIcon name="settings" size={14} />, onSelect: () => onGoTo("settings") },
-    { id: "trash", label: "Trash", icon: <PlainIcon name="trash" size={14} />, onSelect: () => onGoTo("trash") },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <PlainIcon name="settings" size={14} />,
+      onSelect: () => onGoTo("settings"),
+    },
+    {
+      id: "trash",
+      label: "Trash",
+      icon: <PlainIcon name="trash" size={14} />,
+      onSelect: () => onGoTo("trash"),
+    },
     { type: "separator" },
-    { id: "signout", label: "Sign out", icon: <PlainIcon name="logout" size={14} />, destructive: true, onSelect: signOut },
+    {
+      id: "signout",
+      label: "Sign out",
+      icon: <PlainIcon name="logout" size={14} />,
+      destructive: true,
+      onSelect: signOut,
+    },
   ];
 
   return (
@@ -211,21 +240,6 @@ export function SidebarUserMenu({
     />
   );
 }
-
-function ActiveExamFooterNote({ expanded }: { expanded: boolean }) {
-  const scope = useExamScope();
-  if (!expanded) return null;
-  const label = scope.exams
-    ? scope.examLabel(scope.activeExamId, scope.activeTierId)
-    : "SSC CGL";
-  return (
-    <p className="flex items-center gap-1.5 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-      <PlainIcon name="calendar" size={11} />
-      {label} · dates in IST
-    </p>
-  );
-}
-
 export interface WorkspaceSidebarProps {
   view: AppView;
   userName: string;
@@ -288,7 +302,10 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav aria-label="Workspace" className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      <nav
+        aria-label="Workspace"
+        className="min-h-0 flex-1 overflow-y-auto px-2 py-3"
+      >
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-4 last:mb-0">
             {expanded ? (
@@ -297,7 +314,10 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
                 <span className="h-px flex-1 bg-border" aria-hidden="true" />
               </p>
             ) : (
-              <div className="mx-auto mb-1.5 h-px w-6 bg-border" aria-hidden="true" />
+              <div
+                className="mx-auto mb-1.5 h-px w-6 bg-border"
+                aria-hidden="true"
+              />
             )}
             <ul className="space-y-0.5">
               {group.items.map((item) => (
@@ -313,14 +333,33 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
               {group.label === "Results" && (
                 <li className={expanded ? "pt-1.5" : "pt-1"}>
                   {expanded ? (
-                    <Button variant="primary" size="sm" onClick={onAddMock} className="h-9 w-full justify-start gap-2 px-3">
-                      <PlusSignIcon size={16} color="var(--primary-foreground)" animateOnHover animateOnTap />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={onAddMock}
+                      className="h-9 w-full justify-start gap-2 px-3"
+                    >
+                      <PlusSignIcon
+                        size={16}
+                        color="var(--primary-foreground)"
+                        animateOnHover
+                        animateOnTap
+                      />
                       <span>Log a mock</span>
                     </Button>
                   ) : (
                     <Tooltip content="Log a mock" side="right">
-                      <Button variant="primary" size="icon" onClick={onAddMock} className="size-9">
-                        <PlusSignIcon size={16} color="var(--primary-foreground)" animateOnTap />
+                      <Button
+                        variant="primary"
+                        size="icon"
+                        onClick={onAddMock}
+                        className="size-9"
+                      >
+                        <PlusSignIcon
+                          size={16}
+                          color="var(--primary-foreground)"
+                          animateOnTap
+                        />
                       </Button>
                     </Tooltip>
                   )}
@@ -359,7 +398,11 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
             {expanded && <span className="truncate">Trash</span>}
           </Button>
         </div>
-        <AskAiButton aiEnabled={aiEnabled} onOpenAi={onOpenAi} expanded={expanded} />
+        <AskAiButton
+          aiEnabled={aiEnabled}
+          onOpenAi={onOpenAi}
+          expanded={expanded}
+        />
         <SidebarUserMenu
           name={userName}
           email={userEmail}
@@ -367,7 +410,6 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
           expanded={expanded}
           onGoTo={onGoTo}
         />
-        <ActiveExamFooterNote expanded={expanded} />
       </div>
     </div>
   );
