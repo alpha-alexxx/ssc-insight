@@ -3,18 +3,20 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/button";
-import { Icon, PlainIcon } from "@/components/icon";
-import { Menu01Icon } from "@/components/animate-ui/icons/hugeicons/menu-01";
+import { Icon } from "@/components/icon";
 import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
+import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
 import { Sheet } from "@/components/sheet";
 import { Tooltip } from "@/components/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   WorkspaceSidebarBody,
   VIEW_META,
+  navGroupForView,
 } from "@/components/workspace-sidebar";
-import { ExamSwitcher } from "@/components/exam-switcher";
+import { Breadcrumb } from "@/components/breadcrumb";
 import { VIEW_HREF, type AppView } from "@/lib/routes";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 export { PATH_VIEW, VIEW_HREF, VIEW_PATH, viewForPathname } from "@/lib/routes";
@@ -37,9 +39,11 @@ const SIDEBAR_COOKIE = "sidebar_state";
  *
  * The sidebar owns expanded/collapsed (persisted in `sidebar_state` so the
  * server layout can paint it right) and the mobile Sheet; the shell keeps
- * the header (breadcrumb, search, exam scope, theme), route intent, and the
- * page frame. Everything visual is Hairline (Button, Sheet, Tooltip,
- * ThemeToggle) over the six-palette token set; geometry stays Hairline's own.
+ * the header (collapse trigger, search, Ask AI, theme), the where-you-are
+ * breadcrumb, route intent, and the page frame. Exam/tier scope lives in the
+ * sidebar's account menu. Everything visual is Hairline (Button, Sheet,
+ * Tooltip, ThemeToggle) over the six-palette token set; geometry stays
+ * Hairline's own.
  */
 
 export function AppFrame({
@@ -113,11 +117,10 @@ export function AppFrame({
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
-          aiEnabled={aiEnabled}
           expanded={expanded}
-          onOpenAi={onOpenAi}
           onAddMock={onAddMock}
           onGoTo={go}
+          onToggleSidebar={toggleExpanded}
         />
       </aside>
 
@@ -128,7 +131,9 @@ export function AppFrame({
         side="left"
         title="Navigation"
         width={272}
+        headerless
         className="p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
+        contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0 text-[13px] text-foreground"
       >
         <div className="h-full">
           <WorkspaceSidebarBody
@@ -136,18 +141,14 @@ export function AppFrame({
             userName={userName}
             userEmail={userEmail}
             userImage={userImage}
-            aiEnabled={aiEnabled}
             expanded
-            onOpenAi={() => {
-              setMobileOpen(false);
-              onOpenAi();
-            }}
             onAddMock={() => {
               setMobileOpen(false);
               onAddMock();
             }}
             onGoTo={go}
             onNavigate={() => setMobileOpen(false)}
+            variant="mobile"
           />
         </div>
       </Sheet>
@@ -159,7 +160,6 @@ export function AppFrame({
         )}
       >
         <AppHeader
-          view={view}
           aiEnabled={aiEnabled}
           onOpenAi={onOpenAi}
           onOpenSearch={onOpenSearch}
@@ -168,6 +168,26 @@ export function AppFrame({
           sidebarExpanded={expanded}
           searchSlot={searchSlot}
         />
+        {/* Where-you-are strip: under the app bar so the header row stays clean
+            ("Workspace / group / view"), then the routed page starts. /ask is
+            excluded: it sizes itself to header + one padding and must not grow. */}
+        {view !== "ask" && (
+          <nav
+            aria-label="Breadcrumb"
+            className="mx-auto w-full max-w-[1560px] px-3 pt-3 sm:px-5"
+          >
+            <Breadcrumb
+              items={[
+                { label: "Workspace", href: VIEW_HREF.dashboard },
+                ...(navGroupForView(view)
+                  ? [{ label: navGroupForView(view) as string }]
+                  : []),
+                { label: VIEW_META[view].label },
+              ]}
+              className="min-w-0"
+            />
+          </nav>
+        )}
         <main
           id="main-content"
           tabIndex={-1}
@@ -186,7 +206,6 @@ export function AppFrame({
  * edges are the viewport itself.
  */
 export function AppHeader({
-  view,
   aiEnabled,
   onOpenAi,
   onOpenSearch,
@@ -195,7 +214,6 @@ export function AppHeader({
   sidebarExpanded,
   searchSlot,
 }: {
-  view: AppView;
   aiEnabled: boolean;
   onOpenAi: () => void;
   onOpenSearch: () => void;
@@ -204,37 +222,39 @@ export function AppHeader({
   sidebarExpanded: boolean;
   searchSlot?: ReactNode;
 }) {
-  const router = useRouter();
-  const { label } = VIEW_META[view];
-  const openSettings = () => router.push(VIEW_HREF.settings);
+  // Render-conditioned on the viewport, not CSS-hidden: the collapse toggle
+  // must not exist on phones at all (no paint, no focus, no tooltip), and the
+  // hook's 768px breakpoint matches the sidebar's own md: geometry exactly.
+  const isMobile = useIsMobile();
 
   return (
     <header className="sticky inset-x-0 top-0 z-20 flex h-14 w-full shrink-0 items-center gap-1 border-b border-border bg-background/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4">
       {/* Mobile: open the nav Sheet. Desktop: fold/unfold the sidebar rail. */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onOpenMobileNav}
-        aria-label="Open navigation"
-        className="size-11 md:hidden"
-      >
-        <Menu01Icon size={16} animateOnHover animateOnTap />
-      </Button>
-      <Tooltip
-        content={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-      >
+      {isMobile ? (
         <Button
           variant="ghost"
           size="icon"
-          onClick={onToggleSidebar}
-          aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="hidden size-8 md:inline-flex"
+          onClick={onOpenMobileNav}
+          aria-label="Open navigation"
+          className="size-11"
         >
           <PanelLeftIcon size={16} animateOnHover animateOnTap />
         </Button>
-      </Tooltip>
-
-      <HeaderLocation label={label} />
+      ) : (
+        <Tooltip
+          content={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebar}
+            aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            className="size-8"
+          >
+            <PanelLeftIcon size={16} animateOnHover animateOnTap />
+          </Button>
+        </Tooltip>
+      )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         {/* The palette's pill. It replaces the old Search button: the palette
@@ -258,7 +278,22 @@ export function AppHeader({
           </Button>
         )}
 
-        <ExamSwitcher onManageExams={openSettings} compact />
+        {/* Ask AI rides the header now — the sidebar footer CTA was removed.
+            Hidden entirely when AI is not configured. */}
+        {aiEnabled && (
+          <Tooltip content="Ask AI" side="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenAi}
+              aria-label="Ask AI"
+              className="h-8 gap-2 border border-primary/20 bg-primary/8 px-2.5 text-foreground shadow-2xs hover:border-primary/35 hover:bg-primary/14"
+            >
+              <SparklesIcon size={16} color="var(--primary)" animateOnHover />
+              <span className="hidden font-medium sm:inline">Ask AI</span>
+            </Button>
+          </Tooltip>
+        )}
 
         <ThemeToggleBridge />
       </div>
@@ -275,34 +310,5 @@ function ThemeToggleBridge() {
       onValueChange={(next) => setTheme(next)}
       className="shrink-0"
     />
-  );
-}
-
-/**
- * Current-location indicator. Rendered as a breadcrumb landmark so assistive
- * technologies announce it consistently with the rest of the app.
- */
-function HeaderLocation({ label }: { label: string }) {
-  return (
-    <nav
-      aria-label="Breadcrumb"
-      className="flex min-w-[3.25rem] flex-1 items-center gap-2 overflow-hidden sm:min-w-0 sm:flex-none"
-    >
-      <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:inline">
-        Workspace
-      </span>
-      <PlainIcon
-        name="chevronRight"
-        size={12}
-        className="hidden shrink-0 text-muted-foreground sm:inline"
-      />
-      {/* The leaf title is the one thing that must survive a narrow bar. */}
-      <span
-        className="min-w-0 truncate text-[13px] font-semibold text-foreground"
-        aria-current="page"
-      >
-        {label}
-      </span>
-    </nav>
   );
 }

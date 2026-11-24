@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { enterStyle, themeVars, useDismiss, useFloating, usePresence, type Align, type Side } from "./floating";
+import { enterStyle, findFloatingPortal, themeVars, useDismiss, useFloating, usePresence, type Align, type Side } from "./floating";
 import { MenuList, type MenuEntry } from "./menu-list";
 import { useInteractionReducedMotion } from "./ui-interaction-motion";
 
@@ -44,7 +44,6 @@ export function DropdownMenu({ trigger, items, side = "bottom", align = "start",
   const [focusOn, setFocusOn] = React.useState<"first" | "last" | "none">("none");
   const open = controlled ?? own;
   const { mounted, shown } = usePresence(open, 180);
-  const place = useFloating({ open: mounted, anchor, floating: surface, side, align, offset: 6 });
   const [vars, setVars] = React.useState<React.CSSProperties>({});
   const id = React.useId();
   const triggerId = React.useId();
@@ -59,6 +58,16 @@ export function DropdownMenu({ trigger, items, side = "bottom", align = "start",
   useDismiss(open, (reason) => setOpen(false, reason === "escape"), [anchor, surface]);
 
   const [width, setWidth] = React.useState(minWidth);
+  // Resolved once per open, outside render: inside an open native <dialog>
+  // (the phone nav Sheet) the menu must join that top layer — portalled to
+  // the body it would render underneath and every tap would look dead. The
+  // floating hook waits for the portal target so its first measure sees the
+  // mounted surface.
+  const [portalEl, setPortalEl] = React.useState<Element | null>(null);
+  React.useLayoutEffect(() => {
+    setPortalEl(mounted ? findFloatingPortal(anchor.current) : null);
+  }, [mounted]);
+  const place = useFloating({ open: mounted && !!portalEl, anchor, floating: surface, side, align, offset: 6 });
   React.useLayoutEffect(() => {
     if (!mounted) return;
     setVars(themeVars(anchor.current));
@@ -89,6 +98,7 @@ export function DropdownMenu({ trigger, items, side = "bottom", align = "start",
         })}
       </span>
       {mounted &&
+        portalEl &&
         createPortal(
           <div
             ref={surface}
@@ -98,7 +108,7 @@ export function DropdownMenu({ trigger, items, side = "bottom", align = "start",
           >
             <MenuList items={items} label={label} autoFocus={focusOn} onClose={() => setOpen(false, true)} />
           </div>,
-          document.body,
+          portalEl,
         )}
     </>
   );

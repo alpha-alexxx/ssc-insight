@@ -21,6 +21,22 @@ export type Align = "start" | "center" | "end";
 
 const TOKENS = ["--background", "--foreground", "--popover", "--popover-foreground", "--border", "--accent", "--accent-foreground", "--primary", "--primary-foreground", "--muted", "--muted-foreground", "--ring", "--card"];
 
+/**
+ * The element a floating surface must portal into. Portals default to
+ * `document.body`, but a native top-layer <dialog> (Sheet/Drawer on phones)
+ * paints above everything in the body — a menu portalled to the body under an
+ * open sheet can neither be seen nor clicked. When the anchor lives inside an
+ * open dialog, portal beside it in the same top layer instead.
+ */
+export function findFloatingPortal(anchor: Element | null): Element {
+  let node: Element | null = anchor;
+  while (node) {
+    if (node instanceof HTMLDialogElement && node.open) return node;
+    node = node.parentElement;
+  }
+  return document.body;
+}
+
 /** The anchor's theme tokens as inline styles for something portalled out of its tree. */
 export function themeVars(anchor: Element | null): React.CSSProperties {
   if (!anchor) return {};

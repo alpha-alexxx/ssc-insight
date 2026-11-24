@@ -42,6 +42,17 @@ export interface SheetProps {
   /** Width of a side sheet in px. */
   width?: number;
   className?: string;
+  /**
+   * Replaces the content wrapper's default `px-5 pb-4` (and can retype it).
+   * Passed verbatim, so full-bleed bodies like the nav sidebar opt out of the
+   * document padding entirely.
+   */
+  contentClassName?: string;
+  /**
+   * Skip the built-in header chrome (the body carries its own). The accessible
+   * title stays — an sr-only h2 — so the dialog contract holds.
+   */
+  headerless?: boolean;
 }
 
 export function Sheet({
@@ -56,6 +67,8 @@ export function Sheet({
   footer,
   width = 400,
   className = "",
+  contentClassName = "",
+  headerless = false,
 }: SheetProps) {
   const reduced = useInteractionReducedMotion();
   const [own, setOwn] = React.useState(defaultOpen);
@@ -197,40 +210,71 @@ export function Sheet({
                     <span className="h-1 w-9 rounded-full bg-border" />
                   </div>
                 )}
-                <div
-                  {...grip}
-                  className={`flex touch-none items-start gap-4 px-5 ${bottom ? "pt-2" : "cursor-grab pt-5 active:cursor-grabbing"} pb-3`}
-                >
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <h2
-                      id={titleId}
-                      className="text-[16px] font-semibold tracking-[-0.01em] text-foreground sr-only"
-                    >
+                {headerless ? (
+                  /* Full-bleed bodies (the nav sidebar) carry their own header
+                     row: the title stays sr-only for the dialog contract and
+                     the ✕ floats over the panel's corner. */
+                  <>
+                    <h2 id={titleId} className="sr-only">
                       {title}
                     </h2>
-                    {description && (
-                      <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                        {description}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Close"
-                    onClick={close}
-                    className={`-mr-1.5 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
+                    <button
+                      type="button"
+                      aria-label="Close"
+                      onClick={close}
+                      className={`absolute right-2 top-2 z-10 flex size-8 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
+                        <path
+                          d="M4 4l8 8M12 4l-8 8"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <div
+                    {...grip}
+                    className={`flex touch-none items-start gap-4 ${bottom ? "pt-2" : "cursor-grab pt-5 active:cursor-grabbing"} px-5 pb-3`}
                   >
-                    <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
-                      <path
-                        d="M4 4l8 8M12 4l-8 8"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 text-[13.5px] leading-relaxed text-foreground">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <h2
+                        id={titleId}
+                        className="text-[16px] font-semibold tracking-[-0.01em] text-foreground sr-only"
+                      >
+                        {title}
+                      </h2>
+                      {description && (
+                        <p className="text-[13.5px] leading-relaxed text-muted-foreground">
+                          {description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Close"
+                      onClick={close}
+                      className={`-mr-1.5 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
+                        <path
+                          d="M4 4l8 8M12 4l-8 8"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <div
+                  className={
+                    contentClassName ||
+                    "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 text-[13.5px] leading-relaxed text-foreground"
+                  }
+                >
                   {typeof children === "function"
                     ? children({ close })
                     : children}

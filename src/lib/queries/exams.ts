@@ -214,14 +214,16 @@ export function examTierLabel(
   return examName ? `${examName} · ${tierLabel}` : tierLabel;
 }
 
-/** One selectable switcher entry: a concrete enabled tier, or the combined
- * "All tiers" view of an exam with two or more enabled tiers. */
+/** One selectable switcher entry: an exam with at least one enabled tier.
+ * Tier choice is a Settings concern (Exams & tiers panel); the switcher only
+ * moves the workspace between the exams the user has selected there. */
 export type SwitcherEntry = {
   examId: string;
-  /** Concrete tier id, or ALL_TIERS_ID for the combined view. */
+  /** The concrete tier this entry activates (see switcherEntries). */
   tierId: string;
-  /** Stable scope key ("examId:tierId" or "examId:all"). */
+  /** Stable activation key ("examId:tierId"). */
   key: string;
+  /** The exam's name — tier detail stays in Settings. */
   label: string;
   isCustom: boolean;
 };
@@ -237,31 +239,24 @@ export function switcherEntries(response: ExamsResponse): SwitcherEntry[] {
   }
   const entries: SwitcherEntry[] = [];
   const pushExam = (examId: string, examName: string, isCustom: boolean) => {
-    const tierIds = enabledByExam.get(examId) ?? [];
-    const nameFor = (tierId: string) =>
-      isCustom
-        ? (response.customExams
-            .find((exam) => exam.id === examId)
-            ?.tiers.find((t) => t.id === tierId)?.label ?? tierId)
-        : (response.builtIn
-            .find((exam) => exam.id === examId)
-            ?.tiers.find((t) => t.id === tierId)?.label ?? tierId);
-    for (const tierId of tierIds)
-      entries.push({
-        examId,
-        tierId,
-        key: `${examId}:${tierId}`,
-        label: `${examName} · ${nameFor(tierId)}`,
-        isCustom,
-      });
-    if (tierIds.length >= 2)
-      entries.push({
-        examId,
-        tierId: ALL_TIERS_ID,
-        key: `${examId}:${ALL_TIERS_ID}`,
-        label: `${examName} · All tiers`,
-        isCustom,
-      });
+    const tierIds = enabledByExam.get(examId);
+    if (!tierIds || tierIds.length === 0) return;
+    // Re-selecting the active exam keeps its current tier (including the
+    // combined view); arriving at a different exam lands on its first
+    // enabled tier — the fine-grained pick lives in Settings.
+    const tierId =
+      response.activeExamId === examId &&
+      (response.activeTierId === ALL_TIERS_ID ||
+        tierIds.includes(response.activeTierId))
+        ? response.activeTierId
+        : tierIds[0]!;
+    entries.push({
+      examId,
+      tierId,
+      key: `${examId}:${tierId}`,
+      label: examName,
+      isCustom,
+    });
   };
   for (const exam of response.builtIn)
     pushExam(exam.id, exam.name, false);

@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
 import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
 import { PlainIcon } from "@/components/icon";
-import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
 import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
+import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
+import { useExamScope } from "@/components/exam-context";
+import { analyticsKeys } from "@/lib/queries/analytics";
+import { attemptKeys } from "@/lib/queries/attempts";
+import {
+  examsKeys,
+  putScopeRequest,
+  switcherEntries,
+  type SwitcherEntry,
+} from "@/lib/queries/exams";
+import { useQueryClient } from "@tanstack/react-query";
+import { Dialog } from "@/components/dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip } from "@/components/tooltip";
 import { istTodayIso } from "@/lib/plan/view-model";
 import { VIEW_HREF, type AppView } from "@/lib/routes";
@@ -31,6 +44,14 @@ import { authClient } from "@/lib/auth/client";
 /** Plan-day route for "today" (IST) — computed per render, not at module load. */
 export function planHref(dateIso?: string): `/${string}` {
   return `/plan/${dateIso ?? istTodayIso()}`;
+}
+
+/** Sidebar group for each view — feeds the "Workspace / {group} / {view}" breadcrumb. */
+export function navGroupForView(view: AppView): string | null {
+  const group = NAV_GROUPS.find((g) =>
+    g.items.some((item) => item.view === view),
+  );
+  return group?.label ?? null;
 }
 
 export const VIEW_META: Record<
@@ -86,7 +107,7 @@ function resolveHref(href: string | (() => string)): string {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Navigation item                                                    */
+/*  Navigation item                                                   */
 /* ------------------------------------------------------------------ */
 
 function NavItem({
@@ -173,67 +194,7 @@ function NavItem({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Ask AI trigger — the one animated icon in the rail                 */
-/* ------------------------------------------------------------------ */
-
-function AskAiButton({
-  aiEnabled,
-  onOpenAi,
-  expanded,
-  inHeader = false,
-}: {
-  aiEnabled: boolean;
-  onOpenAi: () => void;
-  expanded?: boolean;
-  inHeader?: boolean;
-}) {
-  if (!aiEnabled) return null;
-
-  const button = (
-    <Button
-      variant="secondary"
-      size="sm"
-      onClick={onOpenAi}
-      aria-label="Ask AI"
-      className={cn(
-        "group relative overflow-hidden border border-primary/20 bg-primary/8 text-foreground shadow-2xs transition-all hover:border-primary/35 hover:bg-primary/14",
-        inHeader
-          ? "h-8 w-auto gap-2 px-2.5"
-          : expanded
-            ? "h-9 w-full justify-start gap-2.5 px-3"
-            : "mx-auto size-9 justify-center px-0",
-      )}
-    >
-      <SparklesIcon
-        size={16}
-        color="var(--primary)"
-        animateOnHover
-        animateOnTap
-      />
-      {(expanded || inHeader) && (
-        <>
-          <span className="font-medium">Ask AI</span>
-          {!inHeader && (
-            <span className="ml-auto rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-              Coach
-            </span>
-          )}
-        </>
-      )}
-    </Button>
-  );
-
-  if (expanded || inHeader) return button;
-
-  return (
-    <Tooltip content="Ask AI" side="right">
-      <span className="flex w-full justify-center">{button}</span>
-    </Tooltip>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Footer identity + account dropdown                                 */
+/*  Footer identity + account dropdown                                */
 /* ------------------------------------------------------------------ */
 
 export function SidebarUserMenu({
@@ -249,12 +210,41 @@ export function SidebarUserMenu({
   expanded: boolean;
   onGoTo: (next: "settings" | "trash") => void;
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const scope = useExamScope();
+  const queryClient = useQueryClient();
+
   const signOut = () => {
+    setSigningOut(true);
     void authClient.signOut({ callbackURL: "/" });
   };
 
   const displayName = name || "My workspace";
   const displayEmail = email || "Private account";
+
+  // Same scope switch the header ExamSwitcher performed — one entry per
+  // enabled tier plus the combined "All tiers" view. A checkbox row keeps the
+  // menu open while the write lands (like the theme pickers), and keyboard
+  // navigation reaches every tier.
+  const switchScope = async (entry: SwitcherEntry) => {
+    if (!scope.exams || switching) return;
+    setSwitching(true);
+    try {
+      const fresh = await putScopeRequest({
+        activeExamId: entry.examId,
+        activeTierId: entry.tierId,
+        enabledTiers: scope.exams.enabledTiers,
+      });
+      queryClient.setQueryData(examsKeys.current(), fresh);
+      await queryClient.invalidateQueries({ queryKey: attemptKeys.all });
+      await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   const triggerButton = (
     <button
@@ -271,8 +261,7 @@ export function SidebarUserMenu({
         <Avatar name={displayName} src={imageUrl || undefined} size="sm" />
         <span
           aria-hidden="true"
-          className="
-          absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-sidebar"
+          className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-sidebar"
         />
       </span>
 
@@ -294,39 +283,147 @@ export function SidebarUserMenu({
     </button>
   );
 
+  const entries = scope.exams ? switcherEntries(scope.exams) : [];
+  const activeKey = scope.exams
+    ? `${scope.exams.activeExamId}:${scope.exams.activeTierId}`
+    : "";
+
   const items: MenuEntry[] = [
     { type: "label", label: displayName },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <PlainIcon name="settings" size={14} />,
-      onSelect: () => onGoTo("settings"),
-    },
-    {
-      id: "trash",
-      label: "Trash",
-      icon: <PlainIcon name="trash" size={14} />,
-      onSelect: () => onGoTo("trash"),
-    },
+    // The exam scope moved here from the app header. It lists only the exams
+    // the user enabled in Settings (Exams & tiers); which tier of an exam is
+    // active is a Settings concern — the switcher just moves between exams.
+    ...(scope.exams
+      ? ([
+          { type: "label", label: "Exam" },
+          ...(entries.length === 0
+            ? [
+                {
+                  type: "item" as const,
+                  id: "no-exams",
+                  label: "No exams selected yet",
+                  disabled: true,
+                },
+              ]
+            : entries.map((entry) => ({
+                type: "checkbox" as const,
+                id: entry.key,
+                label: entry.label,
+                checked: entry.key === activeKey,
+                onCheckedChange: () => void switchScope(entry),
+              }))),
+          {
+            type: "item" as const,
+            id: "manage-exams",
+            label: "Manage exams",
+            icon: <PlainIcon name="settings" size={14} />,
+            onSelect: () => {
+              setMenuOpen(false);
+              onGoTo("settings");
+            },
+          },
+        ] satisfies MenuEntry[])
+      : []),
     { type: "separator" },
     {
       id: "signout",
-      label: "Sign out",
+      label: "Log out",
       icon: <PlainIcon name="logout" size={14} />,
       destructive: true,
-      onSelect: signOut,
+      onSelect: () => setConfirmOpen(true),
     },
   ];
 
   const menu = (
-    <DropdownMenu
-      trigger={triggerButton}
-      items={items}
-      side="top"
-      align={expanded ? "start" : "center"}
-      label="Account"
-      minWidth={expanded ? 216 : 220}
-    />
+    <>
+      <DropdownMenu
+        trigger={triggerButton}
+        items={items}
+        side="top"
+        align={expanded ? "start" : "center"}
+        label="Account"
+        minWidth={expanded ? 216 : 220}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+      />
+      {/* Logout confirmation — a decision, so it gets its own dialog even when
+          the menu that opened it sits in the phone Sheet's top layer. */}
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(next) => {
+          if (!signingOut) setConfirmOpen(next);
+        }}
+        title="Log out of workspace?"
+        description="You can sign back in any time to pick up right where you left off."
+        size="sm"
+        footer={({ close }) => (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={close}
+              disabled={signingOut}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={signOut}
+              disabled={signingOut}
+              className="gap-2"
+            >
+              <PlainIcon name="logout" size={14} tone="current" />
+              <span>{signingOut ? "Signing out…" : "Log out"}</span>
+            </Button>
+          </>
+        )}
+      >
+        <div className="overflow-hidden rounded-xl border border-sidebar-border/80 bg-accent/40 shadow-2xs">
+          {/* Active account row */}
+          <div className="flex items-center gap-2.5 p-2.5">
+            <span className="relative shrink-0">
+              <Avatar
+                name={displayName}
+                src={imageUrl || undefined}
+                size="sm"
+              />
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-background"
+              />
+            </span>
+
+            <div className="grid min-w-0 flex-1 text-left">
+              <span className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                {displayName}
+              </span>
+              <span className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
+                {displayEmail}
+              </span>
+            </div>
+
+            <span className="shrink-0 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold tracking-tight text-primary">
+              Synced
+            </span>
+          </div>
+
+          {/* Hairline divider */}
+          <div
+            className="h-px w-full bg-sidebar-border/70"
+            aria-hidden="true"
+          />
+
+          {/* Workspace reassurance strip */}
+          <div className="flex items-center gap-2 bg-background/50 px-2.5 py-2 text-[11px] text-muted-foreground">
+            <PlainIcon name="layers" size={14} tone="primary" />
+            <span className="truncate">
+              Your study plan, mock history, and tasks stay saved.
+            </span>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 
   if (expanded) return menu;
@@ -339,7 +436,7 @@ export function SidebarUserMenu({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Workspace sidebar body                                             */
+/*  Workspace sidebar body                                            */
 /* ------------------------------------------------------------------ */
 
 export interface WorkspaceSidebarProps {
@@ -347,12 +444,14 @@ export interface WorkspaceSidebarProps {
   userName: string;
   userEmail: string;
   userImage: string;
-  aiEnabled: boolean;
   expanded: boolean;
-  onOpenAi: () => void;
   onAddMock: () => void;
   onGoTo: (next: "settings" | "trash") => void;
   onNavigate?: () => void;
+  /** Desktop only: fold the rail back out from the collapsed state. */
+  onToggleSidebar?: () => void;
+  /** Which surface hosts the body: the fixed desktop rail or the phone Sheet. */
+  variant?: "desktop" | "mobile";
 }
 
 /** The sidebar body — shared by the desktop aside and the mobile sheet. */
@@ -362,22 +461,26 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
     userName,
     userEmail,
     userImage,
-    aiEnabled,
     expanded,
-    onOpenAi,
     onAddMock,
     onGoTo,
     onNavigate = () => undefined,
+    onToggleSidebar,
+    variant = "desktop",
   } = props;
   const routerPathname = usePathname();
   void routerPathname;
+
+  // The phone Sheet complained about density: trim its paddings one step
+  // below the desktop rail's, without touching desktop geometry.
+  const pad = variant === "mobile" ? "px-2" : "px-2.5";
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground select-none">
       {/* ── Brand Header ── */}
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center border-b border-sidebar-border/80",
+          "relative flex h-14 shrink-0 items-center border-b border-sidebar-border/80",
           expanded ? "px-3.5" : "justify-center px-0",
         )}
       >
@@ -405,188 +508,218 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
             </span>
           )}
         </Link>
+
+        {/* Collapsed rail: hovering the brand row reveals the expand affordance
+            in the logo's place — the same grammar ChatGPT's rail uses. The veil
+            ignores pointers until it is actually shown, so the brand link
+            underneath keeps its clicks and keyboard focus. */}
+        {!expanded && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label="Expand sidebar"
+            tabIndex={-1}
+            className="pointer-events-none absolute inset-0 grid place-items-center bg-sidebar text-foreground opacity-0 outline-none transition-opacity duration-150 hover:pointer-events-auto hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+          >
+            <PanelLeftIcon size={16} animateOnHover animateOnTap />
+          </button>
+        )}
       </div>
 
       {/* ── Primary Navigation ── */}
-      <nav
-        aria-label="Workspace"
-        className={cn(
-          "no-scrollbar min-h-0 flex-1 overflow-y-auto py-3",
-          expanded ? " space-y-5 px-2.5" : "space-y-3 px-1.5",
-        )}
-      >
-        {NAV_GROUPS.map((group, groupIdx) => (
-          <div key={group.label}>
-            {expanded ? (
-              <p className="mb-1.5 flex items-center gap-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
-                <span>{group.label}</span>
-                <span
-                  className="h-px flex-1 bg-sidebar-border/70"
-                  aria-hidden="true"
-                />
-              </p>
-            ) : (
-              groupIdx > 0 && (
-                <div
-                  className="mx-auto mb-2.5 h-px w-5 bg-sidebar-border/80"
-                  aria-hidden="true"
-                />
-              )
-            )}
-
-            <ul className="space-y-0.5">
-              {group.items.map((item) => (
-                <li key={item.view}>
-                  <NavItem
-                    item={{ ...item, href: resolveHref(item.href) }}
-                    active={view === item.view}
-                    expanded={expanded}
-                    onNavigate={onNavigate}
+      <ScrollArea className="min-h-0 flex-1">
+        <nav
+          aria-label="Workspace"
+          className={cn(
+            "pb-3 pt-2",
+            expanded ? `space-y-5 ${pad}` : "space-y-3 px-1.5",
+          )}
+        >
+          {NAV_GROUPS.map((group, groupIdx) => (
+            <div key={group.label}>
+              {expanded ? (
+                <p className="mb-1.5 flex items-center gap-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <span>{group.label}</span>
+                  <span
+                    className="h-px flex-1 bg-sidebar-border/70"
+                    aria-hidden="true"
                   />
-                </li>
-              ))}
+                </p>
+              ) : (
+                groupIdx > 0 && (
+                  <div
+                    className="mx-auto mb-2.5 h-px w-5 bg-sidebar-border/80"
+                    aria-hidden="true"
+                  />
+                )
+              )}
 
-              {/* Primary Mock-Logging CTA */}
-              {group.label === "Results" && (
-                <li
-                  className={expanded ? "pt-2" : "flex justify-center pt-1.5"}
-                >
-                  {expanded ? (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={onAddMock}
-                      className="h-9 w-full justify-start gap-2.5 px-3 shadow-xs"
-                    >
-                      <PlusSignIcon
-                        size={16}
-                        color="var(--primary-foreground)"
-                        animateOnHover
-                        animateOnTap
-                      />
-                      <span className="font-medium">Log a mock</span>
-                    </Button>
-                  ) : (
-                    <Tooltip content="Log a mock" side="right">
+              <ul className="space-y-0.5">
+                {group.items.map((item) => (
+                  <li key={item.view}>
+                    <NavItem
+                      item={{ ...item, href: resolveHref(item.href) }}
+                      active={view === item.view}
+                      expanded={expanded}
+                      onNavigate={onNavigate}
+                    />
+                  </li>
+                ))}
+
+                {/* Primary Mock-Logging CTA */}
+                {group.label === "Results" && (
+                  <li
+                    className={expanded ? "pt-2" : "flex justify-center pt-1.5"}
+                  >
+                    {expanded ? (
                       <Button
                         variant="primary"
-                        size="icon"
+                        size="sm"
                         onClick={onAddMock}
-                        aria-label="Log a mock"
-                        className="size-9 shadow-xs"
+                        className="h-9 w-full justify-start gap-2.5 px-3 shadow-xs"
                       >
                         <PlusSignIcon
                           size={16}
                           color="var(--primary-foreground)"
+                          animateOnHover
                           animateOnTap
                         />
+                        <span className="font-medium">Log a mock</span>
                       </Button>
-                    </Tooltip>
-                  )}
-                </li>
-              )}
-            </ul>
-          </div>
-        ))}
-      </nav>
+                    ) : (
+                      <Tooltip content="Log a mock" side="right">
+                        <Button
+                          variant="primary"
+                          size="icon"
+                          onClick={onAddMock}
+                          aria-label="Log a mock"
+                          className="size-9 shadow-xs"
+                        >
+                          <PlusSignIcon
+                            size={16}
+                            color="var(--primary-foreground)"
+                            animateOnTap
+                          />
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </nav>
+        <ScrollBar />
+      </ScrollArea>
 
       {/* ── Footer Utilities & Account ── */}
       <div
         className={cn(
           "flex shrink-0 flex-col border-t border-sidebar-border/80 bg-sidebar/60",
-          expanded ? "gap-2 p-2.5" : "items-center gap-1.5 px-1.5 py-2.5",
+          expanded
+            ? variant === "mobile"
+              ? "gap-1.5 p-2"
+              : "gap-2 p-2.5"
+            : "items-center gap-1.5 px-1.5 py-2.5",
         )}
       >
-        <AskAiButton
-          aiEnabled={aiEnabled}
-          onOpenAi={onOpenAi}
-          expanded={expanded}
-        />
-
-        {/* Quick Utility Strip: Side-by-side when expanded, stacked with tooltips when collapsed */}
+        {/* Quick Utility Strip: Side-by-side when expanded, stacked with tooltips when collapsed.
+            Ask AI lives in the header now. */}
         {expanded ? (
-          <div className="grid grid-cols-2 gap-1 rounded-xl border border-sidebar-border/60 bg-background/40 p-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onGoTo("settings")}
-              className={cn(
-                "h-7 justify-center gap-1.5 rounded-lg px-2 text-xs",
-                view === "settings"
-                  ? "bg-accent font-semibold text-accent-foreground shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <PlainIcon
-                name="settings"
-                size={14}
-                tone={view === "settings" ? "primary" : "current"}
-              />
-              <span className="truncate">Settings</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onGoTo("trash")}
-              className={cn(
-                "h-7 justify-center gap-1.5 rounded-lg px-2 text-xs",
-                view === "trash"
-                  ? "bg-accent font-semibold text-accent-foreground shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <PlainIcon
-                name="trash"
-                size={14}
-                tone={view === "trash" ? "primary" : "current"}
-              />
-              <span className="truncate">Trash</span>
-            </Button>
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-1 rounded-xl border border-sidebar-border/60 bg-background/40 p-0.5",
+              variant === "mobile" && "rounded-lg",
+            )}
+          >
+            {(["settings", "trash"] as const).map((target) => {
+              const active = view === target;
+              return (
+                <Button
+                  key={target}
+                  variant="ghost"
+                  size="sm"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => onGoTo(target)}
+                  className={cn(
+                    "group relative h-7 justify-center gap-1.5 rounded-lg px-2 text-xs transition-all",
+                    active
+                      ? "bg-accent font-semibold text-accent-foreground shadow-2xs ring-1 ring-sidebar-border/80"
+                      : "font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                  )}
+                >
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-0.75 rounded-r-full bg-primary"
+                    />
+                  )}
+                  <span
+                    className={cn(
+                      "flex shrink-0 items-center justify-center transition-transform duration-150 group-hover:scale-105",
+                      active
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    <PlainIcon
+                      name={VIEW_META[target].icon}
+                      size={14}
+                      tone={active ? "primary" : "current"}
+                    />
+                  </span>
+                  <span className="truncate">{VIEW_META[target].label}</span>
+                </Button>
+              );
+            })}
           </div>
         ) : (
           <div className="flex w-full flex-col items-center gap-1">
-            <Tooltip content="Settings" side="right">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Settings"
-                onClick={() => onGoTo("settings")}
-                className={cn(
-                  "size-9",
-                  view === "settings"
-                    ? "bg-accent text-accent-foreground ring-1 ring-sidebar-border/80"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <PlainIcon
-                  name="settings"
-                  size={16}
-                  tone={view === "settings" ? "primary" : "current"}
-                />
-              </Button>
-            </Tooltip>
-
-            <Tooltip content="Trash" side="right">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Trash"
-                onClick={() => onGoTo("trash")}
-                className={cn(
-                  "size-9",
-                  view === "trash"
-                    ? "bg-accent text-accent-foreground ring-1 ring-sidebar-border/80"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <PlainIcon
-                  name="trash"
-                  size={16}
-                  tone={view === "trash" ? "primary" : "current"}
-                />
-              </Button>
-            </Tooltip>
+            {(["settings", "trash"] as const).map((target) => {
+              const active = view === target;
+              return (
+                <Tooltip
+                  key={target}
+                  content={VIEW_META[target].label}
+                  side="right"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={VIEW_META[target].label}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => onGoTo(target)}
+                    className={cn(
+                      "group relative size-9 rounded-xl transition-all",
+                      active
+                        ? "bg-accent font-semibold text-accent-foreground shadow-2xs ring-1 ring-sidebar-border/80"
+                        : "font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                    )}
+                  >
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full bg-primary"
+                      />
+                    )}
+                    <span
+                      className={cn(
+                        "flex shrink-0 items-center justify-center transition-transform duration-150 group-hover:scale-105",
+                        active
+                          ? "text-primary"
+                          : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                    >
+                      <PlainIcon
+                        name={VIEW_META[target].icon}
+                        size={16}
+                        tone={active ? "primary" : "current"}
+                      />
+                    </span>
+                  </Button>
+                </Tooltip>
+              );
+            })}
           </div>
         )}
 
