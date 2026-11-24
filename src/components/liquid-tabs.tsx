@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { INTERACTION_FOCUS, MATERIAL_RECESS, createSpring, rubberBand, useInteractionReducedMotion, type Spring } from "./ui-interaction-motion";
+import {
+  INTERACTION_FOCUS,
+  MATERIAL_RECESS,
+  createSpring,
+  rubberBand,
+  useInteractionReducedMotion,
+  type Spring,
+} from "./ui-interaction-motion";
 
 /* ─────────────────────────────────────────────────────────
  * LIQUID TABS: a selection with a little surface tension
@@ -54,9 +61,15 @@ export interface LiquidTabsProps {
 }
 
 const SIZES = {
-  sm: { row: "h-8 p-[3px]", tab: "px-3 text-[12.5px] gap-1.5 [&_svg]:size-3.5" },
+  sm: {
+    row: "h-8 p-[3px]",
+    tab: "px-3 text-[12.5px] gap-1.5 [&_svg]:size-3.5",
+  },
   md: { row: "h-10 p-1", tab: "px-4 text-[13.5px] gap-2 [&_svg]:size-4" },
-  lg: { row: "h-12 p-[5px]", tab: "px-5 text-[15px] gap-2 [&_svg]:size-[18px]" },
+  lg: {
+    row: "h-12 p-[5px]",
+    tab: "px-5 text-[15px] gap-2 [&_svg]:size-[18px]",
+  },
 } as const;
 
 // Both critically damped, so nothing overshoots. The front is a touch quicker, and the difference is the whole effect.
@@ -69,16 +82,25 @@ const REACH = 0.45;
 /** The most the waist pinches, as a share of the height. */
 const PINCH = 0.2;
 
-const clamp = (n: number, low: number, high: number) => Math.min(high, Math.max(low, n));
+const clamp = (n: number, low: number, high: number) =>
+  Math.min(high, Math.max(low, n));
 const n1 = (n: number) => Math.round(n * 100) / 100;
 
 /** One half's outline, end cap to waist: `tip` is the middle of the waist. */
-function half(capX: number, tipX: number, top: number, bottom: number, thin: number, side: 1 | -1) {
+function half(
+  capX: number,
+  tipX: number,
+  top: number,
+  bottom: number,
+  thin: number,
+  side: 1 | -1,
+) {
   const cy = (top + bottom) / 2;
   const r = Math.min((bottom - top) / 2, Math.abs(tipX - capX));
   const start = capX + side * r;
   const pull = (tipX - start) * 0.56;
-  const edge = (y: number, tipY: number) => `${n1(start + pull)} ${n1(y)} ${n1(tipX - pull)} ${n1(tipY)} ${n1(tipX)} ${n1(tipY)}`;
+  const edge = (y: number, tipY: number) =>
+    `${n1(start + pull)} ${n1(y)} ${n1(tipX - pull)} ${n1(tipY)} ${n1(tipX)} ${n1(tipY)}`;
   const sweep = side === 1 ? 1 : 0;
   return {
     start: { x: n1(start), top: n1(cy - r), bottom: n1(cy + r) },
@@ -96,7 +118,13 @@ function half(capX: number, tipX: number, top: number, bottom: number, thin: num
  * The outline from its left and right edges, its resting width, and its top and bottom. A pure function: any interruption
  * is just another pair of edges, so it never has to restart anything.
  */
-export function liquidPath(left: number, right: number, rest: number, top: number, bottom: number) {
+export function liquidPath(
+  left: number,
+  right: number,
+  rest: number,
+  top: number,
+  bottom: number,
+) {
   const height = bottom - top;
   const width = right - left;
   const mid = (left + right) / 2;
@@ -116,7 +144,16 @@ const colorOf = (tab?: LiquidTab) => tab?.color ?? "var(--primary)";
 
 type Mark = { x: number; w: number };
 
-export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, size = "md", block, className = "" }: LiquidTabsProps) {
+export function LiquidTabs({
+  tabs,
+  value,
+  defaultValue,
+  onValueChange,
+  label,
+  size = "md",
+  block,
+  className = "",
+}: LiquidTabsProps) {
   const reduced = useInteractionReducedMotion();
   const [own, setOwn] = React.useState(defaultValue ?? tabs[0]?.value);
   const current = value !== undefined ? value : own;
@@ -132,8 +169,21 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
   const toStopRef = React.useRef<SVGStopElement>(null);
   const flowId = React.useId();
   const sheenId = React.useId();
-  const springs = React.useRef<{ left: Spring; right: Spring; rest: Spring } | null>(null);
-  const motion = React.useRef({ top: 0, bottom: 0, heading: 1, target: 0, flowing: false, frontFrom: 0, tailFrom: 0, tailTo: 0 });
+  const springs = React.useRef<{
+    left: Spring;
+    right: Spring;
+    rest: Spring;
+  } | null>(null);
+  const motion = React.useRef({
+    top: 0,
+    bottom: 0,
+    heading: 1,
+    target: 0,
+    flowing: false,
+    frontFrom: 0,
+    tailFrom: 0,
+    tailTo: 0,
+  });
   const marks = React.useRef(new Map<string, Mark>());
 
   const paint = React.useCallback(() => {
@@ -163,8 +213,12 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
     if (m.flowing && flow) {
       const front = m.heading > 0 ? right : left;
       const tail = m.heading > 0 ? left : right;
-      const done = (now: number, from: number, to: number) => clamp((now - from) / (Math.abs(to - from) < 1 ? 1 : to - from), 0, 1);
-      const through = (done(front, m.frontFrom, m.target) + done(tail, m.tailFrom, m.tailTo)) / 2;
+      const done = (now: number, from: number, to: number) =>
+        clamp((now - from) / (Math.abs(to - from) < 1 ? 1 : to - from), 0, 1);
+      const through =
+        (done(front, m.frontFrom, m.target) +
+          done(tail, m.tailFrom, m.tailTo)) /
+        2;
       const soft = Math.min(20, Math.abs(front - tail) * 0.25);
       const a = front + m.heading * soft;
       const seam = a + (tail - m.heading * soft - a) * through;
@@ -183,9 +237,15 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
     marks.current.clear();
     row.querySelectorAll<HTMLElement>("[data-liquid-tab]").forEach((el) => {
       // Offsets count from the controls' own layer, which sits inside the row's padding.
-      const layer = el.offsetParent as HTMLElement;
-      marks.current.set(el.dataset.liquidTab!, { x: layer.offsetLeft + el.offsetLeft, w: el.offsetWidth });
-      motion.current.top = layer.offsetTop + el.offsetTop;
+      // `offsetParent` is null when the row or an ancestor has `display: none`.
+      const layer = (el.offsetParent as HTMLElement | null) ?? el.parentElement;
+      const layerLeft = layer?.offsetLeft ?? 0;
+      const layerTop = layer?.offsetTop ?? 0;
+      marks.current.set(el.dataset.liquidTab!, {
+        x: layerLeft + el.offsetLeft,
+        w: el.offsetWidth,
+      });
+      motion.current.top = layerTop + el.offsetTop;
       motion.current.bottom = motion.current.top + el.offsetHeight;
     });
     return true;
@@ -203,9 +263,11 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
         s.left.jump(mark.x);
         s.right.jump(end);
         s.rest.jump(mark.w);
+        paint();
         return;
       }
-      const heading = mark.x + mark.w / 2 >= (s.left.get() + s.right.get()) / 2 ? 1 : -1;
+      const heading =
+        mark.x + mark.w / 2 >= (s.left.get() + s.right.get()) / 2 ? 1 : -1;
       m.heading = heading;
       m.target = heading > 0 ? end : mark.x;
       m.frontFrom = heading > 0 ? s.right.get() : s.left.get();
@@ -236,7 +298,7 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
     springs.current = s;
     paint();
     setMeasured(true);
-    let first = true;
+    let first = motion.current.bottom > motion.current.top;
     const observer = new ResizeObserver(() => {
       if (first) return void (first = false);
       measure();
@@ -270,10 +332,15 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
     toStopRef.current?.setAttribute("stop-color", colorOf(after));
     aim(current, reduced);
     const row = rowRef.current;
-    const el = row?.querySelector<HTMLElement>(`[data-liquid-tab="${CSS.escape(current ?? "")}"]`);
+    const el = row?.querySelector<HTMLElement>(
+      `[data-liquid-tab="${CSS.escape(current ?? "")}"]`,
+    );
     const scroller = row?.parentElement;
     if (el && scroller && scroller.scrollWidth > scroller.clientWidth) {
-      scroller.scrollTo({ left: el.offsetLeft - (scroller.clientWidth - el.offsetWidth) / 2, behavior: reduced ? "auto" : "smooth" });
+      scroller.scrollTo({
+        left: el.offsetLeft - (scroller.clientWidth - el.offsetWidth) / 2,
+        behavior: reduced ? "auto" : "smooth",
+      });
     }
   }, [current, tabs, aim, reduced]);
 
@@ -286,15 +353,21 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
     const enabled = tabs.filter((t) => !t.disabled);
     const index = enabled.findIndex((t) => t.value === current);
     let next = -1;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % enabled.length;
-    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (index - 1 + enabled.length) % enabled.length;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown")
+      next = (index + 1) % enabled.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
+      next = (index - 1 + enabled.length) % enabled.length;
     else if (event.key === "Home") next = 0;
     else if (event.key === "End") next = enabled.length - 1;
     if (next < 0) return;
     event.preventDefault();
     const tab = enabled[next];
     pick(tab.value);
-    rowRef.current?.querySelector<HTMLElement>(`[data-liquid-tab="${CSS.escape(tab.value)}"]`)?.focus();
+    rowRef.current
+      ?.querySelector<HTMLElement>(
+        `[data-liquid-tab="${CSS.escape(tab.value)}"]`,
+      )
+      ?.focus();
   };
 
   const sizes = SIZES[size];
@@ -304,7 +377,9 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
   const activeTab = tabs.find((t) => t.value === current);
 
   return (
-    <div className={`relative isolate rounded-full bg-background outline outline-1 -outline-offset-1 outline-border ${MATERIAL_RECESS} ${block ? "w-full" : "w-fit max-w-full"} ${className}`}>
+    <div
+      className={`relative isolate rounded-full bg-background outline outline-1 -outline-offset-1 outline-border ${MATERIAL_RECESS} ${block ? "w-full" : "w-fit max-w-full"} ${className}`}
+    >
       <div className="overflow-x-auto overflow-y-clip rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div
           ref={rowRef}
@@ -323,7 +398,14 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
                 <span
                   key={tab.value}
                   className={`${cell} transition-colors duration-200 motion-reduce:transition-none ${tab.disabled ? "opacity-40" : ""} ${hovered === tab.value && !on ? "text-foreground" : "text-muted-foreground"}`}
-                  style={lit ? { background: colorOf(tab), color: tab.foreground ?? "var(--primary-foreground)" } : undefined}
+                  style={
+                    lit
+                      ? {
+                          background: colorOf(tab),
+                          color: tab.foreground ?? "var(--primary-foreground)",
+                        }
+                      : undefined
+                  }
                 >
                   {tab.icon}
                   {tab.label}
@@ -332,11 +414,31 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
             })}
           </div>
 
-          <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full overflow-visible [contain:layout]" style={{ opacity: measured ? 1 : 0 }}>
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 size-full overflow-visible [contain:layout]"
+            style={{ opacity: measured ? 1 : 0 }}
+          >
             <defs>
-              <linearGradient ref={flowRef} id={flowId} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="0">
-                <stop ref={fromStopRef} offset="0" stopColor={colorOf(activeTab)} />
-                <stop ref={toStopRef} offset="1" stopColor={colorOf(activeTab)} />
+              <linearGradient
+                ref={flowRef}
+                id={flowId}
+                gradientUnits="userSpaceOnUse"
+                x1="0"
+                x2="0"
+                y1="0"
+                y2="0"
+              >
+                <stop
+                  ref={fromStopRef}
+                  offset="0"
+                  stopColor={colorOf(activeTab)}
+                />
+                <stop
+                  ref={toStopRef}
+                  offset="1"
+                  stopColor={colorOf(activeTab)}
+                />
               </linearGradient>
               <linearGradient id={sheenId} x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0" stopColor="white" stopOpacity="0.12" />
@@ -348,9 +450,18 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
           </svg>
 
           {/* The same labels in the drop's text colour, cut to the drop's outline, so a letter turns exactly where the highlight reaches it. */}
-          <div ref={lightRef} aria-hidden="true" className={`${row} pointer-events-none absolute inset-0 ${sizes.row}`} style={{ visibility: measured ? "visible" : "hidden" }}>
+          <div
+            ref={lightRef}
+            aria-hidden="true"
+            className={`${row} pointer-events-none absolute inset-0 ${sizes.row}`}
+            style={{ visibility: measured ? "visible" : "hidden" }}
+          >
             {tabs.map((tab) => (
-              <span key={tab.value} className={cell} style={{ color: tab.foreground ?? "var(--primary-foreground)" }}>
+              <span
+                key={tab.value}
+                className={cell}
+                style={{ color: tab.foreground ?? "var(--primary-foreground)" }}
+              >
                 {tab.icon}
                 {tab.label}
               </span>
@@ -364,13 +475,26 @@ export function LiquidTabs({ tabs, value, defaultValue, onValueChange, label, si
               const shared = {
                 "data-liquid-tab": tab.value,
                 onPointerMove: (event: React.PointerEvent) => {
-                  if (event.pointerType === "mouse" && !tab.disabled && hovered !== tab.value) setHovered(tab.value);
+                  if (
+                    event.pointerType === "mouse" &&
+                    !tab.disabled &&
+                    hovered !== tab.value
+                  )
+                    setHovered(tab.value);
                 },
                 onPointerLeave: () => setHovered(null),
                 className: `${cell} cursor-pointer text-transparent aria-disabled:cursor-default ${INTERACTION_FOCUS} [&_svg]:opacity-0`,
               };
               return tab.href ? (
-                <a key={tab.value} {...shared} href={tab.disabled ? undefined : tab.href} aria-current={on ? "page" : undefined} aria-label={tab.ariaLabel} aria-disabled={tab.disabled || undefined} onClick={() => !tab.disabled && pick(tab.value)}>
+                <a
+                  key={tab.value}
+                  {...shared}
+                  href={tab.disabled ? undefined : tab.href}
+                  aria-current={on ? "page" : undefined}
+                  aria-label={tab.ariaLabel}
+                  aria-disabled={tab.disabled || undefined}
+                  onClick={() => !tab.disabled && pick(tab.value)}
+                >
                   {tab.icon}
                   {tab.label}
                 </a>

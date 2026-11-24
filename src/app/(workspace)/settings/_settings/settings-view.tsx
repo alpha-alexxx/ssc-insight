@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/icon";
 import { Settings02Icon } from "@/components/animate-ui/icons/hugeicons/settings-02";
 import { Button } from "@/components/button";
 import { Dialog } from "@/components/dialog";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { LiquidTabs } from "@/components/liquid-tabs";
 import {
   SettingsGuardProvider,
   useSettingsGuard,
@@ -277,7 +277,7 @@ function SettingsBody({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Navigation rail (desktop) + ScrollArea tab strip (mobile)         */
+/*  Navigation rail (desktop) + mobile liquid tab strip               */
 /* ------------------------------------------------------------------ */
 
 function SettingsNav({
@@ -292,7 +292,6 @@ function SettingsNav({
   const guard = useSettingsGuard();
   const reduce = useReducedMotion();
   const isDirty = Boolean(guard.activeDraft?.isDirty);
-  const mobileTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const sectionMap = useMemo(
     () => new Map(SETTINGS_SECTIONS.map((item) => [item.id, item])),
@@ -304,77 +303,27 @@ function SettingsNav({
     [userName, userEmail],
   );
 
-  // Smoothly center the active tab inside the horizontal ScrollArea on mobile
-  useEffect(() => {
-    const activeEl = mobileTabRefs.current[section];
-    if (!activeEl) return;
-    activeEl.scrollIntoView({
-      behavior: reduce ? "auto" : "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-  }, [section, reduce]);
-
   return (
     <>
-      {/* ── Mobile: horizontal scrollable tab strip via shadcn ScrollArea ── */}
+      {/* ── Mobile: liquid tab strip (Hairline UI) ── */}
       <div
         className={cn(
-          "w-full min-w-0 max-w-full overflow-hidden",
-          "border-b border-border/80 bg-background/95 backdrop-blur-md lg:hidden",
+          "w-full min-w-0 max-w-full",
+          "border-b border-border/80 bg-background/95 pb-2 backdrop-blur-md lg:hidden",
         )}
       >
-        <ScrollArea className={cn("w-full max-w-full whitespace-nowrap")}>
-          <nav
-            aria-label="Settings sections"
-            className={cn("flex w-max min-w-full items-center gap-0.5 pb-px")}
-          >
-            {SETTINGS_SECTIONS.map((item) => {
-              const active = section === item.id;
-              return (
-                <button
-                  key={item.id}
-                  ref={(node) => {
-                    mobileTabRefs.current[item.id] = node;
-                  }}
-                  type="button"
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => guard.requestSection(item.id)}
-                  className={cn(
-                    "relative flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 text-[13px] font-medium transition-colors",
-                    active
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Icon
-                    name={item.icon}
-                    size={14}
-                    tone={active ? "primary" : "muted"}
-                  />
-                  <span>{item.label}</span>
-                  {active && isDirty && (
-                    <span
-                      className={cn("size-1.5 rounded-full bg-amber-500")}
-                      aria-label="Unsaved changes"
-                    />
-                  )}
-                  {active && (
-                    <motion.span
-                      layoutId={
-                        reduce ? undefined : "settings-mobile-underline"
-                      }
-                      className={cn(
-                        "absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary",
-                      )}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-          <ScrollBar orientation="horizontal" className={cn("h-1.5")} />
-        </ScrollArea>
+        <LiquidTabs
+          label="Settings sections"
+          size="sm"
+          value={section}
+          onValueChange={(next) => guard.requestSection(next)}
+          tabs={SETTINGS_SECTIONS.map((item) => ({
+            value: item.id,
+            label: item.label,
+            icon: <Icon name={item.icon} size={14} />,
+            ariaLabel: item.label,
+          }))}
+        />
       </div>
 
       {/* ── Desktop: grouped sticky rail ── */}
