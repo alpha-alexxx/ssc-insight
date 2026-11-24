@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { Icon, type IconName } from "@/components/icon";
+import { Icon } from "@/components/icon";
 import { Settings02Icon } from "@/components/animate-ui/icons/hugeicons/settings-02";
 import { Button } from "@/components/button";
 import { Dialog } from "@/components/dialog";
@@ -13,6 +13,12 @@ import {
   useSettingsGuard,
 } from "@/components/shared/settings-guard";
 import { pageEnter, saveBarSpring, tabSwap } from "./_lib/motion-presets";
+import {
+  SECTION_GROUPS,
+  SETTINGS_SECTIONS as SETTINGS_SECTION_LIST,
+  isSettingsSection,
+  type SettingsSection as SettingsSectionId,
+} from "./sections";
 import { PanelCard } from "./_lib/panel";
 import { ExamsPanel } from "./exams-panel";
 import { TargetsPanel } from "./targets-panel";
@@ -24,79 +30,11 @@ import { AppearancePanel } from "@/components/appearance-panel";
 import { AiSettingsForm } from "@/components/ai-settings-form";
 
 /* ------------------------------------------------------------------ */
-/*  Section registry                                                   */
+/*  Section registry                                                  */
 /* ------------------------------------------------------------------ */
 
-export const SETTINGS_SECTIONS = [
-  {
-    id: "exams",
-    label: "Exams & tiers",
-    hint: "Pick what you are preparing for",
-    icon: "book" as IconName,
-  },
-  {
-    id: "targets",
-    label: "Targets",
-    hint: "Percentile goal and marks targets",
-    icon: "target" as IconName,
-  },
-  {
-    id: "reminders",
-    label: "Reminders",
-    hint: "In-app nudges only",
-    icon: "bell" as IconName,
-  },
-  {
-    id: "appearance",
-    label: "Appearance",
-    hint: "Palette and visual style",
-    icon: "sliders" as IconName,
-  },
-  {
-    id: "ai",
-    label: "AI provider",
-    hint: "Model, endpoint and key",
-    icon: "ai" as IconName,
-  },
-  {
-    id: "security",
-    label: "Sign-in & security",
-    hint: "Password, 2FA and sessions",
-    icon: "lock" as IconName,
-  },
-  {
-    id: "data",
-    label: "Data & backup",
-    hint: "Export, import and transfer",
-    icon: "folder" as IconName,
-  },
-  {
-    id: "about",
-    label: "About & account",
-    hint: "What this workspace is",
-    icon: "user" as IconName,
-  },
-] as const;
-
-export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]["id"];
-
-const SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((s) => s.id));
-
-const SECTION_GROUPS: { title: string; items: readonly SettingsSection[] }[] = [
-  { title: "Study & Prep", items: ["exams", "targets", "reminders"] },
-  { title: "Workspace", items: ["appearance", "ai"] },
-  { title: "Account & System", items: ["security", "data", "about"] },
-];
-
-function isSection(value: string | null): value is SettingsSection {
-  return value != null && SECTION_IDS.has(value);
-}
-
-function initialSection(): SettingsSection {
-  if (typeof window === "undefined") return "exams";
-  const value = new URLSearchParams(window.location.search).get("section");
-  return isSection(value) ? value : "exams";
-}
+export const SETTINGS_SECTIONS = SETTINGS_SECTION_LIST;
+export type SettingsSection = SettingsSectionId;
 
 function getInitials(name: string, email: string): string {
   const source = name?.trim() || email?.trim() || "U";
@@ -106,7 +44,7 @@ function getInitials(name: string, email: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Root view                                                          */
+/*  Root view                                                         */
 /* ------------------------------------------------------------------ */
 
 export interface SettingsViewProps {
@@ -137,8 +75,12 @@ export function SettingsView({
   busy,
   initialSectionOverride,
 }: SettingsViewProps) {
+  // The initial tab is decided by the Server Component page from the request's
+  // own query string and passed down. Reading `window.location` here instead
+  // would be a server/client branch — the server has no query string, so it
+  // painted "exams" and the client hydrated "security", a hydration mismatch.
   const [section, setSection] = useState<SettingsSection>(
-    initialSectionOverride ?? initialSection,
+    initialSectionOverride ?? "exams",
   );
 
   useEffect(() => {
@@ -150,7 +92,7 @@ export function SettingsView({
   }, [section]);
 
   const changeSection = useCallback((next: string) => {
-    if (isSection(next)) setSection(next);
+    if (isSettingsSection(next)) setSection(next);
   }, []);
 
   return (
@@ -173,7 +115,7 @@ export function SettingsView({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Body layout                                                        */
+/*  Body layout                                                       */
 /* ------------------------------------------------------------------ */
 
 function SettingsBody({
@@ -224,8 +166,8 @@ function SettingsBody({
       {...(reduce ? {} : pageEnter)}
       className={cn(
         "grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] items-start gap-4",
-        "lg:grid-cols-[256px_minmax(0,1fr)] lg:gap-6",
-        "xl:grid-cols-[272px_minmax(0,1fr)] xl:gap-8",
+        "lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-5",
+        "xl:grid-cols-[220px_minmax(0,1fr)] xl:gap-6",
       )}
     >
       {/* ── Sidebar / Mobile ScrollArea tabs ── */}
@@ -335,7 +277,7 @@ function SettingsBody({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Navigation rail (desktop) + ScrollArea tab strip (mobile)          */
+/*  Navigation rail (desktop) + ScrollArea tab strip (mobile)         */
 /* ------------------------------------------------------------------ */
 
 function SettingsNav({
@@ -439,19 +381,19 @@ function SettingsNav({
       <aside className={cn("hidden h-fit lg:sticky lg:top-20 lg:block")}>
         <div
           className={cn(
-            "rounded-2xl border border-border/70 bg-card/60 p-3 shadow-xs backdrop-blur-sm",
+            "rounded-2xl border border-border/70 bg-card/60 p-2 shadow-xs backdrop-blur-sm",
           )}
         >
           {/* User identity card */}
           <div
             className={cn(
-              "mb-4 flex items-center gap-3 rounded-xl border border-border/40 bg-muted/30 px-3 py-2.5",
+              "mb-3 flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 px-2.5 py-2",
             )}
           >
             <div
               className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                "bg-primary/10 text-xs font-semibold text-primary ring-1 ring-primary/20",
+                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                "bg-primary/10 text-[11px] font-semibold text-primary ring-1 ring-primary/20",
               )}
             >
               {initials}
@@ -462,20 +404,20 @@ function SettingsNav({
               >
                 {userName || "Workspace Member"}
               </p>
-              <p className={cn("truncate text-[11px] text-muted-foreground")}>
+              <p className={cn("truncate text-[10.5px] text-muted-foreground")}>
                 {userEmail || "Personal workspace"}
               </p>
             </div>
-            <Icon name="settings" size={14} tone="muted" />
+            <Icon name="settings" size={13} tone="muted" />
           </div>
 
           {/* Grouped nav */}
-          <nav aria-label="Settings sections" className={cn("space-y-4")}>
+          <nav aria-label="Settings sections" className={cn("space-y-3")}>
             {SECTION_GROUPS.map((group) => (
-              <div key={group.title} className={cn("space-y-1")}>
+              <div key={group.title} className={cn("space-y-0.5")}>
                 <p
                   className={cn(
-                    "px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
+                    "px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
                   )}
                 >
                   {group.title}
@@ -493,7 +435,7 @@ function SettingsNav({
                           aria-current={active ? "page" : undefined}
                           onClick={() => guard.requestSection(item.id)}
                           className={cn(
-                            "group relative flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors",
+                            "group relative flex w-full items-start gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors",
                             active
                               ? "text-foreground"
                               : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -523,7 +465,7 @@ function SettingsNav({
                                 reduce ? undefined : "settings-desktop-bar"
                               }
                               className={cn(
-                                "absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-primary",
+                                "absolute bottom-2 left-0 top-2 w-0.75 rounded-r-full bg-primary",
                               )}
                             />
                           )}
@@ -531,7 +473,7 @@ function SettingsNav({
                           {/* Icon tile */}
                           <span
                             className={cn(
-                              "relative z-10 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                              "relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors",
                               active
                                 ? "border-primary/20 bg-primary/10 text-primary"
                                 : "border-transparent bg-muted/50 text-muted-foreground group-hover:border-border/60 group-hover:bg-background group-hover:text-foreground",
@@ -539,7 +481,7 @@ function SettingsNav({
                           >
                             <Icon
                               name={item.icon}
-                              size={14}
+                              size={13}
                               tone={active ? "primary" : "current"}
                             />
                           </span>
@@ -548,12 +490,12 @@ function SettingsNav({
                           <span className={cn("relative z-10 min-w-0 flex-1")}>
                             <span
                               className={cn(
-                                "flex items-center justify-between gap-1.5",
+                                "flex items-center justify-between gap-1",
                               )}
                             >
                               <span
                                 className={cn(
-                                  "truncate text-[13px] leading-tight",
+                                  "truncate text-[12.5px] leading-tight",
                                   active ? "font-semibold" : "font-medium",
                                 )}
                               >
@@ -570,7 +512,7 @@ function SettingsNav({
                             </span>
                             <span
                               className={cn(
-                                "mt-0.5 block truncate text-[11px] leading-snug text-muted-foreground",
+                                "mt-0.5 block truncate text-[10.5px] leading-snug text-muted-foreground",
                               )}
                             >
                               {item.hint}
@@ -591,7 +533,7 @@ function SettingsNav({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sticky save bar                                                    */
+/*  Sticky save bar                                                   */
 /* ------------------------------------------------------------------ */
 
 function SaveBar({ activeSectionLabel }: { activeSectionLabel: string }) {
@@ -640,7 +582,7 @@ function SaveBar({ activeSectionLabel }: { activeSectionLabel: string }) {
             className={cn(
               "flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-2xl",
               "border border-border/80 bg-card/90 px-4 py-3 text-card-foreground shadow-lg",
-              "ring-1 ring-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 dark:ring-white/10",
+              "ring-1 ring-black/5 backdrop-blur-xl supports-backdrop-filter:bg-card/80 dark:ring-white/10",
             )}
           >
             <div className={cn("flex items-center gap-3")}>
@@ -704,7 +646,7 @@ function SaveBar({ activeSectionLabel }: { activeSectionLabel: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Discard confirmation dialog                                        */
+/*  Discard confirmation dialog                                       */
 /* ------------------------------------------------------------------ */
 
 function SettingsDiscardDialog() {

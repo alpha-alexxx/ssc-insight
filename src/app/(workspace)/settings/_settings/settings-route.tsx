@@ -5,6 +5,7 @@ import { Dialog } from "@/components/dialog";
 import { Alert } from "@/components/alert";
 import { useBackupImport } from "./use-backup-import";
 import { SettingsView } from "./settings-view";
+import type { SettingsSection } from "./sections";
 
 /**
  * Client shell for `/settings`.
@@ -18,9 +19,15 @@ import { SettingsView } from "./settings-view";
 export function SettingsRoute({
   userName,
   userEmail,
+  initialSection,
 }: {
   userName: string;
   userEmail: string;
+  /**
+   * The tab named by `?section=`, resolved on the server. Passing it down is
+   * what keeps the first paint and the hydrated tree on the same tab.
+   */
+  initialSection?: SettingsSection;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -81,6 +88,7 @@ export function SettingsRoute({
       <SettingsView
         userName={userName}
         userEmail={userEmail}
+        initialSectionOverride={initialSection}
         saveTarget={saveTarget}
         busy={busy}
         onDownload={(format) => void download(format)}
