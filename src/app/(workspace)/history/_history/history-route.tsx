@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/button";
-import { Spinner } from "@/components/spinner";
 import { ScopeFilters } from "@/components/scope-filters";
 import { useFiltersState } from "@/components/shared/use-filters-state";
 import { useAnalyticsData } from "@/components/shared/use-analytics-data";
@@ -16,7 +15,8 @@ import { HistoryPanel } from "./history-panel";
 
 /**
  * Client shell for `/history`: paged record list, its filter row, and the
- * header. The list query is seeded by the page's server prefetch under the same
+ * header. The refresh indicator now lives inside the panel so a filter change
+ * does not push the list down. The list query is seeded by the page's server prefetch under the same
  * key, so the first paint contains the first page.
  */
 export function HistoryRoute() {
@@ -81,7 +81,7 @@ export function HistoryRoute() {
           </Button>
         }
       />
-      <div className="mb-4">
+      <div className="mb-4 rounded-2xl bg-card px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--border)] sm:px-5">
         <ScopeFilters
           mode="type"
           scope={s.scope}
@@ -92,15 +92,6 @@ export function HistoryRoute() {
           platforms={platforms}
         />
       </div>
-      {list.isFetching && (
-        <p
-          role="status"
-          className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"
-        >
-          <Spinner size="xs" label="Updating your results" />
-          Updating your results…
-        </p>
-      )}
       <HistoryPanel
         data={list.data}
         isFetching={list.isFetching}
@@ -122,7 +113,6 @@ export function HistoryRoute() {
         onCompare={(attempt) => router.push(`/compare?ids=${attempt.id}`)}
         accountTotal={allAttempts.length}
       />
-
     </div>
   );
 }

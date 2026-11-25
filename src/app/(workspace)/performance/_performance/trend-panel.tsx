@@ -99,9 +99,7 @@ function AreaTrendChart({
       point.name,
       point.platform,
       `${n(point.score)}/${n(point.maxScore)}`,
-      point.accuracy == null
-        ? "no accuracy"
-        : `${n(point.accuracy)}% accuracy`,
+      point.accuracy == null ? "no accuracy" : `${n(point.accuracy)}% accuracy`,
       point.percentile != null ? `${n(point.percentile)} %ile` : null,
     ]
       .filter(Boolean)
@@ -193,7 +191,8 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
     dates.length > 1
       ? PAD.l + ((timeOf(dayKey) - tMin) / Math.max(1, tMax - tMin)) * innerW
       : PAD.l + innerW / 2;
-  const yAt = (v: number) => PAD.t + innerH * (1 - (v - min) / Math.max(1, max - min));
+  const yAt = (v: number) =>
+    PAD.t + innerH * (1 - (v - min) / Math.max(1, max - min));
 
   if (usable.length === 0) return null;
 
@@ -205,29 +204,30 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
           series: s,
           point: s.points.find((p) => istDateKey(p.date) === hoverDate),
         }))
-        .filter((row): row is { series: SubjectSeries; point: PerformancePoint } =>
-          Boolean(row.point),
+        .filter(
+          (row): row is { series: SubjectSeries; point: PerformancePoint } =>
+            Boolean(row.point),
         )
     : [];
 
-    return (
-      <div>
-        {/* legend — also the touch fallback for the hover tooltip */}
-        <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 min-w-0">
-          {series.map((s) => (
+  return (
+    <div>
+      {/* legend — also the touch fallback for the hover tooltip */}
+      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 min-w-0">
+        {series.map((s) => (
+          <span
+            key={s.id}
+            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground truncate"
+          >
             <span
-              key={s.id}
-              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground truncate"
-            >
-              <span
-                aria-hidden
-                className="inline-block size-2 rounded-[2px] shrink-0"
-                style={{ background: colorOf(s) }}
-              />
-              <span className="truncate">{s.label}</span>
-            </span>
-          ))}
-        </div>
+              aria-hidden
+              className="inline-block size-2 rounded-[2px] shrink-0"
+              style={{ background: colorOf(s) }}
+            />
+            <span className="truncate">{s.label}</span>
+          </span>
+        ))}
+      </div>
       <div ref={ref} className="relative min-w-0">
         {width >= 40 && (
           <svg

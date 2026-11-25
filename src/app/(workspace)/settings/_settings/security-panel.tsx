@@ -421,7 +421,7 @@ function SessionsCard() {
                       </span>
                       <span
                         className={cn(
-                          "mt-0.5 block text-[11px] tabular-nums text-muted-foreground",
+                          "mt-0.5 block text-xs tabular-nums text-muted-foreground",
                         )}
                       >
                         {session.createdAt
@@ -439,7 +439,7 @@ function SessionsCard() {
                   <span
                     className={cn(
                       "inline-flex shrink-0 items-center gap-1.5 rounded-full",
-                      "bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400",
+                      "bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400",
                     )}
                   >
                     <span
@@ -685,7 +685,7 @@ function ChangePasswordDialog({
               <span className={cn("block font-medium text-foreground")}>
                 Sign out other devices
               </span>
-              <span className={cn("block text-[11px] text-muted-foreground")}>
+              <span className={cn("block text-xs text-muted-foreground")}>
                 Require re-login on all other browsers
               </span>
             </span>
@@ -731,7 +731,7 @@ function ChangePasswordDialog({
                 <div className={cn("min-w-0 flex-1")}>
                   <p
                     className={cn(
-                      "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+                      "text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground",
                     )}
                   >
                     Code goes to
@@ -997,7 +997,7 @@ function EnrollDialog({
               />
               <p
                 className={cn(
-                  "truncate text-[10px] font-medium",
+                  "truncate text-xs font-medium",
                   active
                     ? "text-foreground"
                     : done
@@ -1092,7 +1092,7 @@ function EnrollDialog({
                   type="button"
                   onClick={() => void copySecret()}
                   className={cn(
-                    "inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline",
+                    "inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline",
                   )}
                 >
                   <PlainIcon
@@ -1441,7 +1441,7 @@ function BackupCodesGrid({ codes }: { codes: string[] }) {
             )}
           >
             <span
-              className={cn("select-none text-[10px] text-muted-foreground/70")}
+              className={cn("select-none text-xs text-muted-foreground/70")}
             >
               {String(index + 1).padStart(2, "0")}
             </span>

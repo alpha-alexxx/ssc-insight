@@ -3,8 +3,23 @@
 import * as React from "react";
 import { StatusButton, type ActionStatus } from "./status-button";
 import { TextMorph } from "./text-morph";
-import { EASE_OUT, EASE_SETTLE, INTERACTION_FOCUS, INTERACTION_PRESS, useInteractionReducedMotion } from "./ui-interaction-motion";
-import { SCENES, TILE, VIEW, poseOffset, type EmptyStateScene, type SceneFill, type SceneShape, type SceneStroke } from "./empty-state-scenes";
+import {
+  EASE_OUT,
+  EASE_SETTLE,
+  INTERACTION_FOCUS,
+  INTERACTION_PRESS,
+  useInteractionReducedMotion,
+} from "./ui-interaction-motion";
+import {
+  SCENES,
+  TILE,
+  VIEW,
+  poseOffset,
+  type EmptyStateScene,
+  type SceneFill,
+  type SceneShape,
+  type SceneStroke,
+} from "./empty-state-scenes";
 
 export type { EmptyStateScene } from "./empty-state-scenes";
 
@@ -81,14 +96,22 @@ const DASH = 1.02;
 const DRAW_EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
 
 const isAction = (action: unknown): action is EmptyStateAction =>
-  Boolean(action) && typeof action === "object" && !React.isValidElement(action) && "label" in (action as object);
+  Boolean(action) &&
+  typeof action === "object" &&
+  !React.isValidElement(action) &&
+  "label" in (action as object);
 
 /** Lines draw themselves back to front, then their faces fill; ghosts fade in. */
 function drawIn(root: Element, delay = 0) {
   root.querySelectorAll<SVGPathElement>("[data-shape]").forEach((el, i) => {
     const at = delay + Math.min(i * 34, 560);
     if (el.dataset.dashed) {
-      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: at, easing: EASE_OUT, fill: "backwards" });
+      el.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 420,
+        delay: at,
+        easing: EASE_OUT,
+        fill: "backwards",
+      });
       return;
     }
     el.animate(
@@ -104,11 +127,18 @@ function drawIn(root: Element, delay = 0) {
 
 /** The reverse, front to back and quicker: lines retract and faces empty. */
 function drawOut(root: Element) {
-  const shapes = [...root.querySelectorAll<SVGPathElement>("[data-shape]")].reverse();
+  const shapes = [
+    ...root.querySelectorAll<SVGPathElement>("[data-shape]"),
+  ].reverse();
   shapes.forEach((el, i) => {
     const delay = Math.min(i * 14, 200);
     if (el.dataset.dashed) {
-      el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay, easing: EASE_OUT, fill: "forwards" });
+      el.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 200,
+        delay,
+        easing: EASE_OUT,
+        fill: "forwards",
+      });
       return;
     }
     el.animate(
@@ -154,7 +184,11 @@ function Shapes({ shapes, id }: { shapes: SceneShape[]; id: string }) {
         </defs>
       )}
       {shapes.map((shape, i) => (
-        <Shape key={i} shape={shape} clipId={shape.clip ? `${id}-${clips.indexOf(shape.clip)}` : undefined} />
+        <Shape
+          key={i}
+          shape={shape}
+          clipId={shape.clip ? `${id}-${clips.indexOf(shape.clip)}` : undefined}
+        />
       ))}
     </>
   );
@@ -172,7 +206,15 @@ function useDrawIn(seen: boolean, reduced: boolean, delay: number) {
   return ref;
 }
 
-const Tile = React.memo(function Tile({ seen, reduced, id }: { seen: boolean; reduced: boolean; id: string }) {
+const Tile = React.memo(function Tile({
+  seen,
+  reduced,
+  id,
+}: {
+  seen: boolean;
+  reduced: boolean;
+  id: string;
+}) {
   const ref = useDrawIn(seen, reduced, 0);
   return (
     <g ref={ref}>
@@ -193,7 +235,16 @@ interface LayerProps {
   heroRef?: React.Ref<SVGGElement>;
 }
 
-const Layer = React.memo(function Layer({ scene, leaving, seen, reduced, status, delay, id, heroRef }: LayerProps) {
+const Layer = React.memo(function Layer({
+  scene,
+  leaving,
+  seen,
+  reduced,
+  status,
+  delay,
+  id,
+  heroRef,
+}: LayerProps) {
   const def = React.useMemo(() => SCENES[scene](), [scene]);
   const ref = useDrawIn(seen, reduced, delay);
 
@@ -201,7 +252,10 @@ const Layer = React.memo(function Layer({ scene, leaving, seen, reduced, status,
     if (leaving && !reduced && ref.current) drawOut(ref.current);
   }, [leaving, reduced, ref]);
 
-  const pose = (status === "pending" && def.poses?.pending) || (status === "success" && def.poses?.success) || ([0, 0, 0] as [number, number, number]);
+  const pose =
+    (status === "pending" && def.poses?.pending) ||
+    (status === "success" && def.poses?.success) ||
+    ([0, 0, 0] as [number, number, number]);
   const [dx, dy] = poseOffset(pose);
   const landing = status === "success";
   const base = def.shapes.filter((s) => !s.hero);
@@ -220,7 +274,9 @@ const Layer = React.memo(function Layer({ scene, leaving, seen, reduced, status,
         ref={heroRef}
         style={{
           transform: `translate(${dx}px, ${dy}px)`,
-          transition: reduced ? "none" : `transform ${landing ? 620 : 520}ms ${landing ? EASE_SETTLE : EASE_OUT}`,
+          transition: reduced
+            ? "none"
+            : `transform ${landing ? 620 : 520}ms ${landing ? EASE_SETTLE : EASE_OUT}`,
         }}
       >
         <Shapes shapes={hero} id={`${id}-h`} />
@@ -230,9 +286,20 @@ const Layer = React.memo(function Layer({ scene, leaving, seen, reduced, status,
 });
 
 /** Keeps the old content a moment so it can cross-fade out while the new one comes in, with the height eased between. */
-function Swap({ swapKey, reduced, children }: { swapKey: string; reduced: boolean; children: React.ReactNode }) {
+function Swap({
+  swapKey,
+  reduced,
+  children,
+}: {
+  swapKey: string;
+  reduced: boolean;
+  children: React.ReactNode;
+}) {
   const [shown, setShown] = React.useState({ key: swapKey, node: children });
-  const [prev, setPrev] = React.useState<{ key: string; node: React.ReactNode } | null>(null);
+  const [prev, setPrev] = React.useState<{
+    key: string;
+    node: React.ReactNode;
+  } | null>(null);
   if (swapKey !== shown.key) {
     setPrev(shown);
     setShown({ key: swapKey, node: children });
@@ -250,7 +317,9 @@ function Swap({ swapKey, reduced, children }: { swapKey: string; reduced: boolea
   React.useLayoutEffect(() => {
     const el = inner.current;
     if (!el) return;
-    const observer = new ResizeObserver(() => setHeight((h) => (h === el.offsetHeight ? h : el.offsetHeight)));
+    const observer = new ResizeObserver(() =>
+      setHeight((h) => (h === el.offsetHeight ? h : el.offsetHeight)),
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, [shown.key]);
@@ -258,7 +327,11 @@ function Swap({ swapKey, reduced, children }: { swapKey: string; reduced: boolea
   return (
     <div
       className="relative w-full"
-      style={{ height: height ?? undefined, transition: reduced || height === null ? "none" : `height 380ms ${EASE_OUT}` }}
+      style={{
+        height: height ?? undefined,
+        transition:
+          reduced || height === null ? "none" : `height 380ms ${EASE_OUT}`,
+      }}
     >
       {prev && !reduced && (
         <div
@@ -269,14 +342,31 @@ function Swap({ swapKey, reduced, children }: { swapKey: string; reduced: boolea
           {prev.node}
         </div>
       )}
-      <div ref={inner} key={shown.key} className={prev && !reduced ? "animate-[ui-empty-in_360ms_cubic-bezier(0.16,1,0.3,1)_80ms_backwards]" : undefined}>
+      <div
+        ref={inner}
+        key={shown.key}
+        className={
+          prev && !reduced
+            ? "animate-[ui-empty-in_360ms_cubic-bezier(0.16,1,0.3,1)_80ms_backwards]"
+            : undefined
+        }
+      >
         {children}
       </div>
     </div>
   );
 }
 
-export function EmptyState({ scene = "inbox", illustration, title, description, action, secondaryAction, children, className = "" }: EmptyStateProps) {
+export function EmptyState({
+  scene = "inbox",
+  illustration,
+  title,
+  description,
+  action,
+  secondaryAction,
+  children,
+  className = "",
+}: EmptyStateProps) {
   const reduced = useInteractionReducedMotion();
   const id = React.useId().replace(/:/g, "");
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -284,7 +374,9 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
   const [seen, setSeen] = React.useState(false);
   const [status, setStatus] = React.useState<ActionStatus>("idle");
   const [error, setError] = React.useState<string | null>(null);
-  const [layers, setLayers] = React.useState([{ key: 0, scene, leaving: false }]);
+  const [layers, setLayers] = React.useState([
+    { key: 0, scene, leaving: false },
+  ]);
   const [lastScene, setLastScene] = React.useState(scene);
   const [generation, setGeneration] = React.useState(0);
   const generationRef = React.useRef(generation);
@@ -292,7 +384,10 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
   // A new scene: the old drawing starts leaving, the new one comes in over it, and the action starts over.
   if (scene !== lastScene) {
     setLastScene(scene);
-    setLayers((prev) => [...prev.filter((l) => !l.leaving).map((l) => ({ ...l, leaving: true })), { key: Math.max(...prev.map((l) => l.key)) + 1, scene, leaving: false }]);
+    setLayers((prev) => [
+      ...prev.filter((l) => !l.leaving).map((l) => ({ ...l, leaving: true })),
+      { key: Math.max(...prev.map((l) => l.key)) + 1, scene, leaving: false },
+    ]);
     setStatus("idle");
     setError(null);
     setGeneration((g) => g + 1);
@@ -304,7 +399,10 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
 
   React.useEffect(() => {
     if (!layers.some((l) => l.leaving)) return;
-    const timer = window.setTimeout(() => setLayers((prev) => prev.filter((l) => !l.leaving)), reduced ? 220 : 560);
+    const timer = window.setTimeout(
+      () => setLayers((prev) => prev.filter((l) => !l.leaving)),
+      reduced ? 220 : 560,
+    );
     return () => window.clearTimeout(timer);
   }, [layers, reduced]);
 
@@ -328,7 +426,13 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
   React.useEffect(() => {
     if (status !== "error" || reduced) return;
     heroRef.current?.animate(
-      [{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(-2px)" }, { transform: "translateX(0)" }],
+      [
+        { transform: "translateX(0)" },
+        { transform: "translateX(-4px)" },
+        { transform: "translateX(4px)" },
+        { transform: "translateX(-2px)" },
+        { transform: "translateX(0)" },
+      ],
       { duration: 380, easing: "ease-out", composite: "add" },
     );
   }, [status, reduced]);
@@ -345,18 +449,28 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
     } catch (reason) {
       if (generationRef.current !== mine) return;
       setStatus("error");
-      setError(reason instanceof Error ? reason.message : typeof reason === "string" ? reason : null);
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : typeof reason === "string"
+            ? reason
+            : null,
+      );
     }
   };
 
-  const descriptionKey = typeof description === "string" ? description : `${scene}:${title}`;
+  const descriptionKey =
+    typeof description === "string" ? description : `${scene}:${title}`;
   const hasActions = Boolean(action || secondaryAction);
   const secondaryClass = `inline-flex h-9 cursor-pointer items-center rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`;
 
   return (
     <div ref={rootRef} className={`@container w-full ${className}`}>
       <div className="flex flex-col items-center px-6 py-10 text-center @max-[22rem]:px-4 @max-[22rem]:py-7">
-        <div className="mb-5 flex h-[140px] w-[168px] items-center justify-center @max-[22rem]:mb-4 @max-[22rem]:h-[110px] @max-[22rem]:w-[132px]" aria-hidden="true">
+        <div
+          className="mb-5 flex h-[140px] w-[168px] items-center justify-center @max-[22rem]:mb-4 @max-[22rem]:h-[110px] @max-[22rem]:w-[132px]"
+          aria-hidden="true"
+        >
           {illustration ?? (
             <svg
               viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${VIEW.height}`}
@@ -391,11 +505,20 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
             </Swap>
           </div>
         )}
-        {children && <div className="mt-4 flex w-full flex-wrap items-center justify-center gap-2">{children}</div>}
+        {children && (
+          <div className="mt-4 flex w-full flex-wrap items-center justify-center gap-2">
+            {children}
+          </div>
+        )}
 
         <div
           className="grid w-full"
-          style={{ gridTemplateRows: hasActions ? "1fr" : "0fr", transition: reduced ? "none" : `grid-template-rows 380ms ${EASE_OUT}` }}
+          style={{
+            gridTemplateRows: hasActions ? "1fr" : "0fr",
+            transition: reduced
+              ? "none"
+              : `grid-template-rows 380ms ${EASE_OUT}`,
+          }}
         >
           <div className="min-h-0 overflow-clip">
             <div className="flex flex-wrap items-center justify-center gap-2 pt-5">
@@ -403,7 +526,12 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
                 <StatusButton
                   status={status}
                   icon={act.icon}
-                  labels={{ idle: act.label, pending: act.pendingLabel ?? "Working", success: act.successLabel ?? "Done", error: act.errorLabel ?? "Try again" }}
+                  labels={{
+                    idle: act.label,
+                    pending: act.pendingLabel ?? "Working",
+                    success: act.successLabel ?? "Done",
+                    error: act.errorLabel ?? "Try again",
+                  }}
                   onClick={run}
                 />
               ) : (
@@ -411,11 +539,19 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
               )}
               {secondaryAction &&
                 (secondaryAction.href ? (
-                  <a href={secondaryAction.href} onClick={secondaryAction.onAction} className={secondaryClass}>
+                  <a
+                    href={secondaryAction.href}
+                    onClick={secondaryAction.onAction}
+                    className={secondaryClass}
+                  >
                     {secondaryAction.label}
                   </a>
                 ) : (
-                  <button type="button" onClick={secondaryAction.onAction} className={secondaryClass}>
+                  <button
+                    type="button"
+                    onClick={secondaryAction.onAction}
+                    className={secondaryClass}
+                  >
                     {secondaryAction.label}
                   </button>
                 ))}
@@ -425,7 +561,12 @@ export function EmptyState({ scene = "inbox", illustration, title, description, 
 
         <div
           className="grid w-full"
-          style={{ gridTemplateRows: error ? "1fr" : "0fr", transition: reduced ? "none" : `grid-template-rows 320ms ${EASE_OUT}` }}
+          style={{
+            gridTemplateRows: error ? "1fr" : "0fr",
+            transition: reduced
+              ? "none"
+              : `grid-template-rows 320ms ${EASE_OUT}`,
+          }}
         >
           <div className="min-h-0 overflow-clip">
             <p role="alert" className="pt-3 text-[12.5px] text-destructive">

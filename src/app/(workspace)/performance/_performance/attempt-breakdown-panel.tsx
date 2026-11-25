@@ -4,6 +4,7 @@ import { formatNumber as n } from "@/lib/domain";
 import type { Analytics } from "@/lib/analytics";
 import { DonutChart, type DonutSlice } from "@/components/donut-chart";
 import { InsightCallout } from "./insight-callout";
+import { Panel } from "./panel";
 
 /**
  * "Make every attempt count" — the outcome donut over the scope's questions.
@@ -59,15 +60,24 @@ export function AttemptBreakdownPanel({ analytics }: { analytics: Analytics }) {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <Panel
+      icon="report"
+      title="Every attempt"
+      description={`${n(summary.questions)} question${summary.questions === 1 ? "" : "s"} across ${n(pointCount)} result${pointCount === 1 ? "" : "s"} in this scope.`}
+      // The donut draws its own inset padding, so the panel body gives the
+      // full width back instead of stacking two gutters.
+      bodyClassName="flex flex-col px-0 pb-0 sm:px-0 sm:pb-0"
+    >
       <DonutChart
-        title="Every attempt"
-        description={`${n(summary.questions)} question${summary.questions === 1 ? "" : "s"} across ${n(pointCount)} result${pointCount === 1 ? "" : "s"} in this scope.`}
         centerLabel="questions"
         format={{ maximumFractionDigits: 0 }}
         data={data}
+        legend
+        className="rounded-none bg-transparent shadow-none"
       />
-      <InsightCallout>{tip}</InsightCallout>
-    </div>
+      <div className="mt-auto px-4 pb-4 sm:px-5 sm:pb-5">
+        <InsightCallout>{tip}</InsightCallout>
+      </div>
+    </Panel>
   );
 }

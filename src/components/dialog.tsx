@@ -42,6 +42,13 @@ export interface DialogProps {
   /** Press on the veil closes it. Turn off for forms that would lose work. */
   dismissible?: boolean;
   className?: string;
+  /**
+   * Replaces the body wrapper's default padding and overflow tuning. The body
+   * stays the dialog's one scroll region: pass a no-scrollbar class (see
+   * `lib/ui-scroll`) to hide the painted bar without disabling scrolling, or
+   * full-bleed padding for a body that owns its own chrome.
+   */
+  bodyClassName?: string;
 }
 
 const WIDTH = { sm: 400, md: 520, lg: 680 };
@@ -58,6 +65,7 @@ export function Dialog({
   size = "md",
   dismissible = true,
   className = "",
+  bodyClassName,
 }: DialogProps) {
   const reduced = useInteractionReducedMotion();
   const [own, setOwn] = React.useState(defaultOpen);
@@ -149,7 +157,12 @@ export function Dialog({
                 </button>
               </div>
               {children !== undefined && (
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-2 text-[13.5px] leading-relaxed text-foreground">
+                <div
+                  className={
+                    bodyClassName ??
+                    "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-2 text-[13.5px] leading-relaxed text-foreground"
+                  }
+                >
                   {typeof children === "function"
                     ? children({ close })
                     : children}

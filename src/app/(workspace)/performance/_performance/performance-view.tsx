@@ -15,7 +15,6 @@ import { DistributionPanel } from "./distribution-panel";
 import { SubjectDeepDive } from "./subject-deep-dive";
 import { useExamScope } from "@/components/exam-context";
 import { Swap } from "@/components/motion-swap";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { findings, isSingleResult } from "@/lib/performance-metrics";
 import type { Analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -86,12 +85,12 @@ export function PerformanceView({
   const isRefreshing = loading && !!analytics;
 
   return (
-    /* The page-height scroll container: an invisible-scrollbar ScrollArea
-       (no track, no thumb — wheel/touch/keyboard do the scrolling) that
-       keeps any unexpectedly wide child panning inside the viewport instead
-       of stretching the page sideways on a phone. */
-    <ScrollArea hideScrollbar className="w-full">
-      <div className="min-w-0 space-y-4 sm:space-y-5">
+    /* A plain, shrinkable column. The page used to be wrapped in a
+       hideScrollbar ScrollArea; its viewport is `overflow: scroll` on both
+       axes, so any panel that measured a hair wider than the column made the
+       whole page pan sideways and left a blank strip on the right. Every
+       panel below is `min-w-0` and sizes from its own container instead. */
+    <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       <PageHeader
         title="Performance"
         description="Track your mock results, spot score trends, and isolate weak subjects."
@@ -227,19 +226,21 @@ export function PerformanceView({
 
               <TrendPanel analytics={analytics} />
 
-              <RadarPanel analytics={analytics} />
+              {/* Shape and outcome mix share a row at xl and stretch to the
+                  same height, so neither leaves a hollow under it. */}
+              <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-5 xl:grid-cols-2">
+                <RadarPanel analytics={analytics} />
+                <AttemptBreakdownPanel analytics={analytics} />
+              </div>
 
-              {/* 3. Outcome Mix & Score Spread */}
+              {/* 3. Score Spread */}
               <SectionDivider
                 icon="compare"
-                title="Accuracy & score distribution"
-                subtitle="Correct vs. incorrect breakdown and score clustering"
+                title="Score distribution"
+                subtitle="How results cluster across the ten score bands"
               />
 
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-                <AttemptBreakdownPanel analytics={analytics} />
-                <DistributionPanel analytics={analytics} />
-              </div>
+              <DistributionPanel analytics={analytics} />
 
               {/* 4. Per-Subject Granular Drill-Down */}
               <SectionDivider
@@ -272,6 +273,5 @@ export function PerformanceView({
         </Swap>
       </div>
     </div>
-    </ScrollArea>
   );
 }

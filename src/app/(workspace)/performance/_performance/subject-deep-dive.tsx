@@ -49,11 +49,32 @@ export function SubjectDeepDive({ analytics }: { analytics: Analytics }) {
       title="Subject deep-dive"
       description="One card per series in scope — expand for the line behind the number."
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* A 6-track grid so cards can fill any row exactly: 1 col on phones,
+          2 from sm, 3 from xl. `spanFor` widens the cards of a short last row
+          (5 subjects → 2+2+2 over 3+3 at xl, 2+2 over a full-width card at sm)
+          so no row ever ends in an empty cell. */}
+      <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <DeepDiveCards subjects={subjects} />
       </div>
     </Panel>
   );
+}
+
+/** Column spans (in a 6-track xl grid / 2-track sm grid) that leave no gaps. */
+function spanFor(index: number, count: number): string {
+  const smSpan =
+    count % 2 === 1 && index === count - 1 ? "sm:col-span-2" : "sm:col-span-1";
+  const rem = count % 3;
+  const lastRowStart = count - (rem === 0 ? 3 : rem);
+  const inLastRow = index >= lastRowStart;
+  const perRow = inLastRow ? (rem === 0 ? 3 : rem) : 3;
+  const xlSpan =
+    perRow === 3
+      ? "xl:col-span-2"
+      : perRow === 2
+        ? "xl:col-span-3"
+        : "xl:col-span-6";
+  return `${smSpan} ${xlSpan}`;
 }
 
 function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
@@ -61,7 +82,7 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
 
   return (
     <>
-      {subjects.map((subject) => {
+      {subjects.map((subject, index) => {
         const expandable = subject.trend.length > 0;
         const isOpen = open === subject.id;
         const panelId = `deep-dive-${subject.id}`;
@@ -69,7 +90,8 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
           <article
             key={subject.id}
             className={cn(
-              "rounded-xl bg-card",
+              "min-w-0 rounded-xl bg-card",
+              spanFor(index, subjects.length),
               isOpen ? "" : "shadow-[inset_0_0_0_1px_var(--border)]",
             )}
             style={
@@ -99,12 +121,15 @@ function DeepDiveCards({ subjects }: { subjects: DeepDiveSubject[] }) {
                     {subject.name}
                   </span>
                   <span className="shrink-0 text-lg font-semibold leading-none tabular-nums text-foreground">
-                    {subject.percentage == null ? "—" : `${n(subject.percentage)}%`}
+                    {subject.percentage == null
+                      ? "—"
+                      : `${n(subject.percentage)}%`}
                   </span>
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
                   <span>
-                    {subject.count} result{subject.count === 1 ? "" : "s"} in view
+                    {subject.count} result{subject.count === 1 ? "" : "s"} in
+                    view
                   </span>
                   <Badge tone={accuracyTone(subject.accuracy)} size="sm">
                     {subject.accuracy == null
@@ -211,7 +236,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
               <g key={t}>
                 <line
                   x1={PAD.l}
-                  x2={svgWidth - PAD.r - 16}
+                  x2={svgWidth - PAD.r}
                   y1={y}
                   y2={y}
                   stroke="var(--border)"
@@ -232,7 +257,8 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
           <motion.path
             d={smoothPath(
               points.map(
-                (point, i) => [xAt(i), yAt(point.percentage)] as [number, number],
+                (point, i) =>
+                  [xAt(i), yAt(point.percentage)] as [number, number],
               ),
             )}
             fill="none"
@@ -266,7 +292,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
           </text>
           {points.length > 1 ? (
             <text
-              x={svgWidth - PAD.r - 16}
+              x={svgWidth - PAD.r}
               y={CHART_H - 6}
               textAnchor="end"
               className="tabular-nums fill-muted-foreground text-[9px]"
@@ -286,8 +312,8 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
           </p>
           <p className="tabular-nums text-[11px] text-muted-foreground">
             {shortDate(points[hoverIndex].date)} ·{" "}
-            {n(points[hoverIndex].percentage)}% ·{" "}
-            {n(points[hoverIndex].score)}/{n(points[hoverIndex].maxScore)}
+            {n(points[hoverIndex].percentage)}% · {n(points[hoverIndex].score)}/
+            {n(points[hoverIndex].maxScore)}
           </p>
         </div>
       ) : null}

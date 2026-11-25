@@ -31,7 +31,10 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]",
+        // min-w-0 + flex column: a panel can fill its grid cell to the same
+        // height as its neighbour (body flex-1) without ever forcing the
+        // grid wider than the viewport.
+        "flex min-w-0 flex-col rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]",
         className,
       )}
     >
@@ -56,7 +59,12 @@ export function Panel({
         </div>
         {action}
       </div>
-      <div className={cn("px-4 pb-4 sm:px-5 sm:pb-5", bodyClassName)}>
+      <div
+        className={cn(
+          "min-w-0 flex-1 px-4 pb-4 sm:px-5 sm:pb-5",
+          bodyClassName,
+        )}
+      >
         {children}
       </div>
     </section>

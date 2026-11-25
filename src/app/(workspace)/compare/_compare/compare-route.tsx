@@ -5,7 +5,6 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/button";
-import { Spinner } from "@/components/spinner";
 import { ScopeFilters } from "@/components/scope-filters";
 import { useExamScope } from "@/components/exam-context";
 import { useFiltersState } from "@/components/shared/use-filters-state";
@@ -99,7 +98,9 @@ export function CompareRoute() {
   const reference = useMemo<CompareReference>(
     () => ({
       targetFor: (attempt) => {
-        const target = examScope.targetForTier(`${attempt.examId}:${attempt.tierId}`);
+        const target = examScope.targetForTier(
+          `${attempt.examId}:${attempt.tierId}`,
+        );
         if (!target?.marks) return null;
         return { marks: target.marks, maxScore: target.maxScore };
       },
@@ -135,7 +136,7 @@ export function CompareRoute() {
           </Button>
         }
       />
-      <div className="mb-4">
+      <div className="mb-4 rounded-2xl bg-card px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--border)] sm:px-5">
         <ScopeFilters
           mode="type"
           scope={s.scope}
@@ -146,12 +147,6 @@ export function CompareRoute() {
           platforms={platforms}
         />
       </div>
-      {list.isFetching && (
-        <p role="status" className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <Spinner size="xs" /> Updating
-          your results…
-        </p>
-      )}
       <CompareView
         data={list.data}
         isFetching={list.isFetching}

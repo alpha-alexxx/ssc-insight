@@ -96,20 +96,55 @@ export function ScoreMetrics({ analytics }: { analytics: Analytics }) {
       : []),
   ];
 
+  /* The band is a ruled grid: 1px gaps over a border-coloured ground, so
+   * every cell edge is a hairline however the cells wrap.
+   *
+   * Column plans are explicit per cell count so no row ever ends with an empty
+   * slot at the right (the old `sm:grid-cols-3` left two blank cells after a
+   * fifth KPI, and the lone odd cell on a phone left half a row blank):
+   *   4 cells   2 cols  →  4 cols from lg
+   *   5 cells   2 cols (last spans both)  →  6-col rhythm of 3 + 2 from sm
+   *             (three cells of 2/6, two of 3/6)  →  5 cols from xl */
+  const count = cells.length;
+  const plan =
+    count === 5
+      ? {
+          grid: "grid-cols-2 sm:grid-cols-6 xl:grid-cols-5",
+          span: (i: number) =>
+            cn(
+              i === 4 && "col-span-2",
+              i < 3 ? "sm:col-span-2" : "sm:col-span-3",
+              "xl:col-span-1",
+            ),
+        }
+      : {
+          grid: "grid-cols-2 lg:grid-cols-4",
+          span: (i: number) =>
+            count % 2 === 1 && i === count - 1
+              ? "col-span-2 lg:col-span-1"
+              : "",
+        };
+
   return (
     <section
+      aria-label="Score summary"
       className={cn(
-        "rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]",
-        "grid grid-cols-2 sm:grid-cols-3 xl:auto-cols-fr xl:grid-flow-col",
-        cells.length === 5 ? "xl:grid-cols-none" : "xl:grid-cols-4",
+        "grid gap-px overflow-hidden rounded-2xl bg-border p-px text-card-foreground",
+        plan.grid,
       )}
     >
-      {cells.map((cell) => (
-        <div key={cell.key} className="flex min-w-0 flex-col gap-1 px-4 py-4 sm:px-5">
+      {cells.map((cell, i) => (
+        <div
+          key={cell.key}
+          className={cn(
+            "flex min-w-0 flex-col gap-1 bg-card px-4 py-4 sm:px-5",
+            plan.span(i),
+          )}
+        >
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             {cell.label}
           </p>
-          <p className="flex flex-wrap items-baseline gap-2">
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span
               className={cn(
                 "text-2xl font-semibold tracking-tight tabular-nums",
@@ -120,7 +155,12 @@ export function ScoreMetrics({ analytics }: { analytics: Analytics }) {
             </span>
             {cell.extra}
           </p>
-          <p className="truncate text-xs text-muted-foreground">{cell.hint}</p>
+          <p
+            className="truncate text-xs text-muted-foreground"
+            title={cell.hint}
+          >
+            {cell.hint}
+          </p>
         </div>
       ))}
     </section>

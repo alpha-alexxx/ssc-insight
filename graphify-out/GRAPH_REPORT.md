@@ -1,136 +1,136 @@
-# Graph Report - ssc-insight  (2026-11-24)
+# Graph Report - ssc-insight  (2026-11-26)
 
 ## Corpus Check
-- 656 files · ~497,550 words
+- 658 files · ~513,947 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 10 file(s) not represented in the graph (top: (none) 4, .css 2, .example 1)
 
 ## Summary
-- 4843 nodes · 14096 edges · 236 communities (162 shown, 74 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 225 edges (avg confidence: 0.85)
+- 4937 nodes · 14205 edges · 253 communities (176 shown, 77 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 228 edges (avg confidence: 0.85)
 - Token cost: 116,500 input · 41,800 output
 
 ## Graph Freshness
-- Built from commit: `31ed7646`
+- Built from commit: `93ccf743`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Study Calendar Layer
-- database
-- Motion & Interaction Primitives
-- Exam Catalog & Targets
+- calendar-entries.ts
+- RequestError
+- ui-interaction-motion.ts
+- lib/exams.ts
 - AI Provider Settings
-- Dashboard View & Primitives
-- Settings Panels
-- personal-todos.tsx
-- Backup & Import Pipeline
+- target-settings.ts
+- domain.ts
+- fixtures.ts
+- backup.ts
 - Date Picker & Form Widgets
 - trash-view.tsx
 - NumberRoll
-- fetch-dog.tsx
+- coo-pigeon.tsx
 - toast-stack.tsx
 - AI Streaming Routes
-- My Tasks View
+- button.tsx
 - Runtime Dependencies
-- TextMorph
+- donut-chart.tsx
 - Trend Charts & Time Brush
 - AI Provider & Error Types
 - lib/trash.ts
 - "ssc_insight"."MockAttempt"
-- compare-route.tsx
-- lib/search.ts
-- date-picker.tsx
 - cn
-- Performance Performance
-- Repository
-- Security Test
-- Empty State
-- Data Parts
+- lib/search.ts
+- repository.ts
 - api
-- plan-day-view.tsx
+- Performance Performance
+- rate-limit.ts
+- ref_node_assert
+- status-button.tsx
+- totals
+- next
+- view-model.ts
 - Film Section
-- approval-card.tsx
+- PlainIcon
 - Landing Sections
-- User Requireuser
-- Use Ai
-- sparkline.tsx
+- rate-limit-upstash.ts
+- use-ai-workspace.tsx
+- ai-settings-form.tsx
 - Plan Facts
 - Combobox
 - Proxy
 - Contract Test
-- Chrome
-- auth/[...path]/route.ts
+- workspace-sidebar.tsx
+- database
 - Audit Md
 - sign-in-form.tsx
 - Data Table
-- rate-limit.ts
-- ref_node_fs
-- ui-interaction-motion.ts
+- rate-limit-core.ts
+- ref_node_assert
+- devDependencies
 - Chameleon Hideengine
 - Readme Md
 - mock-form.tsx
 - Layout
 - @animate-ui/react
-- State Scenes
-- ai/todos/route.ts
+- lucide-react
+- auth-shell.tsx
 - empty-state.tsx
-- LruCache
+- exam-settings.ts
 - Email Client
 - Ai Subsystem
 - liquid-tabs.tsx
 - Performance Test
-- motion
+- collapsible.tsx
 - Product Workflows
 - Claude Md
-- entry-rows.tsx
-- view-model.ts
-- coo-pigeon.tsx
-- Queries Exams
-- Auth Shell
-- trend-chart.tsx
+- .tmp-hp-command-palette.tsx
+- @tanstack/react-query
+- shortDate
+- my-tasks-view.tsx
+- require-user.ts
+- security-panel.tsx
 - credentials.ts
 - Analytics
 - Command Palette
 - Fluted Footer
-- Streaming Answer
-- Appearance
+- streaming-answer.tsx
+- theme-toggle.tsx
 - Error Routeerror
-- domain.ts
+- compare-view.tsx
 - Tools Shot
 - Ink Trend
 - Password Input
-- search-core.ts
-- Skeleton
+- date-picker.tsx
+- route-skeleton.tsx
 - Thinking Trace
 - Tsconfig Compileroptions
 - Components
-- toast
-- CooEngine
-- use-plan-data.ts
-- dialog.tsx
+- sign-up-form.tsx
+- attachment-chip.tsx
+- verify-backup-transfer.mjs
+- queries/exams.ts
 - copy-button.tsx
 - Stack Toast
 - Filters Url
 - Screenshots Dashboard
 - Workflows Ci
 - Tools Check
-- donut-chart.tsx
+- colocation.test.ts
 - Report Md
 - Not Found
-- (workspace)/layout.tsx
+- onboarding-checklist.tsx
 - Brand Palettes
 - Check Contrast
 - Hall Illustration
 - Compare Bars
-- Thinking Indicator
+- AskMessage.tsx
 - area-chart.tsx
 - Rate Limiting
 - Auth Wire
 - Query Layer
 - Ask Ask
 - Package Scripts
-- Model Picker
+- TextMorph
 - Daynav Check
 - Theme System
 - Dot Meter
@@ -138,124 +138,141 @@
 - Analytics Scopes
 - Exam Catalog
 - Final Dashboard
-- Backup Transfer
+- empty-state-scenes.ts
 - Faq Accordion
-- useAiWorkspaceState
-- attachment-chip.tsx
+- exams-panel.tsx
+- ws
 - Hairline Dashboard
 - Explain Search
-- ref_node_crypto
-- security-panel.tsx
+- targets-panel.tsx
+- Input
 - app/layout.tsx
 - workspace-command-palette.tsx
-- Onboarding Checklist
-- attempt-outcome-card.tsx
+- useKeyboardShortcuts
+- .tmp-hp-registry.json
 - Feature Tabs
-- clarifying-question.tsx
+- stepper-input.tsx
 - Morphing Nav
-- colocation.test.ts
-- Verify Trash
+- Input
+- usage-meter.tsx
 - Announcement Pill
-- Citation
-- message-edit.tsx
-- next
-- use-search.ts
-- ws
+- image.ts
+- select.tsx
+- filter-horizontal.tsx
+- settings-view.tsx
+- message-square-text.tsx
 - Arrow Down
-- Arrow Left
+- mic.tsx
 - Arrow Right
-- Arrow Up
-- api/[...path]/route.ts
+- more-horizontal.tsx
+- plus-sign.tsx
 - Bell Ring
-- Hugeicons Bookmark
-- Hugeicons Bot
-- Message Square
+- usage-limits.tsx
+- share-03.tsx
+- trophy.tsx
 - Hugeicons Calendar
 - Calendar Check
 - Hugeicons Cancel
-- Bar Increasing
-- Badge
-- response-versions.tsx
+- upload-01.tsx
+- reminders-panel.tsx
+- menu-01.tsx
 - Checkmark Circle
 - Clipboard List
 - Hugeicons Clock
-- Hugeicons Compass
+- useIsMobile
 - Hugeicons Delete
-- Hugeicons Download
-- Filter Horizontal
-- Finger Print
-- Hugeicons Flag
-- Hugeicons Flame
-- Hugeicons Flash
+- motion
+- chat-notice.tsx
+- add-01.tsx
+- approval-card.tsx
+- avatar.tsx
+- clarifying-question.tsx
 - Folder Open
 - Hugeicons Gauge
 - Hugeicons Globe
 - Hugeicons Hourglass
-- Hugeicons Key
+- kbd.tsx
 - Layout Dashboard
 - Hugeicons List
 - Hugeicons Logout
-- usage-meter.tsx
+- chart-column.tsx
 - Square Plus
-- Square Text
-- appearance-panel.tsx
+- chart-bar-increasing.tsx
+- chart-line.tsx
 - Minus Sign
 - Hugeicons Moon
-- More Vertical
-- publicOrigin
-- Pencil Edit
-- Hugeicons Pin
-- Plus Sign
+- motion-presets.tsx
+- loading-03.tsx
+- verify-trash.mjs
+- message-edit.tsx
+- LruCache
 - Hugeicons Rocket
 - Hugeicons Search
 - Shield Check
 - Sliders Horizontal
 - Square Kanban
-- Hugeicons Star
-- Hugeicons Sun
+- combo-chart.tsx
+- ledger-facts.tsx
 - Hugeicons Target
 - Trending Down
-- markdown.tsx
-- Hugeicons Trophy
-- calendar-plus.tsx
-- User Round
-- Wand Sparkles
-- Logo Marquee
+- prompt-composer.tsx
+- performance-metrics.ts
+- publicOrigin
+- Alert
+- next.config.ts
+- activity-01.tsx
 - chart-no-axes-column.tsx
 - Domain Rules
 - Error Page
 - circle-check-big.tsx
 - Ink Books
-- copy-01.tsx
+- attachment-01.tsx
 - lock-keyhole.tsx
 - Connection Refused
-- more-horizontal.tsx
-- panel-left.tsx
-- play.tsx
+- battery-medium-01.tsx
+- bot.tsx
+- bot-message-square.tsx
 - Date Semantics
 - Postcss Config
 - Culori D
 - Vercel
-- refresh.tsx
+- compass.tsx
 - send-horizontal.tsx
-- settings-02.tsx
-- share-03.tsx
-- sparkles.tsx
+- copy-01.tsx
+- finger-print.tsx
+- flame.tsx
 - view.tsx
-- useKeyboardShortcuts
+- overrides
 - 20261025000000_ai_usage/migration.sql
 - 20261028000000_ai_credential/migration.sql
+- flash.tsx
+- mail-01.tsx
+- notification-01.tsx
+- pin.tsx
+- pause.tsx
+- pencil-edit-02.tsx
+- wand-sparkles.tsx
+- play.tsx
+- refresh.tsx
+- settings-02.tsx
+- sparkles.tsx
+- star.tsx
+- sun-03.tsx
+- trending-up.tsx
+- user-round.tsx
+- logo-marquee.tsx
+- TokenBucketRateLimiter
 
 ## God Nodes (most connected - your core abstractions)
-1. `react` - 288 edges
-2. `cn()` - 171 edges
-3. `Button()` - 157 edges
-4. `PlainIcon()` - 153 edges
-5. `motion` - 98 edges
-6. `shortDate()` - 89 edges
+1. `react` - 285 edges
+2. `cn()` - 184 edges
+3. `PlainIcon()` - 155 edges
+4. `Button()` - 152 edges
+5. `motion` - 96 edges
+6. `shortDate()` - 88 edges
 7. `useInteractionReducedMotion()` - 87 edges
-8. `@animate-ui/react` - 81 edges
-9. `NumberRoll()` - 79 edges
+8. `NumberRoll()` - 82 edges
+9. `@animate-ui/react` - 81 edges
 10. `TextMorph()` - 79 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -265,10 +282,10 @@
   public/landing/ink-trend.png → src/components/landing/mockups/data-parts.tsx
 - `Six palettes onto Hairline tokens (approved)` --semantically_similar_to--> `Six brand palettes (data-palette)`  [INFERRED] [semantically similar]
   UI_AUDIT.md → DESIGN.md
-- `contextWith()` --calls--> `buildAiContext()`  [EXTRACTED]
-  tests/ai-prompt-security.test.ts → src/lib/ai/context.ts
-- `config()` --calls--> `generationPathFor()`  [EXTRACTED]
-  tests/ai-provider-protocols.test.ts → src/lib/ai/protocols.ts
+- `build()` --calls--> `buildCalendarIndex()`  [EXTRACTED]
+  tests/calendar-entries.test.ts → src/lib/plan/calendar-entries.ts
+- `parse()` --calls--> `parseTodoProposals()`  [EXTRACTED]
+  tests/ai-todos.test.ts → src/lib/ai/todos.ts
 
 ## Import Cycles
 - None detected.
@@ -292,211 +309,211 @@
 - **Ink Hall Editorial Composition** — public_landing_ink_hall_illustration, public_landing_ink_hall_empty_exam_hall, public_landing_ink_hall_lone_candidate, public_landing_ink_hall_red_seal_stamp, public_landing_ink_hall_negative_space_composition, public_landing_ink_hall_ink_wash_aesthetic, public_landing_ink_hall_solo_aspirant_metaphor [INFERRED 0.85]
 - **Monochrome Wash with Single Warm Accent** — public_landing_ink_lantern_glowing_lantern, public_landing_ink_lantern_ink_wash_style, public_landing_ink_lantern_scholar_figure [INFERRED 0.85]
 
-## Communities (236 total, 74 thin omitted)
+## Communities (253 total, 77 thin omitted)
 
-### Community 0 - "Study Calendar Layer"
+### Community 0 - "calendar-entries.ts"
 Cohesion: 0.06
-Nodes (69): AgendaGroups(), AgendaView(), EarlierRanges(), CalendarMetrics(), MetricCell(), CalendarSurface(), DayDrawer(), DayLedger() (+61 more)
+Nodes (80): AgendaGroups(), AgendaView(), EarlierRanges(), CalendarMetrics(), MetricCell(), CalendarSurface(), DayDrawer(), DayLedger() (+72 more)
 
-### Community 1 - "database"
+### Community 1 - "RequestError"
 Cohesion: 0.05
-Nodes (88): zod, GET, runtime, dynamic, GET, HealthStatus, runtime, mutationSchema (+80 more)
+Nodes (73): zod, maxDuration, POST, runtime, POST, Context, devHandle(), handle() (+65 more)
 
-### Community 2 - "Motion & Interaction Primitives"
-Cohesion: 0.06
-Nodes (46): Accordion(), AccordionItem, AccordionProps, Chevron(), Fold(), Breadcrumb(), BreadcrumbProps, Crumb (+38 more)
-
-### Community 3 - "Exam Catalog & Targets"
+### Community 2 - "ui-interaction-motion.ts"
 Cohesion: 0.05
-Nodes (90): GET, runtime, GET, PUT, GET, preferencesSchema, runtime, scopePayload() (+82 more)
+Nodes (50): AlertProps, AlertTone, ICON_TONE, ICONS, TONE, Breadcrumb(), BreadcrumbProps, Crumb (+42 more)
+
+### Community 3 - "lib/exams.ts"
+Cohesion: 0.12
+Nodes (29): PatternSection, PatternShape, CUSTOM_FIRST_TIER_ID, CustomExamDef, customExamPattern(), ExamDef, ExamSource, ExamStage (+21 more)
 
 ### Community 4 - "AI Provider Settings"
-Cohesion: 0.05
-Nodes (81): maxDuration, POST, runtime, maxDuration, POST, PROBE_MESSAGES, runtime, Catalog (+73 more)
-
-### Community 5 - "Dashboard View & Primitives"
-Cohesion: 0.13
-Nodes (43): DashboardPlanApi, PersonalTasksPanel(), PipelineProgressSection(), PipelineRevisionSection(), PipelineUpcomingSection(), PlanApi, PlanWithToday, ProgressRing() (+35 more)
-
-### Community 6 - "Settings Panels"
-Cohesion: 0.07
-Nodes (60): dynamic, SettingsPage(), AboutPanel(), DataPanel(), ExamsPanel(), MotionButton, pageEnter, Reveal() (+52 more)
-
-### Community 7 - "personal-todos.tsx"
 Cohesion: 0.06
-Nodes (45): blankTask(), PersonalTaskDrawer(), TaskEditorLoader(), DraftResponse, Proposal, TodoAiComposerInner(), apply(), duplicateWarning() (+37 more)
+Nodes (63): maxDuration, PROBE_MESSAGES, runtime, aiConfig(), aiConfigOrNull(), AI_THINKING_LEVELS, AI_THINKING_VALUES, AiConfig (+55 more)
 
-### Community 8 - "Backup & Import Pipeline"
-Cohesion: 0.03
-Nodes (72): GET, maxDuration, runtime, privateHeaders, assertSummary(), attemptLabel(), backfillLegacyQualifying(), BACKUP_FORMAT (+64 more)
+### Community 5 - "target-settings.ts"
+Cohesion: 0.12
+Nodes (21): TierPattern, percentileForExam(), applyTargetEdit(), applyTargetEdits(), isCurrentTargetShape(), isPlainObject(), LEGACY_EXAM_PRIMARY_TIER, legacyPrimaryTierFor() (+13 more)
+
+### Community 6 - "domain.ts"
+Cohesion: 0.08
+Nodes (30): fill(), AttemptCardProps, Arrow(), Pagination(), PaginationProps, Slot, windowFor(), ASC_SORTERS (+22 more)
+
+### Community 7 - "fixtures.ts"
+Cohesion: 0.11
+Nodes (39): CompareScreen(), delta(), duration(), DashboardScreen(), accuracyTone(), CHART, CHIP_TONES, ChipTone (+31 more)
+
+### Community 8 - "backup.ts"
+Cohesion: 0.04
+Nodes (67): assertSummary(), attemptLabel(), backfillLegacyQualifying(), BACKUP_FORMAT, BACKUP_FORMAT_VERSION, BACKUP_INSERT_CHUNK_SIZE, BACKUP_MAX_ATTEMPTS, BACKUP_MAX_BYTES (+59 more)
 
 ### Community 9 - "Date Picker & Form Widgets"
 Cohesion: 0.17
-Nodes (31): react-dom, BulkBar(), ContextMenu(), ContextMenuProps, DropdownMenu(), DropdownMenuProps, Align, enterStyle() (+23 more)
+Nodes (30): react-dom, ContextMenu(), ContextMenuProps, DropdownMenu(), DropdownMenuProps, Align, enterStyle(), findFloatingPortal() (+22 more)
 
 ### Community 10 - "trash-view.tsx"
-Cohesion: 0.10
-Nodes (34): GET, runtime, TrashDetailSheet(), KindFilter, messageOf(), toItemRef(), TrashPanel(), TrashView() (+26 more)
+Cohesion: 0.19
+Nodes (18): dynamic, TrashPage(), KindFilter, kindIconName(), messageOf(), toItemRef(), TrashPanel(), TrashView() (+10 more)
 
 ### Community 11 - "NumberRoll"
-Cohesion: 0.08
-Nodes (36): Column, columns(), Digit, NOTHING_NEW, NumberRoll(), NumberRollProps, Place(), STRIP (+28 more)
+Cohesion: 0.16
+Nodes (18): Column, columns(), Digit, NOTHING_NEW, NumberRoll(), NumberRollProps, Place(), STRIP (+10 more)
 
-### Community 12 - "fetch-dog.tsx"
-Cohesion: 0.15
-Nodes (11): playStrip(), preloadStrips(), StripPlay, FETCH_ART, FETCH_FRAMES, clamp(), Clip, easeIn() (+3 more)
+### Community 12 - "coo-pigeon.tsx"
+Cohesion: 0.05
+Nodes (33): playStrip(), preloadStrips(), StripPlay, COO_ART, COO_GEO, COO_FLY_ART, COO_FLY_FRAMES, BEAK (+25 more)
 
 ### Community 13 - "toast-stack.tsx"
-Cohesion: 0.11
-Nodes (25): emit(), getNone(), getToasts(), Glyph(), listeners, NO_TOASTS, POP, remove() (+17 more)
+Cohesion: 0.08
+Nodes (42): niceMax(), niceStep(), snap(), subscribeNothing(), subscribeReduced(), ThresholdLine(), ThresholdLineDatum, ThresholdLineProps (+34 more)
 
 ### Community 14 - "AI Streaming Routes"
 Cohesion: 0.07
-Nodes (66): bodySchema, maxDuration, POST(), runtime, COACH_FORMAT, maxDuration, POST(), runtime (+58 more)
+Nodes (77): bodySchema, maxDuration, POST(), runtime, COACH_FORMAT, maxDuration, POST(), runtime (+69 more)
 
-### Community 15 - "My Tasks View"
-Cohesion: 0.05
-Nodes (56): ApplyOp, ConfirmState, MyTasksView(), bulkRescheduleApply(), bulkStatus(), bulkTrashSelected(), clearSelection(), createTask() (+48 more)
+### Community 15 - "button.tsx"
+Cohesion: 0.04
+Nodes (73): blankTask(), PersonalTaskDrawer(), TaskEditorLoader(), AiPlanSheet(), ApplyOp, ConfirmState, RescheduleState, TAB_ITEMS (+65 more)
 
 ### Community 16 - "Runtime Dependencies"
-Cohesion: 0.03
-Nodes (85): dependencies, @animate-ui/react@^2.4.6, class-variance-authority@^0.7.1, clsx@^2.1.1, @hookform/resolvers@^5.9.2, @hugeicons/core-free-icons@^4.4.0, @hugeicons/react@^1.1.10, lucide-react@^1.78.0 (+77 more)
+Cohesion: 0.04
+Nodes (44): dependencies, @animate-ui/react@^2.4.6, @base-ui/react@^1.9.0, class-variance-authority@^0.7.1, clsx@^2.1.1, @hookform/resolvers@^5.9.2, @hugeicons/core-free-icons@^4.4.0, @hugeicons/react@^1.1.10 (+36 more)
 
-### Community 17 - "TextMorph"
-Cohesion: 0.10
-Nodes (27): BadgeProps, BadgeTone, DOT, FILL, LINE, ChatScroll(), ChatScrollProps, subscribeReduced() (+19 more)
+### Community 17 - "donut-chart.tsx"
+Cohesion: 0.27
+Nodes (10): colorOf(), DonutChart(), DonutChartProps, DonutSlice, NONE, PALETTE, subscribeNothing(), subscribeReduced() (+2 more)
 
 ### Community 18 - "Trend Charts & Time Brush"
-Cohesion: 0.10
-Nodes (31): pad(), TimeBrush(), TimeBrushProps, addDays(), DAY, DAY_WORDS, DAYS, durationShort() (+23 more)
+Cohesion: 0.06
+Nodes (51): pad(), TimeBrush(), TimeBrushProps, addDays(), DAY, DAY_WORDS, DAYS, durationShort() (+43 more)
 
 ### Community 19 - "AI Provider & Error Types"
-Cohesion: 0.07
-Nodes (57): aiAborted(), AiBillability, aiBusy(), aiEndpointError(), AiError, AiErrorCode, aiInvalidOutput(), aiModelError() (+49 more)
+Cohesion: 0.09
+Nodes (45): aiAborted(), aiInvalidOutput(), aiOutputIncomplete(), aiRefused(), aiTimeout(), AiContentPart, AiProvider, AiStructuredFormat (+37 more)
 
 ### Community 20 - "lib/trash.ts"
-Cohesion: 0.07
-Nodes (61): POST, bearerToken(), GET, maxDuration, runtime, secretMatches(), assignTierIds(), customExamInputSchema (+53 more)
+Cohesion: 0.08
+Nodes (48): GET, idSchema, kindSchema, runtime, GET, runtime, loadTrashPage(), TrashQueryInput (+40 more)
 
 ### Community 21 - ""ssc_insight"."MockAttempt""
 Cohesion: 0.07
 Nodes (36): MockAttempt_completedAt_idx, MockAttempt_platform_completedAt_idx, MockAttempt_type_completedAt_idx, "ssc_insight"."MockAttempt", "ssc_insight"."SubjectResult", "ssc_insight"."TrackerSettings", SubjectResult_attemptId_position_key, SubjectResult_subjectId_attemptId_idx (+28 more)
 
-### Community 22 - "compare-route.tsx"
-Cohesion: 0.22
-Nodes (18): CompareRoute(), CompareReference, HistoryRoute(), PerformanceRoute(), platformsOf(), DateRangeFilter(), useExamScope(), PageHeader() (+10 more)
+### Community 22 - "cn"
+Cohesion: 0.08
+Nodes (53): CalendarToolbar(), DaySections(), AttemptEntryRow(), categoryLabel(), entryPlanRow(), PersonalEntryRow(), PlanEntryRow(), RevisionEntryRow() (+45 more)
 
 ### Community 23 - "lib/search.ts"
-Cohesion: 0.18
-Nodes (20): escapeLike(), getStudyPlan(), ATTEMPT_PHASES, attemptItem(), attemptPhaseWhere(), matchTier(), takeFrom(), taskPhaseWhere() (+12 more)
+Cohesion: 0.11
+Nodes (37): collectCursors(), GET, runtime, escapeLike(), getStudyPlan(), ATTEMPT_PHASES, attemptItem(), attemptPhaseWhere() (+29 more)
 
-### Community 24 - "date-picker.tsx"
-Cohesion: 0.14
-Nodes (30): addDays(), addMonths(), Arrow(), DatePicker(), DatePickerProps, DAYS, fromISO(), localToday() (+22 more)
+### Community 24 - "repository.ts"
+Cohesion: 0.10
+Nodes (35): GET, attemptData(), attemptInclude, attemptWhere(), mapSubjects(), StoredAnalyticsAttempt, StoredAttempt, toAnalyticsAttempt() (+27 more)
 
-### Community 25 - "cn"
-Cohesion: 0.05
-Nodes (75): AiActivity, clockLabel(), FEATURE_META, STATUS_DOT, AskRoute(), AskView(), ComposerMode, MODES (+67 more)
+### Community 25 - "api"
+Cohesion: 0.09
+Nodes (37): GET, dynamic, MyTasksPage(), MyTasksRoute(), apply(), EMPTY_TASKS, patchDayInPlan(), patchTaskInPlan() (+29 more)
 
 ### Community 26 - "Performance Performance"
-Cohesion: 0.06
-Nodes (61): DistributionPanel(), PAD, FindingsPanel(), points(), sentence(), TONE_ICON, TONE_TEXT, Panel() (+53 more)
-
-### Community 27 - "Repository"
-Cohesion: 0.09
-Nodes (39): DELETE, GET, idSchema, runtime, attemptData(), attemptInclude, attemptWhere(), mapSubjects() (+31 more)
-
-### Community 28 - "Security Test"
-Cohesion: 0.09
-Nodes (35): AiContext, average(), buildAiContext(), fullMockProfile(), payload(), recentFullMock(), sectionProfile(), subjectProfile() (+27 more)
-
-### Community 29 - "Empty State"
-Cohesion: 0.10
-Nodes (29): ChatNotice(), ChatNoticeKind, ChatNoticeProps, Countdown(), Reveal(), subscribeReduced(), swap(), TWO_DIGITS (+21 more)
-
-### Community 30 - "Data Parts"
-Cohesion: 0.07
-Nodes (56): AttemptInput, buildAttempt(), FULL_ROWS, LANDING_ATTEMPTS, LANDING_FULL_MOCKS, LANDING_LATEST, LANDING_SCOPES, LANDING_SUMMARY (+48 more)
-
-### Community 31 - "api"
 Cohesion: 0.08
-Nodes (35): AddMockView(), AddRoute(), AddRouteInner(), remove(), LogMockPayload, AiActivityEntry, api(), ApiError (+27 more)
+Nodes (45): AttemptBreakdownPanel(), DistributionPanel(), PAD, InsightCallout(), Panel(), SUBJECT_CHART, SUBJECT_INDEX, subjectChartIndex() (+37 more)
 
-### Community 32 - "plan-day-view.tsx"
-Cohesion: 0.14
-Nodes (25): EventDialog(), PlanDoneState(), RevFlag(), BoardView(), handleDrop(), columnFor(), COLUMNS, DayNotes() (+17 more)
+### Community 27 - "rate-limit.ts"
+Cohesion: 0.19
+Nodes (18): aiRateLimiterFree, aiRateLimiterPersonal, apiRateLimiter, Bucket, BudgetState, budgetState(), checkBudget(), initialBudget() (+10 more)
+
+### Community 28 - "ref_node_assert"
+Cohesion: 0.07
+Nodes (47): MAX_TODO_PROMPT_CHARS, AiContext, buildAiContext(), attachImages(), chatMessages(), coachMessages(), contextBlock(), extractionMessages() (+39 more)
+
+### Community 29 - "status-button.tsx"
+Cohesion: 0.20
+Nodes (14): CodeBlock(), CodeBlockProps, COPY_LABELS, subscribeReduced(), tokenize(), TONE, useReducedMotion(), Alert() (+6 more)
+
+### Community 30 - "totals"
+Cohesion: 0.10
+Nodes (25): LINK_BUTTON, TypedLine(), AttemptInput, buildAttempt(), FULL_ROWS, LANDING_ATTEMPTS, LANDING_FULL_MOCKS, LANDING_LATEST (+17 more)
+
+### Community 31 - "next"
+Cohesion: 0.13
+Nodes (19): next, AddMockView(), AddRoute(), AddRouteInner(), CalendarRoute(), metadata, PlanDayRoute(), metadata (+11 more)
+
+### Community 32 - "view-model.ts"
+Cohesion: 0.11
+Nodes (28): BoardView(), handleDrop(), columnFor(), COLUMNS, nextStatus(), PersonalTaskDisplayStatus, ProgressRule(), STATUS_META (+20 more)
 
 ### Community 33 - "Film Section"
 Cohesion: 0.12
 Nodes (27): attemptMeritPercentage(), CHAPTERS, COACH_ANSWER, CountNumber(), FILM_GAP_PTS, FILM_METRICS, FILM_PCT_DELTA, FILM_SUBJECT_BARS (+19 more)
 
-### Community 34 - "approval-card.tsx"
-Cohesion: 0.29
-Nodes (9): ApprovalCard(), ApprovalCardProps, ApprovalDetail, ApprovalStatus, DrawnCheck(), LABELS, subscribeReduced(), swap() (+1 more)
+### Community 34 - "PlainIcon"
+Cohesion: 0.05
+Nodes (76): AskEmptyState(), greeting(), SCOPE, STARTERS, AskViewHairline(), ComposerMode, estimateTokens(), HIDE_CHAT_FEEDBACK_BUTTONS (+68 more)
 
 ### Community 35 - "Landing Sections"
-Cohesion: 0.07
-Nodes (54): dynamic, LandingPage(), metadata, LINK_BUTTON, TypedLine(), FloatingAsk(), RAIL_ITEMS, SectionRail() (+46 more)
+Cohesion: 0.15
+Nodes (28): FloatingAsk(), RAIL_ITEMS, SectionRail(), onScroll(), read(), Faq(), FilmSection(), Landing() (+20 more)
 
-### Community 36 - "User Requireuser"
-Cohesion: 0.10
-Nodes (58): @tanstack/react-query, GET, POST, runtime, GET, runtime, AddPage(), dynamic (+50 more)
+### Community 36 - "rate-limit-upstash.ts"
+Cohesion: 0.21
+Nodes (17): BREAKER_OPEN_MS, BREAKER_THRESHOLD, BreakerState, initialBreaker(), isBreakerOpen(), onFailure(), onSuccess(), tickBreaker() (+9 more)
 
-### Community 37 - "Use Ai"
-Cohesion: 0.13
-Nodes (26): AiWorkspace, AiWorkspaceContext, INSIGHT_REQUEST_TEXT, trimChatHistory(), chatBaseForSend(), ChatMessage, CoachMeta, CoachResponse (+18 more)
+### Community 37 - "use-ai-workspace.tsx"
+Cohesion: 0.06
+Nodes (53): AiWorkspace, AiWorkspaceContext, ChatHistoryApi, ChatPhase, INSIGHT_REQUEST_TEXT, insightToChatText(), newId(), trimChatHistory() (+45 more)
 
-### Community 38 - "sparkline.tsx"
-Cohesion: 0.43
-Nodes (6): parsePoint(), Sparkline(), SparklinePoint, SparklineProps, subscribeReduced(), useReducedMotion()
+### Community 38 - "ai-settings-form.tsx"
+Cohesion: 0.11
+Nodes (18): Catalog, EMPTY_CATALOG, EMPTY_FORM, Props, PROTOCOL_LABELS, THINKING_LABELS, THINKING_LEVELS, ComboboxOption (+10 more)
 
 ### Community 39 - "Plan Facts"
-Cohesion: 0.08
-Nodes (20): SignUpPlateArt(), LANDING_PLAN, plan, buildLandingPlan(), category(), isMock(), parsed, parsePlanTaskKey() (+12 more)
+Cohesion: 0.07
+Nodes (29): SignUpPlateArt(), LANDING_PLAN, plan, buildLandingPlan(), category(), isMock(), LandingPlanData, LandingPlanDay (+21 more)
 
 ### Community 40 - "Combobox"
-Cohesion: 0.10
-Nodes (37): AlertIcon(), Box(), Check(), Chevron(), Combobox(), ComboboxBase, ComboboxMultipleProps, ComboboxOption (+29 more)
+Cohesion: 0.11
+Nodes (36): AlertIcon(), Box(), Check(), Chevron(), Combobox(), ComboboxBase, ComboboxMultipleProps, ComboboxProps (+28 more)
 
 ### Community 41 - "Proxy"
-Cohesion: 0.16
-Nodes (23): accessLog(), AccessLogEvent, bypassesMaintenance(), classifyPath(), EnvLike, isAuthPage(), isCronPath(), maintenanceActive() (+15 more)
+Cohesion: 0.17
+Nodes (22): accessLog(), AccessLogEvent, auth(), bypassesMaintenance(), classifyPath(), EnvLike, isAuthPage(), isCronPath() (+14 more)
 
 ### Community 42 - "Contract Test"
 Cohesion: 0.06
 Nodes (31): boardViewSource, calendarAgendaSource, calendarDayLedgerSource, calendarEntriesSource, calendarEventSource, calendarLayersSource, calendarMonthSource, calendarPeriodSource (+23 more)
 
-### Community 43 - "Chrome"
-Cohesion: 0.12
-Nodes (30): App shell (sidebar-07 composition), AppFrame(), AppHeader(), HeaderLocation(), ThemeToggleBridge(), ExamSwitcher(), EmptyScopeNotice(), ScopeGate() (+22 more)
+### Community 43 - "workspace-sidebar.tsx"
+Cohesion: 0.14
+Nodes (26): App shell (sidebar-07 composition), animations, PanelLeft(), PanelLeftProps, AppFrame(), AppHeader(), ThemeToggleBridge(), Tooltip() (+18 more)
 
-### Community 44 - "auth/[...path]/route.ts"
-Cohesion: 0.27
-Nodes (10): Context, devHandle(), handle(), privateNoStore, runtime, withServiceOrigin(), devAuthBypassActive(), devBypassUser() (+2 more)
+### Community 44 - "database"
+Cohesion: 0.05
+Nodes (72): GET, runtime, dynamic, GET, HealthStatus, runtime, mutationSchema, POST (+64 more)
 
 ### Community 45 - "Audit Md"
 Cohesion: 0.07
 Nodes (16): Conversions cheat-sheet (shadcn to Hairline), Hairline UI component library, MIGRATION.md (Hairline migration guide), toast-stack API, Hairline AI chat parts set, Coverage map (category to component or gap), DEV_AUTH_BYPASS route verification (19 routes), Gate questions resolved (section 9) (+8 more)
 
 ### Community 46 - "sign-in-form.tsx"
-Cohesion: 0.07
-Nodes (50): react-hook-form@^7.92.0, react-hook-form, AuthFieldError(), DoneStage(), ForgotForm(), RequestStage(), Stage, StepPanel() (+42 more)
+Cohesion: 0.14
+Nodes (20): OrWithEmailSeparator(), SignInForm(), SignInMode, StepPanel(), TotpStep(), verifyTotpSignIn(), authEmailSchema, authNameSchema (+12 more)
 
 ### Community 47 - "Data Table"
-Cohesion: 0.09
-Nodes (33): Box(), cellText(), cellValue(), compare(), Cursor, DataTable(), DataTableAction, DataTableColumn (+25 more)
+Cohesion: 0.12
+Nodes (23): Box(), cellText(), cellValue(), compare(), Cursor, DataTable(), DataTableAction, DataTableColumn (+15 more)
 
-### Community 48 - "rate-limit.ts"
+### Community 48 - "rate-limit-core.ts"
+Cohesion: 0.17
+Nodes (19): AI_L2_COST, AI_RATE_LIMIT, AI_WINDOW_SECONDS, BudgetState, decideRateLimit(), describeDecision(), escalatedRetryAfter(), ESCALATION_CAP_SECONDS (+11 more)
+
+### Community 49 - "ref_node_assert"
+Cohesion: 0.08
+Nodes (13): ALLOW, files, PALETTE_CLASS, violations, walk(), root, panel, view (+5 more)
+
+### Community 50 - "devDependencies"
 Cohesion: 0.07
-Nodes (55): aiRateLimiter, apiRateLimiter, BREAKER_OPEN_MS, BREAKER_THRESHOLD, BreakerState, initialBreaker(), isBreakerOpen(), onFailure() (+47 more)
-
-### Community 49 - "ref_node_fs"
-Cohesion: 0.15
-Nodes (6): ALLOW, files, PALETTE_CLASS, violations, walk(), root
-
-### Community 50 - "ui-interaction-motion.ts"
-Cohesion: 0.10
-Nodes (27): niceMax(), niceStep(), snap(), subscribeNothing(), subscribeReduced(), ThresholdLine(), ThresholdLineDatum, ThresholdLineProps (+19 more)
+Nodes (36): devDependencies, culori@^4.0.2, eslint@^9.0.0, eslint-config-next@^16.0.0, prettier@^3.9.10, prisma@7.10.1, react-is@^19.3.1, tailwindcss@^4.0.0 (+28 more)
 
 ### Community 51 - "Chameleon Hideengine"
 Cohesion: 0.11
@@ -507,32 +524,36 @@ Cohesion: 0.09
 Nodes (16): graphify knowledge graph (graphify-out/), SSC Insight, SSC Insight (CGL Tier 2 mock tracker), Component decision table, Density and motion tokens (:root), Type scale (--type-*), SSC CGL Tier 2 mock tracker (product definition), Agent tooling (neon-postgres plugin, MCP) (+8 more)
 
 ### Community 53 - "mock-form.tsx"
-Cohesion: 0.06
-Nodes (68): DurationInput(), change(), formatParts(), blankSubject(), defaultTierId(), fullMockSectionHeading(), Labeled(), meritSubjectIds() (+60 more)
+Cohesion: 0.07
+Nodes (60): DurationInput(), change(), formatParts(), blankSubject(), defaultTierId(), fullMockSectionHeading(), Labeled(), meritSubjectIds() (+52 more)
 
 ### Community 54 - "Layout"
-Cohesion: 0.15
-Nodes (15): initialTheme(), persist(), ThemePrefs, ThemePrefsContext, ThemeStyleProvider(), DEFAULT_THEME, normalizeTheme(), PALETTE_STORAGE_KEY (+7 more)
+Cohesion: 0.13
+Nodes (19): AppearancePanel(), PaletteChip(), ThemeToggleNextBridge(), initialTheme(), persist(), ThemePrefs, ThemePrefsContext, ThemeStyleProvider() (+11 more)
 
 ### Community 55 - "@animate-ui/react"
-Cohesion: 0.06
-Nodes (16): @animate-ui/react, Activity01Props, animations, Add01(), Add01Props, animations, animations, BatteryMedium01Props (+8 more)
+Cohesion: 0.10
+Nodes (9): @animate-ui/react, animations, ArrowUp01Props, animations, BookmarkProps, animations, CalendarPlusProps, animations (+1 more)
 
-### Community 56 - "State Scenes"
-Cohesion: 0.18
-Nodes (20): scopeTrash(), box(), C, chart(), done(), facingCircle(), inbox(), line() (+12 more)
+### Community 56 - "lucide-react"
+Cohesion: 0.17
+Nodes (15): lucide-react@^1.78.0, lucide-react, Citation(), CitationProps, CitationSource, hostname(), subscribeReduced(), useReducedMotion() (+7 more)
 
-### Community 57 - "ai/todos/route.ts"
-Cohesion: 0.20
-Nodes (13): maxDuration, runtime, MAX_TODO_PROMPT_CHARS, parseTodoProposals(), Target, TODO_DATE_QUESTION, todoDraftMessages(), todoDraftRequestSchema (+5 more)
+### Community 57 - "auth-shell.tsx"
+Cohesion: 0.14
+Nodes (18): dynamic, ForgotPasswordPage(), metadata, dynamic, metadata, SignInPage(), dynamic, metadata (+10 more)
 
 ### Community 58 - "empty-state.tsx"
 Cohesion: 0.14
-Nodes (23): TasksEmptyState(), drawIn(), drawOut(), EmptyState(), EmptyStateAction, EmptyStateProps, EmptyStateSecondaryAction, FILL (+15 more)
+Nodes (21): drawIn(), drawOut(), EmptyStateAction, EmptyStateProps, EmptyStateSecondaryAction, FILL, isAction(), Layer (+13 more)
+
+### Community 59 - "exam-settings.ts"
+Cohesion: 0.08
+Nodes (50): customExamInputSchema, customSubjectSchema, customTierSchema, GET, runtime, GET, PATCH, preferencesSchema (+42 more)
 
 ### Community 60 - "Email Client"
-Cohesion: 0.15
-Nodes (27): readSecurityUser(), SecurityUser, useAuthSecurity(), authClient, AuthFailureReason, authGet(), authPost(), AuthSessionRow (+19 more)
+Cohesion: 0.17
+Nodes (26): readSecurityUser(), SecurityUser, useAuthSecurity(), OtpLogin(), AuthFailureReason, authGet(), authPost(), AuthSessionRow (+18 more)
 
 ### Community 61 - "Ai Subsystem"
 Cohesion: 0.09
@@ -544,11 +565,11 @@ Nodes (15): BEHIND, clamp(), colorOf(), FRONT, half(), liquidPath(), LiquidTab, 
 
 ### Community 63 - "Performance Test"
 Cohesion: 0.06
-Nodes (33): filterAttempts(), targetMarks(), targetPercentage(), duplicateKey(), Marking, SubjectResult, attemptSchema, input (+25 more)
+Nodes (28): filterAttempts(), targetMarks(), targetPercentage(), duplicateKey(), Marking, SubjectResult, attemptSchema, input (+20 more)
 
-### Community 64 - "motion"
-Cohesion: 0.06
-Nodes (15): motion, animations, Attachment01Props, animations, ChartLineProps, animations, Loading03Props, animations (+7 more)
+### Community 64 - "collapsible.tsx"
+Cohesion: 0.39
+Nodes (7): Accordion(), AccordionItem, AccordionProps, Chevron(), Fold(), Collapsible(), CollapsibleProps
 
 ### Community 65 - "Product Workflows"
 Cohesion: 0.08
@@ -558,61 +579,61 @@ Nodes (18): Backup format v5, buildCalendarIndex, /calendar unified 3-layer ledg
 Cohesion: 0.10
 Nodes (18): percentiles (goal percentile per exam), Settings eight sections, settings-guard.tsx dirty-state guard, 20261102000000_targets_and_preferences, tierTargets (per-tier override map), attemptWhere() soft-delete read boundary, CI pipeline (.github/workflows/ci.yml), ESLint mockAttempt boundary rule (+10 more)
 
-### Community 67 - "entry-rows.tsx"
-Cohesion: 0.10
-Nodes (42): CalendarToolbar(), DaySections(), AttemptEntryRow(), entryPlanRow(), PersonalEntryRow(), PlanEntryRow(), RevisionEntryRow(), SectionHead() (+34 more)
+### Community 67 - ".tmp-hp-command-palette.tsx"
+Cohesion: 0.14
+Nodes (22): Check(), CommandItem, CommandPalette(), CommandPaletteProps, Kbd(), LeavingPane(), Marked(), match() (+14 more)
 
-### Community 68 - "view-model.ts"
-Cohesion: 0.09
-Nodes (30): categoryLabel(), MonthGrid, CompactRow(), DayTicks(), WeekDayCell(), WeekView, PersonalCalendar(), personalMonthRange() (+22 more)
+### Community 68 - "@tanstack/react-query"
+Cohesion: 0.11
+Nodes (47): @tanstack/react-query, GET, runtime, GET, GET, GET, AddPage(), dynamic (+39 more)
 
-### Community 69 - "coo-pigeon.tsx"
-Cohesion: 0.10
-Nodes (20): COO_ART, COO_GEO, COO_FLY_ART, COO_FLY_FRAMES, BEAK, BOX, clamp(), COO_ROUTE (+12 more)
+### Community 69 - "shortDate"
+Cohesion: 0.06
+Nodes (70): AuthPageLoading(), AuthPageLoading(), AuthPageLoading(), CalendarLoading(), DashboardPlanApi, PersonalTasksPanel(), PipelineProgressSection(), PipelineRevisionSection() (+62 more)
 
-### Community 70 - "Queries Exams"
+### Community 70 - "my-tasks-view.tsx"
 Cohesion: 0.07
-Nodes (39): CustomExamDialog(), describeTier(), ExamRow(), maxOf(), SourceSummary, StageSummary, SUBJECT_CHOICES, TierSummary (+31 more)
+Nodes (39): MyTasksView(), bulkRescheduleApply(), bulkStatus(), bulkTrashSelected(), clearSelection(), createTask(), cycleStatus(), duplicate() (+31 more)
 
-### Community 71 - "Auth Shell"
-Cohesion: 0.15
-Nodes (17): dynamic, ForgotPasswordPage(), metadata, dynamic, metadata, SignInPage(), dynamic, metadata (+9 more)
+### Community 71 - "require-user.ts"
+Cohesion: 0.10
+Nodes (28): dynamic, LandingPage(), metadata, AskRoute(), AskPage(), dynamic, dynamic, WorkspaceLayout() (+20 more)
 
-### Community 72 - "trend-chart.tsx"
+### Community 72 - "security-panel.tsx"
 Cohesion: 0.17
-Nodes (20): dateWords(), ease(), formatDuration(), lerp(), lerpAll(), monotoneSegments(), nextBucket(), niceTop() (+12 more)
+Nodes (13): BackupCodesGrid(), describeDevice(), ENROLL_STEPS, EnrollStep, RegenerateCodesDialog(), CodeInput(), CodeInputProps, Glyph() (+5 more)
 
 ### Community 73 - "credentials.ts"
-Cohesion: 0.12
-Nodes (32): RFC-1918, DELETE, GET, PUT, runtime, isAiThinking(), sameCredentialTarget(), AiCredentialInput (+24 more)
+Cohesion: 0.11
+Nodes (33): RFC-1918, DELETE, GET, PUT, runtime, isAiThinking(), AiConnectionInput, sameCredentialTarget() (+25 more)
 
 ### Community 74 - "Analytics"
-Cohesion: 0.10
-Nodes (40): accuracyTone(), AverageThreshold(), buildComparison(), buildSectionRows(), ChangeCell(), comparable(), CompareView, Comparison (+32 more)
+Cohesion: 0.12
+Nodes (28): average(), fullMockProfile(), payload(), recentFullMock(), sectionProfile(), subjectProfile(), analyze(), average() (+20 more)
 
 ### Community 75 - "Command Palette"
-Cohesion: 0.15
-Nodes (22): Check(), CommandItem, CommandPalette(), CommandPaletteProps, Kbd(), LeavingPane(), Marked(), match() (+14 more)
+Cohesion: 0.14
+Nodes (23): Check(), CommandItem, CommandPalette(), CommandPaletteProps, Kbd(), LeavingPane(), Marked(), match() (+15 more)
 
 ### Community 76 - "Fluted Footer"
 Cohesion: 0.17
 Nodes (20): DefaultMark(), drawWordMask(), FlutedColumn, FlutedFooter(), FlutedFooterProps, FlutedLink, NO_COLUMNS, NO_LINKS (+12 more)
 
-### Community 77 - "Streaming Answer"
-Cohesion: 0.12
-Nodes (21): AnswerActions(), AnswerActionsProps, AnswerCitation, AnswerFeedback, AnswerSegment, AnswerSource, AnswerStatus, Caret() (+13 more)
-
-### Community 78 - "Appearance"
+### Community 77 - "streaming-answer.tsx"
 Cohesion: 0.14
-Nodes (18): animations, Menu01(), Menu01Props, Masthead(), onScroll(), read(), NAV, OPTIONS (+10 more)
+Nodes (20): AnswerActions(), AnswerActionsProps, AnswerCitation, AnswerFeedback, AnswerSegment, AnswerStatus, Caret(), CitationChip() (+12 more)
+
+### Community 78 - "theme-toggle.tsx"
+Cohesion: 0.27
+Nodes (11): OPTIONS, readSaved(), subscribeQuery(), subscribeSaved(), SunMoon(), SystemIcon(), Theme, ThemeToggle() (+3 more)
 
 ### Community 79 - "Error Routeerror"
 Cohesion: 0.12
 Nodes (18): react, ForgotPasswordError(), SignInError(), SignUpError(), AddError(), AskError(), CalendarError(), CompareError() (+10 more)
 
-### Community 80 - "domain.ts"
+### Community 80 - "compare-view.tsx"
 Cohesion: 0.09
-Nodes (34): HistoryPanel, HistoryStats(), sortLabel(), accuracyTone(), AttemptTotals, scoreBarTone(), totalsFor(), typeChip() (+26 more)
+Nodes (57): AverageThreshold(), BAR_KEYS, buildBarData(), buildComparison(), buildSectionRows(), CardShell(), ChangeCell(), comparable() (+49 more)
 
 ### Community 81 - "Tools Shot"
 Cohesion: 0.17
@@ -626,13 +647,13 @@ Nodes (13): Ink Compass Still-Life Illustration, Ink Lantern Plate Artwork, Aspi
 Cohesion: 0.21
 Nodes (12): animateLayer(), BUTTON_SIZES, BUTTON_TONES, hidden(), IconMorph(), IconMorphButton(), IconMorphButtonProps, IconMorphMode (+4 more)
 
-### Community 84 - "search-core.ts"
-Cohesion: 0.19
-Nodes (17): collectCursors(), GET, runtime, decodeSearchCursors(), encodeSearchCursors(), fromBase64Url(), normalizeSearchQuery(), parseSearchTypes() (+9 more)
+### Community 84 - "date-picker.tsx"
+Cohesion: 0.28
+Nodes (15): addDays(), addMonths(), Arrow(), DatePicker(), DatePickerProps, DAYS, fromISO(), localToday() (+7 more)
 
-### Community 85 - "Skeleton"
-Cohesion: 0.12
-Nodes (26): AuthPageLoading(), AuthPageLoading(), AuthPageLoading(), AddLoading(), AskLoading(), CalendarLoading(), CompareLoading(), DashboardLoading() (+18 more)
+### Community 85 - "route-skeleton.tsx"
+Cohesion: 0.36
+Nodes (12): AddLoading(), AskLoading(), CompareLoading(), PerformanceLoading(), SettingsLoading(), TrashLoading(), RouteSkeleton(), SkeletonFilterRow() (+4 more)
 
 ### Community 86 - "Thinking Trace"
 Cohesion: 0.16
@@ -644,19 +665,23 @@ Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 
 ### Community 88 - "Components"
 Cohesion: 0.11
-Nodes (17): aliases, components, hooks, lib, ui, utils, iconLibrary, registries (+9 more)
+Nodes (18): aliases, components, hooks, lib, ui, utils, iconLibrary, registries (+10 more)
 
-### Community 89 - "toast"
-Cohesion: 0.39
-Nodes (6): GoogleGlyph(), GoogleSignInButton(), signIn(), GoogleSignInButtonProps, toast(), startGoogleSignIn()
+### Community 89 - "sign-up-form.tsx"
+Cohesion: 0.24
+Nodes (9): ButtonSize, ButtonVariant, GoogleGlyph(), GoogleSignInButton(), signIn(), GoogleSignInButtonProps, authClient, OAUTH_ERROR_PATH (+1 more)
 
-### Community 91 - "use-plan-data.ts"
-Cohesion: 0.11
-Nodes (23): MyTasksRoute(), NumberField, ResultEditor(), fill(), EMPTY_TASKS, patchDayInPlan(), patchTaskInPlan(), PersonalTaskInput (+15 more)
+### Community 90 - "attachment-chip.tsx"
+Cohesion: 0.31
+Nodes (10): AttachmentChip(), AttachmentChipProps, AttachmentStatus, extension(), formatBytes(), Reveal(), subscribeReduced(), swap() (+2 more)
 
-### Community 92 - "dialog.tsx"
-Cohesion: 0.18
-Nodes (12): AlertProps, AlertTone, ICON_TONE, ICONS, TONE, DialogProps, WIDTH, MODAL_ROOT (+4 more)
+### Community 91 - "verify-backup-transfer.mjs"
+Cohesion: 0.29
+Nodes (8): api(), backup(), cookies, preview(), raw(), replace(), settings, user()
+
+### Community 92 - "queries/exams.ts"
+Cohesion: 0.14
+Nodes (18): ExamScope, ExamScopeContext, ExamScopeProvider(), tierLabelFallback(), activeExamPattern(), CustomExamDto, CustomExamInput, CustomTierDto (+10 more)
 
 ### Community 93 - "copy-button.tsx"
 Cohesion: 0.19
@@ -667,8 +692,8 @@ Cohesion: 0.26
 Nodes (13): Arrive(), bucket(), ChatHistory(), ChatHistoryProps, ChatSummary, layer(), Mark(), Row() (+5 more)
 
 ### Community 95 - "Filters Url"
-Cohesion: 0.15
-Nodes (18): FiltersState, ATTEMPT_SORT_KEYS, DashboardScope, dashboardScopeSchema, DEFAULT_SCOPE, defaultListState, lenientDirSchema, lenientFiltersSchema (+10 more)
+Cohesion: 0.10
+Nodes (30): DashboardRoute(), NO_FILTERS, PerformanceRoute(), platformsOf(), EMPTY_ATTEMPTS, useAnalyticsData(), FiltersState, useFiltersState() (+22 more)
 
 ### Community 96 - "Screenshots Dashboard"
 Cohesion: 0.23
@@ -682,9 +707,9 @@ Nodes (15): jobs, validate, name, on, pull_request, push, permissions, contents 
 Cohesion: 0.14
 Nodes (13): args, evaluate(), height, pending, problems, report, send(), settle (+5 more)
 
-### Community 99 - "donut-chart.tsx"
-Cohesion: 0.24
-Nodes (12): AttemptBreakdownPanel(), InsightCallout(), colorOf(), DonutChart(), DonutChartProps, DonutSlice, NONE, PALETTE (+4 more)
+### Community 99 - "colocation.test.ts"
+Cohesion: 0.22
+Nodes (6): allSourceFiles(), APP, privateFiles(), ROOT, SRC, walkInto()
 
 ### Community 100 - "Report Md"
 Cohesion: 0.13
@@ -694,17 +719,17 @@ Nodes (12): Component decision table (source to path), Deferred items and why, S
 Cohesion: 0.18
 Nodes (13): NotFoundClient(), metadata, NotFound(), Fetch(), FetchHandle, CARD, mix(), NotFound() (+5 more)
 
-### Community 102 - "(workspace)/layout.tsx"
-Cohesion: 0.13
-Nodes (18): dynamic, WorkspaceLayout(), GuardLedgerRow(), GuardNotice(), GuardNoticeProps, GuardRow, GuardTone, PrivateWorkspace() (+10 more)
+### Community 102 - "onboarding-checklist.tsx"
+Cohesion: 0.39
+Nodes (8): Check(), OnboardingChecklist(), OnboardingChecklistProps, OnboardingTask, Ring(), subscribeReduced(), swap(), useReducedMotion()
 
 ### Community 103 - "Brand Palettes"
 Cohesion: 0.17
 Nodes (5): Proposed --chart-1..5 aliases (decision 3), graphite palette (only sheen tokens), orange palette (terracotta default), Shared status tokens (--positive/--warning/--danger), --chart-1..5 global subject identity
 
 ### Community 104 - "Check Contrast"
-Cohesion: 0.21
-Nodes (12): culori@^4.0.2, culori, Block, CHART_TOKENS, contrast(), CSS_PATH, main(), parseBlocks() (+4 more)
+Cohesion: 0.25
+Nodes (10): Block, CHART_TOKENS, contrast(), CSS_PATH, main(), parseBlocks(), relLum(), resolveVar() (+2 more)
 
 ### Community 105 - "Hall Illustration"
 Cohesion: 0.22
@@ -714,9 +739,9 @@ Nodes (8): Empty Examination Hall, Ink Hall Illustration, Lone Candidate Figure,
 Cohesion: 0.26
 Nodes (12): clamp01(), CompareBars(), CompareBarsDatum, CompareBarsProps, createPacer(), ease(), niceMax(), Pacer (+4 more)
 
-### Community 107 - "Thinking Indicator"
-Cohesion: 0.23
-Nodes (12): Elapsed(), formatElapsed(), IndicatorVariant, Mark(), subscribeReduced(), swap(), TENTHS, ThinkingIndicator() (+4 more)
+### Community 107 - "AskMessage.tsx"
+Cohesion: 0.10
+Nodes (30): react-markdown@^10.1.0, remark-gfm@^4.0.1, react-markdown, remark-gfm, AskMarkdown, components, markdownColumnClass, plugins (+22 more)
 
 ### Community 108 - "area-chart.tsx"
 Cohesion: 0.24
@@ -742,9 +767,9 @@ Nodes (9): Hairline Final Ask Screenshot, Ask AI Workspace Page (/ask), Conversa
 Cohesion: 0.17
 Nodes (12): scripts, build, check, db:generate, db:migrate, dev, lint, postinstall (+4 more)
 
-### Community 114 - "Model Picker"
-Cohesion: 0.26
-Nodes (11): EFFORTS, IconLayer(), Meter(), ModelIcon(), ModelOption, ModelPicker(), ModelPickerProps, Phase (+3 more)
+### Community 114 - "TextMorph"
+Cohesion: 0.08
+Nodes (35): BadgeProps, BadgeTone, DOT, FILL, LINE, ChatScroll(), ChatScrollProps, subscribeReduced() (+27 more)
 
 ### Community 115 - "Daynav Check"
 Cohesion: 0.18
@@ -774,21 +799,21 @@ Nodes (8): SSC exam catalog (7 built-ins + custom), exam-pattern.ts (client-safe
 Cohesion: 0.33
 Nodes (9): Hairline Final Dashboard Screenshot, Dashboard Loading State (Mid-Load Frame), Log a Mock Primary CTA, Metric Strip Loading Skeleton, Next.js Dev Overlay Artifacts, Personal Tasks Card, Plan Overview Editorial Section Head, Sidebar Study Planner & Results Nav Groups (+1 more)
 
-### Community 122 - "Backup Transfer"
-Cohesion: 0.29
-Nodes (8): api(), backup(), cookies, preview(), raw(), replace(), settings, user()
+### Community 122 - "empty-state-scenes.ts"
+Cohesion: 0.16
+Nodes (21): scopeTrash(), box(), C, chart(), done(), facingCircle(), inbox(), line() (+13 more)
 
 ### Community 123 - "Faq Accordion"
-Cohesion: 0.31
-Nodes (8): FaqAccordion(), FaqAccordionProps, FaqItem, PlusMinus(), subscribeReduced(), useReducedMotion(), Faq(), FAQ_ITEMS
+Cohesion: 0.33
+Nodes (7): FaqAccordion(), FaqAccordionProps, FaqItem, PlusMinus(), subscribeReduced(), useReducedMotion(), FAQ_ITEMS
 
-### Community 124 - "useAiWorkspaceState"
-Cohesion: 0.24
-Nodes (8): insightToChatText(), newId(), useAiWorkspaceState(), AiChatEvent, ChatUsage, encoder, NdjsonDecoder, parseChatEvent()
+### Community 124 - "exams-panel.tsx"
+Cohesion: 0.17
+Nodes (14): describeTier(), ExamRow(), ExamsPanel(), maxOf(), SourceSummary, StageSummary, SUBJECT_CHOICES, TierSummary (+6 more)
 
-### Community 125 - "attachment-chip.tsx"
-Cohesion: 0.31
-Nodes (10): AttachmentChip(), AttachmentChipProps, AttachmentStatus, extension(), formatBytes(), Reveal(), subscribeReduced(), swap() (+2 more)
+### Community 125 - "ws"
+Cohesion: 0.25
+Nodes (6): ws@^8.22.0, ws, logs, pending, target, ws
 
 ### Community 126 - "Hairline Dashboard"
 Cohesion: 0.39
@@ -798,109 +823,153 @@ Nodes (7): Hairline Dashboard Screenshot (degraded/unavailable state), Latest Re
 Cohesion: 0.22
 Nodes (6): @prisma/adapter-pg@^7.10.1, @prisma/adapter-pg, env, match, prisma, queries
 
-### Community 128 - "ref_node_crypto"
-Cohesion: 0.18
-Nodes (10): api(), full, ids, raw(), api(), cookies, created, input (+2 more)
+### Community 128 - "targets-panel.tsx"
+Cohesion: 0.29
+Nodes (12): Reveal(), RevealItem(), DefaultRow(), describeSignature(), PercentileExplainer(), PercentileRow(), targetForSignature(), TargetsPanel() (+4 more)
 
-### Community 129 - "security-panel.tsx"
-Cohesion: 0.10
-Nodes (25): ChangePasswordDialog(), describeDevice(), DisableTwoFactorDialog(), EnrollDialog(), EnrollStep, RegenerateCodesDialog(), SecurityPanel(), SessionsCard() (+17 more)
+### Community 129 - "Input"
+Cohesion: 0.12
+Nodes (28): @hookform/resolvers, react-hook-form, ChangePasswordDialog(), AuthFieldError(), DoneStage(), ForgotForm(), RequestStage(), Stage (+20 more)
 
 ### Community 130 - "app/layout.tsx"
-Cohesion: 0.11
-Nodes (15): @fontsource-variable/dm-sans@^5.3.0, @fontsource-variable/source-serif-4@^5.3.1, @vercel/analytics@^2.0.1, @vercel/speed-insights@^2.0.0, @fontsource-variable/dm-sans, @fontsource-variable/source-serif-4, @vercel/analytics, @vercel/speed-insights (+7 more)
+Cohesion: 0.10
+Nodes (17): @fontsource-variable/dm-sans@^5.3.0, @fontsource-variable/source-serif-4@^5.3.1, next-themes@^0.4.6, @vercel/analytics@^2.0.1, @vercel/speed-insights@^2.0.0, @fontsource-variable/dm-sans, @fontsource-variable/source-serif-4, next-themes (+9 more)
 
 ### Community 131 - "workspace-command-palette.tsx"
-Cohesion: 0.17
-Nodes (19): ARROWS, isMac(), Kbd(), KbdProps, MAC, matches(), PC, subscribeNoop() (+11 more)
+Cohesion: 0.15
+Nodes (20): collectResultsByType(), normalizeForSearch(), searchHasMore(), SearchHit, searchIsReady(), SearchPage, useSearch(), UseSearchOptions (+12 more)
 
-### Community 132 - "Onboarding Checklist"
-Cohesion: 0.39
-Nodes (8): Check(), OnboardingChecklist(), OnboardingChecklistProps, OnboardingTask, Ring(), subscribeReduced(), swap(), useReducedMotion()
+### Community 132 - "useKeyboardShortcuts"
+Cohesion: 0.50
+Nodes (4): Handlers, useKeyboardShortcuts(), isTypingTarget(), onKey()
 
-### Community 133 - "attempt-outcome-card.tsx"
-Cohesion: 0.24
-Nodes (9): AttemptOutcomeCard(), outcomes, percent(), ScoreRing(), subjectIcons, subjectSeries, tierSuffix(), AnswerStack (+1 more)
+### Community 133 - ".tmp-hp-registry.json"
+Cohesion: 0.14
+Nodes (13): author, css, dependencies, description, docs, files, meta, license (+5 more)
 
 ### Community 134 - "Feature Tabs"
 Cohesion: 0.36
 Nodes (7): FeatureTab, FeatureTabs(), FeatureTabsProps, Leaving, Pane(), subscribeReduced(), useReducedMotion()
 
-### Community 135 - "clarifying-question.tsx"
-Cohesion: 0.31
-Nodes (9): ClarifyingQuestion(), ClarifyingQuestionProps, DrawnCheck(), QuestionAnswer, QuestionOption, Reveal(), subscribeReduced(), swap() (+1 more)
+### Community 135 - "stepper-input.tsx"
+Cohesion: 0.43
+Nodes (7): MinusIcon(), PlusIcon(), shake(), StepperInput(), StepperInputProps, subscribeReduced(), useReducedMotion()
 
 ### Community 136 - "Morphing Nav"
 Cohesion: 0.36
 Nodes (7): MorphingNav(), MorphingNavProps, NavItem, Shown, Slide(), subscribeReduced(), useReducedMotion()
 
-### Community 137 - "colocation.test.ts"
-Cohesion: 0.22
-Nodes (6): allSourceFiles(), APP, privateFiles(), ROOT, SRC, walkInto()
+### Community 137 - "Input"
+Cohesion: 0.16
+Nodes (21): Field(), FieldProps, FieldSize, fieldSurface(), Line(), setNativeValue(), useFieldIds(), useShake() (+13 more)
 
-### Community 138 - "Verify Trash"
-Cohesion: 0.43
-Nodes (6): api(), cookies, created, input, raw(), visible()
+### Community 138 - "usage-meter.tsx"
+Cohesion: 0.36
+Nodes (7): GROUPED, number, Reveal(), subscribeReduced(), UsageMeter(), UsageMeterProps, useReducedMotion()
 
 ### Community 139 - "Announcement Pill"
 Cohesion: 0.43
 Nodes (6): AnnouncementPill(), AnnouncementPillProps, Arrow(), Phase, subscribeReduced(), useReducedMotion()
 
-### Community 140 - "Citation"
-Cohesion: 0.43
-Nodes (6): Citation(), CitationProps, CitationSource, hostname(), subscribeReduced(), useReducedMotion()
+### Community 140 - "image.ts"
+Cohesion: 0.38
+Nodes (6): downscaleToDataUrl(), IMAGE_MAX_EDGE, IMAGE_QUALITY, isImageFile(), MAX_ATTACHED_IMAGES, prepareImages()
 
-### Community 141 - "message-edit.tsx"
-Cohesion: 0.36
-Nodes (8): CopyGlyph(), Leaving(), MessageEdit(), MessageEditProps, Outgoing, subscribeReduced(), swap(), useReducedMotion()
+### Community 141 - "select.tsx"
+Cohesion: 0.23
+Nodes (11): Chevron(), Phase, PILL_SIZE, PillOption, PillSelect(), PillSelectProps, subscribeReduced(), TOKENS (+3 more)
 
-### Community 142 - "next"
-Cohesion: 0.12
-Nodes (14): cspDev, cspProduction, nextConfig, productionHeaders, next, CalendarRoute(), metadata, PlanDayRoute() (+6 more)
+### Community 143 - "settings-view.tsx"
+Cohesion: 0.14
+Nodes (24): dynamic, SettingsPage(), AboutPanel(), DEFAULT_SETTINGS_SECTION, isSettingsSection(), resolveSettingsSection(), SECTION_GROUPS, SETTINGS_SECTION_IDS (+16 more)
 
-### Community 143 - "use-search.ts"
-Cohesion: 0.25
-Nodes (7): SearchHit, searchIsReady(), SearchPage, UseSearchOptions, searchKeys, SEARCH_QUERY_MIN, SearchResultItem
-
-### Community 144 - "ws"
-Cohesion: 0.25
-Nodes (6): ws@^8.22.0, ws, logs, pending, target, ws
-
-### Community 149 - "api/[...path]/route.ts"
-Cohesion: 0.25
-Nodes (7): DELETE, dynamic, GET, PATCH, POST, PUT, runtime
-
-### Community 158 - "Badge"
-Cohesion: 0.36
-Nodes (6): MaintenancePage(), metadata, Badge(), PX, Spinner(), SpinnerProps
-
-### Community 159 - "response-versions.tsx"
-Cohesion: 0.39
-Nodes (7): Leaving, LeavingPane(), ResponseVersions(), ResponseVersionsProps, subscribeReduced(), swap(), useReducedMotion()
-
-### Community 179 - "usage-meter.tsx"
-Cohesion: 0.36
-Nodes (7): GROUPED, number, Reveal(), subscribeReduced(), UsageMeter(), UsageMeterProps, useReducedMotion()
-
-### Community 182 - "appearance-panel.tsx"
-Cohesion: 0.43
-Nodes (6): next-themes@^0.4.6, next-themes, AppearancePanel(), PaletteChip(), ThemeToggleNextBridge(), useThemePrefs()
-
-### Community 186 - "publicOrigin"
-Cohesion: 0.52
-Nodes (3): GET(), publicOrigin(), publicUrl()
-
-### Community 189 - "Plus Sign"
+### Community 149 - "plus-sign.tsx"
 Cohesion: 0.40
 Nodes (3): animations, PlusSign(), PlusSignProps
 
-### Community 199 - "markdown.tsx"
-Cohesion: 0.60
-Nodes (5): codeElementOf(), HastNode, languageOf(), Markdown, textValue()
+### Community 151 - "usage-limits.tsx"
+Cohesion: 0.24
+Nodes (12): cnBase(), COLORS, compact(), ContextPart, percent(), PlanLimit, Resets(), subscribeReduced() (+4 more)
 
-### Community 204 - "Logo Marquee"
-Cohesion: 0.60
-Nodes (4): LogoMarquee(), LogoMarqueeProps, subscribeReduced(), useReducedMotion()
+### Community 158 - "reminders-panel.tsx"
+Cohesion: 0.26
+Nodes (10): BouncingSwitch(), EMPTY_PREFERENCES, ReminderRow(), RemindersPanel(), remindersSchema, ReminderValues, TargetsValues, timeOfDay (+2 more)
+
+### Community 159 - "menu-01.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Menu01(), Menu01Props
+
+### Community 163 - "useIsMobile"
+Cohesion: 0.70
+Nodes (4): getServerSnapshot(), getSnapshot(), subscribe(), useIsMobile()
+
+### Community 165 - "motion"
+Cohesion: 0.10
+Nodes (9): motion, animations, ArrowLeft01Props, animations, Download01Props, animations, FlagProps, animations (+1 more)
+
+### Community 166 - "chat-notice.tsx"
+Cohesion: 0.31
+Nodes (10): ChatNotice(), ChatNoticeKind, ChatNoticeProps, Countdown(), Reveal(), subscribeReduced(), swap(), TWO_DIGITS (+2 more)
+
+### Community 167 - "add-01.tsx"
+Cohesion: 0.40
+Nodes (3): Add01(), Add01Props, animations
+
+### Community 168 - "approval-card.tsx"
+Cohesion: 0.29
+Nodes (9): ApprovalCard(), ApprovalCardProps, ApprovalDetail, ApprovalStatus, DrawnCheck(), LABELS, subscribeReduced(), swap() (+1 more)
+
+### Community 169 - "avatar.tsx"
+Cohesion: 0.24
+Nodes (9): Avatar(), AvatarGroup(), AvatarGroupProps, AvatarProps, AvatarSize, AvatarStatus, initials(), PX (+1 more)
+
+### Community 170 - "clarifying-question.tsx"
+Cohesion: 0.31
+Nodes (9): ClarifyingQuestion(), ClarifyingQuestionProps, DrawnCheck(), QuestionAnswer, QuestionOption, Reveal(), subscribeReduced(), swap() (+1 more)
+
+### Community 175 - "kbd.tsx"
+Cohesion: 0.27
+Nodes (9): ARROWS, isMac(), Kbd(), KbdProps, MAC, matches(), PC, subscribeNoop() (+1 more)
+
+### Community 185 - "motion-presets.tsx"
+Cohesion: 0.22
+Nodes (8): MotionButton, pageEnter, saveBarSpring, staggerContainer, staggerItem, switchBounce, tabSwap, tapSpring
+
+### Community 187 - "verify-trash.mjs"
+Cohesion: 0.13
+Nodes (16): api(), full, ids, raw(), api(), cookies, created, input (+8 more)
+
+### Community 188 - "message-edit.tsx"
+Cohesion: 0.36
+Nodes (8): CopyGlyph(), Leaving(), MessageEdit(), MessageEditProps, Outgoing, subscribeReduced(), swap(), useReducedMotion()
+
+### Community 195 - "combo-chart.tsx"
+Cohesion: 0.39
+Nodes (7): ComboChart(), ComboChartProps, ComboDay, monotone(), niceTop(), subscribeReduced(), useReducedMotion()
+
+### Community 196 - "ledger-facts.tsx"
+Cohesion: 0.43
+Nodes (6): LedgerFacts(), Stat, StatsBand(), StatsBandProps, subscribeReduced(), useReducedMotion()
+
+### Community 199 - "prompt-composer.tsx"
+Cohesion: 0.39
+Nodes (7): ComposerStatus, Fold(), PromptComposer(), PromptComposerProps, subscribeReduced(), swap(), useReducedMotion()
+
+### Community 200 - "performance-metrics.ts"
+Cohesion: 0.09
+Nodes (24): points(), sentence(), TONE_ICON, TONE_TEXT, AnswerStack, PerformancePoint, Distribution, DISTRIBUTION_MIN_POINTS (+16 more)
+
+### Community 201 - "publicOrigin"
+Cohesion: 0.52
+Nodes (3): GET(), publicOrigin(), publicUrl()
+
+### Community 202 - "Alert"
+Cohesion: 0.33
+Nodes (5): MaintenancePage(), metadata, Alert(), PX, SpinnerProps
+
+### Community 203 - "next.config.ts"
+Cohesion: 0.40
+Nodes (4): cspDev, cspProduction, nextConfig, productionHeaders
 
 ### Community 206 - "Domain Rules"
 Cohesion: 0.50
@@ -914,33 +983,37 @@ Nodes (4): Browser Connection Error Page, Dashboard Final Screenshot, ERR_CONNEC
 Cohesion: 1.00
 Nodes (3): ERR_CONNECTION_REFUSED — 127.0.0.1 refused to connect (Chrome 'This site can't be reached' page), SSC Insight History Route (/history) — intended screenshot subject, not captured, History Reference Screenshot — Chrome ERR_CONNECTION_REFUSED error page
 
-### Community 214 - "panel-left.tsx"
-Cohesion: 0.40
-Nodes (3): animations, PanelLeft(), PanelLeftProps
-
-### Community 215 - "play.tsx"
-Cohesion: 0.40
-Nodes (3): animations, Play(), PlayProps
-
-### Community 222 - "refresh.tsx"
-Cohesion: 0.40
-Nodes (3): animations, Refresh(), RefreshProps
-
-### Community 224 - "settings-02.tsx"
-Cohesion: 0.40
-Nodes (3): animations, Settings02(), Settings02Props
-
-### Community 226 - "sparkles.tsx"
-Cohesion: 0.40
-Nodes (3): animations, Sparkles(), SparklesProps
-
-### Community 228 - "useKeyboardShortcuts"
-Cohesion: 0.50
-Nodes (4): Handlers, useKeyboardShortcuts(), isTypingTarget(), onKey()
+### Community 228 - "overrides"
+Cohesion: 0.67
+Nodes (3): zod, overrides, @neondatabase/auth
 
 ### Community 229 - "20261025000000_ai_usage/migration.sql"
 Cohesion: 0.83
 Nodes (3): AiUsage_userId_day_idx, AiUsage_userId_status_createdAt_idx, "ssc_insight"."AiUsage"
+
+### Community 240 - "pause.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Pause(), PauseProps
+
+### Community 243 - "play.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Play(), PlayProps
+
+### Community 244 - "refresh.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Refresh(), RefreshProps
+
+### Community 245 - "settings-02.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Settings02(), Settings02Props
+
+### Community 246 - "sparkles.tsx"
+Cohesion: 0.40
+Nodes (3): animations, Sparkles(), SparklesProps
+
+### Community 251 - "logo-marquee.tsx"
+Cohesion: 0.60
+Nodes (4): LogoMarquee(), LogoMarqueeProps, subscribeReduced(), useReducedMotion()
 
 ## Ambiguous Edges - Review These
 - `Landing()` → `Ink Trend Brush Illustration`  [AMBIGUOUS]
@@ -952,22 +1025,22 @@ Nodes (3): AiUsage_userId_day_idx, AiUsage_userId_status_createdAt_idx, "ssc_ins
 
 ## Knowledge Gaps
 - **68 isolated node(s):** `RFC-1918`, `ui/icons.tsx barrel (79 wrappers)`, `LiquidButton on landing FinalCta`, `icon.tsx semantic layer (Icon/PlainIcon/Duotone)`, `Component decision table (source to path)` (+63 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1613 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **74 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1672 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **77 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `Error Routeerror` to `Study Calendar Layer`, `Motion & Interaction Primitives`, `AI Provider Settings`, `Dashboard View & Primitives`, `Settings Panels`, `personal-todos.tsx`, `Backup & Import Pipeline`, `Date Picker & Form Widgets`, `trash-view.tsx`, `NumberRoll`, `fetch-dog.tsx`, `toast-stack.tsx`, `My Tasks View`, `Runtime Dependencies`, `TextMorph`, `Trend Charts & Time Brush`, `compare-route.tsx`, `date-picker.tsx`, `cn`, `Performance Performance`, `Empty State`, `Data Parts`, `api`, `plan-day-view.tsx`, `Film Section`, `approval-card.tsx`, `Landing Sections`, `User Requireuser`, `Use Ai`, `sparkline.tsx`, `Combobox`, `Chrome`, `sign-in-form.tsx`, `Data Table`, `ui-interaction-motion.ts`, `Chameleon Hideengine`, `mock-form.tsx`, `Layout`, `@animate-ui/react`, `empty-state.tsx`, `Email Client`, `liquid-tabs.tsx`, `motion`, `entry-rows.tsx`, `view-model.ts`, `coo-pigeon.tsx`, `Queries Exams`, `Auth Shell`, `trend-chart.tsx`, `Analytics`, `Command Palette`, `Fluted Footer`, `Streaming Answer`, `Appearance`, `domain.ts`, `Password Input`, `Skeleton`, `Thinking Trace`, `toast`, `use-plan-data.ts`, `dialog.tsx`, `copy-button.tsx`, `Stack Toast`, `Filters Url`, `donut-chart.tsx`, `Not Found`, `(workspace)/layout.tsx`, `Compare Bars`, `Thinking Indicator`, `area-chart.tsx`, `Model Picker`, `Dot Meter`, `Faq Accordion`, `attachment-chip.tsx`, `security-panel.tsx`, `app/layout.tsx`, `workspace-command-palette.tsx`, `Onboarding Checklist`, `attempt-outcome-card.tsx`, `Feature Tabs`, `clarifying-question.tsx`, `Morphing Nav`, `Announcement Pill`, `Citation`, `message-edit.tsx`, `Arrow Down`, `Arrow Left`, `Arrow Right`, `Arrow Up`, `Bell Ring`, `Hugeicons Bookmark`, `Hugeicons Bot`, `Message Square`, `Hugeicons Calendar`, `Calendar Check`, `Hugeicons Cancel`, `Bar Increasing`, `Badge`, `response-versions.tsx`, `Checkmark Circle`, `Clipboard List`, `Hugeicons Clock`, `Hugeicons Compass`, `Hugeicons Delete`, `Hugeicons Download`, `Filter Horizontal`, `Finger Print`, `Hugeicons Flag`, `Hugeicons Flame`, `Hugeicons Flash`, `Folder Open`, `Hugeicons Gauge`, `Hugeicons Globe`, `Hugeicons Hourglass`, `Hugeicons Key`, `Layout Dashboard`, `Hugeicons List`, `Hugeicons Logout`, `usage-meter.tsx`, `Square Plus`, `Square Text`, `appearance-panel.tsx`, `Minus Sign`, `Hugeicons Moon`, `More Vertical`, `Pencil Edit`, `Hugeicons Pin`, `Plus Sign`, `Hugeicons Rocket`, `Hugeicons Search`, `Shield Check`, `Sliders Horizontal`, `Square Kanban`, `Hugeicons Star`, `Hugeicons Sun`, `Hugeicons Target`, `Trending Down`, `markdown.tsx`, `Hugeicons Trophy`, `calendar-plus.tsx`, `User Round`, `Wand Sparkles`, `Logo Marquee`, `chart-no-axes-column.tsx`, `circle-check-big.tsx`, `copy-01.tsx`, `lock-keyhole.tsx`, `more-horizontal.tsx`, `panel-left.tsx`, `play.tsx`, `refresh.tsx`, `send-horizontal.tsx`, `settings-02.tsx`, `share-03.tsx`, `sparkles.tsx`, `view.tsx`, `useKeyboardShortcuts`?**
-  _High betweenness centrality (0.401) - this node is a cross-community bridge._
+- **Why does `react` connect `Error Routeerror` to `calendar-entries.ts`, `ui-interaction-motion.ts`, `domain.ts`, `fixtures.ts`, `backup.ts`, `Date Picker & Form Widgets`, `trash-view.tsx`, `NumberRoll`, `coo-pigeon.tsx`, `toast-stack.tsx`, `button.tsx`, `Runtime Dependencies`, `donut-chart.tsx`, `Trend Charts & Time Brush`, `cn`, `api`, `Performance Performance`, `status-button.tsx`, `totals`, `next`, `view-model.ts`, `Film Section`, `PlainIcon`, `Landing Sections`, `use-ai-workspace.tsx`, `ai-settings-form.tsx`, `Combobox`, `workspace-sidebar.tsx`, `sign-in-form.tsx`, `Data Table`, `devDependencies`, `Chameleon Hideengine`, `mock-form.tsx`, `Layout`, `@animate-ui/react`, `lucide-react`, `auth-shell.tsx`, `empty-state.tsx`, `Email Client`, `liquid-tabs.tsx`, `collapsible.tsx`, `.tmp-hp-command-palette.tsx`, `shortDate`, `my-tasks-view.tsx`, `require-user.ts`, `security-panel.tsx`, `Command Palette`, `Fluted Footer`, `streaming-answer.tsx`, `theme-toggle.tsx`, `compare-view.tsx`, `Password Input`, `date-picker.tsx`, `Thinking Trace`, `sign-up-form.tsx`, `attachment-chip.tsx`, `queries/exams.ts`, `copy-button.tsx`, `Stack Toast`, `Filters Url`, `Not Found`, `onboarding-checklist.tsx`, `Compare Bars`, `AskMessage.tsx`, `area-chart.tsx`, `TextMorph`, `Dot Meter`, `Faq Accordion`, `exams-panel.tsx`, `targets-panel.tsx`, `Input`, `app/layout.tsx`, `workspace-command-palette.tsx`, `useKeyboardShortcuts`, `Feature Tabs`, `stepper-input.tsx`, `Morphing Nav`, `Input`, `usage-meter.tsx`, `Announcement Pill`, `select.tsx`, `filter-horizontal.tsx`, `settings-view.tsx`, `message-square-text.tsx`, `Arrow Down`, `mic.tsx`, `Arrow Right`, `more-horizontal.tsx`, `plus-sign.tsx`, `Bell Ring`, `usage-limits.tsx`, `share-03.tsx`, `trophy.tsx`, `Hugeicons Calendar`, `Calendar Check`, `Hugeicons Cancel`, `upload-01.tsx`, `reminders-panel.tsx`, `menu-01.tsx`, `Checkmark Circle`, `Clipboard List`, `Hugeicons Clock`, `useIsMobile`, `Hugeicons Delete`, `motion`, `chat-notice.tsx`, `add-01.tsx`, `approval-card.tsx`, `avatar.tsx`, `clarifying-question.tsx`, `Folder Open`, `Hugeicons Gauge`, `Hugeicons Globe`, `Hugeicons Hourglass`, `kbd.tsx`, `Layout Dashboard`, `Hugeicons List`, `Hugeicons Logout`, `chart-column.tsx`, `Square Plus`, `chart-bar-increasing.tsx`, `chart-line.tsx`, `Minus Sign`, `Hugeicons Moon`, `motion-presets.tsx`, `loading-03.tsx`, `message-edit.tsx`, `Hugeicons Rocket`, `Hugeicons Search`, `Shield Check`, `Sliders Horizontal`, `Square Kanban`, `combo-chart.tsx`, `ledger-facts.tsx`, `Hugeicons Target`, `Trending Down`, `prompt-composer.tsx`, `Alert`, `activity-01.tsx`, `chart-no-axes-column.tsx`, `circle-check-big.tsx`, `attachment-01.tsx`, `lock-keyhole.tsx`, `battery-medium-01.tsx`, `bot.tsx`, `bot-message-square.tsx`, `compass.tsx`, `send-horizontal.tsx`, `copy-01.tsx`, `finger-print.tsx`, `flame.tsx`, `view.tsx`, `flash.tsx`, `mail-01.tsx`, `notification-01.tsx`, `pin.tsx`, `pause.tsx`, `pencil-edit-02.tsx`, `wand-sparkles.tsx`, `play.tsx`, `refresh.tsx`, `settings-02.tsx`, `sparkles.tsx`, `star.tsx`, `sun-03.tsx`, `trending-up.tsx`, `user-round.tsx`, `logo-marquee.tsx`?**
+  _High betweenness centrality (0.416) - this node is a cross-community bridge._
 - **What connects `RFC-1918`, `ui/icons.tsx barrel (79 wrappers)`, `LiquidButton on landing FinalCta` to the rest of the system?**
   _68 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Study Calendar Layer` be split into smaller, more focused modules?**
-  _Cohesion score 0.058002735978112174 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `Study Calendar Layer`, `database`, `app/layout.tsx`, `workspace-command-palette.tsx`, `Dashboard View & Primitives`, `Settings Panels`, `trash-view.tsx`, `Runtime Dependencies`, `compare-route.tsx`, `cn`, `Badge`, `api`, `plan-day-view.tsx`, `Landing Sections`, `User Requireuser`, `Proxy`, `Chrome`, `sign-in-form.tsx`, `publicOrigin`, `Auth Shell`, `Appearance`, `Error Routeerror`, `Filters Url`, `Not Found`, `(workspace)/layout.tsx`?**
-  _High betweenness centrality (0.043) - this node is a cross-community bridge._
-- **Should `database` be split into smaller, more focused modules?**
-  _Cohesion score 0.047039199332777316 - nodes in this community are weakly interconnected._
+- **Should `calendar-entries.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.056070913213770356 - nodes in this community are weakly interconnected._
+- **Why does `next` connect `next` to `calendar-entries.ts`, `Input`, `app/layout.tsx`, `workspace-command-palette.tsx`, `RequestError`, `trash-view.tsx`, `button.tsx`, `Runtime Dependencies`, `settings-view.tsx`, `totals`, `PlainIcon`, `Landing Sections`, `Proxy`, `workspace-sidebar.tsx`, `sign-in-form.tsx`, `devDependencies`, `auth-shell.tsx`, `@tanstack/react-query`, `shortDate`, `require-user.ts`, `publicOrigin`, `Alert`, `next.config.ts`, `Error Routeerror`, `Filters Url`, `Not Found`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
+- **Should `RequestError` be split into smaller, more focused modules?**
+  _Cohesion score 0.05009276437847866 - nodes in this community are weakly interconnected._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
