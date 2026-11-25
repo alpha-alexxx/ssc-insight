@@ -36,7 +36,7 @@ export interface AnswerSource {
 }
 
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
-const DOTS = ["bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
+const DOTS = ["bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-violet-500"];
 const MORPH = "cubic-bezier(0.16,1,0.3,1)";
 const THROW = "cubic-bezier(0.34,1.36,0.64,1)";
 
@@ -95,7 +95,7 @@ function CitationChip({ citation }: { citation: AnswerCitation }) {
   const className = `mx-0.5 inline-flex -translate-y-px items-center gap-1 rounded-[5px] border border-border bg-muted px-1.5 py-px align-middle font-mono text-[11px] text-foreground animate-[ui-fade-up_240ms_cubic-bezier(0.23,1,0.32,1)_both] motion-reduce:animate-none ${FOCUS}`;
   const inner = (
     <>
-      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-chart-3" />
+      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
       {citation.label}
     </>
   );
@@ -158,7 +158,7 @@ export function StreamingText({ content = [], status = "done", onRetry, children
 
       {status === "error" && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground animate-[ui-fade-in_300ms_ease-out_both]">
-          <AlertCircle aria-hidden="true" className="size-3.5 shrink-0 text-destructive" />
+          <AlertCircle aria-hidden="true" className="size-3.5 shrink-0 text-red-500" />
           The answer was interrupted.
           {onRetry && (
             <button
@@ -295,7 +295,7 @@ export function AnswerActions({
             <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center" style={swap(!copied, reduced)}>
               <Copy className="size-3.5" />
             </span>
-            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-success" style={swap(copied, reduced)}>
+            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400" style={swap(copied, reduced)}>
               <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
                 <path
                   d="M3.5 8.5 6.5 11.5 12.5 4.5"

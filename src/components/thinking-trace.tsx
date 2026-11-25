@@ -76,7 +76,7 @@ const RUNNING_LABEL: Record<ThinkingVariant, string> = {
   tools: "Running tools",
 };
 
-const SOURCE_TONES = ["bg-chart-2", "bg-chart-4", "bg-chart-3", "bg-chart-5"];
+const SOURCE_TONES = ["bg-blue-600", "bg-orange-500", "bg-emerald-600", "bg-violet-600"];
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
 const ROW = "flex min-h-7 w-full gap-2 rounded-md px-1.5 py-0.5 text-left";
 const MORPH = "cubic-bezier(0.16,1,0.3,1)";
@@ -269,7 +269,7 @@ export function ThinkingTrace({
 
   const headerIcons: Record<"sparkle" | "error" | "cancelled", React.ReactNode> = {
     sparkle: <Sparkle className="size-4" fill="currentColor" strokeWidth={0} />,
-    error: <AlertCircle className="size-4 text-destructive" />,
+    error: <AlertCircle className="size-4 text-red-500" />,
     cancelled: <CircleSlash className="size-4" />,
   };
   const headerKey = status === "error" ? "error" : status === "cancelled" ? "cancelled" : "sparkle";
@@ -355,7 +355,7 @@ export function ThinkingTrace({
                       <span className="absolute inset-0 flex items-center justify-center text-muted-foreground" style={swap(stepStatus === "done", reduced)}>
                         <StepCheck drawn={stepStatus === "done"} reduced={reduced} />
                       </span>
-                      <span className="absolute inset-0 flex items-center justify-center text-destructive" style={swap(failed, reduced)}>
+                      <span className="absolute inset-0 flex items-center justify-center text-red-500" style={swap(failed, reduced)}>
                         <X className="size-3.5" strokeWidth={2.5} />
                       </span>
                     </span>
@@ -384,7 +384,7 @@ export function ThinkingTrace({
                         <Spinner spinning={stepStatus === "running"} />
                       </span>
                       <Reveal show={failed} reduced={reduced}>
-                        <span className="text-[11.5px] font-medium text-destructive">Failed</span>
+                        <span className="text-[11.5px] font-medium text-red-500">Failed</span>
                       </Reveal>
                     </span>
                   ) : null;
@@ -413,7 +413,7 @@ export function ThinkingTrace({
                     )}
                     {step.additions !== undefined && (
                       <span className="shrink-0 font-mono text-[11px] tabular-nums">
-                        <span className="text-success">+{step.additions}</span> <span className="text-destructive">−{step.deletions ?? 0}</span>
+                        <span className="text-emerald-600">+{step.additions}</span> <span className="text-red-500">−{step.deletions ?? 0}</span>
                       </span>
                     )}
                     {trailing}

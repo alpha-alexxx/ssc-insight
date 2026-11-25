@@ -84,8 +84,8 @@ export function UsageMeter({
   const share = limit > 0 ? Math.min(1, used / limit) : 1;
   const out = left <= 0;
   const low = !out && limit > 0 && left / limit <= lowAt;
-  const tone = out ? "bg-destructive" : low ? "bg-warning" : "bg-foreground";
-  const stroke = out ? "stroke-destructive" : low ? "stroke-warning" : "stroke-foreground";
+  const tone = out ? "bg-red-500" : low ? "bg-amber-500" : "bg-foreground";
+  const stroke = out ? "stroke-red-500" : low ? "stroke-amber-500" : "stroke-foreground";
   const resets =
     resetAt !== undefined ? new Date(resetAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : undefined;
   const summary = out ? `No ${unit} left` : `${number.format(left)} of ${number.format(limit)} ${unit} left`;
@@ -118,7 +118,7 @@ export function UsageMeter({
             className={`${stroke} transition-[stroke-dashoffset,stroke] duration-500 motion-reduce:transition-none`}
           />
         </svg>
-        <span aria-hidden="true" className={`font-mono tabular-nums transition-colors duration-300 ${out ? "text-destructive" : ""}`}>
+        <span aria-hidden="true" className={`font-mono tabular-nums transition-colors duration-300 ${out ? "text-red-500" : ""}`}>
           <NumberRoll value={Math.round(share * 100)} suffix="%" duration={700} />
         </span>
       </div>
@@ -130,7 +130,7 @@ export function UsageMeter({
       <div className="flex items-baseline justify-between gap-4 text-[12.5px]">
         <span className="font-medium text-foreground">{label}</span>
         {/* The numbers fold away when it runs out; the words that stay glide into "No credits left". */}
-        <span aria-hidden="true" className={`flex items-baseline font-mono text-[12px] tabular-nums transition-colors duration-300 ${out ? "text-destructive" : "text-muted-foreground"}`}>
+        <span aria-hidden="true" className={`flex items-baseline font-mono text-[12px] tabular-nums transition-colors duration-300 ${out ? "text-red-500" : "text-muted-foreground"}`}>
           <Reveal show={!out} reduced={reduced}>
             <span className="inline-flex items-baseline">
               <NumberRoll value={left} format={GROUPED} locales="en-US" duration={700} />

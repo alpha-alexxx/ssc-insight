@@ -329,7 +329,7 @@ export function PromptComposer({
             >
               <span
                 className={`flex min-w-0 items-baseline overflow-hidden whitespace-nowrap font-mono text-[11px] tabular-nums transition-colors duration-300 ${
-                  text.length > maxLength ? "text-destructive" : "text-muted-foreground"
+                  text.length > maxLength ? "text-red-500" : "text-muted-foreground"
                 }`}
               >
                 <NumberRoll value={text.length} duration={300} />/{maxLength}

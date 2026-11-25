@@ -141,7 +141,7 @@ export function ApprovalCard({
   const icons: Record<ApprovalStatus, React.ReactNode> = {
     pending: <ShieldQuestion className="size-3.5" />,
     approved: (
-      <span className="text-success">
+      <span className="text-emerald-600 dark:text-emerald-400">
         <DrawnCheck drawn={current === "approved"} reduced={reduced} />
       </span>
     ),
@@ -243,7 +243,7 @@ export function ApprovalCard({
                 type="button"
                 onClick={() => decide("approved")}
                 className={`cursor-pointer h-8 rounded-lg px-3.5 text-[12.5px] font-medium transition-[background-color,transform] active:scale-[0.98] ${FOCUS} ${
-                  destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  destructive ? "bg-red-600 text-white hover:bg-red-700" : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >
                 {approveLabel}
