@@ -391,8 +391,11 @@ function SearchSkeleton() {
 /**
  * The pill's face, drawn in the header: search icon, "Search…", ⌘K. It has to
  * look exactly like the face the palette paints while it folds back into the
- * pill, or the hand-off would show — so the geometry here is Hairline's. The
- * palette clones this element with its own ref and click.
+ * pill, or the hand-off would show — so the geometry here is Hairline's, with
+ * two app rules on top: on phones the pill takes the width the header has
+ * spare and keeps its label, and the ⌘K hint hides because a touch screen has
+ * no keyboard to hint at. `PillFace` in `command-palette.tsx` carries the same
+ * pair, so the folded state matches at every width.
  */
 export function CommandPaletteTrigger({
   className,
@@ -404,13 +407,15 @@ export function CommandPaletteTrigger({
       type="button"
       aria-label="Search"
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-background pl-3 pr-1.5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,color] duration-300 hover:text-foreground hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "inline-flex h-9 w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-full bg-background pl-3 pr-1.5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,color] duration-300 hover:text-foreground hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:w-auto sm:shrink-0",
         className,
       )}
     >
       <PlainIcon name="search" size={16} />
-      <span className="hidden pr-6 sm:inline">Search…</span>
-      <span className="flex items-center gap-0.5">
+      <span className="min-w-0 flex-1 truncate pr-2 text-left sm:flex-none sm:pr-6">
+        Search…
+      </span>
+      <span className="hidden items-center gap-0.5 sm:flex">
         <Kbd keys={["mod"]} size="sm" />
         <Kbd keys={["k"]} size="sm" />
       </span>

@@ -73,14 +73,20 @@ const SIZES = {
 } as const;
 
 // Both critically damped, so nothing overshoots. The front is a touch quicker, and the difference is the whole effect.
-const FRONT = { stiffness: 620, damping: 49.8 };
-const BEHIND = { stiffness: 380, damping: 39 };
-const WIDTH = { stiffness: 450, damping: 42.4 };
+// Exported so `liquid-nav` reads the same tension: one effect, one set of springs.
+export const LIQUID_FRONT = { stiffness: 620, damping: 49.8 };
+export const LIQUID_BEHIND = { stiffness: 380, damping: 39 };
+export const LIQUID_WIDTH = { stiffness: 450, damping: 42.4 };
+const FRONT = LIQUID_FRONT;
+const BEHIND = LIQUID_BEHIND;
+const WIDTH = LIQUID_WIDTH;
 
 /** How far the highlight can draw out past its width, in heights, however far it's going. */
-const REACH = 0.45;
+export const LIQUID_REACH = 0.45;
+const REACH = LIQUID_REACH;
 /** The most the waist pinches, as a share of the height. */
-const PINCH = 0.2;
+export const LIQUID_PINCH = 0.2;
+const PINCH = LIQUID_PINCH;
 
 const clamp = (n: number, low: number, high: number) =>
   Math.min(high, Math.max(low, n));

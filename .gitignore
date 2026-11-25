@@ -35,6 +35,7 @@ videos/*
 # local visual-QA screenshots (tools/shot.mjs output)
 .impeccable/refine/
 .impeccable/graphite/
+.tmp-verify/*
 
 # sandbox-only infrastructure (preview gateway + dev scripts) — not part of the app
 Caddyfile

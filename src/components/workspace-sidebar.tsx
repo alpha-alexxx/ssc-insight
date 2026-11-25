@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
+import { Dialog } from "@/components/dialog";
 import { DropdownMenu, type MenuEntry } from "@/components/dropdown-menu";
-import { PlainIcon } from "@/components/icon";
-import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
-import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
 import { useExamScope } from "@/components/exam-context";
+import { PlainIcon } from "@/components/icon";
+import { LiquidNav } from "@/components/liquid-nav";
+import { Tooltip } from "@/components/tooltip";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
+import { PlusSignIcon } from "@/components/animate-ui/icons/hugeicons/plus-sign";
+import { authClient } from "@/lib/auth/client";
+import { istTodayIso } from "@/lib/plan/view-model";
 import { analyticsKeys } from "@/lib/queries/analytics";
 import { attemptKeys } from "@/lib/queries/attempts";
 import {
@@ -18,27 +25,16 @@ import {
   switcherEntries,
   type SwitcherEntry,
 } from "@/lib/queries/exams";
-import { useQueryClient } from "@tanstack/react-query";
-import { Dialog } from "@/components/dialog";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Tooltip } from "@/components/tooltip";
-import { istTodayIso } from "@/lib/plan/view-model";
 import { VIEW_HREF, type AppView } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth/client";
 
 /**
  * Workspace sidebar — Hairline-only composition.
  *
- * Hairline ships no sidebar primitive, so this is the one composed surface
- * (audit §3): `Sheet` carries it on phones, `Button`/`Tooltip`/`Avatar`/
- * `DropdownMenu` build the rail, and every colour comes from the token set.
- * Geometry is Hairline's own (pill buttons, its radii) — never themed.
- *
  * Desktop: an <aside> that folds between expanded (15rem) and the icon rail
  * (3.5rem); the state persists in the `sidebar_state` cookie so the server
- * layout can render the right first paint. Mobile: the header's menu button
- * opens the Sheet below.
+ * layout renders the right first paint.
+ * Mobile: hosted inside the header's navigation Sheet.
  */
 
 /** Plan-day route for "today" (IST) — computed per render, not at module load. */
@@ -102,12 +98,14 @@ export const NAV_GROUPS: {
   },
 ];
 
+const FOOTER_UTILITIES = ["settings", "trash"] as const;
+
 function resolveHref(href: string | (() => string)): string {
   return typeof href === "function" ? href() : href;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Navigation item                                                   */
+/*  Navigation item                                                    */
 /* ------------------------------------------------------------------ */
 
 function NavItem({
@@ -123,45 +121,30 @@ function NavItem({
 }) {
   const isTodayPlan = item.view === "plan";
 
-  const content = (
+  const link = (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
+      data-liquid-nav={item.view}
       className={cn(
-        "group relative flex h-9 items-center rounded-xl text-[13px] transition-all",
+        "group relative flex h-9 items-center rounded-xl text-[13px] outline-none transition-[color,background-color] duration-200 focus-visible:ring-2 focus-visible:ring-primary/40 motion-reduce:transition-none",
         expanded
           ? "w-full justify-start gap-2.5 px-3"
           : "mx-auto size-9 justify-center px-0",
+        // Active background is painted and animated by LiquidNav behind the list.
         active
-          ? "bg-accent font-semibold text-accent-foreground shadow-2xs ring-1 ring-sidebar-border/80"
+          ? "font-semibold text-primary-foreground"
           : "font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground",
       )}
     >
-      {/* Active left accent bar */}
-      {active && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            "absolute left-0 rounded-r-full bg-primary",
-            expanded ? "top-2 bottom-2 w-0.75" : "top-2.5 bottom-2.5 w-0.5",
-          )}
-        />
-      )}
-
       <span
         className={cn(
           "flex shrink-0 items-center justify-center transition-transform duration-150 group-hover:scale-105",
-          active
-            ? "text-primary"
-            : "text-muted-foreground group-hover:text-foreground",
+          !active && "text-muted-foreground group-hover:text-foreground",
         )}
       >
-        <PlainIcon
-          name={VIEW_META[item.view].icon}
-          size={16}
-          tone={active ? "primary" : "current"}
-        />
+        <PlainIcon name={VIEW_META[item.view].icon} size={16} tone="current" />
       </span>
 
       {expanded && (
@@ -170,10 +153,10 @@ function NavItem({
           {isTodayPlan && (
             <span
               className={cn(
-                "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-tight",
+                "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-tight transition-colors duration-200",
                 active
-                  ? "bg-primary/15 text-primary"
-                  : "bg-muted text-muted-foreground group-hover:bg-background/80",
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : " bg-primary/10 text-primary ring-1 ring-primary/20 group-hover:bg-primary/15",
               )}
             >
               Today
@@ -184,17 +167,17 @@ function NavItem({
     </Link>
   );
 
-  if (expanded) return content;
+  if (expanded) return link;
 
   return (
     <Tooltip content={item.label} side="right">
-      <span className="flex w-full justify-center">{content}</span>
+      <span className="flex w-full justify-center">{link}</span>
     </Tooltip>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Footer identity + account dropdown                                */
+/*  Footer identity + account dropdown                                 */
 /* ------------------------------------------------------------------ */
 
 export function SidebarUserMenu({
@@ -225,12 +208,14 @@ export function SidebarUserMenu({
   const displayName = name || "My workspace";
   const displayEmail = email || "Private account";
 
-  // Same scope switch the header ExamSwitcher performed — one entry per
-  // enabled tier plus the combined "All tiers" view. A checkbox row keeps the
-  // menu open while the write lands (like the theme pickers), and keyboard
-  // navigation reaches every tier.
+  const entries = scope.exams ? switcherEntries(scope.exams) : [];
+  const activeKey = scope.exams
+    ? `${scope.exams.activeExamId}:${scope.exams.activeTierId}`
+    : "";
+  const activeEntry = entries.find((entry) => entry.key === activeKey);
+
   const switchScope = async (entry: SwitcherEntry) => {
-    if (!scope.exams || switching) return;
+    if (!scope.exams || switching || entry.key === activeKey) return;
     setSwitching(true);
     try {
       const fresh = await putScopeRequest({
@@ -239,8 +224,12 @@ export function SidebarUserMenu({
         enabledTiers: scope.exams.enabledTiers,
       });
       queryClient.setQueryData(examsKeys.current(), fresh);
-      await queryClient.invalidateQueries({ queryKey: attemptKeys.all });
-      await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: attemptKeys.all }),
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
+      ]);
+    } catch {
+      // Keep the current cached scope intact if the network write fails.
     } finally {
       setSwitching(false);
     }
@@ -249,9 +238,9 @@ export function SidebarUserMenu({
   const triggerButton = (
     <button
       type="button"
-      aria-label="Account menu"
+      aria-label="Account and exam scope menu"
       className={cn(
-        "group flex items-center rounded-xl border border-transparent text-left transition-all hover:border-sidebar-border/80 hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "group flex items-center rounded-xl border border-transparent text-left transition-all duration-150 hover:border-sidebar-border/80 hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         expanded
           ? "w-full justify-start gap-2.5 p-1.5"
           : "mx-auto size-9 justify-center p-0",
@@ -261,15 +250,25 @@ export function SidebarUserMenu({
         <Avatar name={displayName} src={imageUrl || undefined} size="sm" />
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-sidebar"
+          className={cn(
+            "absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-sidebar transition-colors",
+            switching ? "animate-pulse bg-amber-500" : "bg-emerald-500",
+          )}
         />
       </span>
 
       {expanded && (
         <>
           <span className="grid min-w-0 flex-1">
-            <span className="truncate text-[12px] font-semibold leading-tight text-foreground">
-              {displayName}
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                {displayName}
+              </span>
+              {activeEntry && (
+                <span className="max-w-19 shrink-0 truncate rounded bg-primary/10 px-1 py-px text-[9px] font-semibold tracking-tight text-primary">
+                  {activeEntry.label}
+                </span>
+              )}
             </span>
             <span className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
               {displayEmail}
@@ -283,25 +282,21 @@ export function SidebarUserMenu({
     </button>
   );
 
-  const entries = scope.exams ? switcherEntries(scope.exams) : [];
-  const activeKey = scope.exams
-    ? `${scope.exams.activeExamId}:${scope.exams.activeTierId}`
-    : "";
-
   const items: MenuEntry[] = [
-    { type: "label", label: displayName },
-    // The exam scope moved here from the app header. It lists only the exams
-    // the user enabled in Settings (Exams & tiers); which tier of an exam is
-    // active is a Settings concern — the switcher just moves between exams.
+    {
+      type: "label",
+      label: `${displayName} · ${displayEmail}`,
+    },
     ...(scope.exams
       ? ([
-          { type: "label", label: "Exam" },
+          { type: "separator" },
+          { type: "label", label: "Exam scope" },
           ...(entries.length === 0
             ? [
                 {
                   type: "item" as const,
                   id: "no-exams",
-                  label: "No exams selected yet",
+                  label: "No exams enabled yet",
                   disabled: true,
                 },
               ]
@@ -315,7 +310,7 @@ export function SidebarUserMenu({
           {
             type: "item" as const,
             id: "manage-exams",
-            label: "Manage exams",
+            label: "Manage exams & tiers",
             icon: <PlainIcon name="settings" size={14} />,
             onSelect: () => {
               setMenuOpen(false);
@@ -330,7 +325,10 @@ export function SidebarUserMenu({
       label: "Log out",
       icon: <PlainIcon name="logout" size={14} />,
       destructive: true,
-      onSelect: () => setConfirmOpen(true),
+      onSelect: () => {
+        setMenuOpen(false);
+        setConfirmOpen(true);
+      },
     },
   ];
 
@@ -342,12 +340,11 @@ export function SidebarUserMenu({
         side="top"
         align={expanded ? "start" : "center"}
         label="Account"
-        minWidth={expanded ? 216 : 220}
+        minWidth={expanded ? 224 : 228}
         open={menuOpen}
         onOpenChange={setMenuOpen}
       />
-      {/* Logout confirmation — a decision, so it gets its own dialog even when
-          the menu that opened it sits in the phone Sheet's top layer. */}
+
       <Dialog
         open={confirmOpen}
         onOpenChange={(next) => {
@@ -380,7 +377,6 @@ export function SidebarUserMenu({
         )}
       >
         <div className="overflow-hidden rounded-xl border border-sidebar-border/80 bg-accent/40 shadow-2xs">
-          {/* Active account row */}
           <div className="flex items-center gap-2.5 p-2.5">
             <span className="relative shrink-0">
               <Avatar
@@ -408,13 +404,11 @@ export function SidebarUserMenu({
             </span>
           </div>
 
-          {/* Hairline divider */}
           <div
             className="h-px w-full bg-sidebar-border/70"
             aria-hidden="true"
           />
 
-          {/* Workspace reassurance strip */}
           <div className="flex items-center gap-2 bg-background/50 px-2.5 py-2 text-[11px] text-muted-foreground">
             <PlainIcon name="layers" size={14} tone="primary" />
             <span className="truncate">
@@ -429,14 +423,21 @@ export function SidebarUserMenu({
   if (expanded) return menu;
 
   return (
-    <Tooltip content={`${displayName} · Account`} side="right">
+    <Tooltip
+      content={
+        activeEntry
+          ? `${displayName} · ${activeEntry.label}`
+          : `${displayName} · Account`
+      }
+      side="right"
+    >
       <span className="flex w-full justify-center">{menu}</span>
     </Tooltip>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Workspace sidebar body                                            */
+/*  Workspace sidebar body                                             */
 /* ------------------------------------------------------------------ */
 
 export interface WorkspaceSidebarProps {
@@ -448,7 +449,7 @@ export interface WorkspaceSidebarProps {
   onAddMock: () => void;
   onGoTo: (next: "settings" | "trash") => void;
   onNavigate?: () => void;
-  /** Desktop only: fold the rail back out from the collapsed state. */
+  /** Desktop only: fold or expand the sidebar rail. */
   onToggleSidebar?: () => void;
   /** Which surface hosts the body: the fixed desktop rail or the phone Sheet. */
   variant?: "desktop" | "mobile";
@@ -468,20 +469,22 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
     onToggleSidebar,
     variant = "desktop",
   } = props;
-  const routerPathname = usePathname();
-  void routerPathname;
 
-  // The phone Sheet complained about density: trim its paddings one step
-  // below the desktop rail's, without touching desktop geometry.
+  // Subscribes to route transitions so dynamic hrefs (e.g., today's plan in IST) stay fresh.
+  usePathname();
+
   const pad = variant === "mobile" ? "px-2" : "px-2.5";
+  const isAddActive = view === "add";
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground select-none">
       {/* ── Brand Header ── */}
       <div
         className={cn(
-          "relative flex h-14 shrink-0 items-center border-b border-sidebar-border/80",
-          expanded ? "px-3.5" : "justify-center px-0",
+          "group/brand relative flex h-14 shrink-0 items-center border-b border-sidebar-border/80",
+          expanded ? "justify-between gap-2 px-3.5" : "justify-center px-0",
+          // Keep the wordmark clear of the mobile Sheet's floating close button.
+          expanded && variant === "mobile" && "pr-12",
         )}
       >
         <Link
@@ -489,11 +492,11 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
           aria-label="SSC Insight dashboard"
           onClick={onNavigate}
           className={cn(
-            "group flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            expanded ? "w-full" : "justify-center",
+            "group/logo flex min-w-0 items-center gap-2.5 rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            expanded ? "flex-1" : "justify-center",
           )}
         >
-          <span className="relative grid size-8 shrink-0 place-items-center rounded-xl border border-sidebar-border bg-background shadow-2xs ring-1 ring-primary/10 transition-transform duration-150 group-hover:scale-[1.03]">
+          <span className="relative grid size-8 shrink-0 place-items-center rounded-xl border border-sidebar-border bg-background shadow-2xs ring-1 ring-primary/10 transition-transform duration-150 group-hover/logo:scale-[1.03]">
             <PlainIcon name="book" size={16} tone="primary" />
           </span>
 
@@ -509,105 +512,141 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
           )}
         </Link>
 
-        {/* Collapsed rail: hovering the brand row reveals the expand affordance
-            in the logo's place — the same grammar ChatGPT's rail uses. The veil
-            ignores pointers until it is actually shown, so the brand link
-            underneath keeps its clicks and keyboard focus. */}
-        {!expanded && (
-          <button
-            type="button"
-            onClick={onToggleSidebar}
-            aria-label="Expand sidebar"
-            tabIndex={-1}
-            className="pointer-events-none absolute inset-0 grid place-items-center bg-sidebar text-foreground opacity-0 outline-none transition-opacity duration-150 hover:pointer-events-auto hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
-          >
-            <PanelLeftIcon size={16} animateOnHover animateOnTap />
-          </button>
+        {/* Desktop rail collapse button when expanded */}
+        {expanded && variant === "desktop" && onToggleSidebar && (
+          <Tooltip content="Collapse sidebar" side="bottom">
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Collapse sidebar"
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <PanelLeftIcon size={15} animateOnHover animateOnTap />
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Collapsed rail: hovering the header or tabbing to this button reveals
+            the expand trigger directly over the brand mark. */}
+        {!expanded && onToggleSidebar && (
+          <Tooltip content="Expand sidebar" side="right">
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Expand sidebar"
+              className="pointer-events-none absolute inset-0 grid place-items-center bg-sidebar text-foreground opacity-0 outline-none transition-opacity duration-150 group-hover/brand:pointer-events-auto group-hover/brand:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+            >
+              <span className="grid size-8 place-items-center rounded-xl border border-sidebar-border bg-accent/60 shadow-2xs ring-2 ring-transparent transition-all hover:bg-accent focus-visible:ring-primary/40">
+                <PanelLeftIcon size={16} animateOnHover animateOnTap />
+              </span>
+            </button>
+          </Tooltip>
         )}
       </div>
 
       {/* ── Primary Navigation ── */}
       <ScrollArea className="min-h-0 flex-1">
-        <nav
-          aria-label="Workspace"
-          className={cn(
-            "pb-3 pt-2",
-            expanded ? `space-y-5 ${pad}` : "space-y-3 px-1.5",
-          )}
-        >
-          {NAV_GROUPS.map((group, groupIdx) => (
-            <div key={group.label}>
-              {expanded ? (
-                <p className="mb-1.5 flex items-center gap-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
-                  <span>{group.label}</span>
-                  <span
-                    className="h-px flex-1 bg-sidebar-border/70"
-                    aria-hidden="true"
-                  />
-                </p>
-              ) : (
-                groupIdx > 0 && (
-                  <div
-                    className="mx-auto mb-2.5 h-px w-5 bg-sidebar-border/80"
-                    aria-hidden="true"
-                  />
-                )
-              )}
-
-              <ul className="space-y-0.5">
-                {group.items.map((item) => (
-                  <li key={item.view}>
-                    <NavItem
-                      item={{ ...item, href: resolveHref(item.href) }}
-                      active={view === item.view}
-                      expanded={expanded}
-                      onNavigate={onNavigate}
+        <nav aria-label="Workspace" className="pb-3 pt-2.5">
+          <LiquidNav
+            active={view}
+            className={expanded ? pad : "px-1.5"}
+            contentClassName={expanded ? "space-y-5" : "space-y-3"}
+          >
+            {NAV_GROUPS.map((group, groupIdx) => (
+              <div key={group.label}>
+                {expanded ? (
+                  <p className="mb-1.5 flex items-center gap-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <span>{group.label}</span>
+                    <span
+                      className="h-px flex-1 bg-sidebar-border/70"
+                      aria-hidden="true"
                     />
-                  </li>
-                ))}
+                  </p>
+                ) : (
+                  groupIdx > 0 && (
+                    <div
+                      className="mx-auto mb-2.5 h-px w-5 bg-sidebar-border/80"
+                      aria-hidden="true"
+                    />
+                  )
+                )}
 
-                {/* Primary Mock-Logging CTA */}
-                {group.label === "Results" && (
-                  <li
-                    className={expanded ? "pt-2" : "flex justify-center pt-1.5"}
-                  >
-                    {expanded ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={onAddMock}
-                        className="h-9 w-full justify-start gap-2.5 px-3 shadow-xs"
-                      >
-                        <PlusSignIcon
-                          size={16}
-                          color="var(--primary-foreground)"
-                          animateOnHover
-                          animateOnTap
-                        />
-                        <span className="font-medium">Log a mock</span>
-                      </Button>
-                    ) : (
-                      <Tooltip content="Log a mock" side="right">
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <li key={item.view}>
+                      <NavItem
+                        item={{ ...item, href: resolveHref(item.href) }}
+                        active={view === item.view}
+                        expanded={expanded}
+                        onNavigate={onNavigate}
+                      />
+                    </li>
+                  ))}
+
+                  {/* Mock-Logging Action CTA: Styled with a primary-tinted surface so it
+                      never visually collides with the solid LiquidNav active indicator. */}
+                  {group.label === "Results" && (
+                    <li
+                      className={
+                        expanded ? "pt-1.5" : "flex justify-center pt-1.5"
+                      }
+                    >
+                      {expanded ? (
                         <Button
-                          variant="primary"
-                          size="icon"
+                          variant={isAddActive ? "primary" : "outline"}
+                          size="sm"
                           onClick={onAddMock}
-                          aria-label="Log a mock"
-                          className="size-9 shadow-xs"
+                          aria-current={isAddActive ? "page" : undefined}
+                          className={cn(
+                            "h-9 w-full justify-start gap-2.5 rounded-xl px-3 text-[13px] transition-all",
+                            !isAddActive &&
+                              "border-primary/25 bg-primary/6 font-semibold text-primary shadow-none hover:border-primary/40 hover:bg-primary/12",
+                          )}
                         >
                           <PlusSignIcon
                             size={16}
-                            color="var(--primary-foreground)"
+                            color={
+                              isAddActive
+                                ? "var(--primary-foreground)"
+                                : "var(--primary)"
+                            }
+                            animateOnHover
                             animateOnTap
                           />
+                          <span className="truncate">Log a mock</span>
                         </Button>
-                      </Tooltip>
-                    )}
-                  </li>
-                )}
-              </ul>
-            </div>
-          ))}
+                      ) : (
+                        <Tooltip content="Log a mock" side="right">
+                          <Button
+                            variant={isAddActive ? "primary" : "outline"}
+                            size="icon"
+                            onClick={onAddMock}
+                            aria-label="Log a mock"
+                            aria-current={isAddActive ? "page" : undefined}
+                            className={cn(
+                              "size-9 rounded-xl transition-all",
+                              !isAddActive &&
+                                "border-primary/25 bg-primary/6 text-primary shadow-none hover:border-primary/40 hover:bg-primary/12",
+                            )}
+                          >
+                            <PlusSignIcon
+                              size={16}
+                              color={
+                                isAddActive
+                                  ? "var(--primary-foreground)"
+                                  : "var(--primary)"
+                              }
+                              animateOnTap
+                            />
+                          </Button>
+                        </Tooltip>
+                      )}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            ))}
+          </LiquidNav>
         </nav>
         <ScrollBar />
       </ScrollArea>
@@ -623,8 +662,6 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
             : "items-center gap-1.5 px-1.5 py-2.5",
         )}
       >
-        {/* Quick Utility Strip: Side-by-side when expanded, stacked with tooltips when collapsed.
-            The AI workspace is a route (/ask), reachable from the nav group. */}
         {expanded ? (
           <div
             className={cn(
@@ -632,7 +669,7 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
               variant === "mobile" && "rounded-lg",
             )}
           >
-            {(["settings", "trash"] as const).map((target) => {
+            {FOOTER_UTILITIES.map((target) => {
               const active = view === target;
               return (
                 <Button
@@ -651,7 +688,7 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-1.5 bottom-1.5 w-0.75 rounded-r-full bg-primary"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary"
                     />
                   )}
                   <span
@@ -675,7 +712,7 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
           </div>
         ) : (
           <div className="flex w-full flex-col items-center gap-1">
-            {(["settings", "trash"] as const).map((target) => {
+            {FOOTER_UTILITIES.map((target) => {
               const active = view === target;
               return (
                 <Tooltip

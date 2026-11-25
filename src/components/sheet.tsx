@@ -53,6 +53,13 @@ export interface SheetProps {
    * title stays — an sr-only h2 — so the dialog contract holds.
    */
   headerless?: boolean;
+  /**
+   * Sit flush against the edge instead of floating as a rounded card: no
+   * gutter, square corners, and one hairline on the inner edge rather than a
+   * ring around all four. For surfaces that read as part of the page (the
+   * workspace navigation) rather than as a panel over it.
+   */
+  flush?: boolean;
 }
 
 export function Sheet({
@@ -69,6 +76,7 @@ export function Sheet({
   className = "",
   contentClassName = "",
   headerless = false,
+  flush = false,
 }: SheetProps) {
   const reduced = useInteractionReducedMotion();
   const [own, setOwn] = React.useState(defaultOpen);
@@ -183,7 +191,7 @@ export function Sheet({
             }}
           />
           <div
-            className={`absolute flex ${bottom ? "inset-x-0 bottom-0 justify-center" : `inset-y-0 ${side === "left" ? "left-0" : "right-0"}`} pointer-events-none p-2`}
+            className={`absolute flex ${bottom ? "inset-x-0 bottom-0 justify-center" : `inset-y-0 ${side === "left" ? "left-0" : "right-0"}`} pointer-events-none ${flush ? "p-0" : "p-2"}`}
             style={{ width: bottom ? undefined : `min(${width}px, 100vw)` }}
           >
             <div
@@ -200,7 +208,12 @@ export function Sheet({
                 ref={panel}
                 data-modal-panel=""
                 tabIndex={-1}
-                className={`flex w-full flex-col bg-background shadow-[0_0_0_1px_var(--border)] outline-none ${bottom ? "max-h-[85dvh] max-w-[640px] rounded-[22px]" : "h-full rounded-[20px]"} ${className}`}
+                className={`flex w-full flex-col bg-background outline-none ${
+                  flush
+                    ? // Flush: one rule on the inner edge, no ring round the card.
+                      `shadow-none ${bottom ? "border-t border-border" : side === "left" ? "border-r border-border" : "border-l border-border"}`
+                    : "shadow-[0_0_0_1px_var(--border)]"
+                } ${bottom ? `max-h-[85dvh] max-w-[640px] ${flush ? "" : "rounded-[22px]"}` : `h-full ${flush ? "" : "rounded-[20px]"}`} ${className}`}
               >
                 {bottom && (
                   <div

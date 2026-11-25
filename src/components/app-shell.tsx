@@ -119,7 +119,7 @@ export function AppFrame({
         />
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar — flush: a drawer that belongs to the page, not a card over it. */}
       <Sheet
         open={mobileOpen}
         onOpenChange={setMobileOpen}
@@ -127,7 +127,8 @@ export function AppFrame({
         title="Navigation"
         width={272}
         headerless
-        className="p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
+        flush
+        className="bg-sidebar text-sidebar-foreground"
         contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0 text-[13px] text-foreground"
       >
         <div className="h-full">
@@ -245,7 +246,9 @@ export function AppHeader({
         </Tooltip>
       )}
 
-      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+      {/* The pill claims the free width on phones; from `sm` it is the fixed pill
+          it has always been, so the header's existing balance is untouched. */}
+      <div className="ml-auto flex w-full min-w-0 flex-1 items-center justify-end gap-1 sm:w-auto sm:flex-none sm:shrink-0 sm:gap-2">
         {/* The palette's pill. It replaces the old Search button: the palette
             grows out of this exact box, so it has to be the real trigger. */}
         {searchSlot ?? (

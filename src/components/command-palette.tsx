@@ -227,14 +227,16 @@ function SearchIcon({ className = "" }: { className?: string }) {
   );
 }
 
-/** The pill's face. The trigger draws it, and so does the palette as it grows out of the pill and folds back, so the hand-off changes nothing. */
+/** The pill's face. The trigger draws it, and so does the palette as it grows out of the pill and folds back, so the hand-off changes nothing. Kept in step with `CommandPaletteTrigger`: the label keeps its room on phones and the ⌘K hint waits for a keyboard. */
 function PillFace({ label, keys }: { label: string; keys: string[] }) {
   return (
     <>
       <SearchIcon />
-      <span className="pr-6">{label}</span>
+      <span className="min-w-0 flex-1 truncate pr-2 text-left sm:flex-none sm:pr-6">
+        {label}
+      </span>
       {keys.length > 0 && (
-        <span className="flex items-center gap-0.5">
+        <span className="hidden items-center gap-0.5 sm:flex">
           {keys.map((k) => (
             <Kbd key={k}>{k}</Kbd>
           ))}
@@ -1006,7 +1008,7 @@ export function CommandPalette({
     ) : null;
 
   return (
-    <div className={`inline-flex ${className}`} {...props}>
+    <div className={`inline-flex min-w-0 max-w-full flex-1 sm:flex-none ${className}`} {...props}>
       {trigger
         ? // The pill lives in the header, but its state, its focus hand-back and
           // the box the palette grows from all stay here.
