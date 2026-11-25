@@ -4,12 +4,12 @@ import * as React from "react";
 import { History, Info, Sparkles } from "lucide-react";
 import { PromptComposer, type ComposerStatus } from "@/components/prompt-composer";
 import { ApprovalCard } from "@/components/approval-card";
+import { ThinkingIndicator } from "@/components/thinking-indicator";
 import { ChatHistory } from "@/components/chat-history";
 import { UsageMeter } from "@/components/usage-meter";
 import { UsageLimits, type ContextPart, type PlanLimit } from "@/components/usage-limits";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
-import { Popover } from "@/components/popover";
 import { Sheet } from "@/components/sheet";
 import { Tooltip } from "@/components/tooltip";
 import { useAiWorkspace, aiUsageLabel } from "@/components/use-ai-workspace";
@@ -61,6 +61,14 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   const [approvalStatus, setApprovalStatus] = React.useState<"pending" | "approved" | "denied" | null>(null);
   const [notes, setNotes] = React.useState<Array<{ id: number; text: string; at: string }>>([]);
   const noteId = React.useRef(0);
+  // When the in-flight turn was sent, so the pre-first-token indicator can time
+  // its wait. The turn's own `at` stamp already records that instant.
+  const connectingAt = React.useMemo(() => {
+    if (ai.chat.phase !== "connecting") return null;
+    const last = ai.chat.messages[ai.chat.messages.length - 1];
+    const stamp = last?.at ? Date.parse(last.at) : Number.NaN;
+    return Number.isFinite(stamp) ? stamp : null;
+  }, [ai.chat.phase, ai.chat.messages]);
 
   const enabled = Boolean(ai.aiStatus?.enabled);
   const streaming = ai.chat.streaming;
@@ -247,19 +255,17 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             <History className="size-4" />
           </Button>
 
-          <Popover
-            label="Usage limits"
-            side="bottom"
-            align="end"
-            width={340}
-            trigger={
-              <Button type="button" variant="ghost" size="icon" aria-label="Usage limits" className="xl:hidden">
-                <Info className="size-4" />
-              </Button>
-            }
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Usage limits"
+            aria-expanded={usageSheet}
+            className="xl:hidden"
+            onClick={() => setUsageSheet(true)}
           >
-            {usagePanel}
-          </Popover>
+            <Info className="size-4" />
+          </Button>
         </div>
       </header>
 
@@ -352,6 +358,14 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                     }}
                     approveLabel={pendingDraft.kind === "mock" ? "Open the form" : "Apply"}
                     denyLabel="Dismiss"
+                  />
+                ) : null}
+
+                {ai.chat.phase === "connecting" ? (
+                  <ThinkingIndicator
+                    variant="orbit"
+                    label="Reading the workspace"
+                    startedAt={connectingAt ?? undefined}
                   />
                 ) : null}
 
