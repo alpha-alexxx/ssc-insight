@@ -3,7 +3,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { MockForm } from "./mock-form";
 import { safeWorkspaceReturnTo } from "@/lib/filters-url";
 import { isIsoDate } from "@/lib/format";
-import type { LogMockPayload } from "@/components/ai-chat-sheet";
+import type { LogMockPayload } from "@/components/shared/ai/log-mock-flow";
 import type { Attempt } from "@/lib/domain";
 
 /**

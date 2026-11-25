@@ -99,17 +99,6 @@ export const aiSchema = z.object({
   jsonMode: z.boolean(),
   allowPrivate: z.boolean(),
   thinking: z.enum(["default", "off", "low", "medium", "high"]),
-  maxOutputTokens: z
-    .string()
-    .trim()
-    .refine(
-      (value) =>
-        value === "" ||
-        (Number.isInteger(Number(value)) &&
-          Number(value) >= 256 &&
-          Number(value) <= 32_000),
-      "Enter 256–32000, or leave blank for the default.",
-    ),
   historyTurns: z
     .string()
     .trim()

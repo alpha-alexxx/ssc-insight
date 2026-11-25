@@ -1,34 +1,41 @@
 import type { AiConfig } from "./config-core";
 import type { AiQuotaLimits } from "./quota";
 
+/** Personal keys are unlimited: no daily request cap and no token cap. The
+ * ledger still records what happened (audit), but it can never block a user
+ * who is spending their own provider quota. */
 export const USER_KEY_SAFETY_LIMITS: AiQuotaLimits = {
-  requests: 400,
-  tokens: 2_000_000,
+  requests: Infinity,
+  tokens: Infinity,
 };
 
-/** Personal keys default to the reply ceiling the settings form allows, never
- * the deployment's env tuning: thinking models spend output tokens on hidden
- * reasoning before the answer, so a small cap guarantees truncated replies
- * (the 2026-11 truncation bug — an unset AI_MAX_OUTPUT_TOKENS leaked the env
- * config's generic 1,200 default onto user credentials). Only the user's own
- * explicit setting narrows it. */
-export const USER_MAX_OUTPUT_TOKENS = 32_000;
 export const USER_TIMEOUT_MS = 120_000;
 export const USER_FIRST_TOKEN_TIMEOUT_MS = 120_000;
 
 export function userReplyCaps(
-  storedMaxOutputTokens: number | null,
   envTimeoutMs: number | undefined,
   envFirstTokenTimeoutMs: number | undefined,
-): { maxOutputTokens: number; timeoutMs: number; firstTokenTimeoutMs: number } {
+): { timeoutMs: number; firstTokenTimeoutMs: number } {
   return {
-    maxOutputTokens: storedMaxOutputTokens ?? USER_MAX_OUTPUT_TOKENS,
     timeoutMs: envTimeoutMs ?? USER_TIMEOUT_MS,
     firstTokenTimeoutMs: envFirstTokenTimeoutMs ?? USER_FIRST_TOKEN_TIMEOUT_MS,
   };
 }
 
 export type AiConfigSource = "user" | "env";
+
+/**
+ * Pre-call output allowance reserved against the IST-day token ledger.
+ * A personal key is unlimited, so nothing is reserved and the ledger can never
+ * block it; a metered (env) key reserves a conservative completion estimate so
+ * AI_DAILY_TOKEN_LIMIT still bounds what the shared key can spend — without
+ * that, removing the reply cap would leave the daily token ceiling unenforced.
+ */
+export const ENV_OUTPUT_RESERVE_TOKENS = 8_000;
+
+export function outputReserveForSource(source: AiConfigSource): number {
+  return source === "user" ? 0 : ENV_OUTPUT_RESERVE_TOKENS;
+}
 export type StoredCredentialState = "absent" | "ready" | "invalid";
 
 /** Pure precedence policy, kept separate from database/crypto for tests. */

@@ -50,8 +50,6 @@ export type AiCredentialSummary = {
   allowPrivate: boolean;
   /** Provider default, off, or a reasoning-effort hint for the provider. */
   thinking: string;
-  /** Per-user output ceiling; null inherits the deployment default. */
-  maxOutputTokens: number | null;
   /** Conversation turns sent per question; null inherits the default (8). */
   historyTurns: number | null;
   /** Gates image input in chat and report extraction. */

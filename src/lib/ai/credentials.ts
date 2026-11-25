@@ -37,7 +37,6 @@ export type AiCredentialInput = {
   allowHttp?: boolean;
   allowPrivate?: boolean;
   thinking?: string;
-  maxOutputTokens?: number | null;
   historyTurns?: number | null;
   visionEnabled?: boolean;
 };
@@ -57,7 +56,6 @@ export type AiCredentialSummary = {
   allowHttp: boolean;
   allowPrivate: boolean;
   thinking: string;
-  maxOutputTokens: number | null;
   historyTurns: number | null;
   visionEnabled: boolean;
   updatedAt: string | null;
@@ -96,7 +94,6 @@ export async function describeAiCredential(
       allowHttp: true,
       allowPrivate: true,
       thinking: true,
-      maxOutputTokens: true,
       historyTurns: true,
       visionEnabled: true,
       updatedAt: true,
@@ -117,7 +114,6 @@ export async function describeAiCredential(
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
     thinking: isAiThinking(row.thinking) ? row.thinking : "default",
-    maxOutputTokens: row.maxOutputTokens,
     historyTurns: row.historyTurns,
     visionEnabled: row.visionEnabled,
     updatedAt: row.updatedAt.toISOString(),
@@ -145,7 +141,6 @@ export async function getAiCredential(userId: string) {
       allowHttp: true,
       allowPrivate: true,
       thinking: true,
-      maxOutputTokens: true,
       historyTurns: true,
       visionEnabled: true,
     },
@@ -171,7 +166,6 @@ export async function getAiCredential(userId: string) {
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
     thinking: isAiThinking(row.thinking) ? row.thinking : "default",
-    maxOutputTokens: row.maxOutputTokens,
     historyTurns: row.historyTurns,
     visionEnabled: row.visionEnabled,
   };
@@ -236,7 +230,6 @@ export async function saveAiCredential(
       allowHttp: input.allowHttp ?? false,
       allowPrivate: input.allowPrivate ?? false,
       thinking: input.thinking ?? "default",
-      maxOutputTokens: input.maxOutputTokens ?? null,
       historyTurns: input.historyTurns ?? null,
       visionEnabled: input.visionEnabled ?? false,
     },
@@ -254,7 +247,6 @@ export async function saveAiCredential(
       allowHttp: input.allowHttp ?? false,
       allowPrivate: input.allowPrivate ?? false,
       thinking: input.thinking ?? "default",
-      maxOutputTokens: input.maxOutputTokens ?? null,
       historyTurns: input.historyTurns ?? null,
       visionEnabled: input.visionEnabled ?? false,
     },
@@ -271,7 +263,6 @@ export async function saveAiCredential(
       allowHttp: true,
       allowPrivate: true,
       thinking: true,
-      maxOutputTokens: true,
       historyTurns: true,
       visionEnabled: true,
       updatedAt: true,
@@ -292,7 +283,6 @@ export async function saveAiCredential(
     allowHttp: row.allowHttp,
     allowPrivate: row.allowPrivate,
     thinking: isAiThinking(row.thinking) ? row.thinking : "default",
-    maxOutputTokens: row.maxOutputTokens,
     historyTurns: row.historyTurns,
     visionEnabled: row.visionEnabled,
     updatedAt: row.updatedAt.toISOString(),

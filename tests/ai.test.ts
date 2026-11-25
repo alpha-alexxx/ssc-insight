@@ -57,7 +57,7 @@ const config: AiConfig = {
   allowPrivate: false,
   dailyRequestLimit: 30,
   dailyTokenLimit: 300_000,
-  maxOutputTokens: 100,
+  
   timeoutMs: 5_000,
   firstTokenTimeoutMs: 5_000,
   thinking: "default",
@@ -176,7 +176,6 @@ test("AI config fails closed and validates the provider URL", () => {
   assert.equal(defaults?.dailyTokenLimit, 800_000);
   assert.equal(defaults?.jsonMode, true);
   assert.equal(defaults?.timeoutMs, 120_000);
-  assert.equal(defaults?.maxOutputTokens, 16_400);
   assert.equal(defaults?.firstTokenTimeoutMs, 120_000);
   assert.equal(defaults?.thinking, "default");
 
@@ -193,8 +192,6 @@ test("AI config fails closed and validates the provider URL", () => {
   });
   assert.equal(custom?.jsonMode, false);
   assert.equal(custom?.dailyRequestLimit, 3);
-  assert.equal(custom?.dailyTokenLimit, 1_200);
-  assert.equal(custom?.maxOutputTokens, 500);
   assert.equal(custom?.timeoutMs, 20_000);
   assert.equal(custom?.firstTokenTimeoutMs, 15_000);
   assert.equal(custom?.thinking, "high");
@@ -336,16 +333,17 @@ test("quota reservation covers requests, tokens, and repair calls", () => {
   const one = reservationTokens({
     promptText: "abc",
     contextTokens: CONTEXT_TOKEN_ESTIMATE,
-    maxOutputTokens: 100,
     providerCalls: 1,
   });
   const two = reservationTokens({
     promptText: "abc",
     contextTokens: CONTEXT_TOKEN_ESTIMATE,
-    maxOutputTokens: 100,
     providerCalls: 2,
   });
-  assert.equal(two - one, 100);
+  // There is no output-token ceiling to reserve for any more: the reservation
+  // is the estimate of what we are about to send, and provider-side output is
+  // settled from real usage after the call.
+  assert.equal(two - one, 0);
   assert.equal(chargedOnFailure(10, 200), 200);
   assert.equal(chargedOnFailure(250, 200), 250);
 });

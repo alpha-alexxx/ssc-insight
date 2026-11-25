@@ -18,7 +18,6 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { aiKeys, aiStatusQueryOptions } from "@/lib/queries/ai";
-import { useUiStore } from "@/stores/ui-store";
 import { NdjsonDecoder, parseChatEvent } from "@/lib/ai/ndjson";
 import { toast } from "@/components/toast-stack";
 import type {
@@ -57,12 +56,14 @@ export function trimChatHistory(messages: ChatMessage[], lastN: number) {
  * chat endpoint. */
 export const INSIGHT_REQUEST_TEXT = "Generate an insight from my recent mocks.";
 
-/** "Today 12/400" — the one usage label shared by the sheet header and the
- * /ask composer meta. Null when the status carries no usage or the deployment
- * runs without a request limit. */
+/** "Today 12/400", or "Today 12 · unlimited" for a personal key (no cap).
+ * Null only when the status carries no usage at all. */
 export function aiUsageLabel(status: AiStatus | null): string | undefined {
   const usage = status?.usage;
-  if (!usage || usage.limits.requests <= 0) return undefined;
+  if (!usage) return undefined;
+  if (!Number.isFinite(usage.limits.requests))
+    return `Today ${usage.requests} · unlimited`;
+  if (usage.limits.requests <= 0) return undefined;
   return `Today ${usage.requests}/${usage.limits.requests}`;
 }
 
@@ -91,7 +92,7 @@ function insightToChatText(insight: CoachInsight, meta: CoachMeta | null) {
   return lines.join("\n");
 }
 
-/** API shape for the sheet's history panel: the stored list plus the
+/** API shape for the history panel: the stored list plus the
  * mutations it offers. */
 export type ChatHistoryApi = {
   conversations: StoredConversation[];
@@ -111,10 +112,10 @@ export type ChatPhase = "connecting" | "thinking" | "writing";
 
 /**
  * Client state for the optional AI subsystem: availability status, the coach
- * insight card, and the streaming chat drawer. Finished conversations persist
- * to localStorage (lib/ai/conversations.ts) so the drawer restores its
- * history across reloads; the in-flight stream still aborts when the drawer
- * closes or the workspace unmounts. Everything here fails soft — AI must
+ * insight card, and the streaming chat. Finished conversations persist
+ * to localStorage (lib/ai/conversations.ts) so the history restores its
+ * history across reloads; the in-flight stream still aborts when the workspace
+ * unmounts. Everything here fails soft — AI must
  * never block the tracker.
  */
 export type AiWorkspace = ReturnType<typeof useAiWorkspaceState>;
@@ -156,7 +157,6 @@ export function AiWorkspaceProvider({
 
 function useAiWorkspaceState() {
   const queryClient = useQueryClient();
-  // the context api is stable, so callbacks can list it as a plain dep.
 
   // Availability status is the only cacheable AI resource; it lives in the
   // query cache (lib/queries/ai.ts). A status failure must never block the
@@ -168,13 +168,6 @@ function useAiWorkspaceState() {
   const [coachMeta, setCoachMeta] = useState<CoachMeta | null>(null);
   const [coachBusy, setCoachBusy] = useState(false);
   const [coachError, setCoachError] = useState("");
-  // Drawer visibility lives in the UI store (header, dashboard cards, the
-  // palette, and the shell all open it); messages and streaming stay local.
-  const chatOpen = useUiStore((s) => s.aiChatOpen);
-  const [chatStreaming, setChatStreaming] = useState(false);
-  const [chatPhase, setChatPhase] = useState<ChatPhase | null>(null);
-  const [chatError, setChatError] = useState("");
-  const chatAbort = useRef<AbortController | null>(null);
   // Conversation history: React state mirrors refs so turn handlers never
   // read stale closures, and persistence never runs inside a state updater
   // (StrictMode would run it twice). The saved list hydrates in the state
@@ -192,6 +185,10 @@ function useAiWorkspaceState() {
   const conversationsRef = useRef<StoredConversation[]>(boot);
   const activeIdRef = useRef<string | null>(boot[0]?.id ?? null);
   const messagesRef = useRef<ChatMessage[]>(boot[0]?.messages ?? []);
+  const [chatStreaming, setChatStreaming] = useState(false);
+  const [chatPhase, setChatPhase] = useState<ChatPhase | null>(null);
+  const [chatError, setChatError] = useState("");
+  const chatAbort = useRef<AbortController | null>(null);
 
   // Revalidates after quota-consuming actions (coach/chat completion) — the
   // quota ledger may have moved.
@@ -238,7 +235,7 @@ function useAiWorkspaceState() {
 
   /**
    * One shared abort controller covers coach and chat: Stop, tab changes,
-   * closing the Sheet, and unmount all cancel whichever request is active.
+   * closing the workspace, and unmount all cancel whichever request is active.
    * `requestKind` records what produced the in-flight turn so Retry replays
    * the correct endpoint.
    */
@@ -247,7 +244,6 @@ function useAiWorkspaceState() {
   const generateCoach = useCallback(async () => {
     if (chatAbort.current) return; // a stream is already in flight
     setChatError("");
-    useUiStore.getState().setAiChatOpen(true);
     setChatStreaming(true);
     const requestId = newId();
     const assistantId = newId();
@@ -331,12 +327,6 @@ function useAiWorkspaceState() {
 
   const openChat = useCallback(() => {
     setChatError("");
-    useUiStore.getState().setAiChatOpen(true);
-  }, []);
-
-  const setChatOpenSafe = useCallback((open: boolean) => {
-    if (!open) chatAbort.current?.abort();
-    useUiStore.getState().setAiChatOpen(open);
   }, []);
 
   const stopChat = useCallback(() => {
@@ -665,8 +655,6 @@ function useAiWorkspaceState() {
       open: openChat,
     },
     chat: {
-      open: chatOpen,
-      setOpen: setChatOpenSafe,
       messages: chatMessages,
       streaming: chatStreaming,
       phase: chatPhase,

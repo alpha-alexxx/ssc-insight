@@ -49,6 +49,8 @@ async function serializable<T>(
 /**
  * Count-and-insert quota gate. Pending, errored, and aborted rows all count
  * until the IST day rolls over, which is the safe behavior after a crash.
+ * Token quota is only enforced for env config users (free accounts).
+ * Personal key users have unlimited tokens.
  */
 export async function reserveAiUsage(userId: string, input: ReservationInput) {
   const day = dayKey();

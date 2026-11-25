@@ -8,6 +8,7 @@ import {
 import { coachMessages } from "@/lib/ai/prompts";
 import { createAiProvider } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
+import { outputReserveForSource } from "@/lib/ai/resolve-core";
 import {
   coachInsightSchema,
   coerceCoachInsight,
@@ -34,13 +35,14 @@ export async function POST(request: Request) {
     const { id: userId } = await requireUser();
     // These streaming routes bypass defineRoute, so they carry their own limit.
     // AI is the most expensive request the app serves — it runs against the
-    // dedicated 20/minute AI limiter, both layers; the AiUsage ledger still
-    // governs the actual generation budget.
-    const limit = await consumeRateLimit("ai", requestIdentity(userId, request));
-    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
+    // dedicated AI limiter (10/min for free users, unlimited for personal keys);
+    // the AiUsage ledger still governs the actual generation budget.
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;
+    const hasPersonalKey = resolved.source === "user";
+    const limit = await consumeRateLimit("ai", requestIdentity(userId, request), hasPersonalKey);
+    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
     // The body is intentionally unused: context and ownership are server-side.
     await readBody(request, 8 * 1024);
 
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
       reservedTokens: reservationTokens({
         promptText: "performance coach insight",
         contextTokens: CONTEXT_TOKEN_ESTIMATE + 1_500,
-        maxOutputTokens: config.maxOutputTokens,
+        outputTokens: outputReserveForSource(resolved.source),
         providerCalls: 2,
       }),
     });
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
     try {
       result = await createAiProvider(config).completeJson({
         messages: coachMessages(bundle.context, bundle.shape, bundle.examName),
-        maxOutputTokens: config.maxOutputTokens,
+        // No maxOutputTokens cap — provider's own default applies
         signal: request.signal,
         format: COACH_FORMAT,
         parse: (raw) =>

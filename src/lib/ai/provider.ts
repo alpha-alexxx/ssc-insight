@@ -54,7 +54,7 @@ export type AiStructuredFormat = {
 
 type RequestArgs = {
   messages: AiMessage[];
-  maxOutputTokens: number;
+  maxOutputTokens?: number;
   signal: AbortSignal;
 };
 
@@ -333,6 +333,11 @@ function requestBody(
   // providers, so JSON routes with an explicit format keep thinking off.
   // Prompt-only JSON callers (extract, todos) and chat keep their level.
   const effort = options.format ? null : reasoningEffort(config.thinking);
+  // A missing ceiling is not "zero tokens": the field is omitted so the
+  // provider applies its own model default. Every AI route now runs without a
+  // reply cap; only the probe routes pass an explicit small budget.
+  const cap = (value: number | undefined) =>
+    value != null ? { max_output_tokens: value } : {};
   switch (config.protocol) {
     case "openai-responses":
       return {
@@ -341,7 +346,7 @@ function requestBody(
           role: message.role,
           content: responsesContent(message),
         })),
-        max_output_tokens: args.maxOutputTokens,
+        ...cap(args.maxOutputTokens),
         ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
         ...(config.provider === "openai" ? { store: false } : {}),
         ...(options.stream ? { stream: true } : {}),
@@ -351,7 +356,7 @@ function requestBody(
       return {
         model: config.model,
         prompt: rolePrompt(args.messages),
-        max_tokens: args.maxOutputTokens,
+        ...(args.maxOutputTokens != null ? { max_tokens: args.maxOutputTokens } : {}),
         ...(options.stream ? { stream: true } : {}),
       };
     case "anthropic-messages": {
@@ -367,17 +372,24 @@ function requestBody(
         }));
       // budget_tokens must stay below max_tokens; below Anthropic's 1,024
       // floor the request would be rejected, so thinking is dropped entirely.
-      const budget = effort
-        ? Math.min(
-            ANTHROPIC_THINKING_BUDGET[effort],
-            Math.max(0, args.maxOutputTokens - 1_024),
-          )
-        : null;
+      // With no user cap there is nothing to clamp against, so the configured
+      // thinking budget is used as-is.
+      const budget =
+        effort && args.maxOutputTokens != null
+          ? Math.min(
+              ANTHROPIC_THINKING_BUDGET[effort],
+              Math.max(0, args.maxOutputTokens - 1_024),
+            )
+          : effort
+            ? ANTHROPIC_THINKING_BUDGET[effort]
+            : null;
       return {
         model: config.model,
         ...(systems ? { system: systems } : {}),
         messages,
-        max_tokens: args.maxOutputTokens,
+        ...(args.maxOutputTokens != null
+          ? { max_tokens: args.maxOutputTokens }
+          : {}),
         ...(budget && budget >= 1_024
           ? { thinking: { type: "enabled", budget_tokens: budget } }
           : {}),
@@ -402,9 +414,13 @@ function requestBody(
           content: chatContent(message),
         })),
         ...(effort ? { reasoning_effort: effort } : {}),
-        ...(config.provider === "openai"
+        ...(config.provider === "openai" && args.maxOutputTokens != null
           ? { max_completion_tokens: args.maxOutputTokens, store: false }
-          : { max_tokens: args.maxOutputTokens }),
+          : config.provider === "openai"
+            ? { store: false }
+            : args.maxOutputTokens != null
+              ? { max_tokens: args.maxOutputTokens }
+              : {}),
         ...(options.stream
           ? {
               stream: true,

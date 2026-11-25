@@ -5,7 +5,6 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
 import { PanelLeftIcon } from "@/components/animate-ui/icons/hugeicons/panel-left";
-import { SparklesIcon } from "@/components/animate-ui/icons/hugeicons/sparkles";
 import { Sheet } from "@/components/sheet";
 import { Tooltip } from "@/components/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -51,9 +50,7 @@ export function AppFrame({
   userName,
   userEmail,
   userImage,
-  aiEnabled,
   onAddMock,
-  onOpenAi,
   onOpenSearch,
   onOpenSettings,
   onOpenTrash,
@@ -65,10 +62,8 @@ export function AppFrame({
   userName: string;
   userEmail: string;
   userImage: string;
-  aiEnabled: boolean;
   onRouteIntent: (view: AppView) => void;
   onAddMock: () => void;
-  onOpenAi: () => void;
   onOpenSearch: () => void;
   onOpenSettings: () => void;
   onOpenTrash: () => void;
@@ -160,8 +155,6 @@ export function AppFrame({
         )}
       >
         <AppHeader
-          aiEnabled={aiEnabled}
-          onOpenAi={onOpenAi}
           onOpenSearch={onOpenSearch}
           onToggleSidebar={toggleExpanded}
           onOpenMobileNav={() => setMobileOpen(true)}
@@ -206,16 +199,12 @@ export function AppFrame({
  * edges are the viewport itself.
  */
 export function AppHeader({
-  aiEnabled,
-  onOpenAi,
   onOpenSearch,
   onToggleSidebar,
   onOpenMobileNav,
   sidebarExpanded,
   searchSlot,
 }: {
-  aiEnabled: boolean;
-  onOpenAi: () => void;
   onOpenSearch: () => void;
   onToggleSidebar: () => void;
   onOpenMobileNav: () => void;
@@ -276,23 +265,6 @@ export function AppHeader({
               {IS_APPLE_PLATFORM ? "⌘K" : "Ctrl K"}
             </kbd>
           </Button>
-        )}
-
-        {/* Ask AI rides the header now — the sidebar footer CTA was removed.
-            Hidden entirely when AI is not configured. */}
-        {aiEnabled && (
-          <Tooltip content="Ask AI" side="bottom">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onOpenAi}
-              aria-label="Ask AI"
-              className="h-8 gap-2 border border-primary/20 bg-primary/8 px-2.5 text-foreground shadow-2xs hover:border-primary/35 hover:bg-primary/14"
-            >
-              <SparklesIcon size={16} color="var(--primary)" animateOnHover />
-              <span className="hidden font-medium sm:inline">Ask AI</span>
-            </Button>
-          </Tooltip>
         )}
 
         <ThemeToggleBridge />

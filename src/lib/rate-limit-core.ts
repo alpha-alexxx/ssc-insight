@@ -111,6 +111,8 @@ export type RateLimitInput = {
   budget: BudgetState;
   breakerOpen: boolean;
   redisConfigured: boolean;
+  /** Whether the user has a personal API key (bypasses AI rate limits). */
+  hasPersonalKey?: boolean;
 };
 
 export type RateLimitPlan = {
@@ -130,9 +132,24 @@ export type RateLimitPlan = {
  * cap) settle the request locally; then the soft cap degrades the cheap classes
  * while keeping AI — the expensive, abusable one — protected; then the class
  * decides, with reads never paying for a round trip.
+ * 
+ * Personal API key users bypass AI rate limits entirely (unlimited).
  */
 export function decideRateLimit(input: RateLimitInput): RateLimitPlan {
-  const { rateClass, l1, budget, breakerOpen, redisConfigured } = input;
+  const { rateClass, l1, budget, breakerOpen, redisConfigured, hasPersonalKey } = input;
+
+  // Personal key users: unlimited AI requests, no rate limiting
+  if (hasPersonalKey && rateClass === "ai") {
+    return {
+      consultL2: false,
+      preemptiveDeny: {
+        outcome: "allowed",
+        source: "l1",
+        remaining: Infinity,
+        limit: Infinity,
+      },
+    };
+  }
 
   // L2 cannot be consulted at all: run on L1 alone. Degrading must NOT mean
   // "allow" — L1's verdict is still the limit, or a Redis outage would grant
@@ -192,6 +209,10 @@ export function rateLimitHeadersFor(decision: LimitDecision): RateLimitHeaders {
       "Retry-After": String(Math.max(1, Math.ceil(decision.retryAfter))),
     };
   }
+  // An unlimited verdict (a personal AI key) has no meaningful numeric limit;
+  // "Infinity" is not a number a client can do remaining/limit math with, so
+  // the counters are omitted rather than faked.
+  if (!Number.isFinite(decision.limit)) return {};
   return {
     "X-RateLimit-Limit": String(decision.limit),
     "X-RateLimit-Remaining": String(Math.max(0, Math.floor(decision.remaining))),

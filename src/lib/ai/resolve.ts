@@ -51,7 +51,6 @@ export async function resolveAiConfig(
         allowHttp: boolean;
         allowPrivate: boolean;
         thinking: AiThinking;
-        maxOutputTokens: number | null;
         historyTurns: number | null;
         visionEnabled: boolean;
       }
@@ -75,7 +74,6 @@ export async function resolveAiConfig(
         allowHttp: row.allowHttp,
         allowPrivate: row.allowPrivate,
         thinking: row.thinking,
-        maxOutputTokens: row.maxOutputTokens,
         historyTurns: row.historyTurns,
         visionEnabled: row.visionEnabled,
       };
@@ -129,20 +127,16 @@ export async function resolveAiConfig(
         jsonMode: stored.jsonMode,
         allowHttp: stored.allowHttp,
         allowPrivate: stored.allowPrivate,
-        // Reply caps come from the pure policy in resolve-core: the user's
-        // own setting wins, otherwise the 32,000 ceiling. The deployment's
-        // AI_MAX_OUTPUT_TOKENS is deliberately NOT consulted here — its
-        // generic default once leaked onto personal keys and truncated every
-        // thinking-model reply. Env still tunes the wall-clock windows.
+        // Personal keys have no token limit and no maxOutputTokens cap.
+        // Timeout windows come from env config as a safety net.
         ...userReplyCaps(
-          stored.maxOutputTokens,
           envConfig?.timeoutMs,
           envConfig?.firstTokenTimeoutMs,
         ),
         thinking: stored.thinking,
         visionEnabled: stored.visionEnabled,
         dailyRequestLimit: 400,
-        dailyTokenLimit: 2_000_000,
+        dailyTokenLimit: Infinity,
       },
     };
   }

@@ -624,7 +624,7 @@ export function WorkspaceSidebarBody(props: WorkspaceSidebarProps) {
         )}
       >
         {/* Quick Utility Strip: Side-by-side when expanded, stacked with tooltips when collapsed.
-            Ask AI lives in the header now. */}
+            The AI workspace is a route (/ask), reachable from the nav group. */}
         {expanded ? (
           <div
             className={cn(

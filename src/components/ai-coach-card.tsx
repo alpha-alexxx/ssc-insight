@@ -88,9 +88,11 @@ export function AiCoachCard({
 
         {usage && (
           <p className="mt-3 text-[12px] tabular-nums text-muted-foreground">
-            Today: {usage.requests} / {usage.limits.requests} requests ·{" "}
-            {usage.tokens.toLocaleString("en-IN")} /{" "}
-            {usage.limits.tokens.toLocaleString("en-IN")} tokens charged
+            Today:{" "}
+            {Number.isFinite(usage.limits.requests)
+              ? `${usage.requests} / ${usage.limits.requests} requests`
+              : `${usage.requests} requests · unlimited`}{" "}
+            · {usage.tokens.toLocaleString("en-IN")} tokens charged
           </p>
         )}
       </div>

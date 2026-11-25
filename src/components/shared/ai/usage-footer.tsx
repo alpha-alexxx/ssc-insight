@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * The rail's quota footer on Hairline `usage-meter`: today's request count
- * against the active limit, plus the read-only pledge. Personal keys report
- * their own USER_KEY_SAFETY_LIMITS; the shared env key reports the
- * deployment's AI_DAILY_REQUEST_LIMIT — both arrive through /api/ai/status
- * usage.
+ * against the active limit, plus the read-only pledge. The shared env key
+ * reports the deployment's AI_DAILY_REQUEST_LIMIT through /api/ai/status
+ * usage; a personal key has no cap, so it shows the count alone.
  */
 export function UsageFooter({
   status,
@@ -23,10 +22,11 @@ export function UsageFooter({
   const limit = usage?.limits.requests ?? 0;
   const used = usage?.requests ?? 0;
   const resetAt = usage?.resetAt ? new Date(usage.resetAt) : undefined;
+  const capped = Number.isFinite(limit) && limit > 0;
 
   return (
     <div className={cn("border-t border-border px-3 py-2.5", className)}>
-      {limit > 0 ? (
+      {capped ? (
         <UsageMeter
           used={used}
           limit={limit}
@@ -34,7 +34,12 @@ export function UsageFooter({
           label="Today's reads"
           resetAt={resetAt}
         />
-      ) : null}
+      ) : (
+        <p className="text-[11px] tabular-nums text-muted-foreground">
+          {used} {used === 1 ? "read" : "reads"} today · unlimited with your
+          own key
+        </p>
+      )}
       <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
         <Icon name="shield" size={10} tone="primary" className="shrink-0" />
         Read-only — the coach answers from your tracker and writes nothing.

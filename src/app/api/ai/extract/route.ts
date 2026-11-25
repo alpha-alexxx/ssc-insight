@@ -10,6 +10,7 @@ import {
 import { reservationTokens, chargedForAiFailure } from "@/lib/ai/quota";
 import { createAiProvider, messageText } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
+import { outputReserveForSource } from "@/lib/ai/resolve-core";
 import { aiLimits } from "@/lib/ai/server";
 import { loadExamContext, requirePattern } from "@/lib/exam-settings";
 import {
@@ -43,13 +44,14 @@ export async function POST(request: Request) {
     const { id: userId } = await requireUser();
     // These streaming routes bypass defineRoute, so they carry their own limit.
     // AI is the most expensive request the app serves — it runs against the
-    // dedicated 20/minute AI limiter, both layers; the AiUsage ledger still
-    // governs the actual generation budget.
-    const limit = await consumeRateLimit("ai", requestIdentity(userId, request));
-    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
+    // dedicated AI limiter (10/min for free users, unlimited for personal keys);
+    // the AiUsage ledger still governs the actual generation budget.
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;
+    const hasPersonalKey = resolved.source === "user";
+    const limit = await consumeRateLimit("ai", requestIdentity(userId, request), hasPersonalKey);
+    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
     // Text may be short when a screenshot carries the scorecard, so the
     // transport limit must admit the images too (Vercel caps near 4.5 MB).
     const body = bodySchema.parse(await readBody(request, 4 * 1024 * 1024));
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
       limits: aiLimits(config),
       reservedTokens: reservationTokens({
         promptText: messages.map((message) => messageText(message)).join("\n"),
-        maxOutputTokens: config.maxOutputTokens,
+        outputTokens: outputReserveForSource(resolved.source),
         providerCalls: 2,
       }),
     });
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
     try {
       result = await createAiProvider(config).completeJson({
         messages,
-        maxOutputTokens: config.maxOutputTokens,
+        // No maxOutputTokens cap — provider's own default applies
         signal: request.signal,
         parse: (raw: string) => parseExtraction(shape, raw),
       });

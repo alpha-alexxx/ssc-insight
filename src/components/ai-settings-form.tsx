@@ -53,7 +53,6 @@ const EMPTY_FORM: AiValues = {
   jsonMode: true,
   allowPrivate: false,
   thinking: "default",
-  maxOutputTokens: "",
   historyTurns: "",
   visionEnabled: false,
 };
@@ -79,10 +78,6 @@ function credentialToValues(credential: AiCredentialSummary): AiValues {
     thinking: THINKING_LEVELS.includes(credential.thinking as AiValues["thinking"])
       ? (credential.thinking as AiValues["thinking"])
       : "default",
-    maxOutputTokens:
-      credential.maxOutputTokens != null
-        ? String(credential.maxOutputTokens)
-        : "",
     historyTurns:
       credential.historyTurns != null ? String(credential.historyTurns) : "",
     visionEnabled: credential.visionEnabled,
@@ -205,9 +200,6 @@ export function AiSettingsForm({
       stored.jsonMode !== values.jsonMode ||
       stored.allowPrivate !== values.allowPrivate ||
       stored.thinking !== values.thinking ||
-      (stored.maxOutputTokens != null
-        ? String(stored.maxOutputTokens)
-        : "") !== values.maxOutputTokens.trim() ||
       (stored.historyTurns != null ? String(stored.historyTurns) : "") !==
         values.historyTurns.trim() ||
       stored.visionEnabled !== values.visionEnabled ||
@@ -269,7 +261,6 @@ export function AiSettingsForm({
   // here re-registers the draft on every render — the register/unregister
   // ping-pong that exceeds React's update depth on this panel.
   const payloadFrom = useCallback((source: AiValues) => {
-    const maxOutput = source.maxOutputTokens.trim();
     const turns = source.historyTurns.trim();
     return {
       provider: source.provider,
@@ -283,7 +274,6 @@ export function AiSettingsForm({
       allowHttp: isLocal,
       allowPrivate: source.allowPrivate,
       thinking: source.thinking,
-      maxOutputTokens: maxOutput === "" ? null : Number(maxOutput),
       historyTurns: turns === "" ? null : Number(turns),
       visionEnabled: source.visionEnabled,
     };
@@ -813,31 +803,7 @@ export function AiSettingsForm({
                 always shown collapsed above the answer when it streams any.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                id={`${id}-max-output`}
-                label="Max reply tokens"
-                type="number"
-                inputMode="numeric"
-                className="max-w-40"
-                inputClassName="appearance-none"
-                min={256}
-                max={32000}
-                step={128}
-                value={values.maxOutputTokens}
-                onValueChange={(maxOutputTokens) =>
-                  patchFields({ maxOutputTokens })
-                }
-                placeholder="Default"
-                autoComplete="off"
-                error={formState.errors.maxOutputTokens?.message}
-                hint={
-                  formState.errors.maxOutputTokens
-                    ? undefined
-                    : "256–32000. Reasoning counts toward this."
-                }
-              />
-              <Input
+            <Input
                 id={`${id}-history`}
                 label="Conversation memory"
                 type="number"
@@ -860,7 +826,6 @@ export function AiSettingsForm({
                     : "2–16 earlier turns sent with each question."
                 }
               />
-            </div>
             <Checkbox
               checked={values.visionEnabled}
               onCheckedChange={(checked) =>

@@ -5,8 +5,6 @@ import {
   decideRateLimit,
   escalatedRetryAfter,
   resolveLimiterOutcome,
-  AI_RATE_LIMIT,
-  AI_WINDOW_SECONDS,
   type LimitDecision,
   type RateClass,
   type RateLimitHeaders,
@@ -154,14 +152,23 @@ export const writeRateLimiter = new TokenBucketRateLimiter({
 });
 
 /**
- * The AI class has its own per-minute budget — 20 generations / 60s burst,
- * 20/min sustained — because one generation is by far the most expensive
- * thing a user can ask of the deployment (provider tokens plus the daily
- * ledger). Far tighter than the read envelope; denials escalate.
+ * The AI class has its own per-minute budget for free (env config) users:
+ * 10 requests / 60s burst, 10/min sustained.
+ * Personal key users have unlimited AI requests (handled by hasPersonalKey bypass).
  */
-export const aiRateLimiter = new TokenBucketRateLimiter({
-  capacity: AI_RATE_LIMIT,
-  refillPerSecond: AI_RATE_LIMIT / AI_WINDOW_SECONDS,
+export const aiRateLimiterFree = new TokenBucketRateLimiter({
+  capacity: 10,
+  refillPerSecond: 10 / 60,
+});
+
+/**
+ * Personal key users get an effectively unlimited limiter.
+ * The hasPersonalKey bypass in rate-limit-core.ts handles the actual unlimited logic,
+ * but this limiter exists for completeness.
+ */
+export const aiRateLimiterPersonal = new TokenBucketRateLimiter({
+  capacity: 10000,
+  refillPerSecond: 10000 / 60,
 });
 
 
@@ -179,16 +186,21 @@ export const aiRateLimiter = new TokenBucketRateLimiter({
  * Failure posture: a missing configuration, an open circuit or a timeout all
  * degrade to L1 — never to "allow unconditionally", and never to a failed
  * request. A rate limiter must not be able to take the app down.
+ * 
+ * Personal API key users bypass AI rate limits (hasPersonalKey=true).
  */
 export async function consumeRateLimit(
   rateClass: RateClass,
   identity: string,
+  hasPersonalKey = false,
 ): Promise<LimitDecision> {
   const limiter =
     rateClass === "write"
       ? writeRateLimiter
       : rateClass === "ai"
-        ? aiRateLimiter
+        ? hasPersonalKey
+          ? aiRateLimiterPersonal
+          : aiRateLimiterFree
         : apiRateLimiter;
   const bucket = limiter.consume(identity);
   const day = istDateKey(new Date());
@@ -205,6 +217,7 @@ export async function consumeRateLimit(
     budget,
     breakerOpen: breakerOpen(),
     redisConfigured: redisConfigured(),
+    hasPersonalKey,
   });
 
   let l2: Awaited<ReturnType<typeof consumeUpstash>> = null;

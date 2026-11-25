@@ -114,7 +114,7 @@ Every workspace route is a real Server Component page that authenticates, prefet
 - **Layout & Providers:** `(workspace)/layout.tsx` is the auth gate and provider host:
   `requireUser()` → `PrivateWorkspace` → `QueryProvider` → `ExamScopeProvider` → `ToastProvider` → `WorkspaceChrome`.
   Providers must stay in the layout — mounting the query client in a page would drop the cache on every navigation.
-- **Persistent Chrome:** `src/components/workspace-chrome.tsx` owns only what must survive a route change: sidebar/header (`app-shell.tsx`), `CommandPalette`, `useKeyboardShortcuts`, and the AI drawer (`useAiWorkspace` + `AiChatSheet`). The drawer lives here so its transcript and any in-flight stream survive navigation.
+- **Persistent Chrome:** `src/components/workspace-chrome.tsx` owns only what must survive a route change: sidebar/header (`app-shell.tsx`), `CommandPalette`, `useKeyboardShortcuts`, and the single AI transcript provider (`AiWorkspaceProvider` in the layout, consumed here so a conversation opened on `/ask` keeps its in-flight stream). **The right-side AI Sheet is deleted** (`ai-chat-sheet.tsx` removed, along with the "Ask AI" header button and the `aiChatOpen`/`aiChatTab` UI-store fields): `/ask` is the one AI surface, and every entry point (command palette "Ask AI", the dashboard coach card's "Ask a question", the sidebar's AI workspace nav link) routes there.
 - **Colocation:** A route's private components live in `<route>/_<segment>/` (e.g., `dashboard/_dashboard/`, `plan/[date]/_plan/`). The moment a second route imports a component, move it to `src/components/shared/`.
   - `tests/colocation.test.ts` enforces this via import-graph scan.
   - `tests/routes.test.ts` enforces that every route has `page.tsx` + `loading.tsx` + `error.tsx` (dynamic routes also require `not-found.tsx`), that no `page.tsx` is a client component, and that every `page.tsx` calls `requireUser()`.
@@ -168,7 +168,10 @@ Decided by pure `src/lib/rate-limit-core.ts`:
 - **L2 (Upstash Redis sliding window, 1 command, cross-instance authority):**
   - **Reads:** L1 only; never consult L2.
   - **Writes:** Cost `5` against the shared `300/min` L2 window (L1 burst is tighter; client mutations assume ~20 req/30s).
-  - **AI (`chat`, `coach`, `extract`):** Dedicated `20/min` budget in **both** layers (L1 bucket: 20 burst / 20/min sustained; L2 window: `ssc:rl:ai` at cost `1`) so AI never contends with writes.
+  - **AI (`chat`, `coach`, `extract`):** **Split by key ownership:**
+    - **Deployment (env) key:** `10/min` budget in **both** layers (L1 bucket: 10 burst / 10/min sustained; L2 window: `ssc:rl:ai` at cost `1`).
+    - **Personal key:** **Unlimited** — `consumeRateLimit(..., hasPersonalKey)` short-circuits the AI class with an infinite allowance and no L2 command, so a user spending their own provider quota is never throttled by us.
+    - AI still never contends with writes; a drained L1 bucket consults L2 rather than refusing.
 - **Escalation & Fallback invariants:**
   - A drained L1 bucket consults L2 rather than immediately refusing, because L1 is per-instance.
   - Consecutive denials escalate `Retry-After` exponentially per instance (capped at `120s`, reset on any allow).
@@ -287,10 +290,10 @@ AI is optional, **strictly read-only**, and server-only. It must fail closed wit
 
 ### Configuration, Per-User Credentials & SSRF Protection
 
-- **Env Config:** `src/lib/ai/config-core.ts` (pure) and `src/lib/ai/config.ts` (`server-only`) parse `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_JSON_MODE`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `AI_MAX_OUTPUT_TOKENS`, `AI_TIMEOUT_MS`, and `AI_FIRST_TOKEN_TIMEOUT_MS`. When unconfigured, `/api/ai/status` returns `enabled: false` and data routes return `503 AI_NOT_CONFIGURED`.
+- **Env Config:** `src/lib/ai/config-core.ts` (pure) and `src/lib/ai/config.ts` (`server-only`) parse `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_JSON_MODE`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `AI_TIMEOUT_MS`, and `AI_FIRST_TOKEN_TIMEOUT_MS`. **`AI_MAX_OUTPUT_TOKENS` is no longer parsed** — the provider applies its own model default for every generation. When unconfigured, `/api/ai/status` returns `enabled: false` and data routes return `503 AI_NOT_CONFIGURED`.
 - **Resolution & Precedence (`src/lib/ai/resolve.ts` + `resolve-core.ts`):** User's stored `AiCredential` wins over server env. An undecryptable or invalid personal credential is a hard failure (`AI_PERSONAL_CONFIG_INVALID`), **never** a silent fallback to the server env key. `/api/ai/status` reports `unconfigured` | `ready` | `personal-invalid` | `env-ready`.
 - **Encryption:** Personal API keys are encrypted with AES-256-GCM under `AI_CREDENTIAL_SECRET` (`crypto-core.ts` / `crypto.ts`) into `AiCredential.apiKeyEnc`. Plaintext never leaves the server; `AiCredentialSummary` exposes only a 4-char `keyHint`. `AiCredential` is excluded from backups. No-auth providers (`authMode: "none"`, e.g., Ollama) store an encrypted sentinel.
-- **Reply Caps & Quotas:** Personal keys use `userReplyCaps` (defaulting to the 32,000-token reply ceiling and 120s timeout, ignoring the deployment's `AI_MAX_OUTPUT_TOKENS` so thinking models aren't truncated) and `USER_KEY_SAFETY_LIMITS` (400 req / 2M tokens per IST day). Deployment `AI_DAILY_*` caps apply only to the shared env key.
+- **Reply Caps & Quotas:** Personal keys use `userReplyCaps` (defaulting to 120s timeout; **no reply ceiling** — the provider applies its own model default) and **unlimited daily quotas** (`USER_KEY_SAFETY_LIMITS` is `{ requests: Infinity, tokens: Infinity }`). Deployment `AI_DAILY_*` caps apply only to the shared env key; a personal key reserves `0` output tokens against the ledger, so the daily token limit is never a constraint. An env key reserves a conservative `ENV_OUTPUT_RESERVE_TOKENS` completion estimate per call (`outputReserveForSource`) so `AI_DAILY_TOKEN_LIMIT` stays enforceable.
 - **SSRF Protection (`src/lib/ai/ssrf-core.ts` + `ssrf.ts`):** Blocks loopback, RFC1918, link-local/cloud metadata (`169.254.169.254`), CGNAT, multicast, reserved ranges, and IPv6 equivalents. `ssrf.ts` runs a live DNS resolution check **immediately before every provider fetch** (every resolved IP must be public) with `redirect: "error"`. _Note: DNS rebinding between check and fetch is not fully closed without IP pinning — do not claim it is complete._
 
 ### Wire Protocols, Streaming & Quota Ledger
@@ -306,12 +309,12 @@ AI is optional, **strictly read-only**, and server-only. It must fail closed wit
 - **Context Whitelist (`src/lib/ai/context.ts`):** `listAttemptsForAi` in `src/lib/repository.ts` uses Prisma `omit: { notes: true }` (`AnalyticsAttempt = Omit<Attempt, "notes">`). Context includes only aggregates, subject/section stats, target, and the latest 20 full mocks — never notes, names, IDs, email, `userId`, or `source`. Orientation screen context (`<screen_context>`) carries only `{ view, date? }`.
 - **Sanitization (`src/lib/ai/sanitize-core.ts`):** Strips control/bidi/zero-width/tag characters from labels, chat turns, and reports. JSON data blocks (`tracker_context`, `screen_context`, todo requests) escape `<` and `>` as JSON unicode escapes so user strings cannot forge XML tags (test via `JSON.parse` round-trip). _Exception:_ Extraction reports stay byte-for-byte inside a per-request random `<report_…>` tag so the user sees exactly what was read.
 
-### Ask AI Surfaces & Chat UI Grammar (2026-11-21 / 2026-11-22)
+### Ask AI Surface & Chat UI Grammar (2026-11-21 / 2026-11-22)
 
-- **Workspace State & Local History:** `use-ai-workspace.ts` (mounted once in `(workspace)/layout.tsx`) holds status, coach insight, messages, phase, live reasoning accumulation, and the abort controller. Completed turns persist to **device-local** storage (`src/lib/ai/conversations.ts`, key `ssc.ai.conversations.v1`, capped at 50 conversations / 200 trailing messages; excluded from server and backups). Attached vision screenshots (up to 2 data-URL images, 4 MB cap, downscaled via `shared/ai/image.ts`) persist on the user turn locally but are not re-sent in follow-up history.
-- **Two Surfaces Sharing `src/components/shared/ai/`:**
-  1. **Right-side Sheet (`ai-chat-sheet.tsx`):** ~520px desktop / full-width mobile, `dvh` flex layout, 3 `.segment` tabs (**Ask / Todos / Log**) kept mounted via `hidden` so drafts survive tab switches. Closing the sheet aborts any in-flight stream (marking the turn `stopped`) without clearing the transcript.
-  2. **Dedicated `/ask` Route (`src/app/(workspace)/ask/`):** Three-column grid (`lg:[17.5rem_1fr] xl:[17.5rem_1fr_15.5rem]`) with `conversation-list.tsx` + `usage-footer.tsx` on the left, the `46rem` chat column in the center, the read-ledger timeline of real `/api/ai/usage` rows on the right, and a Vaul bottom drawer below `lg`.
+- **Workspace State & Local History:** `use-ai-workspace.ts` (mounted once in `(workspace)/layout.tsx` via `AiWorkspaceProvider`) holds status, coach insight, messages, phase, live reasoning accumulation, and the abort controller. Completed turns persist to **device-local** storage (`src/lib/ai/conversations.ts`, key `ssc.ai.conversations.v1`, capped at 50 conversations / 200 trailing messages; excluded from server and backups). Attached vision screenshots (up to 2 data-URL images, 4 MB cap, downscaled via `shared/ai/image.ts`) persist on the user turn locally but are not re-sent in follow-up history. **The right-side AI Sheet is deleted** — there is no slide-over, no header "Ask AI" button, and no `aiChatOpen`/`aiChatTab` UI-store fields.
+- **Single Surface: `/ask` Route (`src/app/(workspace)/ask/`):**
+  - Three-column grid (`lg:[17.5rem_1fr] xl:[17.5rem_1fr_15.5rem]`) with `conversation-list.tsx` + `usage-footer.tsx` on the left, the `46rem` chat column in the center, the read-ledger timeline of real `/api/ai/usage` rows on the right, and a Vaul bottom drawer below `lg`.
+  - Its Chat/Todos/Mock mode chips keep all three tools in one place (`visited` panels stay mounted so a Todos draft or a pasted scorecard survives switching chips).
 - **Transcript Grammar (`chat-transcript.tsx`):**
   - **No avatars:** `role-avatar.tsx` and `thinking-indicator.tsx` are **deleted**. User prompts are the only bubbles; assistant answers render as plain serif prose (`15px/1.7`, `space-y-8`, column `46rem`) topped by the AI turn header row (sparkles circle + `"Coach"` + `model` prop) and followed by always-visible icon action bars (Copy/Edit/Regenerate).
   - **Live Reasoning (`ThinkingBlock`):** Streams reasoning live inside a bordered/tinted collapsible in `chat-transcript.tsx` that auto-opens while reasoning streams (shimmering `"Thinking… · Ns"`, auto-scrolled) and collapses to `"Thought for Ns"` once prose begins (also covering the initial connecting phase).
@@ -329,7 +332,7 @@ AI is optional, **strictly read-only**, and server-only. It must fail closed wit
   - Mutations invalidate by prefix, never the whole cache. Optimistic updates snapshot in `onMutate` and roll back via `setQueryData` (see `usePlanOptimistic`).
   - Defaults (`docs/caching.md`): `30s` `staleTime`, `5m` `gcTime`, `refetchOnWindowFocus: false`, 1 retry (skipping auth/validation/abort and honoring `Retry-After` on `429`).
 - **Global UI State = Zustand (`src/stores/ui-store.ts` only):**
-  - Holds only ⌘K palette visibility, AI drawer open/tab state, planner date, and cross-route one-shot request/consume pairs (e.g., task quick-add nonce and `requestMockPrefill` for reviewed AI mock drafts — **never pass user content drafts in URL params**). Never put server data in Zustand.
+  - Holds only ⌘K palette visibility, planner date, quick-add nonce, the attempt-detail id, and the reviewed-mock-draft handoff. **The AI drawer open/tab fields are gone** with the Sheet; `/ask` owns its own mode/rail state locally. Never put server data in Zustand.
 - **URL Mirroring (`src/components/shared/use-filters-state.ts`, `src/lib/filters-url.ts`):**
   - Mirrors filters, dashboard scope, and `/compare` selection (`?ids=`, max 4) to the address bar via `history.replaceState` (**never `router.push`**, so typing never triggers RSC round-trips).
   - Skipped on `/add`, `/calendar`, `/plan/*`, `/my-tasks`, and `/settings` so route-specific query params (`?date=`, `?section=`, etc.) are never clobbered. `safeWorkspaceReturnTo` validates `returnTo` targets.
@@ -341,9 +344,9 @@ AI is optional, **strictly read-only**, and server-only. It must fail closed wit
 ### App Shell & Performance
 
 - `src/components/app-shell.tsx` wraps the workspace in shadcn's `SidebarProvider` (`collapsible="icon"`, `15rem` paper sidebar collapsing to a `3.5rem` rail, left Sheet below `md`). Open state is owned by the `sidebar_state` cookie read in `(workspace)/layout.tsx`.
-- **Sidebar footer grammar (sidebar-07 NavUser).** Footer stack, top to bottom: Settings + Trash icon pair (expanded only), the Ask AI CTA (`.ask-cta`, opens the AI sheet — distinct from the "AI workspace" nav link to `/ask`), `SidebarUserMenu` (avatar + name over email + in-place logout), then the active-exam note. Collapsed, the rail keeps only the avatar; Settings/Trash fold into its dropdown (identity, Settings, Trash, Sign out) and Ask AI moves to the app header. Both avatar menus render one shared `UserMenuItems` fragment so the actions cannot drift.
+- **Sidebar footer grammar (sidebar-07 NavUser).** Footer stack, top to bottom: Settings + Trash icon pair (expanded only), then `SidebarUserMenu` (avatar + name over email + in-place logout), then the active-exam note. Collapsed, the rail keeps only the avatar: Settings and Trash fold into the avatar dropdown (identity, Settings, Trash, Sign out). Both avatar menus share one `UserMenuItems` fragment so the actions cannot drift.
 - **No `authEnabled` prop.** It meant *Google OAuth availability*, which is meaningless inside the workspace: `(workspace)/layout.tsx` already called `requireUser()`, so a session exists and sign-out always works. Gating on it hid a signed-in user behind "Sign-in unavailable" whenever `GOOGLE_AUTH_ENABLED` was off. `auth-control.tsx` exports `SidebarUserMenu` (the footer identity block) and `useAuthActions`.
-- **The header carries no account identity:** trigger, current view, search, exam switcher, theme toggle, plus Ask AI only when the sidebar is collapsed or the viewport is a phone. Settings, Trash, and sign-out live in the sidebar footer and the avatar dropdown; the phone Sheet carries the same block. Each added control costs page-title width at 375px — check horizontal overflow at 375/768/1024.
+- **The header carries no account identity:** trigger, current view, search, exam switcher, theme toggle, and — only when the sidebar is collapsed or the viewport is a phone — Ask AI. Settings, Trash, and sign-out live in the sidebar footer and the avatar dropdown; the phone Sheet carries the same block. Each added control costs page-title width at 375px — check horizontal overflow at 375/768/1024.
 - `PerformanceOverview`, `HistoryPanel`, and `CompareView` are `memo`-wrapped with stabilized props so chat stream tokens and filter keystrokes do not re-render charts.
 - Navigation `href` entries in `NAV_GROUPS` may be functions so date-bearing links ("Today's plan") resolve per render rather than freezing the IST date at module load.
 
@@ -412,7 +415,7 @@ Deleting supported records is a **soft delete** (`deletedAt TIMESTAMPTZ(3)`). `s
 ### Environment Variables (`.env.example`)
 
 - **Required:** `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (migrations via `prisma.config.ts`), `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`, `GOOGLE_AUTH_ENABLED`.
-- **Optional Auth / Ops / AI:** `EMAIL_AUTH_ENABLED`, `CRON_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `AI_CREDENTIAL_SECRET`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_JSON_MODE`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `AI_MAX_OUTPUT_TOKENS`, `AI_TIMEOUT_MS`, `AI_FIRST_TOKEN_TIMEOUT_MS`.
+- **Optional Auth / Ops / AI:** `EMAIL_AUTH_ENABLED`, `CRON_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `AI_CREDENTIAL_SECRET`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_JSON_MODE`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `AI_TIMEOUT_MS`, `AI_FIRST_TOKEN_TIMEOUT_MS`. **`AI_MAX_OUTPUT_TOKENS` is no longer used** — the provider applies its own model default.
 
 ### Database Migration Discipline
 
@@ -423,7 +426,7 @@ Deleting supported records is a **soft delete** (`deletedAt TIMESTAMPTZ(3)`). `s
   - `20261102000000_targets_and_preferences` — Versioned `targets` envelope & `preferences`.
   - `20261103000000_trash` — Soft-delete `deletedAt` across recoverable tables (load-bearing: un-migrated DBs will fail every attempt read).
   - `20261119000000_ai_protocols` — Multi-protocol fields on `AiCredential` & `AiUsage`.
-  - `20261120000000_ai_preferences` — Per-user model behavior (`thinking`, `maxOutputTokens`, `historyTurns`, `visionEnabled`) on `AiCredential`.
+  - `20261120000000_ai_preferences` — Per-user model behavior (`thinking`, `historyTurns`, `visionEnabled`) on `AiCredential`. **`maxOutputTokens` column still exists but is no longer read or written**; dropping it is a separate corrective migration, deliberately not bundled here so this change stays additive and rollback-readable.
 
 ### Documentation Update Order
 

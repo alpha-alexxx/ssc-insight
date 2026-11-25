@@ -11,6 +11,7 @@ import {
 } from "@/lib/ai/quota";
 import { createAiProvider } from "@/lib/ai/provider";
 import { resolveAiConfig } from "@/lib/ai/resolve";
+import { outputReserveForSource } from "@/lib/ai/resolve-core";
 import { aiLimits, loadAiBundle } from "@/lib/ai/server";
 import {
   releaseSafely,
@@ -67,13 +68,14 @@ export async function POST(request: Request) {
     const { id: userId } = await requireUser();
     // These streaming routes bypass defineRoute, so they carry their own limit.
     // AI is the most expensive request the app serves — it runs against the
-    // dedicated 20/minute AI limiter, both layers; the AiUsage ledger still
-    // governs the actual generation budget.
-    const limit = await consumeRateLimit("ai", requestIdentity(userId, request));
-    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
+    // dedicated AI limiter (10/min for free users, unlimited for personal keys);
+    // the AiUsage ledger still governs the actual generation budget.
     const resolved = await resolveAiConfig(userId);
     if (!resolved) throw aiNotConfigured();
     const config = resolved.config;
+    const hasPersonalKey = resolved.source === "user";
+    const limit = await consumeRateLimit("ai", requestIdentity(userId, request), hasPersonalKey);
+    if (limit.outcome === "denied") throw aiRateLimited(limit.retryAfter);
     const body = bodySchema.parse(await readBody(request, 4 * 1024 * 1024));
     const images = body.images ?? [];
     if (images.length) {
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
           .map((message) => message.content)
           .join("\n"),
         contextTokens: CONTEXT_TOKEN_ESTIMATE + 2_000,
-        maxOutputTokens: config.maxOutputTokens,
+        outputTokens: outputReserveForSource(resolved.source),
         providerCalls: 1,
       }),
     });
@@ -195,7 +197,7 @@ export async function POST(request: Request) {
           send({ type: "start", contextVersion: bundle.context.contextVersion });
           const result = await provider.stream({
             messages,
-            maxOutputTokens: config.maxOutputTokens,
+            // No maxOutputTokens cap — provider's own default applies
             signal,
             onDelta: (text) => send({ type: "delta", text }),
             onReasoning: (text) => send({ type: "reasoning", text }),

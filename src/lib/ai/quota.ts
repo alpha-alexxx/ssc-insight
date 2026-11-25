@@ -14,24 +14,35 @@ export function planReservation(
   limits: AiQuotaLimits,
   reservation: number,
 ): ReservationPlan {
-  if (used.requests >= limits.requests)
+  if (limits.requests !== Infinity && used.requests >= limits.requests)
     return { allowed: false, reason: "requests" };
-  if (used.tokens + Math.max(0, reservation) > limits.tokens)
+  // A personal key has no daily token ceiling at all; only a real number can
+  // be exceeded.
+  if (
+    Number.isFinite(limits.tokens) &&
+    used.tokens + Math.max(0, reservation) > limits.tokens
+  )
     return { allowed: false, reason: "tokens" };
   return { allowed: true };
 }
 
+/**
+ * What to reserve before a call. There is no reply ceiling any more, so the
+ * completion cannot be reserved exactly: `outputTokens` is a conservative
+ * estimate supplied by the caller for a metered (env) key and 0 for a personal
+ * key, whose daily budget is unlimited.
+ */
 export function reservationTokens(input: {
   promptText: string;
   contextTokens?: number;
-  maxOutputTokens: number;
+  outputTokens?: number;
   providerCalls: number;
 }) {
   const calls = Math.min(2, Math.max(1, Math.floor(input.providerCalls)));
   return (
     estimateTokens(input.promptText) +
     (input.contextTokens ?? 0) +
-    Math.max(0, Math.floor(input.maxOutputTokens)) * calls
+    Math.max(0, Math.floor(input.outputTokens ?? 0)) * calls
   );
 }
 

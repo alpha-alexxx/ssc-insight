@@ -3,6 +3,7 @@ import { readBody } from "@/lib/api";
 import { database } from "@/lib/db";
 import { normalizeSubtasks } from "@/lib/todos-core";
 import { resolveAiConfig } from "@/lib/ai/resolve";
+import { outputReserveForSource } from "@/lib/ai/resolve-core";
 import { createAiProvider } from "@/lib/ai/provider";
 import { aiNotConfigured, AiError, aiProviderError } from "@/lib/ai/errors";
 import { aiLimits, loadAiContext } from "@/lib/ai/server";
@@ -78,10 +79,6 @@ export const POST = defineRoute(
       dayKey(),
       { todos, groups, performance, studyPlan: plan },
     );
-    const maxOutputTokens = Math.min(
-      6000,
-      Math.max(2400, resolved.config.maxOutputTokens),
-    );
     const reservation = await reserveAiUsage(user.id, {
       feature: "todos",
       model: resolved.config.model,
@@ -90,7 +87,7 @@ export const POST = defineRoute(
       limits: aiLimits(resolved.config),
       reservedTokens: reservationTokens({
         promptText: messages.map((m) => m.content).join("\n"),
-        maxOutputTokens,
+        outputTokens: outputReserveForSource(resolved.source),
         providerCalls: 2,
       }),
     });
@@ -98,7 +95,7 @@ export const POST = defineRoute(
     try {
       result = await createAiProvider(resolved.config).completeJson({
         messages,
-        maxOutputTokens,
+        // No reply cap: the provider applies its own model default.
         // No route-level deadline: the provider enforces config.timeoutMs
         // (an extra hard abort here beat it and surfaced as a misleading
         // "The AI request was cancelled" instead of a timeout). The request

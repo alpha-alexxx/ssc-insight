@@ -39,7 +39,6 @@ function config(
     allowPrivate: false,
     dailyRequestLimit: 30,
     dailyTokenLimit: 300_000,
-    maxOutputTokens: 200,
     timeoutMs: 5_000,
     firstTokenTimeoutMs: 5_000,
     thinking: "default",

@@ -28,7 +28,6 @@ export function DashboardRoute() {
   const router = useRouter();
   const planApi = usePlanData();
   const ai = useAiWorkspace();
-  const openAiChat = useUiStore((s) => s.openAiChat);
 
   // The dashboard's preview is a fixed cross-type read; it takes no record
   // filters, so the filter object is empty and stable.
@@ -86,7 +85,7 @@ export function DashboardRoute() {
         onAdd={() => router.push("/add")}
         onViewAll={() => router.push("/history")}
         onOpenDay={openDay}
-        onOpenPersonalAi={() => openAiChat("todos")}
+        onOpenPersonalAi={() => router.push("/ask")}
       />
     </div>
   );

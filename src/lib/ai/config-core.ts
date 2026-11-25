@@ -48,7 +48,6 @@ export type AiConfig = {
   allowPrivate: boolean;
   dailyRequestLimit: number;
   dailyTokenLimit: number;
-  maxOutputTokens: number;
   /** Inactivity window between stream chunks once bytes are flowing. */
   timeoutMs: number;
   /**
@@ -165,7 +164,6 @@ export function readAiConfig(env: Env): AiConfig | null {
       1_000,
       100_000_000,
     ),
-    maxOutputTokens: integerEnv(env, "AI_MAX_OUTPUT_TOKENS", 16_400, 64, 32_000),
     // The ceiling leaves room for thinking models, whose hidden reasoning
     // consumes wall-clock time before the answer arrives. Keep the configured
     // value within the deployment platform's function limit (60s on Vercel)

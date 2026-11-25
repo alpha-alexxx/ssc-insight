@@ -13,7 +13,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { useAllAttempts } from "@/components/shared/use-analytics-data";
 import { attemptDetailQueryOptions } from "@/lib/queries/attempts";
 import { AddMockView } from "./add-mock-view";
-import type { LogMockPayload } from "@/components/ai-chat-sheet";
+import type { LogMockPayload } from "@/components/shared/ai/log-mock-flow";
 
 /**
  * Client shell for `/add`.

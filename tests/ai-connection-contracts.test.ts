@@ -90,7 +90,6 @@ test("per-user model preferences parse with inherit-on-null semantics and bounds
     model: "gpt-test",
   });
   assert.equal(defaults.thinking, "default");
-  assert.equal(defaults.maxOutputTokens, null);
   assert.equal(defaults.historyTurns, null);
   assert.equal(defaults.visionEnabled, false);
 
@@ -100,27 +99,15 @@ test("per-user model preferences parse with inherit-on-null semantics and bounds
     apiKey: "key",
     model: "gpt-test",
     thinking: "high",
-    maxOutputTokens: 12_000,
     historyTurns: 16,
     visionEnabled: true,
   });
   assert.equal(explicit.thinking, "high");
-  assert.equal(explicit.maxOutputTokens, 12_000);
   assert.equal(explicit.historyTurns, 16);
   assert.equal(explicit.visionEnabled, true);
 
-  // Bounds: the provider-facing output cap and the client history length
-  // both clamp here, at the write path.
-  assert.equal(
-    aiCredentialSchema.safeParse({
-      provider: "openai",
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "key",
-      model: "m",
-      maxOutputTokens: 200,
-    }).success,
-    false,
-  );
+  // Bounds: the client history length clamps here, at the write path.
+  // (There is no output-token ceiling to validate any more.)
   assert.equal(
     aiCredentialSchema.safeParse({
       provider: "openai",
@@ -193,9 +180,10 @@ test("personal keys use independent safety limits and definitive pre-generation 
     requests: 2,
     tokens: 1000,
   });
+  // Personal keys are not capped at all — neither requests nor tokens.
   assert.deepEqual(quotaLimitsForSource(env, "user"), {
-    requests: 400,
-    tokens: 2_000_000,
+    requests: Infinity,
+    tokens: Infinity,
   });
   assert.equal(chargedForAiFailure(aiEndpointError(), 500), 0);
   assert.equal(chargedForAiFailure(aiTimeout(), 500), 500);
@@ -203,22 +191,16 @@ test("personal keys use independent safety limits and definitive pre-generation 
 
 test("personal reply caps default to the ceiling and ignore deployment env tuning", () => {
   // No stored value, no env tuning: the form ceiling and the thinking-model
-  // wall-clock windows.
-  assert.deepEqual(userReplyCaps(null, undefined, undefined), {
-    maxOutputTokens: 32_000,
+  // wall-clock windows. Personal keys have no maxOutputTokens cap.
+  assert.deepEqual(userReplyCaps(undefined, undefined), {
     timeoutMs: 120_000,
     firstTokenTimeoutMs: 120_000,
   });
 
-  // Regression (2026-11): an unset AI_MAX_OUTPUT_TOKENS let the env config's
-  // generic 1,200 default leak onto personal keys, and every thinking-model
-  // chat was truncated by finish_reason "length". Env tuning must never
-  // narrow a user's own key.
-  assert.equal(userReplyCaps(null, 45_000, 120_000).maxOutputTokens, 32_000);
-
   // The user's explicit setting always wins; env still tunes the timers.
-  assert.deepEqual(userReplyCaps(4_096, 30_000, 60_000), {
-    maxOutputTokens: 4_096,
+  // Personal keys have no maxOutputTokens cap — the function only returns
+  // timeout values.
+  assert.deepEqual(userReplyCaps(30_000, 60_000), {
     timeoutMs: 30_000,
     firstTokenTimeoutMs: 60_000,
   });

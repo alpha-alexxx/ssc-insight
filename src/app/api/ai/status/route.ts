@@ -82,6 +82,7 @@ export async function GET(request: Request) {
         model: credential.model,
         // A personal key uses its own generous safety ceiling, never the
         // deployment's shared-key caps. Usage stays visible.
+        // Token limit is unlimited for personal keys.
         usage: await getAiUsageToday(
           userId,
           USER_KEY_SAFETY_LIMITS,
