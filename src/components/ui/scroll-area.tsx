@@ -6,9 +6,15 @@ import { cn } from "@/lib/utils";
 
 function ScrollArea({
   className,
+  viewportClassName,
   children,
+  hideScrollbar = false,
   ...props
-}: ScrollAreaPrimitive.Root.Props) {
+}: ScrollAreaPrimitive.Root.Props & {
+  hideScrollbar?: boolean;
+  /** Extra classes for the scrolling viewport (overflow tuning, etc.). */
+  viewportClassName?: string;
+}) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -17,12 +23,18 @@ function ScrollArea({
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className={cn(
+          "size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1",
+          viewportClassName,
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
+      {/* An invisible-scrollbar scroll area: the viewport still scrolls
+          (base-ui hides the native scrollbar), but no track or thumb is
+          drawn — wheel, touch and keyboard do the scrolling. */}
+      {!hideScrollbar && <ScrollBar />}
+      {!hideScrollbar && <ScrollAreaPrimitive.Corner />}
     </ScrollAreaPrimitive.Root>
   );
 }

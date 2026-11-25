@@ -15,6 +15,7 @@ import { DistributionPanel } from "./distribution-panel";
 import { SubjectDeepDive } from "./subject-deep-dive";
 import { useExamScope } from "@/components/exam-context";
 import { Swap } from "@/components/motion-swap";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { findings, isSingleResult } from "@/lib/performance-metrics";
 import type { Analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -85,7 +86,12 @@ export function PerformanceView({
   const isRefreshing = loading && !!analytics;
 
   return (
-    <div className="min-w-0 overflow-x-hidden space-y-4 sm:space-y-5">
+    /* The page-height scroll container: an invisible-scrollbar ScrollArea
+       (no track, no thumb — wheel/touch/keyboard do the scrolling) that
+       keeps any unexpectedly wide child panning inside the viewport instead
+       of stretching the page sideways on a phone. */
+    <ScrollArea hideScrollbar className="w-full">
+      <div className="min-w-0 space-y-4 sm:space-y-5">
       <PageHeader
         title="Performance"
         description="Track your mock results, spot score trends, and isolate weak subjects."
@@ -266,5 +272,6 @@ export function PerformanceView({
         </Swap>
       </div>
     </div>
+    </ScrollArea>
   );
 }
