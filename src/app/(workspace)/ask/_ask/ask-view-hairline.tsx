@@ -43,12 +43,6 @@ import { AskEmptyState } from "./ask-empty-state";
  * One scroller per state, never nested:
  *   empty    the host's ScrollArea (AskEmptyState is presentational)
  *   messages ChatScroll, which owns auto-follow and the jump pill
- *
- * The transcript used to be a ScrollArea whose child was ChatScroll's own
- * `overflow-y-auto` box, sized `h-full` inside a `min-h-full` parent. That
- * percentage resolved against an auto height, so ChatScroll's scroller never
- * constrained and the outer viewport took the wheel — leaving `distance()`,
- * the ResizeObserver and the jump pill measuring a box that did not scroll.
  * ───────────────────────────────────────────────────────── */
 
 const INVISIBLE_VIEWPORT =
@@ -69,6 +63,18 @@ const HIDE_CHAT_FEEDBACK_BUTTONS = cn(
   "[&_button[data-feedback]]:hidden",
 );
 
+/**
+ * Prevents collapsed or unused thinking/reasoning blocks inside AskMessage
+ * from reserving vertical gap, margin, or empty grid rows.
+ */
+const NORMALIZE_THINKING_SPACE = cn(
+  "[&_details:empty]:hidden",
+  "[&_details:not([open])]:mb-0 [&_details:not([open])]:pb-0",
+  "[&_[data-state='closed']]:mb-0 [&_[data-state='closed']]:pb-0",
+  "[&_[data-reasoning]:empty]:hidden [&_[data-thinking]:empty]:hidden",
+  "[&_article]:gap-2",
+);
+
 const MODES = [
   { id: "chat", label: "Chat" },
   { id: "todos", label: "Todos" },
@@ -82,6 +88,13 @@ const CONTEXT_WINDOW = 128_000;
 const TRACKER_SNAPSHOT_TOKENS = 6_000;
 /** ~4 characters per token: an estimate, labelled as one in the panel. */
 const estimateTokens = (chars: number) => Math.ceil(chars / 4);
+
+/** Formats provider/model strings into a concise badge label. */
+function formatModelName(raw: string): string {
+  const cleaned = raw.trim();
+  const parts = cleaned.split("/");
+  return parts[parts.length - 1] || cleaned;
+}
 
 /** Online/offline, so a dropped connection says so instead of failing a send. */
 function useOnline() {
@@ -122,25 +135,11 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   >([]);
 
   const noteId = React.useRef(0);
-  const [isDesktop, setIsDesktop] = React.useState(false);
-
-  // Below lg the context panel is a bottom sheet (matching history), from lg up
-  // it is an anchored popover. One breakpoint, read once, no layout guessing.
-  React.useEffect(() => {
-    const query = window.matchMedia("(min-width: 64rem)");
-    const sync = () => setIsDesktop(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
 
   const screen = React.useMemo(
     () => ({ view: "ask" as const, date: istTodayIso() }),
     [],
   );
-
-  // Dismissal belongs to the Popover/Sheet primitives: Escape returns focus to
-  // the trigger, and an outside press closes. No document listeners here.
 
   const messages = ai.chat.messages;
   const lastMessage = messages[messages.length - 1];
@@ -153,18 +152,16 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   const model =
     ai.aiStatus?.credential?.model ?? ai.aiStatus?.model ?? undefined;
 
-  // Show the ThinkingIndicator at the top of the chat when a turn starts
+  // Show the ThinkingIndicator at the top only when a turn is starting and no
+  // assistant text or reasoning has begun streaming into the thread yet.
   const isThinkingAtStart =
     ai.chat.phase === "connecting" ||
     (streaming &&
       (!lastMessage ||
         lastMessage.role === "user" ||
-        lastMessage.content.trim().length === 0));
+        (lastMessage.content.trim().length === 0 &&
+          !lastMessage.reasoning?.trim())));
 
-  // Timestamp when the in-flight turn was sent
-  // Derived in render: Date.parse of a stored ISO stamp is deterministic.
-  // Keeping a manual useMemo here trips the compiler's dependency inference
-  // because it declares lastMessage?.at while the compiler infers lastMessage.
   const lastMessageAt = lastMessage?.at;
   const waitingSince = !streaming
     ? undefined
@@ -310,10 +307,8 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   );
 
   /**
-   * The ring, as an element so the Popover can clone it (it attaches
-   * aria-haspopup/aria-expanded/aria-controls and the click). It ships its own
-   * aria-label and title too, so the below-lg Sheet — which renders this button
-   * without cloning — is equally reachable.
+   * Context ring trigger: UsageMeter (variant="ring") already renders the
+   * percentage label internally, so no duplicate <span> is rendered next to it.
    */
   const ringTrigger = (
     <button
@@ -322,10 +317,8 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       aria-expanded={contextOpen}
       aria-label="Open context window and plan limits"
       title="Context window & plan limits"
-      className="ml-1 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1 py-0.5 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+      className="inline-flex cursor-pointer items-center rounded-full px-1.5 py-0.5 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
     >
-      {/* Always the context window: one visual, one meaning. Today's plan
-          limits live in the panel, not behind the same ring. */}
       <UsageMeter
         variant="ring"
         used={usedContextTokens}
@@ -333,65 +326,66 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         unit="tokens"
         label="Context window"
       />
-      <span className="hidden text-[11px] tabular-nums sm:inline">
-        {Math.round((usedContextTokens / CONTEXT_WINDOW) * 100)}%
-      </span>
     </button>
   );
 
   const modeChips = (
-    <div className="flex min-w-0 flex-wrap items-center gap-1">
-      {/* Only the tabs sit inside the tablist; the ring is a sibling, so the
-          tablist contains nothing but tabs. */}
-      <div
-        role="tablist"
-        aria-label="Assistant mode"
-        className="flex min-w-0 items-center gap-1"
-      >
-        {MODES.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={mode === item.id}
-            onClick={() => {
-              setMode(item.id);
-              if (item.id !== "chat") setToolSheet(item.id);
-            }}
-            className={cn(
-              "cursor-pointer rounded-full px-2.5 py-1 text-[12.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40",
-              mode === item.id
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
+        <div
+          role="tablist"
+          aria-label="Assistant mode"
+          className="flex min-w-0 items-center gap-1"
+        >
+          {MODES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === item.id}
+              onClick={() => {
+                setMode(item.id);
+                if (item.id !== "chat") setToolSheet(item.id);
+              }}
+              className={cn(
+                "cursor-pointer rounded-full px-2.5 py-1 text-[12.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40",
+                mode === item.id
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-      {/* The ring lives here, in the toolbar. From lg up the Hairline Popover
-          wraps it in place and portals its panel to the body, so the panel can
-          never be clipped by the shell's overflow-hidden and can flip/shift to
-          stay in view; below lg the same button opens the bottom sheet. Both
-          surfaces host the one panel body. */}
-      {isDesktop ? (
+        {/* Context Popover used across both mobile and desktop */}
         <Popover
           trigger={ringTrigger}
           open={contextOpen}
           onOpenChange={setContextOpen}
           side="top"
           align="start"
-          width={320}
+          width={300}
           label="Context window and plan limits"
         >
           {usagePanel}
         </Popover>
-      ) : (
-        React.cloneElement(ringTrigger, {
-          onClick: () => setContextOpen(true),
-        })
-      )}
+      </div>
+
+      {/* Active Model Badge Chip inside input toolbar */}
+      {model ? (
+        <span
+          title={`Active model: ${model}`}
+          className="inline-flex max-w-[10.5rem] shrink-0 items-center gap-1.5 truncate rounded-full bg-muted/70 px-2.5 py-0.5 text-[11.5px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:max-w-[14rem]"
+        >
+          <Sparkles
+            className="size-3 shrink-0 text-primary/80"
+            aria-hidden="true"
+          />
+          <span className="truncate">{formatModelName(model)}</span>
+        </span>
+      ) : null}
     </div>
   );
 
@@ -401,9 +395,9 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-var(--app-header-h,52px)-2rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden md:h-[calc(100dvh-var(--app-header-h,52px)-2.5rem)]">
+    <div className="flex h-[calc(100dvh-var(--app-header-h,52px)-2rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:h-[calc(100dvh-var(--app-header-h,52px)-2.5rem)]">
       {/* ── header ───────────────────────────────────────── */}
-      <header className="flex shrink-0 items-center justify-between gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/50 pb-2.5">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
@@ -435,10 +429,6 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             <span className="sr-only md:hidden">New chat</span>
           </Button>
 
-          {/* Desktop-only rail toggle. Visibility lives on a WRAPPER, not on the
-              Button: `Button` appends `className` raw and always ships
-              `inline-flex`, which sits later in the stylesheet than `.hidden`,
-              so a `hidden` passed to the Button would never win. */}
           <span className="hidden lg:inline-flex">
             <Button
               type="button"
@@ -453,9 +443,6 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             </Button>
           </span>
 
-          {/* Mobile-only history entry point: the rail is not rendered below lg,
-              so this single icon button opens the list in a bottom sheet. Same
-              reason as above - the breakpoint class rides the wrapper. */}
           <span className="inline-flex lg:hidden">
             <Button
               type="button"
@@ -470,14 +457,14 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         </div>
       </header>
 
-      {/* ── workspace ────────────────────────────────────── */}
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+      {/* ── assimilated workspace (no outer box border or card background) ── */}
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {historyOpen ? (
           <aside
             aria-label="Conversation history"
-            className="hidden min-h-0 w-[16.5rem] shrink-0 flex-col overflow-hidden border-r border-border lg:flex"
+            className="hidden min-h-0 w-[16rem] shrink-0 flex-col overflow-hidden border-r border-border/50 pr-1 lg:flex"
           >
-            <div className="flex shrink-0 items-center justify-between px-4 pb-1.5 pt-3.5">
+            <div className="flex shrink-0 items-center justify-between px-3 pb-1.5 pt-2.5">
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 History
               </h2>
@@ -498,7 +485,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             <div
               role="status"
               aria-live="polite"
-              className="z-10 shrink-0 border-b border-border/60 bg-card/95 px-4 py-2.5 backdrop-blur-sm sm:px-6"
+              className="z-10 shrink-0 border-b border-border/40 bg-background/90 px-4 py-2 backdrop-blur-sm sm:px-6"
             >
               <div className="mx-auto w-full max-w-[46rem]">
                 <ThinkingIndicator
@@ -510,11 +497,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             </div>
           ) : null}
 
-          {/* ── the conversation stream ──
-              Empty: the host's ScrollArea is the only scroller.
-              Populated: ChatScroll owns its own box (`h-full` against a real
-              flex height) so auto-follow, the ResizeObserver and the jump
-              pill measure the element that actually scrolls. */}
+          {/* ── the conversation stream ── */}
           {messages.length === 0 ? (
             <ScrollArea
               className={cn("min-h-0 min-w-0 flex-1", INVISIBLE_SCROLL)}
@@ -534,35 +517,54 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               followKey={lastUser?.id}
               className="h-full min-h-0 min-w-0 flex-1"
               contentClassName={cn(
-                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-7 px-4 py-6 sm:px-6",
+                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6",
                 HIDE_CHAT_FEEDBACK_BUTTONS,
+                NORMALIZE_THINKING_SPACE,
               )}
             >
-              {messages.map((message) => (
-                <AskMessage
-                  key={message.id}
-                  message={{
-                    id: message.id,
-                    role: message.role,
-                    content: message.content,
-                    at: message.at,
-                    model: message.role === "assistant" ? model : undefined,
-                    reasoning: message.reasoning,
-                    reasoningSeconds: message.reasoningSeconds,
-                    stopped: message.stopped,
-                    truncated: message.truncated,
-                  }}
-                  ai={ai}
-                  onRetry={() => ai.chat.retryLast()}
-                  screenContext={screen}
-                  phase={
-                    isThinkingAtStart && ai.chat.phase === "connecting"
-                      ? "idle"
-                      : ai.chat.phase
-                  }
-                  waitingSince={waitingSince}
-                />
-              ))}
+              {messages.map((message, index) => {
+                const isLast = index === messages.length - 1;
+                const isActiveTurn =
+                  isLast && message.role === "assistant" && streaming;
+                const trimmedReasoning = message.reasoning?.trim();
+                const hasReasoning = Boolean(
+                  trimmedReasoning && trimmedReasoning.length > 0,
+                );
+
+                return (
+                  <AskMessage
+                    key={message.id}
+                    message={{
+                      id: message.id,
+                      role: message.role,
+                      content: message.content,
+                      at: message.at,
+                      model: message.role === "assistant" ? model : undefined,
+                      // Only pass reasoning props when non-empty so AskMessage
+                      // never mounts an empty thinking collapse with stray whitespace.
+                      reasoning: hasReasoning ? trimmedReasoning : undefined,
+                      reasoningSeconds:
+                        hasReasoning &&
+                        typeof message.reasoningSeconds === "number" &&
+                        message.reasoningSeconds > 0
+                          ? message.reasoningSeconds
+                          : undefined,
+                      stopped: message.stopped,
+                      truncated: message.truncated,
+                    }}
+                    ai={ai}
+                    onRetry={() => ai.chat.retryLast()}
+                    screenContext={screen}
+                    phase={
+                      !isActiveTurn ||
+                      (isThinkingAtStart && ai.chat.phase === "connecting")
+                        ? "idle"
+                        : ai.chat.phase
+                    }
+                    waitingSince={isActiveTurn ? waitingSince : undefined}
+                  />
+                );
+              })}
 
               {pendingDraft ? (
                 <div className="min-w-0 sm:pl-11">
@@ -644,12 +646,12 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
           )}
 
           {/* ── composer dock ── */}
-          <div className="relative shrink-0 px-3 pb-3 pt-1 sm:px-6 sm:pb-4">
+          <div className="relative shrink-0 px-3 pb-2 pt-1 sm:px-6 sm:pb-3">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-card to-transparent"
+              className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-background to-transparent"
             />
-            <div className="relative mx-auto w-full max-w-[46rem] space-y-2.5">
+            <div className="relative mx-auto w-full max-w-[46rem] space-y-2">
               {!online ? (
                 <ChatNotice
                   kind="offline"
@@ -710,8 +712,6 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                 maxLength={4000}
                 className="w-full"
               />
-              {/* Scope, stated once at the composer rather than inside the
-                  context panel, which now has one job. */}
               <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Icon name="shield" size={11} tone="primary" />
@@ -729,23 +729,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         </section>
       </div>
 
-      {/* ── context panel, below lg: the ring opens a bottom sheet, matching how
-          history behaves. From lg up the Popover in the toolbar hosts the same
-          body in place. ── */}
-      {!isDesktop ? (
-        <Sheet
-          open={contextOpen}
-          onOpenChange={setContextOpen}
-          side="bottom"
-          title="Context window"
-        >
-          <div className="pb-2">{usagePanel}</div>
-        </Sheet>
-      ) : null}
-
-      {/* ── mobile history ──
-          Below lg the rail is not rendered, so the header's single icon button
-          opens the list here instead. */}
+      {/* ── mobile history ── */}
       <Sheet
         open={historySheet}
         onOpenChange={setHistorySheet}
@@ -757,10 +741,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         </div>
       </Sheet>
 
-      {/* ── mode tools: centered dialogs ──
-          The chat keeps its place underneath, and the body is the dialog's one
-          scroll region. `NO_SCROLLBAR` hides the painted bar without disabling
-          scrolling, so wheel and touch still reach the long review list. */}
+      {/* ── mode tools: centered dialogs ── */}
       <Dialog
         open={toolSheet === "todos"}
         onOpenChange={(open) => {
