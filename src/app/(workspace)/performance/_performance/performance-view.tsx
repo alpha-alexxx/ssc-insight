@@ -85,7 +85,7 @@ export function PerformanceView({
   const isRefreshing = loading && !!analytics;
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-5">
+    <div className="min-w-0 overflow-x-hidden space-y-4 sm:space-y-5">
       <PageHeader
         title="Performance"
         description="Track your mock results, spot score trends, and isolate weak subjects."
@@ -160,7 +160,7 @@ export function PerformanceView({
       >
         <Swap swapKey={analytics?.scope ?? "none"}>
           {empty ? (
-            <section className="rounded-2xl bg-card p-6 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-10">
+            <section className="min-w-0 rounded-2xl bg-card p-6 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:p-10">
               <EmptyState
                 scene="chart"
                 title="No saved result matches this view"
@@ -173,7 +173,7 @@ export function PerformanceView({
               />
             </section>
           ) : analytics ? (
-            <div className="space-y-4 sm:space-y-5">
+            <div className="min-w-0 space-y-4 sm:space-y-5">
               {/* 1. KPI Band & Automated Findings */}
               <ScoreMetrics analytics={analytics} />
 
@@ -248,7 +248,7 @@ export function PerformanceView({
             <section
               role="status"
               aria-label="Loading performance analytics"
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-card px-6 py-16 text-center text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+              className="min-w-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-card px-6 py-16 text-center text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
             >
               <span className="grid size-10 place-items-center rounded-2xl border border-border bg-accent/40 shadow-2xs">
                 <Spinner size="sm" />

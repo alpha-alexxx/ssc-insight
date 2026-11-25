@@ -1,5 +1,5 @@
 "use client";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { PlainIcon } from "@/components/icon";
 import { Button } from "@/components/button";
 import { Input } from "@/components/input";
@@ -10,6 +10,7 @@ import {
   DataTable,
   type DataTableColumn,
   type DataTableSort,
+  type DataTableViewMode,
 } from "@/components/data-table";
 import { AttemptPagination } from "@/components/attempt-pagination";
 import { MetricBand, MetricCell } from "@/components/metric-strip";
@@ -92,6 +93,7 @@ export const HistoryPanel = memo(function HistoryPanel({
   const items = data?.items ?? [];
   const firstLoad = data === undefined && !error;
   const stats = data?.stats;
+  const [viewMode, setViewMode] = useState<DataTableViewMode>("auto");
 
   /* One column set for the whole table; the value functions give the
      server's sort keys their client-side ordering (already applied to the
@@ -313,21 +315,47 @@ export const HistoryPanel = memo(function HistoryPanel({
             : `${n(data?.total ?? 0)} result${(data?.total ?? 0) === 1 ? "" : "s"} · sorted by ${sortLabel(sort.key)}`
         }
         action={
-          <Input
-            value={search}
-            onValueChange={onSearch}
-            aria-label="Search mocks"
-            placeholder="Search mocks…  /"
-            leading={<PlainIcon name="search" size={14} tone="muted" />}
-            clearable
-            className="w-full sm:w-56"
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && search) {
-                e.stopPropagation();
-                onSearch("");
-              }
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              value={search}
+              onValueChange={onSearch}
+              aria-label="Search mocks"
+              placeholder="Search mocks…  /"
+              leading={<PlainIcon name="search" size={14} tone="muted" />}
+              clearable
+              className="w-full sm:w-56"
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && search) {
+                  e.stopPropagation();
+                  onSearch("");
+                }
+              }}
+            />
+            {/* View mode toggle: only shown on desktop (hidden on narrow via container query) */}
+            <span className="hidden shrink-0 @max-[34rem]:flex">
+              <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="sr-only">View</span>
+                <button
+                  type="button"
+                  aria-label={viewMode === "table" ? "Switch to card view" : "Switch to table view"}
+                  aria-pressed={viewMode === "table"}
+                  onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-foreground"}`}
+                >
+                  <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M2 10h12"/></svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label={viewMode === "cards" ? "Switch to table view" : "Switch to card view"}
+                  aria-pressed={viewMode === "cards"}
+                  onClick={() => setViewMode(viewMode === "cards" ? "table" : "cards")}
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${viewMode === "cards" ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-foreground"}`}
+                >
+                  <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="5" height="10" rx="1"/><rect x="9" y="2" width="5" height="10" rx="1"/></svg>
+                </button>
+              </span>
+            </span>
+          </div>
         }
       >
         {search.length === 1 && (
@@ -387,6 +415,8 @@ export const HistoryPanel = memo(function HistoryPanel({
                 if (next) onSort(next.key as SortKey);
               }}
               pageSize={data?.pageSize ?? 10}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
           </div>
         ) : accountTotal > 0 ? (

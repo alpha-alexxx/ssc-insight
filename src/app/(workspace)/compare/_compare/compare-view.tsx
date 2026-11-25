@@ -30,6 +30,8 @@ import type { PatternSection } from "@/lib/domain";
 import { istTimeLabel, mockTypeLabel, shortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+type CompareViewMode = "table" | "cards";
+
 /**
  * Compare — a picker, a selection bar, and an insight stack.
  *
@@ -168,6 +170,7 @@ export const CompareView = memo(function CompareView({
 }) {
   const attempts = data?.items ?? [];
   const firstLoad = data === undefined && !error;
+  const [viewMode, setViewMode] = useState<CompareViewMode>("table");
   const comparison = useMemo(
     () => buildComparison(compared, reference),
     [compared, reference],
@@ -254,7 +257,12 @@ export const CompareView = memo(function CompareView({
       )}
 
       {compared.length >= 2 ? (
-        <ComparisonLedger comparison={comparison} reference={reference} />
+        <ComparisonLedger
+          comparison={comparison}
+          reference={reference}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+        />
       ) : (
         <div className="mt-4 rounded-2xl bg-card px-5 py-10 text-center text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
           <p className="text-lg font-semibold text-foreground">
@@ -711,11 +719,15 @@ function buildSectionRows(attempts: Attempt[]) {
 function ComparisonLedger({
   comparison,
   reference,
+  viewMode,
+  setViewMode,
 }: {
   comparison: Comparison;
   reference?: CompareReference;
+  viewMode: CompareViewMode;
+  setViewMode: (mode: CompareViewMode) => void;
 }) {
-  const { attempts, rows, sameMax } = comparison;
+  const { attempts, rows, sameMax, subjectRows, sectionRows } = comparison;
 
   return (
     <div className="mt-4 space-y-4">
@@ -759,184 +771,238 @@ function ComparisonLedger({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-4">
-          <h2 className="text-base font-semibold text-foreground">Attempt comparison</h2>
-          {!sameMax && (
-            <p className="text-[11px] text-muted-foreground">
-              These mocks have different maxima, so percentages carry the
-              comparison.
-            </p>
-          )}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full tabular-nums">
-            <caption className="sr-only">
-              Selected mock results compared side by side
-            </caption>
-            <thead>
-              <tr className="border-y border-border">
-                <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Metric
-                </th>
-                {attempts.map((a) => (
-                  <th key={a.id} scope="col" className="min-w-40 px-3 py-2 text-left">
-                    <span className="block text-xs font-semibold text-foreground">
-                      {a.name}
-                    </span>
-                    <span className="text-[11px] font-normal text-muted-foreground">
-                      {typeName(a.type)} · {dateLabel(a.completedAt)}
-                    </span>
-                  </th>
-                ))}
-                <th scope="col" className="min-w-28 px-5 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Change
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key} className="border-b border-border last:border-b-0">
-                  <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-muted-foreground">
-                    {row.label}
-                    {row.hint && (
-                      <span className="mt-0.5 block text-[11px] text-muted-foreground/80">
-                        {row.hint}
-                      </span>
-                    )}
-                  </th>
-                  {attempts.map((a, i) => (
-                    <td key={a.id} className="px-3 py-2.5 text-[13px] text-foreground">
-                      {row.values[i]}
-                    </td>
-                  ))}
-                  <td className="px-5 py-2.5">
-                    <ChangeCell
-                      row={row}
-                      firstIndex={0}
-                      secondIndex={attempts.length - 1}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* View mode toggle */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-muted-foreground">
+          <span className="sr-only">View</span>
+          <button
+            type="button"
+            aria-label={viewMode === "table" ? "Switch to card view" : "Switch to table view"}
+            aria-pressed={viewMode === "table"}
+            onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-foreground"}`}
+          >
+            <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M2 10h12"/></svg>
+          </button>
+          <button
+            type="button"
+            aria-label={viewMode === "cards" ? "Switch to table view" : "Switch to card view"}
+            aria-pressed={viewMode === "cards"}
+            onClick={() => setViewMode(viewMode === "cards" ? "table" : "cards")}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${viewMode === "cards" ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-foreground"}`}
+          >
+            <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="5" height="10" rx="1"/><rect x="9" y="2" width="5" height="10" rx="1"/></svg>
+          </button>
+        </span>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
-        <h2 className="px-5 pb-3 pt-4 text-base font-semibold text-foreground">
-          Subject comparison
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full tabular-nums">
-            <caption className="sr-only">
-              Subject-wise comparison for the selected mocks
-            </caption>
-            <thead>
-              <tr className="border-y border-border">
-                <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Subject
-                </th>
-                {attempts.map((a) => (
-                  <th key={a.id} scope="col" className="min-w-36 px-3 py-2 text-left">
-                    <span className="block text-xs font-semibold text-foreground">
-                      {a.name}
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.subjectRows.map((row) => (
-                <tr key={row.id} className="border-b border-border last:border-b-0">
-                  <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-medium text-foreground">
-                    {row.label}
-                    {row.qualifying && (
-                      <span className="ml-1.5 text-[11px] font-normal uppercase tracking-wide text-muted-foreground">
-                        qualifying
-                      </span>
-                    )}
-                  </th>
-                  {row.values.map((value, index) => (
-                    <td key={attempts[index]!.id} className="min-w-36 px-3 py-2.5">
-                      {value == null ? (
-                        <span className="text-xs text-muted-foreground">
-                          Not in this mock
+      {/* Table view */}
+      {viewMode === "table" ? (
+        <>
+          <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-4">
+              <h2 className="text-base font-semibold text-foreground">Attempt comparison</h2>
+              {!sameMax && (
+                <p className="text-[11px] text-muted-foreground">
+                  These mocks have different maxima, so percentages carry the
+                  comparison.
+                </p>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full tabular-nums">
+                <caption className="sr-only">
+                  Selected mock results compared side by side
+                </caption>
+                <thead>
+                  <tr className="border-y border-border">
+                    <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Metric
+                    </th>
+                    {attempts.map((a) => (
+                      <th key={a.id} scope="col" className="min-w-40 px-3 py-2 text-left">
+                        <span className="block text-xs font-semibold text-foreground">
+                          {a.name}
                         </span>
-                      ) : (
-                        <>
-                          <p className="text-[13px] text-foreground">
-                            <span className="font-medium">
-                              {n(value.score)} / {n(value.maxScore)}
-                            </span>{" "}
-                            <span className="text-xs text-muted-foreground">
-                              ({n(value.percentage)}%)
-                            </span>
-                          </p>
-                          <span className="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-muted">
-                            <span
-                              className={cn("block h-full rounded-full", scoreBarTone(value.percentage))}
-                              style={{ width: `${Math.min(100, Math.max(0, value.percentage))}%` }}
-                            />
+                        <span className="text-[11px] font-normal text-muted-foreground">
+                          {typeName(a.type)} · {dateLabel(a.completedAt)}
+                        </span>
+                      </th>
+                    ))}
+                    <th scope="col" className="min-w-28 px-5 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Change
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key} className="border-b border-border last:border-b-0">
+                      <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-muted-foreground">
+                        {row.label}
+                        {row.hint && (
+                          <span className="mt-0.5 block text-[11px] text-muted-foreground/80">
+                            {row.hint}
                           </span>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {n(value.attempted)} attempted ·{" "}
-                            {value.accuracy == null ? "—" : `${n(value.accuracy)}% accuracy`}
-                          </p>
-                        </>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {comparison.sectionRows.length > 0 && (
-        <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
-          <div className="px-5 pb-3 pt-4">
-            <h2 className="text-base font-semibold text-foreground">Section comparison</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              Section I and II are summed from each full mock&apos;s subject
-              results. A qualifying section is never included.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full tabular-nums">
-              <caption className="sr-only">
-                Section-wise score percentages for the selected mocks
-              </caption>
-              <thead>
-                <tr className="border-y border-border">
-                  <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
-                    Section
-                  </th>
-                  {attempts.map((a) => (
-                    <th key={a.id} scope="col" className="px-5 py-2 text-left text-xs font-semibold text-foreground">
-                      {a.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.sectionRows.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-b-0">
-                    <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-foreground">
-                      {row.label}
-                    </th>
-                    {row.values.map((value, index) => (
-                      <td key={attempts[index]!.id} className="px-5 py-2.5 text-[13px] text-foreground">
-                        {value == null ? "—" : `${n(value)}%`}
+                        )}
+                      </th>
+                      {attempts.map((a, i) => (
+                        <td key={a.id} className="px-3 py-2.5 text-[13px] text-foreground">
+                          {row.values[i]}
+                        </td>
+                      ))}
+                      <td className="px-5 py-2.5">
+                        <ChangeCell
+                          row={row}
+                          firstIndex={0}
+                          secondIndex={attempts.length - 1}
+                        />
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+            <h2 className="px-5 pb-3 pt-4 text-base font-semibold text-foreground">
+              Subject comparison
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full tabular-nums">
+                <caption className="sr-only">
+                  Subject-wise comparison for the selected mocks
+                </caption>
+                <thead>
+                  <tr className="border-y border-border">
+                    <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Subject
+                    </th>
+                    {attempts.map((a) => (
+                      <th key={a.id} scope="col" className="min-w-36 px-3 py-2 text-left">
+                        <span className="block text-xs font-semibold text-foreground">
+                          {a.name}
+                        </span>
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {comparison.subjectRows.map((row) => (
+                    <tr key={row.id} className="border-b border-border last:border-b-0">
+                      <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-medium text-foreground">
+                        {row.label}
+                        {row.qualifying && (
+                          <span className="ml-1.5 text-[11px] font-normal uppercase tracking-wide text-muted-foreground">
+                            qualifying
+                          </span>
+                        )}
+                      </th>
+                      {row.values.map((value, index) => (
+                        <td key={attempts[index]!.id} className="min-w-36 px-3 py-2.5">
+                          {value == null ? (
+                            <span className="text-xs text-muted-foreground">
+                              Not in this mock
+                            </span>
+                          ) : (
+                            <>
+                              <p className="text-[13px] text-foreground">
+                                <span className="font-medium">
+                                  {n(value.score)} / {n(value.maxScore)}
+                                </span>{" "}
+                                <span className="text-xs text-muted-foreground">
+                                  ({n(value.percentage)}%)
+                                </span>
+                              </p>
+                              <span className="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-muted">
+                                <span
+                                  className={cn("block h-full rounded-full", scoreBarTone(value.percentage))}
+                                  style={{ width: `${Math.min(100, Math.max(0, value.percentage))}%` }}
+                                />
+                              </span>
+                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                {n(value.attempted)} attempted ·{" "}
+                                {value.accuracy == null ? "—" : `${n(value.accuracy)}% accuracy`}
+                              </p>
+                            </>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {comparison.sectionRows.length > 0 && (
+            <div className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+              <div className="px-5 pb-3 pt-4">
+                <h2 className="text-base font-semibold text-foreground">Section comparison</h2>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Section I and II are summed from each full mock&apos;s subject
+                  results. A qualifying section is never included.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full tabular-nums">
+                  <caption className="sr-only">
+                    Section-wise score percentages for the selected mocks
+                  </caption>
+                  <thead>
+                    <tr className="border-y border-border">
+                      <th scope="col" className="sticky left-0 z-[1] bg-card px-5 py-2 text-left text-xs font-medium text-muted-foreground">
+                        Section
+                      </th>
+                      {attempts.map((a) => (
+                        <th key={a.id} scope="col" className="px-5 py-2 text-left text-xs font-semibold text-foreground">
+                          {a.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.sectionRows.map((row) => (
+                      <tr key={row.id} className="border-b border-border last:border-b-0">
+                        <th scope="row" className="sticky left-0 z-[1] bg-card px-5 py-2.5 text-left text-xs font-normal text-foreground">
+                          {row.label}
+                        </th>
+                        {row.values.map((value, index) => (
+                          <td key={attempts[index]!.id} className="px-5 py-2.5 text-[13px] text-foreground">
+                            {value == null ? "—" : `${n(value)}%`}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Card view */
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+            <h2 className="mb-3 text-base font-semibold text-foreground">Attempt comparison</h2>
+            <AttemptComparisonCards comparison={comparison} />
+          </div>
+
+          <div className="overflow-hidden rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+            <h2 className="mb-3 text-base font-semibold text-foreground">Subject comparison</h2>
+            <SubjectComparisonCards comparison={comparison} />
+          </div>
+
+          {comparison.sectionRows.length > 0 && (
+            <div className="overflow-hidden rounded-2xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]">
+              <h2 className="mb-1 text-base font-semibold text-foreground">Section comparison</h2>
+              <p className="mb-3 text-[11px] text-muted-foreground">
+                Section I and II are summed from each full mock&apos;s subject
+                results. A qualifying section is never included.
+              </p>
+              <SectionComparisonCards comparison={comparison} />
+            </div>
+          )}
         </div>
       )}
 
@@ -945,6 +1011,158 @@ function ComparisonLedger({
           ? `Change compares ${attempts[1]!.name} with ${attempts[0]!.name}.`
           : `Change compares the last selected mock (${attempts[attempts.length - 1]!.name}) with the first (${attempts[0]!.name}).`}
       </p>
+    </div>
+  );
+}
+
+// Card view components for comparison ledger
+function AttemptComparisonCards({
+  comparison,
+}: {
+  comparison: Comparison;
+}) {
+  const { attempts, rows, sameMax } = comparison;
+
+  return (
+    <div className="space-y-3" role="list" aria-label="Attempt comparison as cards">
+      {rows.map((row) => (
+        <div
+          key={row.key}
+          className="rounded-xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {row.label}
+            </p>
+            {row.hint && (
+              <span className="text-[11px] text-muted-foreground/80 shrink-0">{row.hint}</span>
+            )}
+          </div>
+          <ul className="mt-2 space-y-1.5" role="list">
+            {attempts.map((a, i) => (
+              <li key={a.id} className="flex items-baseline justify-between gap-2">
+                <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+                  {a.platform} · {typeName(a.type)} · {dateLabel(a.completedAt)}
+                </span>
+                <span className="shrink-0 text-base font-semibold leading-none tabular-nums text-foreground">
+                  {row.values[i]}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {row.diffable && row.numeric[0] != null && row.numeric[attempts.length - 1] != null && (
+            <div className="mt-2 pt-2 border-t border-border">
+              <span className="text-[11px] text-muted-foreground">Change: </span>
+              <span className="font-semibold text-foreground">
+                {row.unit === "s"
+                  ? `${((row.numeric[attempts.length - 1]! - row.numeric[0]!) / 60).toFixed(1)} min`
+                  : `${(row.numeric[attempts.length - 1]! - row.numeric[0]!).toFixed(1)} ${row.unit}`}
+              </span>
+            </div>
+          )}
+        </div>
+      ))}
+      {!sameMax && (
+        <p className="text-[11px] text-muted-foreground">
+          These mocks have different maxima, so percentages carry the comparison.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SubjectComparisonCards({
+  comparison,
+}: {
+  comparison: Comparison;
+}) {
+  const { attempts, subjectRows } = comparison;
+
+  return (
+    <div className="space-y-3" role="list" aria-label="Subject comparison as cards">
+      {subjectRows.map((row) => (
+        <div
+          key={row.id}
+          className="rounded-xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xs font-medium text-foreground">
+              {row.label}
+              {row.qualifying && (
+                <span className="ml-1.5 text-[11px] font-normal uppercase tracking-wide text-muted-foreground">
+                  qualifying
+                </span>
+              )}
+            </p>
+          </div>
+          <ul className="mt-2 space-y-2" role="list">
+            {row.values.map((value, index) => (
+              <li key={attempts[index]!.id} className="flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    {attempts[index]!.platform} · {typeName(attempts[index]!.type)}
+                  </span>
+                </div>
+                {value == null ? (
+                  <span className="text-xs text-muted-foreground">Not in this mock</span>
+                ) : (
+                  <>
+                    <p className="text-[13px] text-foreground">
+                      <span className="font-medium">{n(value.score)} / {n(value.maxScore)}</span>{" "}
+                      <span className="text-xs text-muted-foreground">({n(value.percentage)}%)</span>
+                    </p>
+                    <div className="mt-1 h-1 w-24 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn("block h-full rounded-full", scoreBarTone(value.percentage))}
+                        style={{ width: `${Math.min(100, Math.max(0, value.percentage))}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {n(value.attempted)} attempted ·{" "}
+                      {value.accuracy == null ? "—" : `${n(value.accuracy)}% accuracy`}
+                    </p>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionComparisonCards({
+  comparison,
+}: {
+  comparison: Comparison;
+}) {
+  const { attempts, sectionRows } = comparison;
+
+  if (!sectionRows.length) return null;
+
+  return (
+    <div className="space-y-3" role="list" aria-label="Section comparison as cards">
+      {sectionRows.map((row) => (
+        <div
+          key={row.id}
+          className="rounded-xl bg-card p-4 text-card-foreground shadow-[inset_0_0_0_1px_var(--border)]"
+        >
+          <p className="text-xs font-medium text-foreground">{row.label}</p>
+          <ul className="mt-2 space-y-1.5" role="list">
+            {row.values.map((value, index) => (
+              <li key={attempts[index]!.id} className="flex items-baseline justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {attempts[index]!.platform} · {typeName(attempts[index]!.type)}
+                </span>
+                <span className="shrink-0 text-[13px] font-semibold text-foreground">
+                  {value == null ? "—" : `${n(value)}%`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

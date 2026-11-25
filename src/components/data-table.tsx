@@ -67,6 +67,8 @@ export interface DataTableAction<T> {
 
 export type DataTableSort = { key: string; dir: "asc" | "desc" };
 
+export type DataTableViewMode = "auto" | "table" | "cards";
+
 export interface DataTableProps<T> extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -96,6 +98,10 @@ export interface DataTableProps<T> extends Omit<React.HTMLAttributes<HTMLDivElem
   renderDetail?: (row: T) => React.ReactNode;
   pageSize?: number;
   label?: string;
+  /** View mode: "auto" (container query), "table" (force table), "cards" (force cards). Default "auto". */
+  viewMode?: DataTableViewMode;
+  /** Called when user manually toggles view mode. Only fires when viewMode is controlled. */
+  onViewModeChange?: (mode: "table" | "cards") => void;
 }
 
 type Undo<T> = { key: number; ids: string[]; rows: T[]; action: DataTableAction<T> };
@@ -187,6 +193,7 @@ type RowProps<T> = {
   reduced: boolean;
   name: string;
   actions: React.RefObject<RowActions<T>>;
+  viewMode?: DataTableViewMode;
 };
 
 /** One row, memoised on plain values: a sort, a selection or a keystroke re-renders only the rows it changes. */
@@ -245,7 +252,7 @@ function TableRowView<T>(p: RowProps<T>) {
       style={{ background: p.isSelected ? "color-mix(in oklab, var(--primary) 5%, var(--background))" : "var(--background)" }}
     >
       {/* Columns, wide */}
-      <div className="grid min-h-12 items-center @max-[34rem]:hidden" style={{ gridTemplateColumns: p.tracks }}>
+      <div className={`grid min-h-12 items-center ${p.viewMode === "table" ? "" : p.viewMode === "cards" ? "hidden" : "@max-[34rem]:hidden"}`} style={{ gridTemplateColumns: p.tracks }}>
         {p.selectable && (
           <span role="gridcell" className="flex items-center justify-center">
             <button
@@ -291,7 +298,7 @@ function TableRowView<T>(p: RowProps<T>) {
       </div>
 
       {/* One card, narrow */}
-      <div className="hidden min-h-[60px] items-center gap-3 py-2.5 pr-3 @max-[34rem]:flex" style={{ paddingLeft: p.selectable ? 0 : 12 }}>
+      <div className={`${p.viewMode === "cards" ? "flex" : p.viewMode === "table" ? "hidden" : "hidden @max-[34rem]:flex"} min-h-[60px] items-center gap-3 py-2.5 pr-3`} style={{ paddingLeft: p.selectable ? 0 : 12 }}>
         {p.selectable && (
           <button type="button" tabIndex={-1} aria-label={`Select ${p.name}`} aria-pressed={p.isSelected} onClick={(e) => a.current.toggle(id, e.shiftKey)} className="flex size-10 shrink-0 cursor-pointer items-center justify-center">
             <Box state={p.isSelected ? "on" : "off"} reduced={reduced} delay={p.delay} />
@@ -341,7 +348,7 @@ function TableRowView<T>(p: RowProps<T>) {
   );
 }
 
-const TableRow = React.memo(TableRowView) as typeof TableRowView;
+const TableRow = React.memo(TableRowView) as <T>(props: RowProps<T>) => React.ReactElement | null;
 
 export function DataTable<T>({
   columns,
@@ -364,6 +371,8 @@ export function DataTable<T>({
   renderDetail,
   pageSize = 10,
   label = "Table",
+  viewMode: viewModeProp,
+  onViewModeChange,
   className = "",
   ...props
 }: DataTableProps<T>) {
@@ -394,6 +403,9 @@ export function DataTable<T>({
   const [cursor, setCursor] = React.useState<Cursor | null>(null);
   const [cascade, setCascade] = React.useState<{ ids: string[]; key: number } | null>(null);
   const [holdUndo, setHoldUndo] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<DataTableViewMode>(viewModeProp ?? "auto");
+  const isViewControlled = viewModeProp !== undefined;
+  const effectiveViewMode = isViewControlled ? viewMode : "auto";
   const anchor = React.useRef<string | null>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -746,6 +758,41 @@ export function DataTable<T>({
               />
             </span>
           )}
+          {/* View mode toggle: only shown when viewMode is controlled (not "auto") */}
+          {isViewControlled && (
+            <span className="hidden shrink-0 @max-[34rem]:flex ml-2">
+              <PillSelect
+                label="View"
+                align="end"
+                width={140}
+                options={[
+                  { value: "table", label: "Table" },
+                  { value: "cards", label: "Cards" },
+                ]}
+                value={effectiveViewMode}
+                onValueChange={(v) => {
+                  const next = v as "table" | "cards";
+                  setViewMode(next);
+                  onViewModeChange?.(next);
+                }}
+                renderValue={() => (
+                  <span className="inline-flex items-center text-muted-foreground">
+                    {effectiveViewMode === "table" ? (
+                      <>
+                        <svg className="size-3.5 mr-1" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M2 10h12"/></svg>
+                        Table
+                      </>
+                    ) : (
+                      <>
+                        <svg className="size-3.5 mr-1" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="5" height="10" rx="1"/><rect x="9" y="2" width="5" height="10" rx="1"/></svg>
+                        Cards
+                      </>
+                    )}
+                  </span>
+                )}
+              />
+            </span>
+          )}
           <span id={`${uid}-count`} className="shrink-0 whitespace-nowrap pr-1 text-[12px] tabular-nums text-muted-foreground @max-[34rem]:hidden">
             <NumberRoll value={sorted.length} /> <TextMorph>{count(sorted.length)}</TextMorph>
           </span>
@@ -814,7 +861,7 @@ export function DataTable<T>({
         className="mt-3 overflow-hidden rounded-[16px] border border-border [contain:layout_paint]"
       >
         {/* Header */}
-        <div role="row" className="grid h-10 items-center border-b border-border text-[12px] text-muted-foreground @max-[34rem]:hidden" style={{ gridTemplateColumns: tracks }}>
+        <div role="row" className={`grid h-10 items-center border-b border-border text-[12px] text-muted-foreground ${effectiveViewMode === "table" ? "" : effectiveViewMode === "cards" ? "hidden" : "@max-[34rem]:hidden"}`} style={{ gridTemplateColumns: tracks }}>
           {selectable && (
             <span role="columnheader" className="flex items-center justify-center">
               <button type="button" aria-label={allState === "on" ? "Clear selection" : "Select all"} onClick={toggleAll} className={`flex size-8 cursor-pointer items-center justify-center rounded-[8px] hover:bg-accent ${FOCUS}`}>
@@ -879,6 +926,7 @@ export function DataTable<T>({
                   reduced={reduced}
                   name={name(row)}
                   actions={rowActions}
+                  viewMode={effectiveViewMode}
                 />
               );
             })}

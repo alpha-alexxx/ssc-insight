@@ -169,8 +169,10 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
   const max = Math.min(100, Math.ceil((Math.max(...values) + 4) / 10) * 10);
   const span = Math.max(20, max - min);
 
-  const innerW = Math.max(0, width - PAD.l - PAD.r);
+  const svgWidth = Math.max(100, width);
+  const innerW = Math.max(0, svgWidth - PAD.l - PAD.r);
   const innerH = CHART_H - PAD.t - PAD.b;
+  const scale = width / svgWidth;
   const xAt = (i: number) =>
     points.length > 1
       ? PAD.l + (i / (points.length - 1)) * innerW
@@ -180,17 +182,20 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
   const stroke = subjectColor(subject.id);
 
   return (
-    <div ref={ref} className="relative px-2 py-2">
+    <div ref={ref} className="relative px-2 py-2 min-w-0">
       {width >= 40 && points.length > 0 ? (
         <svg
-          width={width - 16}
-          height={CHART_H}
+          viewBox={`0 0 ${svgWidth} ${CHART_H}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-auto max-w-full"
           role="img"
           aria-label={`${subject.name} score percentage across ${points.length} results`}
           onPointerMove={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
             const x = event.clientX - rect.left;
-            const inner = Math.min(Math.max(x - PAD.l, 0), innerW);
+            // Convert clientX to viewBox coordinates
+            const viewBoxX = x * scale;
+            const inner = Math.min(Math.max(viewBoxX - PAD.l, 0), innerW);
             const index =
               points.length > 1
                 ? Math.round((inner / innerW) * (points.length - 1))
@@ -206,11 +211,12 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
               <g key={t}>
                 <line
                   x1={PAD.l}
-                  x2={width - PAD.r - 16}
+                  x2={svgWidth - PAD.r - 16}
                   y1={y}
                   y2={y}
                   stroke="var(--border)"
                   strokeWidth={t === 0 ? 1 : 0.5}
+                  vectorEffect="non-scaling-stroke"
                 />
                 <text
                   x={PAD.l - 6}
@@ -234,6 +240,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
             initial={reduced ? undefined : { pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 0.9, ease: EASE }}
@@ -247,6 +254,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
               fill="var(--background)"
               stroke={stroke}
               strokeWidth="1.75"
+              vectorEffect="non-scaling-stroke"
             />
           ))}
           <text
@@ -258,7 +266,7 @@ function SubjectLineChart({ subject }: { subject: DeepDiveSubject }) {
           </text>
           {points.length > 1 ? (
             <text
-              x={width - PAD.r - 16}
+              x={svgWidth - PAD.r - 16}
               y={CHART_H - 6}
               textAnchor="end"
               className="tabular-nums fill-muted-foreground text-[9px]"

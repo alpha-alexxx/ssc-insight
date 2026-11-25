@@ -61,8 +61,8 @@ export function DistributionPanel({ analytics }: { analytics: Analytics }) {
         <>
           <svg
             viewBox={`0 0 100 ${HEIGHT}`}
-            preserveAspectRatio="none"
-            className="h-56 w-full"
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-auto max-h-56"
             role="img"
             aria-label={
               modalIndex != null

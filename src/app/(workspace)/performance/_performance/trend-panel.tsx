@@ -180,8 +180,10 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
   const values = usable.map((p) => p.percentage);
   const [min, max] = useMemo(() => niceDomain(values, null), [values]);
 
-  const innerW = Math.max(0, width - PAD.l - PAD.r);
+  const svgWidth = Math.max(100, width); // viewBox baseline
+  const innerW = Math.max(0, svgWidth - PAD.l - PAD.r);
   const innerH = HEIGHT - PAD.t - PAD.b;
+  const scale = width / svgWidth;
   // A day key ("2026-10-09") parses as UTC midnight, so the axis is a pure
   // day scale with no hour drift.
   const timeOf = (dayKey: string) => Date.parse(`${dayKey}T00:00:00Z`);
@@ -208,35 +210,38 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
         )
     : [];
 
-  return (
-    <div>
-      {/* legend — also the touch fallback for the hover tooltip */}
-      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
-        {series.map((s) => (
-          <span
-            key={s.id}
-            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
-          >
+    return (
+      <div>
+        {/* legend — also the touch fallback for the hover tooltip */}
+        <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 min-w-0">
+          {series.map((s) => (
             <span
-              aria-hidden
-              className="inline-block size-2 rounded-[2px]"
-              style={{ background: colorOf(s) }}
-            />
-            {s.label}
-          </span>
-        ))}
-      </div>
-      <div ref={ref} className="relative">
+              key={s.id}
+              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground truncate"
+            >
+              <span
+                aria-hidden
+                className="inline-block size-2 rounded-[2px] shrink-0"
+                style={{ background: colorOf(s) }}
+              />
+              <span className="truncate">{s.label}</span>
+            </span>
+          ))}
+        </div>
+      <div ref={ref} className="relative min-w-0">
         {width >= 40 && (
           <svg
-            width={width}
-            height={HEIGHT}
+            viewBox={`0 0 ${svgWidth} ${HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-auto max-w-full"
             role="img"
             aria-label={`Score percentage per subject across ${dates.length} attempt dates`}
             onPointerMove={(event) => {
               const rect = event.currentTarget.getBoundingClientRect();
               const x = event.clientX - rect.left;
-              const inner = Math.min(Math.max(x - PAD.l, 0), innerW);
+              // Convert clientX to viewBox coordinates
+              const viewBoxX = x * scale;
+              const inner = Math.min(Math.max(viewBoxX - PAD.l, 0), innerW);
               const ratio = innerW ? inner / innerW : 0;
               const target = tMin + ratio * (tMax - tMin);
               let nearest = dates[0]!;
@@ -289,7 +294,7 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
             ) : null}
             {dates.length > 1 ? (
               <text
-                x={width - PAD.r}
+                x={svgWidth - PAD.r}
                 y={HEIGHT - 8}
                 textAnchor="end"
                 className="tabular-nums fill-muted-foreground text-[10px]"
@@ -356,6 +361,7 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
                 strokeWidth="1"
                 strokeOpacity={0.4}
                 strokeDasharray="3 3"
+                vectorEffect="non-scaling-stroke"
               />
             ) : null}
           </svg>
@@ -367,7 +373,7 @@ function SubjectLinesChart({ points }: { points: PerformancePoint[] }) {
             className="pointer-events-none absolute top-2 z-10 min-w-44 rounded-xl bg-popover px-3 py-2 text-popover-foreground shadow-[0_0_0_1px_var(--border)]"
             style={{
               left: Math.min(
-                Math.max(xAt(hoverDate) - 88, 0),
+                Math.max(xAt(hoverDate) * scale - 88, 0),
                 Math.max(0, width - 184),
               ),
             }}

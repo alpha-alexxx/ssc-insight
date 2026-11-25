@@ -81,7 +81,7 @@ export function RadarPanel({ analytics }: { analytics: Analytics }) {
       <div className="flex flex-col items-center gap-4 lg:flex-row">
         <svg
           viewBox="0 0 340 340"
-          className="h-auto w-full max-w-[19rem] shrink-0"
+          className="h-auto w-full max-w-full lg:max-w-[19rem] lg:shrink-0"
           role="img"
           aria-label={`Subject shape across ${populated.length} populated series`}
         >
