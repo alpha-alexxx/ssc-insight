@@ -99,7 +99,11 @@ export function AppFrame({
   };
 
   return (
-    <div className="min-h-screen">
+    // dvh, not vh: with min-h-screen the shell's floor is the LARGE viewport,
+    // so on a phone every page keeps 40-90px of paper below the content when
+    // the URL bar is shown (the /ask composer floated above it). vh and dvh
+    // are identical on desktop, so nothing else moves.
+    <div className="min-h-dvh">
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -151,7 +155,7 @@ export function AppFrame({
 
       <div
         className={cn(
-          "flex min-h-screen flex-col transition-[padding] duration-200",
+          "flex min-h-dvh flex-col transition-[padding] duration-200",
           expanded ? "md:pl-60" : "md:pl-14",
         )}
       >
