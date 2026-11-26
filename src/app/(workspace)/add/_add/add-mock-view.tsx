@@ -1,13 +1,13 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MockForm } from "./mock-form";
+import { MockFormV2 } from "./mock-form-v2";
 import { safeWorkspaceReturnTo } from "@/lib/filters-url";
 import { isIsoDate } from "@/lib/format";
 import type { LogMockPayload } from "@/components/shared/ai/log-mock-flow";
 import type { Attempt } from "@/lib/domain";
 
 /**
- * Query-aware wrapper for the existing /add form. Planner actions pass the
+ * Query-aware wrapper for the /add form. Planner actions pass the
  * selected attempt date, optional scheduled-task title, and a validated
  * planner return target. `prefill` carries a reviewed draft from the AI
  * panel's Log a Mock tab — applied once, then consumed. The form remains
@@ -48,7 +48,7 @@ export function AddMockView({
   const initialName = nameParam || undefined;
   const returnTo = safeWorkspaceReturnTo(params.get("returnTo"));
   return (
-    <MockForm
+    <MockFormV2
       key={`${initialDate ?? "today"}:${initialName ?? "blank"}:${attempt?.id ?? "new"}:${prefill ? "prefilled" : "blank"}`}
       attempt={attempt}
       knownAttempts={knownAttempts}
