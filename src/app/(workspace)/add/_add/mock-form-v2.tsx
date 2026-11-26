@@ -838,8 +838,11 @@ export function MockFormV2({
         </div>
       )}
 
-      <div className="flex items-start gap-8">
-        <div className="min-w-0 flex-1">
+      {/* Two columns only from lg up. Below lg this is a plain block so the
+          steps card takes the full content width — a bare flex row here would
+          let the (empty, mobile) summary wrapper reserve gap-8 of dead space. */}
+      <div className="lg:flex lg:items-start lg:gap-8">
+        <div className="min-w-0 lg:flex-1">
           <StepsForm
             steps={steps}
             onSubmit={save}
