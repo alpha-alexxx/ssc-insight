@@ -245,7 +245,10 @@ export function MessageEdit({
   const unchanged = draft.trim() === text.trim() || !draft.trim();
 
   return (
-    <div className={`group/message flex w-full flex-col items-end ${className}`} {...props}>
+    <div
+      className={`group/message relative flex w-full flex-col items-end ${className}`}
+      {...props}
+    >
       <div
         ref={surfaceRef}
         className={`overflow-hidden rounded-[20px] transition-[background-color,box-shadow] duration-300 ${
@@ -308,9 +311,11 @@ export function MessageEdit({
         )}
       </div>
 
+      {/* Overlay, not in-flow: hovering the turn floats copy/edit over the
+          inter-turn gap instead of reserving a row under every bubble. */}
       <div
         inert={editing}
-        className={`mt-1 flex items-center gap-0.5 transition-opacity duration-200 ${
+        className={`absolute right-0 top-full z-10 mt-1 flex items-center gap-0.5 rounded-lg p-0.5 transition-opacity duration-200 ${
           editing ? "opacity-0" : "opacity-0 focus-within:opacity-100 group-hover/message:opacity-100 [@media(hover:none)]:opacity-100"
         }`}
       >

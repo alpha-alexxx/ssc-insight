@@ -14,55 +14,67 @@ import { cn } from "@/lib/utils";
  * Raw HTML stays escaped — react-markdown never enables it here — so a model
  * cannot inject markup into the page.
  *
+ * Type is ChatGPT-like: bold sans display headings on a compact, airy body,
+ * scaled fluidly with clamp() so phones get the small end and wide screens
+ * the large end. Rhythm is roomy between sections — headings carry clear top
+ * margins (`first:mt-0` keeps the first block flush after the identity line) —
+ * while block-to-block spacing comes from StreamingText's flex gap, so no
+ * element here declares an outer bottom margin.
+ *
  * The elements are direct children of `StreamingText`'s column (it is a flex
- * column with a 12px gap), which is why none of them carry outer margins: the
- * rhythm comes from the container, not from each block.
+ * column with a 12px gap), which is why none of them carry outer margins.
  */
 
 const SAFE_HREF = /^(https?:\/\/|mailto:|\/|#)/i;
 
 const components: Components = {
   h1: ({ children }) => (
-    <h3 className="mt-1 font-serif text-[17px] font-medium leading-snug tracking-[-0.01em] text-foreground">
+    <h3 className="mt-6 font-sans text-[clamp(1.15rem,1rem+0.9vw,1.35rem)] font-bold leading-[1.3] tracking-[-0.02em] text-foreground first:mt-0">
       {children}
     </h3>
   ),
   h2: ({ children }) => (
-    <h3 className="mt-1 font-serif text-[16px] font-medium leading-snug tracking-[-0.01em] text-foreground">
+    <h3 className="mt-5 font-sans text-[clamp(1.05rem,1rem+0.6vw,1.2rem)] font-bold leading-[1.35] tracking-[-0.015em] text-foreground first:mt-0">
       {children}
     </h3>
   ),
   h3: ({ children }) => (
-    <h4 className="mt-1 text-[14px] font-semibold leading-snug text-foreground">
+    <h4 className="mt-4 font-sans text-[15.5px] font-semibold leading-snug text-foreground first:mt-0 sm:text-[16px]">
       {children}
     </h4>
   ),
   h4: ({ children }) => (
-    <h5 className="mt-1 text-[13.5px] font-semibold leading-snug text-foreground">
+    <h5 className="mt-3.5 font-sans text-[14px] font-semibold leading-snug text-foreground first:mt-0">
       {children}
     </h5>
   ),
-  p: ({ children }) => <p className="text-pretty">{children}</p>,
+  p: ({ children }) => (
+    <p className="text-[13.5px] leading-[1.65] text-pretty sm:text-[14px]">
+      {children}
+    </p>
+  ),
   strong: ({ children }) => (
     <strong className="font-semibold text-foreground">{children}</strong>
   ),
   em: ({ children }) => <em className="italic">{children}</em>,
   ul: ({ children }) => (
-    <ul className="list-disc space-y-1.5 pl-5 marker:text-muted-foreground/70">
+    <ul className="list-disc space-y-1 pl-5 text-foreground marker:text-muted-foreground/60">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-muted-foreground">
+    <ol className="list-decimal space-y-1 pl-5 text-foreground marker:font-medium marker:text-muted-foreground">
       {children}
     </ol>
   ),
   li: ({ children }) => (
-    <li className="pl-1 text-pretty [&>ol]:mt-1.5 [&>ul]:mt-1.5">{children}</li>
+    <li className="pl-1 text-[13.5px] leading-[1.65] text-pretty sm:text-[14px] [&>ol]:mt-1 [&>ul]:mt-1">
+      {children}
+    </li>
   ),
-  hr: () => <hr className="my-1 border-border" />,
+  hr: () => <hr className="my-3 border-border/70" />,
   blockquote: ({ children }) => (
-    <blockquote className="space-y-2 border-l-2 border-primary/40 bg-primary/[0.04] py-1.5 pl-3.5 pr-2 text-foreground/90 [&>p]:text-pretty">
+    <blockquote className="space-y-2 border-l-2 border-border pl-3.5 text-foreground/85 [&>p]:text-pretty">
       {children}
     </blockquote>
   ),
@@ -93,7 +105,7 @@ const components: Components = {
   th: ({ children, style }) => (
     <th
       style={style}
-      className="whitespace-nowrap px-3 py-2 text-left text-[11.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
+      className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground"
     >
       {children}
     </th>

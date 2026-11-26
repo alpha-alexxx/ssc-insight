@@ -66,14 +66,14 @@ const HIDE_CHAT_FEEDBACK_BUTTONS = cn(
 
 /**
  * Prevents collapsed or unused thinking/reasoning blocks inside AskMessage
- * from reserving vertical gap, margin, or empty grid rows.
+ * from reserving vertical gap, margin, or empty grid rows. (The article's own
+ * rhythm is margin-driven since the avatar row went away, so no gap rule here.)
  */
 const NORMALIZE_THINKING_SPACE = cn(
   "[&_details:empty]:hidden",
   "[&_details:not([open])]:mb-0 [&_details:not([open])]:pb-0",
   "[&_[data-state='closed']]:mb-0 [&_[data-state='closed']]:pb-0",
   "[&_[data-reasoning]:empty]:hidden [&_[data-thinking]:empty]:hidden",
-  "[&_article]:gap-2",
 );
 
 const MODES = [
@@ -588,7 +588,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               followKey={lastUser?.id}
               className="h-full min-h-0 min-w-0 flex-1"
               contentClassName={cn(
-                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-3 overscroll-contain px-3 py-3 sm:gap-5 sm:px-6 sm:py-4",
+                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-3 overscroll-contain px-3 py-3 sm:gap-6 sm:px-6 sm:py-4",
                 HIDE_CHAT_FEEDBACK_BUTTONS,
                 NORMALIZE_THINKING_SPACE,
               )}
@@ -638,7 +638,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               })}
 
               {pendingDraft ? (
-                <div className="min-w-0 sm:pl-11">
+                <div className="min-w-0">
                   <ApprovalCard
                     title={
                       pendingDraft.kind === "todos"

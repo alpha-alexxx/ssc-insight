@@ -1,10 +1,8 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import {
   StreamingText,
   AnswerActions,
-  FollowUps,
   type AnswerSource,
 } from "@/components/streaming-answer";
 import type { AiScreenContext } from "@/lib/ai/client-types";
@@ -19,9 +17,10 @@ import { AskMarkdown, markdownColumnClass } from "./ask-markdown";
  *
  *  · The person's turn is a right-aligned bubble (Hairline MessageEdit), so
  *    copy and edit-and-resend sit under it where the thumb already is.
- *  · The coach's turn is a left-aligned column under a small identity row —
- *    avatar, name, model, time — with reasoning (collapsed) above the answer,
- *    the answer as markdown, then actions and follow-ups once it is done.
+ *  · The coach's turn is a full-width column behind a quiet identity line —
+ *    a small "Coach" label and the time, no avatar, no model chip — with
+ *    reasoning (collapsed) above the answer, the answer as markdown, then
+ *    copy/regenerate revealed on hover (always visible on touch) once done.
  *  · Between "sent" and "first word" the coach's turn is the thinking
  *    indicator in the same slot, so the layout never jumps when text arrives.
  */
@@ -78,20 +77,6 @@ const clock = (iso?: string) => {
         hour12: false,
       });
 };
-
-function Avatar({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_22%,transparent)]",
-        className,
-      )}
-    >
-      <Sparkles className="size-4" />
-    </span>
-  );
-}
 
 function UserTurn({
   text,
@@ -159,103 +144,93 @@ function AssistantTurn({
   return (
     <article
       aria-label="Coach reply"
-      className="group/turn flex w-full items-start gap-3"
+      className="group/turn flex w-full flex-col"
     >
-      <Avatar className="mt-0.5" />
-      <div className="min-w-0 flex-1">
-        <header className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-[13px] font-semibold text-foreground">
-            Coach
-          </span>
-          {message.model ? (
-            <span className="max-w-[12rem] truncate rounded-full bg-muted px-1.5 py-px font-mono text-[10.5px] text-muted-foreground">
-              {message.model}
+      <header className="mb-2 flex items-center gap-x-2 gap-y-0.5">
+        <span className="text-[12.5px] font-medium leading-none text-muted-foreground/90">
+          Coach
+        </span>
+        {time ? (
+          <>
+            <span aria-hidden="true" className="text-[11px] text-muted-foreground/50">
+              ·
             </span>
-          ) : null}
-          {time ? (
-            <span className="text-[11px] tabular-nums text-muted-foreground">
+            <span className="text-[11px] tabular-nums leading-none text-muted-foreground/80">
               {time}
             </span>
-          ) : null}
-        </header>
-
-        {message.reasoning ? (
-          <ThinkingTrace
-            variant="reasoning"
-            status={live && !hasAnswer ? "running" : "done"}
-            startedAt={message.reasoningStartedAt}
-            duration={
-              message.reasoningSeconds
-                ? message.reasoningSeconds * 1000
-                : undefined
-            }
-            steps={steps}
-            className="mb-3"
-          />
+          </>
         ) : null}
+      </header>
 
-        {live && !hasAnswer && !message.reasoning ? (
-          <ThinkingIndicator
-            variant="orbit"
-            label={
-              phase === "thinking"
-                ? "Thinking it through"
-                : "Reading your workspace"
-            }
-            startedAt={waitingSince}
-          />
-        ) : hasAnswer ? (
-          <StreamingText
-            status={status}
-            onRetry={onRetry}
-            data-streaming={live}
-            className={cn("text-[14px] leading-[1.7]", markdownColumnClass)}
+      {message.reasoning ? (
+        <ThinkingTrace
+          variant="reasoning"
+          status={live && !hasAnswer ? "running" : "done"}
+          startedAt={message.reasoningStartedAt}
+          duration={
+            message.reasoningSeconds
+              ? message.reasoningSeconds * 1000
+              : undefined
+          }
+          steps={steps}
+          className="mb-2.5 text-[12.5px] [&_svg]:size-3.5"
+        />
+      ) : null}
+
+      {live && !hasAnswer && !message.reasoning ? (
+        <ThinkingIndicator
+          variant="orbit"
+          label={
+            phase === "thinking"
+              ? "Thinking it through"
+              : "Reading your workspace"
+          }
+          startedAt={waitingSince}
+        />
+      ) : hasAnswer ? (
+        <StreamingText
+          status={status}
+          onRetry={onRetry}
+          data-streaming={live}
+          className={cn(
+            "text-[13.5px] leading-[1.65] text-foreground sm:text-[14px]",
+            markdownColumnClass,
+          )}
+        >
+          <AskMarkdown content={plain} />
+        </StreamingText>
+      ) : null}
+
+      {message.truncated && !live ? (
+        <p className="mt-2 text-[11.5px] text-muted-foreground">
+          The answer was cut at the length limit.{" "}
+          <button
+            type="button"
+            onClick={() => ai.chat.regenerateLast()}
+            className="cursor-pointer font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            <AskMarkdown content={plain} />
-          </StreamingText>
-        ) : null}
+            Try again
+          </button>
+        </p>
+      ) : null}
 
-        {message.truncated && !live ? (
-          <p className="mt-2 text-[11.5px] text-muted-foreground">
-            The answer was cut at the length limit.{" "}
-            <button
-              type="button"
-              onClick={() => ai.chat.regenerateLast()}
-              className="cursor-pointer font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
-              Try again
-            </button>
-          </p>
-        ) : null}
-
-        {hasAnswer && !live ? (
-          <div className="mt-3">
-            <AnswerActions
-              copyText={plain}
-              onRegenerate={isLast ? () => ai.chat.regenerateLast() : undefined}
-              sources={message.sources}
-              disabled={ai.chat.streaming}
-              className="-ml-1.5"
-            />
-            {message.followUps && message.followUps.length > 0 ? (
-              <FollowUps
-                className="mt-2"
-                items={message.followUps}
-                onSelect={(item) =>
-                  ai.chat.send(
-                    item,
-                    {
-                      view: "ask",
-                      date: new Date().toISOString().slice(0, 10),
-                    },
-                    false,
-                  )
-                }
-              />
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      {hasAnswer && !live ? (
+        <div
+          className={cn(
+            "mt-2 flex transition-opacity duration-200",
+            "opacity-0 focus-within:opacity-100 group-hover/turn:opacity-100",
+            "[@media(hover:none)]:opacity-100 motion-reduce:transition-none",
+          )}
+        >
+          <AnswerActions
+            copyText={plain}
+            onRegenerate={isLast ? () => ai.chat.regenerateLast() : undefined}
+            sources={message.sources}
+            disabled={ai.chat.streaming}
+            className="-ml-1.5"
+          />
+        </div>
+      ) : null}
     </article>
   );
 }
