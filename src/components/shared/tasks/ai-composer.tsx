@@ -773,7 +773,7 @@ function TodoAiComposerInner({
               disabled={busy}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 items-end gap-3">
               <Input
                 label="Start date"
                 type="date"
@@ -861,8 +861,8 @@ function TodoAiComposerInner({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
-              <p className="flex min-w-0 flex-1 items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+            <div className="flex flex-col gap-2.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
                 <PlainIcon name="info" size={15} className="mt-0.5 shrink-0" />
                 <span>
                   Uses your mock performance, study plan, and active tasks.

@@ -42,13 +42,13 @@ test("the root is sized by the real chrome, not a guessed header height", () => 
   // The first cut guessed one wrapper and left 32px of page scroll.
   assert.match(
     view,
-    /h-\[calc\(100dvh-7\.5rem\)\]/,
-    "mobile root height = 56px header + 2×16px + 2×16px wrapper padding",
+    /h-\[calc\(100dvh-5\.5rem\)\]/,
+    "mobile root height = 56px header + top wrapper padding; the bottom padding is returned via -mb-8",
   );
   assert.match(
     view,
-    /md:h-\[calc\(100dvh-8\.5rem\)\]/,
-    "md adds the larger md:py-5 wrapper padding on both wrappers",
+    /md:h-\[calc\(100dvh-6rem\)\]/,
+    "md: the height adds the returned bottom padding back (3.5+2.5)",
   );
   assert.ok(
     !/app-header-h/.test(view),
@@ -161,5 +161,70 @@ test("the conversation column contains its scroll on phones", () => {
     view,
     /overscroll-contain/,
     "rubber-banding never chains to the page scroller",
+  );
+});
+
+test("the mode-tool dialogs hug their content instead of stretching", () => {
+  // flex-1 on the dialog body (and on the flow roots inside it) let the body
+  // grow to fill the 85dvh panel, parking short content above ~260px of dead
+  // panel. The body must scroll; the flows must hug.
+  assert.ok(
+    !/bodyClassName=\{cn\(\s*"min-h-0 flex-1/.test(view),
+    "the ask dialog bodies no longer stretch with flex-1",
+  );
+  assert.match(
+    view,
+    /pb-\[max\(12px,env\(safe-area-inset-bottom\)\)\]/,
+    "the body respects the gesture-nav inset like ai-plan-sheet does",
+  );
+  const flow = code(
+    source("src/components/shared/ai/log-mock-flow.tsx"),
+  );
+  const stretchRoots = flow.match(/flex min-h-0 flex-1 flex-col/g) ?? [];
+  assert.equal(
+    stretchRoots.length,
+    0,
+    "LogMockFlow step roots hug their content; the dialog body owns scrolling",
+  );
+});
+
+test("the composer dock reaches the screen edge", () => {
+  // The workspace's two nested py-4 wrappers left a 32px (40px md) void under
+  // the disclaimer; the root gives that padding back with a negative margin
+  // and adds it to the column height instead.
+  assert.match(view, /-mb-8/, "cancels the wrappers' 2×16px bottom padding");
+  assert.match(view, /md:-mb-10/, "and 2×20px from md");
+  assert.match(
+    view,
+    /h-\[calc\(100dvh-5\.5rem\)\]/,
+    "the column height adds the returned padding back",
+  );
+});
+
+test("the tool footers read as sentences, not squeezed slivers", () => {
+  const todos = code(source("src/components/shared/tasks/ai-composer.tsx"));
+  // The footer row stacks on phones, so the info sentence keeps its measure
+  // and the buttons get their own row.
+  assert.match(
+    todos,
+    /flex flex-col gap-2\.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between/,
+    "the todos footer stacks below sm and splits inline from sm",
+  );
+  assert.ok(
+    !/flex min-w-0 flex-1 items-start gap-2 text-xs/.test(todos),
+    "the info paragraph is no longer a squeezed flex-1 sliver",
+  );
+  assert.match(
+    todos,
+    /grid grid-cols-2 items-end gap-3/,
+    "the date inputs share a baseline even when one label wraps",
+  );
+  // The mock footer's parser note must not truncate mid-word.
+  const flow = code(source("src/components/shared/ai/log-mock-flow.tsx"));
+  const note = flow.match(/Cross-checked[^"']*\.["']/)?.[0] ?? "";
+  assert.ok(note, "the parser note text is present");
+  assert.ok(
+    !/className="truncate"\s*>\s*\{aiEnabled/.test(flow),
+    "the mock footer note is not truncated",
   );
 });

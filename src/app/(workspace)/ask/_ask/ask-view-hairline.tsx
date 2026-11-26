@@ -443,12 +443,14 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   };
 
   return (
-    // Real chrome height around the page: the sticky 3.5rem header, plus the
-    // TWO nested wrappers that each carry py-4 (md:py-5) — SidebarInset's main
-    // and .workspace-content. Anything short leaves the root taller than the
-    // viewport, and the page — not the conversation — scrolls under the
-    // keyboard on a phone. Mobile 3.5+2+2 = 7.5rem; md 3.5+2.5+2.5 = 8.5rem.
-    <div className="flex h-[calc(100dvh-7.5rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:h-[calc(100dvh-8.5rem)]">
+    // Real chrome above the page: the sticky 3.5rem header plus the wrappers'
+    // TOP padding (py-4, md:py-5) — SidebarInset's main and .workspace-content.
+    // The BOTTOM padding is given back with -mb-8/-mb-10 below, so the composer
+    // dock sits at the screen edge; the height adds that bottom 2/2.5rem back
+    // to the column (5.5 = 3.5+2, 6 = 3.5+2.5). Anything short of the real
+    // chrome leaves the root taller than the viewport, and the page — not the
+    // conversation — scrolls under the keyboard on a phone.
+    <div className="-mb-8 flex h-[calc(100dvh-5.5rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:-mb-10 md:h-[calc(100dvh-6rem)]">
       {/* ── header ───────────────────────────────────────── */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/50 pb-2.5">
         <div className="flex min-w-0 items-center gap-3">
@@ -838,7 +840,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         size="lg"
         className="max-h-[min(85dvh,760px)]"
         bodyClassName={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-2",
+          "min-h-0 overflow-y-auto overscroll-contain px-4 py-2 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6",
           NO_SCROLLBAR,
         )}
       >
@@ -864,7 +866,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         size="lg"
         className="max-h-[min(85dvh,760px)]"
         bodyClassName={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-2",
+          "min-h-0 overflow-y-auto overscroll-contain px-4 py-2 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6",
           NO_SCROLLBAR,
         )}
       >

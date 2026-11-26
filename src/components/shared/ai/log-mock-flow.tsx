@@ -134,7 +134,7 @@ function SubjectRoster({
   ].filter(Boolean);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col">
       {/* ── Roster Header & Metadata ── */}
       <div className="shrink-0 border-b border-border/60 pb-3.5 pt-1">
         <div className="flex items-start justify-between gap-3">
@@ -517,7 +517,7 @@ export function LogMockFlow({
   // ── 1. Full Details Editor View ──
   if (reviewing === "details" && draft) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-col">
         <header className="mb-3 flex shrink-0 items-center gap-2.5 border-b border-border/60 pb-3 pt-1">
           <Button
             type="button"
@@ -575,7 +575,7 @@ export function LogMockFlow({
 
   // ── 3. Initial Scorecard Paste / Screenshot View ──
   return (
-    <div className="flex min-h-0 flex-1 flex-col py-1">
+    <div className="flex flex-col py-1">
       {!page && (
         <h3 className="mb-1.5 font-serif text-[1.25rem] font-medium leading-tight text-foreground">
           Log a mock test
@@ -699,8 +699,8 @@ export function LogMockFlow({
       )}
 
       {/* ── Primary Actions Bar ── */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3.5">
-        <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+      <div className="mt-4 flex flex-col gap-2.5 border-t border-border/60 pt-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
+        <p className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
           {!statusChecked ? (
             <>
               <Spinner size="xs" label="Checking AI availability…" />
@@ -709,7 +709,7 @@ export function LogMockFlow({
           ) : (
             <>
               <Icon name="info" size={13} className="shrink-0" />
-              <span className="truncate">
+              <span>
                 {aiEnabled
                   ? "Cross-checked against your exam pattern."
                   : "Standard rule-based parser active."}
