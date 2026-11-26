@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/button";
 import { Dialog } from "@/components/dialog";
 import { Icon } from "@/components/icon";
+import { PillSelect } from "@/components/pill-select";
 import { Popover } from "@/components/popover";
 import { Sheet } from "@/components/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -76,9 +77,9 @@ const NORMALIZE_THINKING_SPACE = cn(
 );
 
 const MODES = [
-  { id: "chat", label: "Chat" },
-  { id: "todos", label: "Todos" },
-  { id: "mock", label: "Mock" },
+  { id: "chat", label: "Chat", description: "Talk with the coach" },
+  { id: "todos", label: "Todos", description: "Plan tasks with AI" },
+  { id: "mock", label: "Mock", description: "Log a mock with AI" },
 ] as const;
 
 type ComposerMode = (typeof MODES)[number]["id"];
@@ -121,6 +122,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   const [historyOpen, setHistoryOpen] = React.useState(true);
   const [historySheet, setHistorySheet] = React.useState(false);
   const [contextOpen, setContextOpen] = React.useState(false);
+  const [contextSheet, setContextSheet] = React.useState(false);
   const [toolSheet, setToolSheet] = React.useState<ComposerMode | null>(null);
   const [pendingDraft, setPendingDraft] = React.useState<
     | { kind: "todos"; count: number }
@@ -309,6 +311,8 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   /**
    * Context ring trigger: UsageMeter (variant="ring") already renders the
    * percentage label internally, so no duplicate <span> is rendered next to it.
+   * Desktop opens the Hairline Popover; below lg the same ring opens the
+   * bottom Sheet, so the panel never has to squeeze into a popover on a phone.
    */
   const ringTrigger = (
     <button
@@ -317,7 +321,27 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       aria-expanded={contextOpen}
       aria-label="Open context window and plan limits"
       title="Context window & plan limits"
-      className="inline-flex cursor-pointer items-center rounded-full px-1.5 py-0.5 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+      className="hidden cursor-pointer items-center rounded-full px-1.5 py-0.5 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 lg:inline-flex"
+    >
+      <UsageMeter
+        variant="ring"
+        used={usedContextTokens}
+        limit={CONTEXT_WINDOW}
+        unit="tokens"
+        label="Context window"
+      />
+    </button>
+  );
+
+  const ringSheetTrigger = (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      aria-expanded={contextSheet}
+      aria-label="Open context window and plan limits"
+      title="Context window & plan limits"
+      onClick={() => setContextSheet(true)}
+      className="inline-flex cursor-pointer items-center rounded-full px-1.5 py-0.5 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 lg:hidden"
     >
       <UsageMeter
         variant="ring"
@@ -330,54 +354,78 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   );
 
   const modeChips = (
-    <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-1.5">
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
-        <div
-          role="tablist"
-          aria-label="Assistant mode"
-          className="flex min-w-0 items-center gap-1"
-        >
-          {MODES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={mode === item.id}
-              onClick={() => {
-                setMode(item.id);
-                if (item.id !== "chat") setToolSheet(item.id);
-              }}
-              className={cn(
-                "cursor-pointer rounded-full px-2.5 py-1 text-[12.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40",
-                mode === item.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Context Popover used across both mobile and desktop */}
-        <Popover
-          trigger={ringTrigger}
-          open={contextOpen}
-          onOpenChange={setContextOpen}
-          side="top"
-          align="start"
-          width={300}
-          label="Context window and plan limits"
-        >
-          {usagePanel}
-        </Popover>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Assistant mode"
+        className="hidden min-w-0 items-center gap-1 lg:flex"
+      >
+        {MODES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === item.id}
+            onClick={() => {
+              setMode(item.id);
+              if (item.id !== "chat") setToolSheet(item.id);
+            }}
+            className={cn(
+              "cursor-pointer rounded-full px-2.5 py-1 text-[12.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40",
+              mode === item.id
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
+
+      {/* Below lg the three modes live in one select pill, so the composer's
+          action row stays single-line and relaxed on a phone. Picking a tool
+          opens its dialog; the pill always reads the resting Chat mode. */}
+      <span className="inline-flex min-w-0 lg:hidden">
+        <PillSelect
+          options={MODES.map((item) => ({
+            value: item.id,
+            label: item.label,
+            description: item.description,
+          }))}
+          value="chat"
+          onValueChange={(next) => {
+            if (next !== "chat") {
+              const tool = next as ComposerMode;
+              setMode(tool);
+              setToolSheet(tool);
+            }
+          }}
+          label="Assistant mode"
+          placeholder="Chat"
+          width={230}
+          size="md"
+        />
+      </span>
+
+      {/* Context Popover (lg+) and the ring that opens the Sheet below lg */}
+      <Popover
+        trigger={ringTrigger}
+        open={contextOpen}
+        onOpenChange={setContextOpen}
+        side="top"
+        align="start"
+        width={300}
+        label="Context window and plan limits"
+      >
+        {usagePanel}
+      </Popover>
+      {ringSheetTrigger}
 
       {/* Active Model Badge Chip inside input toolbar */}
       {model ? (
         <span
           title={`Active model: ${model}`}
-          className="inline-flex max-w-[10.5rem] shrink-0 items-center gap-1.5 truncate rounded-full bg-muted/70 px-2.5 py-0.5 text-[11.5px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:max-w-[14rem]"
+          className="hidden max-w-[10.5rem] shrink-0 items-center gap-1.5 truncate rounded-full bg-muted/70 px-2.5 py-0.5 text-[11.5px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:inline-flex sm:max-w-[14rem]"
         >
           <Sparkles
             className="size-3 shrink-0 text-primary/80"
@@ -395,7 +443,12 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-var(--app-header-h,52px)-2rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:h-[calc(100dvh-var(--app-header-h,52px)-2.5rem)]">
+    // Real chrome height around the page: the sticky 3.5rem header, plus the
+    // TWO nested wrappers that each carry py-4 (md:py-5) — SidebarInset's main
+    // and .workspace-content. Anything short leaves the root taller than the
+    // viewport, and the page — not the conversation — scrolls under the
+    // keyboard on a phone. Mobile 3.5+2+2 = 7.5rem; md 3.5+2.5+2.5 = 8.5rem.
+    <div className="flex h-[calc(100dvh-7.5rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:h-[calc(100dvh-8.5rem)]">
       {/* ── header ───────────────────────────────────────── */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/50 pb-2.5">
         <div className="flex min-w-0 items-center gap-3">
@@ -417,17 +470,32 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => ai.chat.history.newChat()}
-            title="Start a new conversation"
-            icon={<Plus className="size-3.5" />}
-          >
-            <span className="hidden md:inline">New chat</span>
-            <span className="sr-only md:hidden">New chat</span>
-          </Button>
+          <span className="inline-flex md:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => ai.chat.history.newChat()}
+              title="Start a new conversation"
+              aria-label="New chat"
+              className="size-9"
+              icon={<Plus className="size-4" />}
+            />
+          </span>
+
+          <span className="hidden md:inline-flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => ai.chat.history.newChat()}
+              title="Start a new conversation"
+              icon={<Plus className="size-3.5" />}
+            >
+              <span className="hidden md:inline">New chat</span>
+              <span className="sr-only md:hidden">New chat</span>
+            </Button>
+          </span>
 
           <span className="hidden lg:inline-flex">
             <Button
@@ -450,6 +518,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               size="icon"
               aria-label="Conversation history"
               onClick={() => setHistorySheet(true)}
+              className="size-9"
             >
               <History className="size-4" />
             </Button>
@@ -503,7 +572,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               className={cn("min-h-0 min-w-0 flex-1", INVISIBLE_SCROLL)}
               viewportClassName="h-full w-full"
             >
-              <div className="mx-auto w-full max-w-[46rem] px-4 sm:px-6">
+              <div className="mx-auto w-full max-w-[46rem] px-3 sm:px-6">
                 <AskEmptyState
                   firstName={firstName}
                   disabled={!enabled || streaming || limitHit}
@@ -517,7 +586,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               followKey={lastUser?.id}
               className="h-full min-h-0 min-w-0 flex-1"
               contentClassName={cn(
-                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6",
+                "mx-auto flex w-full max-w-[46rem] min-w-0 flex-col gap-3 overscroll-contain px-3 py-3 sm:gap-5 sm:px-6 sm:py-4",
                 HIDE_CHAT_FEEDBACK_BUTTONS,
                 NORMALIZE_THINKING_SPACE,
               )}
@@ -646,7 +715,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
           )}
 
           {/* ── composer dock ── */}
-          <div className="relative shrink-0 px-3 pb-2 pt-1 sm:px-6 sm:pb-3">
+          <div className="relative shrink-0 px-2.5 pb-2 pt-0.5 sm:px-6 sm:pb-3 sm:pt-1">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-background to-transparent"
@@ -717,11 +786,17 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                   <Icon name="shield" size={11} tone="primary" />
                   Read-only
                 </span>
-                <span aria-hidden="true">·</span>
-                <span>Latest 20 full mocks</span>
-                <span aria-hidden="true">·</span>
-                <span>Notes never sent</span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="sm:inline">
+                  ·
+                </span>
+                <span className="hidden sm:inline">Latest 20 full mocks</span>
+                <span aria-hidden="true" className="hidden sm:inline">
+                  ·
+                </span>
+                <span className="hidden sm:inline">Notes never sent</span>
+                <span aria-hidden="true" className="hidden sm:inline">
+                  ·
+                </span>
                 <span>Answers can be wrong</span>
               </p>
             </div>
@@ -738,6 +813,18 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       >
         <div className="flex h-[70dvh] min-h-0 flex-col overflow-hidden">
           {historyPanel}
+        </div>
+      </Sheet>
+
+      {/* ── mobile context window & plan limits ── */}
+      <Sheet
+        open={contextSheet}
+        onOpenChange={setContextSheet}
+        side="bottom"
+        title="Context window & plan limits"
+      >
+        <div className="flex min-h-0 flex-col overflow-hidden pb-2">
+          {usagePanel}
         </div>
       </Sheet>
 

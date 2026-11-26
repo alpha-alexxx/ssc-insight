@@ -1,7 +1,19 @@
+import type { Viewport } from "next";
 import { requireUser } from "@/lib/auth/require-user";
 import { AskRoute } from "./_ask/ask-route";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * The Android keyboard resizes the layout viewport instead of only the visual
+ * one, which used to slide this whole fixed-height page upward under the
+ * composer. "resizes-content" keeps the composer pinned to the visible bottom:
+ * dvh shrinks, the page itself never scrolls. iOS Safari already behaves this
+ * way through dvh alone.
+ */
+export const viewport: Viewport = {
+  interactiveWidget: "resizes-content",
+};
 
 /**
  * `/ask` — the full-page conversation with the study coach.

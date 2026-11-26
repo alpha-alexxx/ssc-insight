@@ -35,6 +35,8 @@ videos/*
 # local visual-QA screenshots (tools/shot.mjs output)
 .impeccable/refine/
 .impeccable/graphite/
+.impeccable/ask-mobile/
+.impeccable/ask-final/
 .tmp-verify/*
 
 # sandbox-only infrastructure (preview gateway + dev scripts) — not part of the app

@@ -243,7 +243,7 @@ export function PromptComposer({
             if (takeFiles(e.clipboardData.files) && !e.clipboardData.getData("text")) e.preventDefault();
           }}
           onScroll={() => paint(true)}
-          className={`block max-h-[200px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-3.5 sm:pt-3 sm:text-[14px] ${
+          className={`block max-h-[200px] w-full min-h-[52px] resize-none bg-transparent px-3 pt-3.5 pb-2 text-[16px] leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:min-h-0 sm:px-3.5 sm:pt-3 sm:pb-1 sm:text-[14px] ${
             overflows ? "pr-5 sm:pr-6" : ""
           }`}
         />
@@ -284,7 +284,7 @@ export function PromptComposer({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 px-2 pb-2 pt-1">
+      <div className="flex min-h-11 items-center gap-1.5 px-2 pb-2.5 pt-1 sm:min-h-0 sm:pb-2">
         {onFilesSelected && (
           <>
             <button
@@ -341,7 +341,7 @@ export function PromptComposer({
             aria-label={action === "stop" ? "Stop" : action === "wait" ? "Sending" : "Send"}
             disabled={action === "send" ? !canSend : action === "wait"}
             onClick={action === "stop" ? onStop : undefined}
-            className={`cursor-pointer disabled:cursor-default relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-[opacity,transform] duration-200 active:scale-95 disabled:opacity-35 ${FOCUS}`}
+            className={`cursor-pointer disabled:cursor-default relative flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-[opacity,transform] duration-200 active:scale-95 disabled:opacity-35 sm:size-8 ${FOCUS}`}
           >
             <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center" style={swap(action === "send", reduced)}>
               <ArrowUp className="size-4" />
