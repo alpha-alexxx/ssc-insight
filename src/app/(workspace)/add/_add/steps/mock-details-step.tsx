@@ -117,7 +117,12 @@ export function MockDetailsStep({
           label={
             <>
               Attempt date{" "}
-              <span aria-hidden="true" className="text-muted-foreground">*</span>
+              <span
+                aria-hidden="true"
+                className="align-baseline text-[0.75em] font-semibold text-destructive"
+              >
+                *
+              </span>
             </>
           }
           value={date}

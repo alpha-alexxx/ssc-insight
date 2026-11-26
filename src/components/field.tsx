@@ -105,7 +105,10 @@ export function Field({ id, label, aside, hint, error, required, className = "",
             <label htmlFor={id} className="text-[13px] font-medium text-foreground">
               {label}
               {required && (
-                <span aria-hidden="true" className="ml-0.5 text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="ml-0.5 align-baseline text-[0.75em] font-semibold text-destructive"
+                >
                   *
                 </span>
               )}
