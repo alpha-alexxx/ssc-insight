@@ -61,27 +61,39 @@ export function useModal(open: boolean, onClose: () => void, exit = 220) {
       e.preventDefault();
       close.current();
     };
-    // Stop scrolling from leaking to the page unless it happens inside something that scrolls.
-    const guard = (e: Event) => {
-      let node = e.target as HTMLElement | null;
-      while (node && node !== el) {
-        const style = getComputedStyle(node);
-        if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) return;
-        node = node.parentElement;
-      }
-      e.preventDefault();
-    };
     el.addEventListener("cancel", onCancel);
-    el.addEventListener("wheel", guard, { passive: false });
-    el.addEventListener("touchmove", guard, { passive: false });
+    const release = blockBackgroundScroll(el);
     return () => {
       el.removeEventListener("cancel", onCancel);
-      el.removeEventListener("wheel", guard);
-      el.removeEventListener("touchmove", guard);
+      release();
     };
   }, [mounted]);
 
   return { dialog, mounted: mounted || open, shown: open && shown };
+}
+
+/**
+ * Stops wheel and touch scrolling from leaking past `node` to the page behind it,
+ * unless the gesture starts inside something that really scrolls (a list, a rail).
+ * The page's own styles are never touched: no layout shift, no restyle of <html>.
+ * Returns its own teardown, so any modal-ish surface can borrow it.
+ */
+export function blockBackgroundScroll(node: HTMLElement): () => void {
+  const guard = (e: Event) => {
+    let target = e.target as HTMLElement | null;
+    while (target && target !== node) {
+      const style = getComputedStyle(target);
+      if (/(auto|scroll)/.test(style.overflowY) && target.scrollHeight > target.clientHeight) return;
+      target = target.parentElement;
+    }
+    e.preventDefault();
+  };
+  node.addEventListener("wheel", guard, { passive: false });
+  node.addEventListener("touchmove", guard, { passive: false });
+  return () => {
+    node.removeEventListener("wheel", guard);
+    node.removeEventListener("touchmove", guard);
+  };
 }
 
 /** Class for the full-window <dialog> both surfaces sit in. */

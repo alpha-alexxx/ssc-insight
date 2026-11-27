@@ -39,15 +39,24 @@ export default async function WorkspaceLayout({
     if (error instanceof SessionError && error.status === 401) redirect("/sign-in");
     redirect("/sign-in?error=unavailable");
   }
-  const defaultSidebarOpen =
-    (await cookies()).get("sidebar_state")?.value !== "false";
+  // `sidebar_state` is the vendored sidebar's own cookie: "<collapsed>:<width>"
+  // (e.g. "true:240"). Old sessions hold a bare "true"/"false" that recorded
+  // whether the panel was OPEN, so the legacy branch inverts its test; either
+  // way a missing width falls back to the default and nothing needs migrating.
+  const raw = (await cookies()).get("sidebar_state")?.value ?? "";
+  const [collapsedRaw, widthRaw = ""] = raw.split(":");
+  const defaultSidebarCollapsed = widthRaw
+    ? collapsedRaw === "true"
+    : collapsedRaw === "false";
+  const defaultSidebarWidth = Number(widthRaw) > 0 ? Number(widthRaw) : 240;
   return (
     <PrivateWorkspace key={user.id} userId={user.id} devBypass={devAuthBypassActive()}>
       <QueryProvider>
         <ExamScopeProvider>
           <AiWorkspaceProvider>
             <WorkspaceChrome
-              defaultSidebarOpen={defaultSidebarOpen}
+              defaultSidebarCollapsed={defaultSidebarCollapsed}
+              defaultSidebarWidth={defaultSidebarWidth}
               userEmail={user.email ?? ""}
               userName={user.name ?? ""}
               userImage={user.image ?? ""}

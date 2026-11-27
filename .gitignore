@@ -37,6 +37,7 @@ videos/*
 .impeccable/graphite/
 .impeccable/ask-mobile/
 .impeccable/ask-final/
+.impeccable/sidebar-hairline/
 .tmp-verify/*
 
 # sandbox-only infrastructure (preview gateway + dev scripts) — not part of the app

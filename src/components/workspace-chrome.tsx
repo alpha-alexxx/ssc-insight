@@ -36,13 +36,15 @@ export function WorkspaceChrome({
   userEmail = "",
   userName = "",
   userImage = "",
-  defaultSidebarOpen = true,
+  defaultSidebarCollapsed = false,
+  defaultSidebarWidth = 240,
   children,
 }: {
   userEmail?: string;
   userName?: string;
   userImage?: string;
-  defaultSidebarOpen?: boolean;
+  defaultSidebarCollapsed?: boolean;
+  defaultSidebarWidth?: number;
   children?: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -147,18 +149,17 @@ export function WorkspaceChrome({
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen">
+      {/* min-h-dvh, matching app-shell's own floor: the shell floors at the
+          dynamic viewport, not the large one. */}
+      <div className="min-h-dvh">
         <AppFrame
-          defaultSidebarOpen={defaultSidebarOpen}
+          defaultSidebarCollapsed={defaultSidebarCollapsed}
+          defaultSidebarWidth={defaultSidebarWidth}
           view={view}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
-          onRouteIntent={() => undefined}
-          onAddMock={addMock}
           onOpenSearch={openSearch}
-          onOpenSettings={() => go("settings")}
-          onOpenTrash={() => go("trash")}
           searchSlot={commandPalette}
         >
           {/* px-* lives here once, so a route cannot forget it (one did). */}
