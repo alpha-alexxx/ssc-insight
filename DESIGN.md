@@ -251,7 +251,18 @@ Filled in per layer as migration proceeds. Format: `component | source
 
 | Component | Source | Path | Notes |
 |---|---|---|---|
-| _(to be filled during layer 2 — foundations)_ | | | |
+| Landing device gallery | Hyperblur | `src/components/hyperblur/showcase-device-gallery.tsx` | Phone/tablet/computer morph; real mockups through `screens`; dynamic picker count and pause control |
+| Landing analytical scopes | Hyperblur + custom previews | `src/components/hyperblur/features-live-tabs.tsx`, `src/components/landing/previews/scope-scenes.tsx` | Four real projection scenes; serializable `scene` keys and `renderScene`; no Recharts |
+| Landing plan bento | Hyperblur + custom previews | `src/components/hyperblur/bento-live-widgets.tsx`, `src/components/landing/previews/plan-bento.tsx` | Product-owned tiles; real plan rows and optional read-only AI; no fake live operations |
+| Landing capabilities | Hyperblur | `src/components/hyperblur/features-orbit.tsx` | Two counter-rotating rings, real capabilities, explicit pause |
+| Landing counters | Hyperblur | `src/components/hyperblur/stats-counters.tsx` | Derived constants and trends; one-shot IO count-up with sr-only final values |
+| Landing comparison | Hyperblur | `src/components/hyperblur/comparison-versus.tsx` | Last two sample full mocks through `totals()`; no improvement causality claim |
+| Landing scenarios | Hyperblur | `src/components/hyperblur/proof-tilted-wall.tsx` | Tilted wall with fictional workflow disclosure, no customer identities or ratings |
+| Landing backgrounds | AI Canvas | `src/components/aicanvas/diamond-grid.tsx`, `noise-field.tsx` | Computed theme tokens, deterministic motion, offscreen/hidden/reduced-motion pause |
+| Landing privacy | Hairline + custom | `src/components/landing/privacy-section.tsx` | Hairline Tabs over exact ownership and backup guarantees |
+| Landing FAQ | Hairline | `src/components/landing/faq-section.tsx`, `faq.tsx` | Existing truthful questions and FaqAccordion in a two-column composition |
+| Landing final CTA | Hyperblur | `src/components/hyperblur/cta-banner.tsx` | Real auth links and disabled unavailable state |
+| Landing footer | Hairline | `src/components/landing/footer.tsx` | Existing FlutedFooter and small-print composition retained |
 
 ---
 

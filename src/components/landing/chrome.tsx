@@ -18,13 +18,16 @@ import { cn } from "@/lib/utils";
 
 const RAIL_ITEMS: { id: string; no: string; label: string }[] = [
   { id: "intro", no: "00", label: "Intro" },
-  { id: "workspace", no: "01", label: "Workspace" },
-  { id: "film", no: "02", label: "Film" },
-  { id: "scopes", no: "03", label: "Method" },
-  { id: "plan", no: "04", label: "Plan" },
-  { id: "compare", no: "05", label: "Proof" },
-  { id: "privacy", no: "06", label: "Privacy" },
-  { id: "faq", no: "07", label: "Questions" },
+  { id: "workspace", no: "01", label: "Devices" },
+  { id: "scopes", no: "02", label: "Scopes" },
+  { id: "plan", no: "03", label: "Plan" },
+  { id: "capabilities", no: "04", label: "Orbit" },
+  { id: "numbers", no: "05", label: "Numbers" },
+  { id: "compare", no: "06", label: "Compare" },
+  { id: "privacy", no: "07", label: "Privacy" },
+  { id: "stories", no: "08", label: "Scenarios" },
+  { id: "faq", no: "09", label: "Questions" },
+  { id: "start", no: "10", label: "Start" },
 ];
 
 export function SectionRail() {

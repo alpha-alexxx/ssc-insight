@@ -52,7 +52,7 @@ export function Faq() {
   return (
     <FaqAccordion
       type="single"
-      className="mt-10"
+      className="mt-0"
       items={FAQ_ITEMS}
     />
   );
