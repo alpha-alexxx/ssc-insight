@@ -90,6 +90,8 @@ export interface SidebarProps {
   sections: SidebarSection[];
   /** Rows above the account, e.g. Support and Settings. */
   footer?: SidebarItem[];
+  /** A surface between the footer rows and the account, e.g. a two-way switch. */
+  footerSlot?: React.ReactNode;
   /** The current page's item id. */
   value?: string;
   defaultValue?: string;
@@ -291,6 +293,7 @@ type Peek = { item: SidebarItem; top: number };
 export function Sidebar({
   sections,
   footer = EMPTY,
+  footerSlot,
   value: valueProp,
   defaultValue,
   onValueChange,
@@ -981,6 +984,7 @@ export function Sidebar({
                 </ul>
               </LiquidNav>
             )}
+            {footerSlot}
             {account}
           </div>
 

@@ -52,7 +52,17 @@ test("the workspace sidebar is composed from the vendored Hairline Sidebar", () 
   );
   assert.match(workspace, /<Sidebar\b/, "it must render <Sidebar>");
   assert.match(workspace, /\bsections=\{sections\}/, "nav groups feed sections");
-  assert.match(workspace, /\bfooter=\{FOOTER_ITEMS\}/, "Settings/Trash are footer rows");
+  // Settings/Trash are not plain footer rows any more: they are one two-tab pill
+  // in the open panel and an icon pair in the rail, both from the same data.
+  assert.match(
+    workspace,
+    /footerSlot=\{<FooterUtilities view=\{view\} \/>\}/,
+    "the utility switch is the footer slot",
+  );
+  assert.match(workspace, /import \{ LiquidTabs \} from "@\/components\/liquid-tabs"/, "the pill is the house LiquidTabs");
+  assert.match(workspace, /<LiquidTabs[\s\S]*?href,\n\s*label,/, "both tabs are links, so they work without JS");
+  assert.match(workspace, /value=\{current \?\? ""\}/, "no utility page means no pill, not a stuck one");
+  assert.doesNotMatch(workspace, /footer=\{FOOTER_ITEMS\}/, "the old footer-row list is gone");
   assert.match(workspace, /\bvalue=\{view\}/, "the current route is the selection");
   assert.match(workspace, /\blinkAs=\{Link\}/, "rows are Next.js links");
   assert.match(workspace, /\bbrand=\{<SidebarBrand \/>\}/, "the wordmark is the brand slot");
@@ -62,7 +72,9 @@ test("the workspace sidebar is composed from the vendored Hairline Sidebar", () 
   assert.doesNotMatch(workspace, /from "@\/components\/sheet"/, "no phone Sheet");
   assert.doesNotMatch(workspace, /<Tooltip\b/, "the rail peek replaced tooltips");
   assert.doesNotMatch(workspace, /\bonSearch=/, "search is the header's job, not a sidebar row");
-  assert.doesNotMatch(workspace, /<LiquidNav\b/, "the drop is wired inside the Sidebar");
+  // The nav list's drop lives inside the vendored Sidebar; this file only wraps the
+  // rail's utility pair (there is no section wrapper here).
+  assert.doesNotMatch(workspace, /<LiquidNav active=\{view\}/, "the nav drop is wired inside the Sidebar");
 });
 
 test("the active nav row defers its fill to the liquid drop", () => {
@@ -101,11 +113,18 @@ test("the drop is decoration: hidden from AT and never in front of the rows", ()
   assert.match(nav, /pointer-events-none absolute inset-0 z-0/, "the drop sits behind");
   assert.match(nav, /relative z-10/, "the rows sit above the drop");
   assert.match(renderRow, /"aria-current"|aria-current=\{current \? "page" : undefined\}/, "rows keep link semantics");
-  // The footer has its own drop, so Settings/Trash glide too.
-  assert.equal(
-    (sidebar.match(/<LiquidNav active=\{shownActive\}/g) ?? []).length,
-    2,
-    "the section list and the footer each get a drop",
+  // The nav has its drop; the rail's Settings/Trash pair has its own, so the
+  // highlight follows into the footer when either utility page is open.
+  assert.match(
+    sidebar,
+    /<LiquidNav active=\{shownActive\} className="px-0"/,
+    "the section list has a drop",
+  );
+  assert.match(workspace, /<LiquidNav active=\{current\}/, "the rail's utility pair has its own drop");
+  assert.match(
+    workspace,
+    /data-liquid-nav=\{id\}/,
+    "each rail utility row is measurable by the drop",
   );
 });
 

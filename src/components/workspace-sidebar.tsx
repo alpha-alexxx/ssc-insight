@@ -23,8 +23,11 @@ import { Dialog } from "@/components/dialog";
 import type { MenuEntry } from "@/components/dropdown-menu";
 import { useExamScope } from "@/components/exam-context";
 import { PlainIcon } from "@/components/icon";
+import { LiquidNav } from "@/components/liquid-nav";
+import { LiquidTabs } from "@/components/liquid-tabs";
 import {
   Sidebar,
+  useSidebar,
   type SidebarIcon,
   type SidebarItem,
   type SidebarSection,
@@ -148,10 +151,15 @@ const ADD_ITEM: SidebarItem = {
 };
 
 /** Settings and Trash are utility destinations, deliberately not nav-group entries. */
-const FOOTER_ITEMS: SidebarItem[] = [
-  { id: "settings", label: "Settings", icon: Settings, href: VIEW_HREF.settings },
+const UTILITIES = [
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    href: VIEW_HREF.settings,
+  },
   { id: "trash", label: "Trash", icon: Trash2, href: VIEW_HREF.trash },
-];
+] as const;
 
 /**
  * Hairline's own label formula, reproduced on purpose: `--p` runs 1 → 0 as the
@@ -186,6 +194,75 @@ function SidebarBrand() {
         </span>
       </span>
     </Link>
+  );
+}
+
+/**
+ * Settings and Trash, in two shapes: the open panel shows them as one two-tab
+ * pill (the house `LiquidTabs` slide carries the selection between them), and
+ * the 60px rail keeps the familiar icon pair with the `LiquidNav` drop, since
+ * two labels cannot share a rail row.
+ *
+ * The pill's tabs are real links with `aria-current`, so they work without JS and
+ * survive middle-click; a plain left click is handed to the router instead so the
+ * workspace is not reloaded from scratch.
+ */
+function FooterUtilities({ view }: { view: AppView }) {
+  const router = useRouter();
+  const { collapsed, drawer } = useSidebar();
+  const rail = collapsed && !drawer;
+  const current = UTILITIES.find((u) => u.id === view)?.id;
+
+  if (rail) {
+    return (
+      <LiquidNav active={current} className="px-2 pb-1.5">
+        <div className="flex flex-col items-center gap-1.5">
+          {UTILITIES.map(({ id, label, href, icon: Icon }) => (
+            <Link
+              key={id}
+              href={href}
+              data-liquid-nav={id}
+              aria-current={current === id ? "page" : undefined}
+              aria-label={label}
+              className={`relative grid size-9 place-items-center rounded-[10px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                current === id
+                  ? "font-semibold text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="size-4" strokeWidth={1.75} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </LiquidNav>
+    );
+  }
+
+  return (
+    <div
+      className="px-2 pb-2"
+      onClickCapture={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const tab = (event.target as HTMLElement).closest<HTMLElement>("[data-liquid-tab]");
+        const utility = UTILITIES.find((u) => u.id === tab?.dataset.liquidTab);
+        if (!utility) return;
+        event.preventDefault();
+        router.push(utility.href);
+      }}
+    >
+      <LiquidTabs
+        tabs={UTILITIES.map(({ id, label, href, icon: Icon }) => ({
+          value: id,
+          href,
+          label,
+          icon: <Icon aria-hidden="true" />,
+        }))}
+        value={current ?? ""}
+        label="Settings and Trash"
+        size="sm"
+        block
+      />
+    </div>
   );
 }
 
@@ -335,7 +412,7 @@ export function WorkspaceSidebar({
     <>
       <Sidebar
         sections={sections}
-        footer={FOOTER_ITEMS}
+        footerSlot={<FooterUtilities view={view} />}
         value={view}
         defaultCollapsed={defaultCollapsed}
         defaultWidth={defaultWidth}
