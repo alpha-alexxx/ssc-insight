@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 
 /**
- * Structural contract for the workspace sidebar.
+ * Structural contract for the workspace shell.
  *
- * The panel is the vendored Hairline UI `Sidebar` (`src/components/sidebar.tsx`,
- * from `npx shadcn@latest add @hairline/sidebar`) composed by
- * `src/components/workspace-sidebar.tsx`. These assertions are the properties a
- * later edit must not quietly undo:
- *   · the active row is the house LiquidNav drop, never a fill of its own
- *   · the panel is viewport-fixed while the workspace scrolls the WINDOW
- *   · the phone surface is a flush fixed drawer, not a rounded card on a gutter
- *   · the fold/width cookie round-trips through the server layout
- *   · the header's phone search pill still claims the spare width
+ * The panel is the hand-rolled `<aside>` + phone `Sheet` in
+ * `src/components/app-shell.tsx`, composed by
+ * `src/components/workspace-sidebar.tsx`. A Hairline `@hairline/sidebar` build
+ * briefly replaced it and was reverted (its vendored file is gone for good
+ * unless that becomes a deliberate product decision), so these assertions pin
+ * what the restored shell must keep:
+ *   · one composition — the same body in the desktop aside and the phone Sheet
+ *   · the phone search pill claims the header's spare width
+ *   · the active nav row is the liquid drop, not its own fill + ring
+ *   · the phone nav Sheet is flush, not a rounded card on a gutter
+ *   · the fold round-trips through the one `sidebar_state` cookie, both the
+ *     bare boolean and the newer "<collapsed>:<width>" the reverted build wrote
  */
 
 function source(path: string) {
@@ -28,205 +31,48 @@ function code(text: string) {
     .join("\n");
 }
 
-const sidebar = code(source("src/components/sidebar.tsx"));
-const nav = code(source("src/components/liquid-nav.tsx"));
-const workspace = code(source("src/components/workspace-sidebar.tsx"));
 const shell = code(source("src/components/app-shell.tsx"));
+const sidebar = code(source("src/components/workspace-sidebar.tsx"));
 const chrome = code(source("src/components/workspace-chrome.tsx"));
 const layout = code(source("src/app/(workspace)/layout.tsx"));
-const modal = code(source("src/components/modal.ts"));
-const tabs = code(source("src/components/liquid-tabs.tsx"));
 const palette = code(source("src/components/command-palette.tsx"));
 const adapter = code(source("src/components/workspace-command-palette.tsx"));
+const nav = code(source("src/components/liquid-nav.tsx"));
+const sheet = code(source("src/components/sheet.tsx"));
+const tabs = code(source("src/components/liquid-tabs.tsx"));
 
-/** Just `renderRow` — the header, the search row and the account row are different surfaces. */
-const renderRow = sidebar.slice(
-  sidebar.indexOf("const renderRow = ("),
-  sidebar.indexOf("/* the parts of the panel */"),
+/** Just `NavItem` — the footer's Settings/Trash pair is a different surface and keeps its own fill. */
+const navItem = sidebar.slice(
+  sidebar.indexOf("function NavItem("),
+  sidebar.indexOf("export function SidebarUserMenu("),
 );
 
-test("the workspace sidebar is composed from the vendored Hairline Sidebar", () => {
-  assert.match(
-    workspace,
-    /import \{\s*Sidebar,/,
-    "workspace-sidebar must import the Hairline Sidebar",
+test("the shell has one sidebar composition, not a vendored panel", () => {
+  // The restored shell: a fixed desktop aside and a phone Sheet, both fed by
+  // the same body. The Hairline vendor file must not come back by accident.
+  assert.match(shell, /<aside\b/, "the desktop panel is the hand-rolled aside");
+  assert.match(shell, /<Sheet\b/, "the phone panel is the header-opened Sheet");
+  assert.equal(
+    shell.match(/<WorkspaceSidebarBody\b/g)?.length,
+    2,
+    "both surfaces render the same sidebar body",
   );
-  assert.match(workspace, /<Sidebar\b/, "it must render <Sidebar>");
-  assert.match(workspace, /\bsections=\{sections\}/, "nav groups feed sections");
-  // Settings/Trash are not plain footer rows any more: two pill buttons whose
-  // only active signal is the LiquidNav drop, in the panel and the rail alike.
-  assert.match(
-    workspace,
-    /footerSlot=\{<FooterUtilities view=\{view\} \/>\}/,
-    "the utility switch is the footer slot",
-  );
-  assert.match(
-    workspace,
-    /import \{ LiquidNav \} from "@\/components\/liquid-nav"/,
-    "the utilities borrow the nav's drop",
-  );
-  assert.match(
-    workspace,
-    /<LiquidNav\s+active=\{current\}/,
-    "the drop follows the utility page and nothing else",
-  );
-  assert.doesNotMatch(
-    workspace,
-    /liquid-tabs|<LiquidTabs/,
-    "LiquidTabs has no no-selection state, so it cannot own this control",
-  );
-  assert.doesNotMatch(workspace, /onClickCapture=/, "the rows are plain links, no router bridge");
-  assert.match(workspace, /data-liquid-nav=\{id\}/, "both rows are measurable by the drop");
-  assert.match(workspace, /rounded-full/, "the rows are pills");
-  assert.doesNotMatch(workspace, /footer=\{FOOTER_ITEMS\}/, "the old footer-row list is gone");
-  assert.match(workspace, /\bvalue=\{view\}/, "the current route is the selection");
-  assert.match(workspace, /\blinkAs=\{Link\}/, "rows are Next.js links");
-  assert.match(workspace, /\bbrand=\{<SidebarBrand \/>\}/, "the wordmark is the brand slot");
-  // The old hand-rolled surfaces are gone for good.
-  assert.doesNotMatch(workspace, /<aside\b/, "no hand-rolled aside");
-  assert.doesNotMatch(workspace, /WorkspaceSidebarBody|function NavItem\(/, "no parallel nav");
-  assert.doesNotMatch(workspace, /from "@\/components\/sheet"/, "no phone Sheet");
-  assert.doesNotMatch(workspace, /<Tooltip\b/, "the rail peek replaced tooltips");
-  assert.doesNotMatch(workspace, /\bonSearch=/, "search is the header's job, not a sidebar row");
-  // The nav list's drop lives inside the vendored Sidebar; this file only wraps the
-  // rail's utility pair (there is no section wrapper here).
-  assert.doesNotMatch(workspace, /<LiquidNav active=\{view\}/, "the nav drop is wired inside the Sidebar");
-});
-
-test("the active nav row defers its fill to the liquid drop", () => {
+  assert.match(shell, /useIsMobile/, "the header renders open/collapse per viewport");
   assert.match(
     sidebar,
-    /import \{ LiquidNav \} from "\.\/liquid-nav"/,
-    "the vendored sidebar must render the house liquid nav",
+    /export function WorkspaceSidebarBody\(/,
+    "the body is exported for the aside and the sheet",
   );
-  assert.match(sidebar, /<LiquidNav active=\{shownActive\}/, "the drop follows the page");
-  assert.match(
-    renderRow,
-    /"data-liquid-nav": item\.id/,
-    "every destination row must be measurable by the drop",
+  assert.match(sidebar, /export function SidebarUserMenu\(/, "the account row lives with the nav");
+  assert.doesNotMatch(shell, /SidebarTrigger|useSidebar|\bSidebarProvider\b/, "no vendored sidebar API");
+  assert.doesNotMatch(sidebar, /from "@\/components\/sidebar"/, "the body imports no vendored sidebar");
+  assert.equal(
+    existsSync(new URL("../src/components/sidebar.tsx", import.meta.url)),
+    false,
+    "the vendored Hairline sidebar is deleted",
   );
-  assert.match(
-    renderRow,
-    /item\.accent\s*\n?\s*\?\s*"bg-primary\/6/,
-    "an accent row (Log a mock) keeps its own tint",
-  );
-  assert.match(
-    renderRow,
-    /active\s*\n?\s*\?\s*"font-semibold text-primary-foreground"/,
-    "the active row takes the drop's foreground, nothing else",
-  );
-  // A fill, a ring or an accent bar here would fight the drop behind the row.
-  assert.doesNotMatch(renderRow, /bg-accent text-foreground/, "no grey active fill");
-  assert.doesNotMatch(renderRow, /ring-1 ring-sidebar-border/, "no active ring");
-  assert.doesNotMatch(renderRow, /rounded-r-full bg-primary/, "no old left accent bar");
-  // Hairline's own ghost + WAAPI glide were replaced by the drop.
-  assert.doesNotMatch(sidebar, /const ghost =/, "the ghost layer is gone");
-  assert.doesNotMatch(sidebar, /layer\.animate\(/, "the WAAPI glide is gone");
-});
-
-test("the drop is decoration: hidden from AT and never in front of the rows", () => {
-  assert.match(nav, /<svg\s+aria-hidden="true"/s, "the drop layer is decorative");
-  assert.match(nav, /pointer-events-none absolute inset-0 z-0/, "the drop sits behind");
-  assert.match(nav, /relative z-10/, "the rows sit above the drop");
-  assert.match(renderRow, /"aria-current"|aria-current=\{current \? "page" : undefined\}/, "rows keep link semantics");
-  // The nav has its drop; the rail's Settings/Trash pair has its own, so the
-  // highlight follows into the footer when either utility page is open.
-  assert.match(
-    sidebar,
-    /<LiquidNav active=\{shownActive\} className="px-0"/,
-    "the section list has a drop",
-  );
-  assert.match(workspace, /<LiquidNav\s+active=\{current\}/, "the utility pills have their own drop");
-  assert.match(
-    workspace,
-    /data-liquid-nav=\{id\}/,
-    "each rail utility row is measurable by the drop",
-  );
-});
-
-test("a selection that matches no tab clears the tabs drop instead of lingering", () => {
-  // The footer used to leave a lit Settings highlight on /dashboard: `aim()` bailed
-  // out when the value had no mark and the last painted path stayed put.
-  assert.doesNotMatch(
-    tabs,
-    /if \(!s \|\| !mark\) return;/,
-    "a missing mark must clear, not return",
-  );
-  assert.match(tabs, /if \(!mark\) \{/, "the no-selection branch exists");
-  assert.match(tabs, /pathRef\.current\?\.setAttribute\("d", ""\)/, "it clears the path");
-  assert.match(tabs, /if \(instant \|\| m\.cleared\)/, "coming back places, it does not glide");
-});
-
-test("the drop is placed, not slid, whenever it could be lying", () => {
-  // First mount, a resize, a webfont arriving, or a highlight that appears
-  // after having been hidden.
-  assert.match(nav, /if \(instant \|\| motion\.current\.hidden\)/, "must place instead of gliding");
-  assert.match(nav, /new ResizeObserver/, "must re-measure when the list reflows");
-  assert.match(nav, /document\.fonts\?\.ready/, "must re-measure when the font lands");
-  assert.match(nav, /aim\(active, reduced\)/, "must honour reduced motion");
-});
-
-test("the panel is viewport-fixed because the workspace scrolls the window", () => {
-  // Panel mode: sticky, full viewport height, so page-level sticky rails and
-  // /ask's 100dvh sizing keep resolving against the window.
-  assert.match(
-    sidebar,
-    /"sticky top-0 z-\[2\] h-dvh border-r border-border"/,
-    "the open panel sticks to the viewport",
-  );
-  // No inner-scroll geometry may creep back into the page column.
-  assert.match(
-    sidebar,
-    /className="relative flex min-w-0 flex-1 flex-col"/,
-    "the page column flows with the window",
-  );
-  // A container-type here would lay out-contain the fixed drawer.
-  assert.doesNotMatch(sidebar, /@container relative flex w-full/, "no @container root");
-});
-
-test("the phone sidebar is a fixed drawer with one rounded open edge", () => {
-  assert.match(
-    sidebar,
-    /"fixed inset-y-0 left-0 z-40 h-dvh rounded-r-xl border-r border-sidebar-border will-change-transform"/,
-    "the drawer covers the viewport, draws one hairline, and rounds only its open edge",
-  );
-  // A little softening on the open edge, not a floating card: no big radius, no halo.
-  assert.doesNotMatch(sidebar, /rounded-r-\[20px\]/, "no oversized drawer radius");
-  assert.doesNotMatch(sidebar, /rounded-r-\[1[6-9]px\]/, "the drawer radius stays small");
-  assert.match(sidebar, /"fixed inset-0 z-30 bg-\[color-mix/, "the scrim is fixed");
-  assert.match(
-    sidebar,
-    /blockBackgroundScroll\(el\)/,
-    "the page behind an open drawer cannot scroll",
-  );
-  assert.match(modal, /export function blockBackgroundScroll\(/, "the guard is shared with modal.ts");
-});
-
-test("the fold and the dragged width round-trip through the server layout", () => {
-  // One cookie, written by the sidebar from Hairline's two callbacks.
-  assert.match(
-    workspace,
-    /sidebar_state=\$\{next\.collapsed\}:\$\{next\.width\}/,
-    "workspace-sidebar writes <collapsed>:<width>",
-  );
-  assert.match(workspace, /onCollapsedChange=\{/, "the fold is persisted");
-  assert.match(workspace, /onWidthChange=\{/, "the dragged width is persisted");
-  // The layout parses it for the first paint and passes it down as defaults.
-  assert.match(layout, /get\("sidebar_state"\)/, "the layout reads the cookie");
-  assert.match(layout, /raw\.split\(":"\)/, "collapsed and width share one value");
-  assert.match(layout, /defaultSidebarCollapsed=/, "the fold is passed to the chrome");
-  assert.match(layout, /defaultSidebarWidth=/, "the width is passed to the chrome");
-  assert.match(chrome, /defaultSidebarCollapsed = false/, "chrome owns the default fold");
-  assert.match(chrome, /defaultSidebarWidth = 240/, "chrome owns the default width");
-  // Uncontrolled all the way down: no client state mirrors the cookie.
-  assert.doesNotMatch(workspace, /useState<boolean>/, "the fold is not mirrored into state");
-});
-
-test("the header's single trigger folds the panel and opens the drawer", () => {
-  assert.match(shell, /<SidebarTrigger className="size-11 tap-target md:size-9" \/>/, "one control");
-  assert.doesNotMatch(shell, /PanelLeftIcon/, "the bespoke panel glyph is gone");
-  assert.doesNotMatch(shell, /<Sheet\b/, "the phone nav Sheet is gone");
-  assert.doesNotMatch(shell, /useIsMobile/, "the header no longer renders per viewport");
+  // The Hairline-only footer grammar went with it.
+  assert.doesNotMatch(sidebar, /FooterUtilities|footerSlot/, "no Hairline footer slot");
 });
 
 test("the phone search pill claims the header's spare width", () => {
@@ -273,4 +119,144 @@ test("the pill keeps its label on phones and hides only the keyboard hint", () =
       `${name}: the label may not be hidden below sm`,
     );
   }
+});
+
+test("the active nav row defers its fill to the liquid drop", () => {
+  assert.match(
+    sidebar,
+    /import \{ LiquidNav \} from "@\/components\/liquid-nav"/,
+    "the sidebar must render the liquid nav",
+  );
+  assert.match(sidebar, /<LiquidNav\b/, "the nav must be wrapped in LiquidNav");
+  assert.match(sidebar, /<LiquidNav\s+active=\{view\}/, "the drop follows the view");
+  assert.match(
+    navItem,
+    /data-liquid-nav=\{item\.view\}/,
+    "every row must be measurable by the drop",
+  );
+  // The row's own active treatment is colour only; a fill or ring here would
+  // fight the drop that is already behind it.
+  assert.doesNotMatch(
+    navItem,
+    /bg-accent font-semibold/,
+    "the active row must not paint its own fill",
+  );
+  assert.doesNotMatch(
+    navItem,
+    /ring-1 ring-sidebar-border/,
+    "the active row must not paint its own ring",
+  );
+  assert.doesNotMatch(
+    navItem,
+    /rounded-r-full bg-primary/,
+    "the old left accent bar must be gone",
+  );
+  assert.match(
+    navItem,
+    /active\s*\?\s*"font-semibold text-primary-foreground"/,
+    "the active row takes the drop's foreground",
+  );
+});
+
+test("the drop is decoration: hidden from AT and never in front of the rows", () => {
+  assert.match(nav, /<svg\s+aria-hidden="true"/s, "the drop layer is decorative");
+  assert.match(nav, /pointer-events-none absolute inset-0 z-0/, "the drop sits behind");
+  assert.match(nav, /relative z-10/, "the rows sit above the drop");
+  assert.match(
+    navItem,
+    /aria-current=\{active \? "page" : undefined\}/,
+    "the row keeps its own link semantics",
+  );
+});
+
+test("the drop is placed, not slid, whenever it could be lying", () => {
+  // First mount, a resize, a webfont arriving, or a highlight that appears
+  // after having been hidden.
+  assert.match(nav, /if \(instant \|\| motion\.current\.hidden\)/, "must place instead of gliding");
+  assert.match(nav, /new ResizeObserver/, "must re-measure when the list reflows");
+  assert.match(nav, /document\.fonts\?\.ready/, "must re-measure when the font lands");
+  assert.match(nav, /aim\(active, reduced\)/, "must honour reduced motion");
+});
+
+test("a tabs selection that matches no tab clears the drop instead of lingering", () => {
+  // Settings still uses LiquidTabs. The Hairline footer that found this bug is
+  // gone, but the primitive's fix is a general one and must stay.
+  assert.doesNotMatch(
+    tabs,
+    /if \(!s \|\| !mark\) return;/,
+    "a missing mark must clear, not return",
+  );
+  assert.match(tabs, /if \(!mark\) \{/, "the no-selection branch exists");
+  assert.match(tabs, /pathRef\.current\?\.setAttribute\("d", ""\)/, "it clears the path");
+  assert.match(tabs, /if \(instant \|\| m\.cleared\)/, "coming back places, it does not glide");
+});
+
+test("the phone nav sheet is flush, not a floating card", () => {
+  assert.match(
+    shell,
+    /<Sheet[\s\S]*?side="left"[\s\S]*?flush\b/,
+    "the nav sheet must opt into the flush geometry",
+  );
+  // `flush` is the only thing that removes the gutter and the rounding.
+  assert.match(sheet, /flush\?: boolean;/, "Sheet must expose flush");
+  assert.match(sheet, /flush \? "p-0" : "p-2"/, "flush removes the gutter");
+  assert.match(sheet, /flush \? "" : "rounded-\[20px\]"/, "flush squares the side panel");
+  assert.match(
+    sheet,
+    /border-r border-border/,
+    "flush draws one rule on the sheet's inner edge",
+  );
+  assert.doesNotMatch(
+    shell,
+    /p-0 bg-sidebar text-sidebar-foreground border-sidebar-border/,
+    "the call site may not re-add the old floating chrome",
+  );
+});
+
+test("the sheet's floating close button clears the wordmark", () => {
+  assert.match(
+    sidebar,
+    /expanded && variant === "mobile" && "pr-12"/,
+    "the mobile brand row must keep clear of the sheet's close button",
+  );
+});
+
+test("the fold round-trips through the one sidebar_state cookie", () => {
+  // The shell writes the bare boolean it has always written…
+  assert.match(shell, /const SIDEBAR_COOKIE = "sidebar_state"/, "the cookie name is unchanged");
+  assert.match(
+    shell,
+    /SIDEBAR_COOKIE\}=\$\{next\}/,
+    "app-shell writes sidebar_state=<open>",
+  );
+  assert.doesNotMatch(shell, /collapsed\}:\$\{/, "the <collapsed>:<width> format is gone");
+  // …and the layout reads both it and the format the reverted build left behind.
+  assert.match(layout, /get\("sidebar_state"\)/, "the layout reads the cookie");
+  assert.match(layout, /raw\.includes\(":"\)/, "the newer format is detected, not assumed");
+  assert.match(layout, /raw\.split\(":"\)\[0\] !== "true"/, "with a colon the first segment is collapsed");
+  assert.match(layout, /raw !== "false"/, "a bare value records whether the panel is open");
+  assert.match(layout, /defaultSidebarOpen=/, "the fold is passed to the chrome");
+  assert.match(chrome, /defaultSidebarOpen = true/, "chrome owns the default fold");
+  assert.match(chrome, /defaultSidebarOpen=\{defaultSidebarOpen\}/, "chrome forwards it to the shell");
+  // The fold is owned by AppFrame state, seeded from the server-read cookie, so
+  // the first paint already matches the user's choice; no second source of truth.
+  assert.match(shell, /useState\(defaultSidebarOpen\)/, "the fold starts from the server-rendered default");
+  assert.match(shell, /SIDEBAR_COOKIE\}=\$\{expanded\}/, "the mount effect mirrors the resolved fold");
+  // The reverted props must not survive anywhere.
+  for (const [name, text] of [
+    ["app-shell", shell],
+    ["chrome", chrome],
+    ["layout", layout],
+  ] as const) {
+    assert.doesNotMatch(text, /defaultSidebarCollapsed|defaultSidebarWidth/, `${name}: Hairline props are gone`);
+  }
+});
+
+test("the chrome keeps the shell's route callbacks wired", () => {
+  for (const prop of ["onRouteIntent", "onAddMock", "onOpenSearch"]) {
+    assert.match(chrome, new RegExp(`${prop}=`), `chrome must pass ${prop} to AppFrame`);
+  }
+  assert.match(shell, /onAddMock: \(\) => void;/, "the shell owns the Log-a-mock action");
+  assert.doesNotMatch(shell, /onOpenSettings|onOpenTrash/, "Settings/Trash route through the shell's own go()");
+  assert.match(sidebar, /onGoTo: \(next: "settings" \| "trash"\) => void;/, "the sidebar routes Settings/Trash");
 });

@@ -36,15 +36,13 @@ export function WorkspaceChrome({
   userEmail = "",
   userName = "",
   userImage = "",
-  defaultSidebarCollapsed = false,
-  defaultSidebarWidth = 240,
+  defaultSidebarOpen = true,
   children,
 }: {
   userEmail?: string;
   userName?: string;
   userImage?: string;
-  defaultSidebarCollapsed?: boolean;
-  defaultSidebarWidth?: number;
+  defaultSidebarOpen?: boolean;
   children?: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -153,12 +151,13 @@ export function WorkspaceChrome({
           dynamic viewport, not the large one. */}
       <div className="min-h-dvh">
         <AppFrame
-          defaultSidebarCollapsed={defaultSidebarCollapsed}
-          defaultSidebarWidth={defaultSidebarWidth}
+          defaultSidebarOpen={defaultSidebarOpen}
           view={view}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
+          onRouteIntent={() => undefined}
+          onAddMock={addMock}
           onOpenSearch={openSearch}
           searchSlot={commandPalette}
         >

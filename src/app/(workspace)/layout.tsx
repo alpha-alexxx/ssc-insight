@@ -39,24 +39,22 @@ export default async function WorkspaceLayout({
     if (error instanceof SessionError && error.status === 401) redirect("/sign-in");
     redirect("/sign-in?error=unavailable");
   }
-  // `sidebar_state` is the vendored sidebar's own cookie: "<collapsed>:<width>"
-  // (e.g. "true:240"). Old sessions hold a bare "true"/"false" that recorded
-  // whether the panel was OPEN, so the legacy branch inverts its test; either
-  // way a missing width falls back to the default and nothing needs migrating.
+  // `sidebar_state` records whether the panel is OPEN; the shell writes a bare
+  // "true"/"false". A Hairline-sidebar build briefly wrote "<collapsed>:<width>"
+  // ("true:240" folded, "false:240" open), so the two formats are read apart:
+  // with a colon the first segment is COLLAPSED, without one it is OPEN. A
+  // missing cookie opens the panel, and the next toggle rewrites the bare value.
   const raw = (await cookies()).get("sidebar_state")?.value ?? "";
-  const [collapsedRaw, widthRaw = ""] = raw.split(":");
-  const defaultSidebarCollapsed = widthRaw
-    ? collapsedRaw === "true"
-    : collapsedRaw === "false";
-  const defaultSidebarWidth = Number(widthRaw) > 0 ? Number(widthRaw) : 240;
+  const defaultSidebarOpen = raw.includes(":")
+    ? raw.split(":")[0] !== "true"
+    : raw !== "false";
   return (
     <PrivateWorkspace key={user.id} userId={user.id} devBypass={devAuthBypassActive()}>
       <QueryProvider>
         <ExamScopeProvider>
           <AiWorkspaceProvider>
             <WorkspaceChrome
-              defaultSidebarCollapsed={defaultSidebarCollapsed}
-              defaultSidebarWidth={defaultSidebarWidth}
+              defaultSidebarOpen={defaultSidebarOpen}
               userEmail={user.email ?? ""}
               userName={user.name ?? ""}
               userImage={user.image ?? ""}

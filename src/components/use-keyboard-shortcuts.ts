@@ -40,7 +40,8 @@ export function useKeyboardShortcuts(handlers: Handlers) {
 
     function onKey(event: KeyboardEvent) {
       // Mod+K opens the search palette — checked before the mod-key
-      // bail-out below (⌘B in the sidebar is the other mod-key shortcut).
+      // bail-out below, so a ⌘/Ctrl chord never falls through to the
+      // single-key navigation handlers.
       if (
         (event.metaKey || event.ctrlKey) &&
         !event.altKey &&
