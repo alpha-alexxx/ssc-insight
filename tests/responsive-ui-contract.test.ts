@@ -180,7 +180,7 @@ test("auth CTAs inherit Button height while preserving width, states, and labels
   for (const fragment of [
     "disabled={form.formState.isSubmitting}",
     "disabled={requestForm.formState.isSubmitting}",
-    "disabled={codeForm.formState.isSubmitting}",
+    "disabled={code.length !== 6 || status === \"verifying\"}",
     "Signing in…",
     "Sending…",
     "Verifying…",
@@ -212,15 +212,29 @@ test("auth CTAs inherit Button height while preserving width, states, and labels
 
 test("decorative plates and OTP/password compound control exceptions stay intact", () => {
   const authShell = source("src/components/auth/auth-shell.tsx");
+  const brandPanel = source("src/components/auth/brand-panel.tsx");
+  const authCard = source("src/components/auth/auth-card.tsx");
   const otp = source("src/components/code-input.tsx");
+  const rails = source("src/components/auth/otp-rail.tsx");
   const password = source("src/components/password-input.tsx");
   const forgotPlate = source("src/components/auth/plates/forgot-plate.tsx");
   const signInPlate = source("src/components/auth/plates/sign-in-plate.tsx");
 
+  // The brand plate keeps its tone-inverted eyebrow, and the split stage keeps
+  // all three readings in the rotation (the task's own leads).
   assert.match(
-    authShell,
+    brandPanel,
     /aria-hidden="true"[\s\S]*?uppercase tracking-\[0\.14em\] text-primary-foreground\/70/,
   );
+  for (const plate of ["SignInPlateArt", "SignUpPlateArt", "ForgotPlateArt"]) {
+    assert.ok(authShell.includes(`<${plate} />`), `auth shell lost ${plate}`);
+  }
+  // The tilt surface stays decorative-only: its layers are hidden, the form is not.
+  assert.match(authCard, /aria-hidden="true"/);
+  assert.doesNotMatch(authCard, /aria-hidden="true"[^>]*>\s*\{children\}/);
+  // The auth rail is one native input under a rail — never six fields.
+  assert.equal(rails.match(/<input/g)?.length, 1);
+  assert.match(rails, /autoComplete="one-time-code"/);
   assert.ok(otp.includes("h-10"));
   assert.ok(otp.includes("@min-[22rem]:h-11"));
   assert.ok(password.includes("size-7"));

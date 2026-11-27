@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   authFailureCopy,
   EmailAuthError,
@@ -17,19 +17,32 @@ import {
 import {
   otpRequestSchema,
   signInEmailSchema,
-  totpVerifySchema,
   type OtpRequestValues,
   type SignInEmailValues,
 } from "@/lib/auth/email-schemas";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { Button } from "@/components/button";
-import { CodeInput } from "@/components/code-input";
 import { Input } from "@/components/input";
 import { PasswordInput } from "@/components/password-input";
 import { AuthFieldError } from "@/components/auth/auth-field-error";
+import { OtpRail, type OtpStatus } from "@/components/auth/otp-rail";
+import { SuccessPanel } from "@/components/auth/success-panel";
+import { Afterglow, type AfterglowHandle } from "@/components/afterglow";
+import { useAfterglowColors } from "@/components/auth/afterglow-light";
+import { withAuthTimeout } from "@/components/auth/with-auth-timeout";
 import { EASE, DUR } from "@/lib/motion";
 
-type SignInMode =
+/**
+ * How long the success panel holds before the dashboard loads.
+ *
+ * It exists because the sign-in moment deserves to be seen: Afterglow's front
+ * takes ~1.1s to cross the card, and redirecting on the same frame would throw
+ * the light away. Reduced motion skips the wait entirely (Afterglow becomes an
+ * instant swap), so no reader is ever delayed by an animation they turned off.
+ */
+const SUCCESS_HOLD_MS = 1100;
+
+type SignInStep =
   | { step: "credentials" }
   | { step: "otp"; stage: "request" | "verify"; email: string }
   | { step: "totp"; email: string };
@@ -61,14 +74,37 @@ function OrWithEmailSeparator() {
   );
 }
 
+/** The task heading — one h1 per step, since only one step is ever mounted. */
+function StepHeading({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <header className="flex flex-col gap-2">
+      <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
+        {title}
+      </h1>
+      <p className="text-sm leading-relaxed text-muted-foreground">{children}</p>
+    </header>
+  );
+}
+
 /**
- * The sign-in page's working part, rebuilt on the Hairline controls: Google
- * (the brand mark carried in the shared Button), email + password (the
- * see-password affordance comes with the Hairline password input), the
- * emailed one-time-code login and the TOTP second step (the boxed
- * code input). Success replaces history with `/dashboard?welcome=1` — the
- * workspace toasts once off that param and strips it, so the sign-in page
- * never lingers in history.
+ * The sign-in card's working part.
+ *
+ * Google, email + password, the emailed one-time code and the TOTP second step
+ * all live on the adapted `auth-tilt-spotlight` surface; the two code steps use
+ * the adapted `auth-flow-otp-verify` rail, which checks itself the moment the
+ * sixth digit lands. Success plays Hairline's Afterglow over the card and then
+ * replaces history with `/dashboard?welcome=1` — the workspace toasts once off
+ * that param and strips it, so the sign-in page never lingers in history.
+ *
+ * Failure copy is the wire layer's (`authFailureCopy`); this form never invents
+ * a reason or a countdown. A rate limit seeds the resend clock with the
+ * server's own `Retry-After`.
  */
 export function SignInForm({
   googleEnabled,
@@ -78,99 +114,169 @@ export function SignInForm({
   emailEnabled: boolean;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<SignInMode>({ step: "credentials" });
-  const [formError, setFormError] = useState("");
-  const [notice, setNotice] = useState("");
+  const reduced = useReducedMotion();
+  // The Afterglow handle is state, not a ref: the submit handlers are
+  // closures React compiles, and reading a ref inside one is exactly what
+  // the refs rule forbids. A callback ref keeps the handle in render state.
+  const [glow, setGlow] = useState<AfterglowHandle | null>(null);
+  const colors = useAfterglowColors();
+  const [step, setStep] = useState<SignInStep>({ step: "credentials" });
+  const [done, setDone] = useState<{ email: string } | null>(null);
+  const [code, setCode] = useState("");
+  const [codeStatus, setCodeStatus] = useState<OtpStatus>("idle");
+  const [codeError, setCodeError] = useState("");
+  const [codeHint, setCodeHint] = useState<React.ReactNode>(undefined);
 
-  function done() {
-    router.replace("/dashboard?welcome=1");
+  // One redirect, scheduled off the success state — never inline after `await`.
+  useEffect(() => {
+    if (!done) return;
+    const timer = window.setTimeout(
+      () => router.replace("/dashboard?welcome=1"),
+      reduced ? 0 : SUCCESS_HOLD_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [done, reduced, router]);
+
+  function succeed(email: string) {
+    const update = () => setDone({ email });
+    const handle = glow;
+    if (!handle) {
+      update();
+      return;
+    }
+    void Promise.resolve(handle.play(update)).catch(update);
+  }
+
+  function leaveCodeStep() {
+    setCode("");
+    setCodeStatus("idle");
+    setCodeError("");
+    setCodeHint(undefined);
   }
 
   const stepKey =
-    mode.step === "credentials"
-      ? "credentials"
-      : mode.step === "totp"
-        ? "totp"
-        : `otp-${mode.stage}`;
+    done
+      ? "done"
+      : step.step === "credentials"
+        ? "credentials"
+        : step.step === "totp"
+          ? "totp"
+          : `otp-${step.stage}`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <AnimatePresence mode="wait" initial={false}>
-        <StepPanel key={stepKey}>
-          {mode.step === "credentials" ? (
-            <div className="flex flex-col gap-6">
-              <header className="flex flex-col gap-2">
-                <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
-                  Welcome back
-                </h1>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Sign in to your private mock tracker.
-                </p>
-              </header>
+    <Afterglow
+      ref={setGlow}
+      colors={colors}
+      className="flex w-full flex-1 flex-col"
+    >
+      <div className="flex w-full flex-1 flex-col justify-center gap-6 rounded-[16px] p-5 sm:p-9">
+        {done ? (
+          <SuccessPanel
+            title="You're in"
+            description={
+              <>
+                Signed in as {done.email}. Opening your dashboard…
+              </>
+            }
+            footnote="Keep this tab open — a slow connection at sign-in is not a failure."
+          />
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            <StepPanel key={stepKey}>
+              {step.step === "credentials" ? (
+                <div className="flex flex-col gap-6">
+                  <StepHeading title="Welcome back">
+                    Sign in to your private mock tracker.
+                  </StepHeading>
 
-              <div className="flex flex-col gap-5">
-                <GoogleSignInButton
-                  enabled={googleEnabled}
-                  label="Sign in with Google"
-                  className="w-full justify-center"
-                />
-
-                {emailEnabled ? (
-                  <>
-                    <OrWithEmailSeparator />
-                    <SignInCredentialsForm
-                      onDone={done}
-                      onTwoFactor={(email) => {
-                        setFormError("");
-                        setNotice("");
-                        setMode({ step: "totp", email });
-                      }}
-                      onOtp={(email) => {
-                        setFormError("");
-                        setNotice("");
-                        setMode({ step: "otp", stage: "request", email });
-                      }}
-                      notice={notice}
-                      formError={formError}
-                      setFormError={setFormError}
+                  <div className="flex flex-col gap-5">
+                    <GoogleSignInButton
+                      enabled={googleEnabled}
+                      label="Sign in with Google"
+                      className="w-full justify-center"
                     />
-                  </>
-                ) : null}
 
-                <p className="text-center text-[13px] leading-relaxed text-muted-foreground">
-                  New here?{" "}
-                  <Link
-                    href="/sign-up"
-                    className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
-                  >
-                    Create an account
-                  </Link>
-                </p>
-              </div>
-            </div>
-          ) : null}
+                    {emailEnabled ? (
+                      <>
+                        <OrWithEmailSeparator />
+                        <SignInCredentialsForm
+                          onDone={succeed}
+                          onTwoFactor={(email) => {
+                            leaveCodeStep();
+                            setStep({ step: "totp", email });
+                          }}
+                          onOtp={(email) => {
+                            leaveCodeStep();
+                            setStep({ step: "otp", stage: "request", email });
+                          }}
+                        />
+                      </>
+                    ) : null}
 
-          {mode.step === "otp" ? (
-            <OtpLogin
-              mode={mode}
-              setMode={setMode}
-              formError={formError}
-              setFormError={setFormError}
-              onDone={done}
-            />
-          ) : null}
+                    <p className="text-center text-[13px] leading-relaxed text-muted-foreground">
+                      New here?{" "}
+                      <Link
+                        href="/sign-up"
+                        className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                      >
+                        Create an account
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
-          {mode.step === "totp" ? (
-            <TotpStep
-              email={mode.email}
-              formError={formError}
-              setFormError={setFormError}
-              onDone={done}
-            />
-          ) : null}
-        </StepPanel>
-      </AnimatePresence>
-    </div>
+              {step.step === "otp" ? (
+                <OtpStep
+                  mode={step}
+                  code={code}
+                  setCode={setCode}
+                  status={codeStatus}
+                  error={codeError}
+                  hint={codeHint}
+                  onStatus={setCodeStatus}
+                  onError={(message) => setCodeError(message)}
+                  onHint={setCodeHint}
+                  onDone={succeed}
+                  onRequested={(email) =>
+                    setStep({ step: "otp", stage: "verify", email })
+                  }
+                  onRestart={() => {
+                    leaveCodeStep();
+                    setStep({
+                      step: "otp",
+                      stage: "request",
+                      email: step.email,
+                    });
+                  }}
+                  onBackToCredentials={() => {
+                    leaveCodeStep();
+                    setStep({ step: "credentials" });
+                  }}
+                />
+              ) : null}
+
+              {step.step === "totp" ? (
+                <TotpStep
+                  email={step.email}
+                  code={code}
+                  setCode={setCode}
+                  status={codeStatus}
+                  error={codeError}
+                  onStatus={setCodeStatus}
+                  onError={(message) => setCodeError(message)}
+                  onDone={succeed}
+                  onBackToCredentials={() => {
+                    leaveCodeStep();
+                    setStep({ step: "credentials" });
+                  }}
+                />
+              ) : null}
+            </StepPanel>
+          </AnimatePresence>
+        )}
+      </div>
+    </Afterglow>
   );
 }
 
@@ -180,17 +286,12 @@ function SignInCredentialsForm({
   onDone,
   onTwoFactor,
   onOtp,
-  notice,
-  formError,
-  setFormError,
 }: {
-  onDone: () => void;
+  onDone: (email: string) => void;
   onTwoFactor: (email: string) => void;
   onOtp: (email: string) => void;
-  notice: string;
-  formError: string;
-  setFormError: (value: string) => void;
 }) {
+  const [formError, setFormError] = useState("");
   const form = useForm<SignInEmailValues>({
     resolver: zodResolver(signInEmailSchema),
     defaultValues: { email: "", password: "" },
@@ -202,23 +303,18 @@ function SignInCredentialsForm({
       onSubmit={form.handleSubmit(async (values) => {
         setFormError("");
         try {
-          const outcome = await signInEmail(values);
+          const outcome = await withAuthTimeout(signInEmail(values));
           if (outcome.status === "two-factor-required") onTwoFactor(values.email);
-          else onDone();
-        } catch (e) {
+          else onDone(values.email);
+        } catch (error) {
           setFormError(
-            e instanceof EmailAuthError
-              ? authFailureCopy(e.reason, e.retryAfterSeconds)
+            error instanceof EmailAuthError
+              ? authFailureCopy(error.reason, error.retryAfterSeconds)
               : "Sign-in failed. Please retry.",
           );
         }
       })}
     >
-      {notice ? (
-        <p role="status" className="text-xs leading-relaxed text-success">
-          {notice}
-        </p>
-      ) : null}
       <Input
         id="signin-email"
         type="email"
@@ -231,7 +327,10 @@ function SignInCredentialsForm({
       {/* The password label row carries the emailed-code affordance on its
           right end (the Input has no aside slot, so the row is composed). */}
       <div className="flex items-baseline justify-between gap-3 px-3 pb-1.5">
-        <label htmlFor="signin-password" className="text-[13px] font-medium text-foreground">
+        <label
+          htmlFor="signin-password"
+          className="text-[13px] font-medium text-foreground"
+        >
           Password
         </label>
         <button
@@ -259,74 +358,76 @@ function SignInCredentialsForm({
       >
         Sign in
       </Button>
-      <button
-        type="button"
+      <Link
+        href={forgotHref(form.getValues("email"))}
         className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-        onClick={() => onForgot(form.getValues("email"))}
       >
         Forgot password?
-      </button>
+      </Link>
     </form>
   );
 }
 
-function onForgot(email: string) {
-  // Hand the typed email to the forgot-password page so the reader doesn't
-  // retype it; the page reads ?email= once on mount.
+/** Hand the typed email to the reset page so the reader doesn't retype it. */
+function forgotHref(email: string) {
   const params = new URLSearchParams();
   if (email) params.set("email", email);
-  window.location.assign(`/forgot-password${params.size ? `?${params}` : ""}`);
+  return `/forgot-password${params.size ? `?${params}` : ""}`;
 }
 
 /* ------------------------------------------------------------- OTP login */
 
-function OtpLogin({
+function OtpStep({
   mode,
-  setMode,
-  formError,
-  setFormError,
+  code,
+  setCode,
+  status,
+  error,
+  hint,
+  onStatus,
+  onError,
+  onHint,
   onDone,
+  onRequested,
+  onRestart,
+  onBackToCredentials,
 }: {
-  mode: Extract<SignInMode, { step: "otp" }>;
-  setMode: (mode: SignInMode) => void;
-  formError: string;
-  setFormError: (value: string) => void;
-  onDone: () => void;
+  mode: Extract<SignInStep, { step: "otp" }>;
+  code: string;
+  setCode: (code: string) => void;
+  status: OtpStatus;
+  error: string;
+  hint: React.ReactNode;
+  onStatus: (status: OtpStatus) => void;
+  onError: (message: string) => void;
+  onHint: (hint: React.ReactNode) => void;
+  onDone: (email: string) => void;
+  onRequested: (email: string) => void;
+  onRestart: () => void;
+  onBackToCredentials: () => void;
 }) {
-  const [error, setError] = useState("");
-  const [code, setCode] = useState("");
   const requestForm = useForm<OtpRequestValues>({
     resolver: zodResolver(otpRequestSchema),
     defaultValues: { email: mode.email },
   });
-  const codeForm = useForm<{ code: string }>({
-    resolver: zodResolver(totpVerifySchema),
-    defaultValues: { code: "" },
-  });
-
   if (mode.stage === "request") {
     return (
       <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
-            Sign in with a code
-          </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            We email a 6-digit code — no password needed.
-          </p>
-        </header>
+        <StepHeading title="Sign in with a code">
+          We email a 6-digit code — no password needed.
+        </StepHeading>
         <form
           className="flex flex-col gap-4"
           onSubmit={requestForm.handleSubmit(async (values) => {
-            setError("");
+            onError("");
+            onStatus("idle");
             try {
-              await sendSignInOtp(values.email);
-              setFormError("");
-              setMode({ step: "otp", stage: "verify", email: values.email });
-            } catch (e) {
-              setError(
-                e instanceof EmailAuthError
-                  ? authFailureCopy(e.reason, e.retryAfterSeconds)
+              await withAuthTimeout(sendSignInOtp(values.email));
+              onRequested(values.email);
+            } catch (caught) {
+              onError(
+                caught instanceof EmailAuthError
+                  ? authFailureCopy(caught.reason, caught.retryAfterSeconds)
                   : "Could not send the code.",
               );
             }
@@ -343,7 +444,6 @@ function OtpLogin({
             {...requestForm.register("email")}
           />
           <AuthFieldError>{error}</AuthFieldError>
-          <AuthFieldError>{formError}</AuthFieldError>
           <Button
             type="submit"
             size="lg"
@@ -354,79 +454,92 @@ function OtpLogin({
           >
             Email me the code
           </Button>
-          <Link
-            href="/sign-in"
-            className="text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          <button
+            type="button"
+            onClick={onBackToCredentials}
+            className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
           >
             Back to sign in
-          </Link>
+          </button>
         </form>
       </div>
     );
   }
 
+  async function verify(next: string) {
+    if (status === "verifying" || next.length !== 6) return;
+    onStatus("verifying");
+    onError("");
+    try {
+      await withAuthTimeout(signInWithOtp({ email: mode.email, code: next }));
+      onStatus("success");
+      onDone(mode.email);
+    } catch (caught) {
+      onStatus("error");
+      onError(
+        caught instanceof EmailAuthError
+          ? authFailureCopy(caught.reason, caught.retryAfterSeconds)
+          : "Could not verify the code.",
+      );
+    }
+  }
+
+  async function resend() {
+    await withAuthTimeout(sendSignInOtp(mode.email));
+    onHint("A new code is on its way.");
+    onError("");
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
-          Check your email
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          A 6-digit code is on its way to {mode.email}.
-        </p>
-      </header>
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={codeForm.handleSubmit(async (values) => {
-          setError("");
-          try {
-            await signInWithOtp({ email: mode.email, code: values.code });
-            onDone();
-          } catch (e) {
-            setError(
-              e instanceof EmailAuthError
-                ? authFailureCopy(e.reason, e.retryAfterSeconds)
-                : "Could not verify the code.",
-            );
-          }
-        })}
+      <StepHeading title="Check your email">
+        A 6-digit code is on its way to{" "}
+        <span className="break-words font-medium text-foreground">
+          {mode.email}
+        </span>
+        .
+      </StepHeading>
+
+      <OtpRail
+        channel="email"
+        value={code}
+        onValueChange={(next) => {
+          setCode(next);
+          if (status === "error") onStatus("idle");
+        }}
+        onComplete={verify}
+        status={status}
+        error={error}
+        hint={hint}
+        resend={{ seconds: 30, onResend: resend }}
+        onBack={onRestart}
+        backLabel="Use a different email"
+        autoFocus
+      />
+
+      <Button
+        type="button"
+        size="lg"
+        disabled={code.length !== 6 || status === "verifying"}
+        loading={status === "verifying"}
+        statusLabels={{ pending: "Verifying…" }}
+        onClick={() => void verify(code)}
+        className="w-full justify-center"
       >
-        <CodeInput
-          value={code}
-          onValueChange={(next) => {
-            setCode(next);
-            codeForm.setValue("code", next, { shouldValidate: next.length === 6 });
-          }}
-          label="Sign-in code"
-          autoFocus
-        />
-        <AuthFieldError>{codeForm.formState.errors.code?.message}</AuthFieldError>
-        <AuthFieldError>{error}</AuthFieldError>
-        <AuthFieldError>{formError}</AuthFieldError>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={codeForm.formState.isSubmitting}
-          loading={codeForm.formState.isSubmitting}
-          statusLabels={{ pending: "Verifying…" }}
-          className="w-full justify-center"
-        >
-          Verify and sign in
-        </Button>
-        <button
-          type="button"
-          className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-          onClick={() => setMode({ step: "otp", stage: "request", email: mode.email })}
-        >
-          Use a different email
-        </button>
-        <Link
-          href="/sign-in"
-          className="text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-        >
-          Back to sign in
-        </Link>
-      </form>
+        Verify and sign in
+      </Button>
+      {/* Kept as an explicit control for keyboard users; the rail also
+          checks itself the moment the sixth digit lands. */}
+      <span className="sr-only" aria-live="polite">
+        {status === "verifying" ? "Verifying the code" : ""}
+      </span>
+      <button
+        type="button"
+        onClick={onBackToCredentials}
+        className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+      >
+        Back to sign in
+      </button>
     </div>
   );
 }
@@ -435,73 +548,93 @@ function OtpLogin({
 
 function TotpStep({
   email,
-  formError,
-  setFormError,
+  code,
+  setCode,
+  status,
+  error,
+  onStatus,
+  onError,
   onDone,
+  onBackToCredentials,
 }: {
   email: string;
-  formError: string;
-  setFormError: (value: string) => void;
-  onDone: () => void;
+  code: string;
+  setCode: (code: string) => void;
+  status: OtpStatus;
+  error: string;
+  onStatus: (status: OtpStatus) => void;
+  onError: (message: string) => void;
+  onDone: (email: string) => void;
+  onBackToCredentials: () => void;
 }) {
-  const [error, setError] = useState("");
-  const [code, setCode] = useState("");
-  const form = useForm<{ code: string }>({
-    resolver: zodResolver(totpVerifySchema),
-    defaultValues: { code: "" },
-  });
+  async function verify(next: string) {
+    if (status === "verifying" || next.length !== 6) return;
+    onStatus("verifying");
+    onError("");
+    try {
+      await withAuthTimeout(verifyTotpSignIn(next));
+      onStatus("success");
+      onDone(email);
+    } catch (caught) {
+      onStatus("error");
+      onError(
+        caught instanceof EmailAuthError
+          ? authFailureCopy(caught.reason, caught.retryAfterSeconds)
+          : "Could not verify the code.",
+      );
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-serif text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-foreground">
-          Two-factor check
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Enter the 6-digit code from your authenticator app
-          {email ? ` for ${email}` : ""}.
-        </p>
-      </header>
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={form.handleSubmit(async (values) => {
-          setError("");
-          try {
-            await verifyTotpSignIn(values.code);
-            onDone();
-          } catch (e) {
-            setError(
-              e instanceof EmailAuthError
-                ? authFailureCopy(e.reason, e.retryAfterSeconds)
-                : "Could not verify the code.",
-            );
-            setFormError("");
-          }
-        })}
+      <StepHeading title="Two-factor check">
+        Enter the 6-digit code from your authenticator app
+        {email ? (
+          <>
+            {" "}
+            for{" "}
+            <span className="break-words font-medium text-foreground">
+              {email}
+            </span>
+          </>
+        ) : null}
+        .
+      </StepHeading>
+
+      <OtpRail
+        channel="authenticator"
+        value={code}
+        onValueChange={(next) => {
+          setCode(next);
+          if (status === "error") onStatus("idle");
+        }}
+        onComplete={verify}
+        status={status}
+        error={error}
+        resend={null}
+        onBack={onBackToCredentials}
+        backLabel="Use password instead"
+        autoFocus
+      />
+
+      <Button
+        type="button"
+        size="lg"
+        disabled={code.length !== 6 || status === "verifying"}
+        loading={status === "verifying"}
+        statusLabels={{ pending: "Verifying…" }}
+        onClick={() => void verify(code)}
+        className="w-full justify-center"
       >
-        <CodeInput
-          value={code}
-          onValueChange={(next) => {
-            setCode(next);
-            form.setValue("code", next, { shouldValidate: next.length === 6 });
-          }}
-          label="Authenticator code"
-          autoFocus
-        />
-        <AuthFieldError>{form.formState.errors.code?.message}</AuthFieldError>
-        <AuthFieldError>{error}</AuthFieldError>
-        <AuthFieldError>{formError}</AuthFieldError>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={form.formState.isSubmitting}
-          loading={form.formState.isSubmitting}
-          statusLabels={{ pending: "Verifying…" }}
-          className="w-full justify-center"
-        >
-          Verify and sign in
-        </Button>
-      </form>
+        Verify and sign in
+      </Button>
+      <button
+        type="button"
+        onClick={onBackToCredentials}
+        className="text-left text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+      >
+        Back to sign in
+      </button>
     </div>
   );
 }

@@ -1,36 +1,52 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthCard } from "@/components/auth/auth-card";
+import { BrandPanel, type BrandSlide } from "@/components/auth/brand-panel";
 import { ForgotPlateArt } from "@/components/auth/plates/forgot-plate";
 import { SignInPlateArt } from "@/components/auth/plates/sign-in-plate";
 import { SignUpPlateArt } from "@/components/auth/plates/sign-up-plate";
 
 /**
- * The auth pages' chrome, in Hairline tokens: the same split card the old
- * login-04 layout had — the form half on card tokens, the right half a
- * tone-inverted plate on `primary` — now composed as the token card
- * (rounded, ruled by an inset hairline, unshadowed) per the house card
- * recipe. Each page carries a distinct plate: the ledger for sign-in, the
- * 50-day plan for sign-up, the reassurance reading for forgot-password.
+ * The auth pages' chrome: a split stage, adapted from Hyperblur's
+ * `auth-split-brand`.
  *
- * The plate art is server-rendered inside this server component; the forms
- * stay client islands within the same card. On phones the plate is hidden
- * and the form leads, so the task is never behind a scroll. The page root
- * is `min-h-screen flex flex-col` with the footer at `mt-auto`, so the
- * honest one-line footer always sits at the bottom of the viewport.
+ * The brand half is the plate (a tone-inverted reading derived through the
+ * landing fixtures' real analytics), now carrying a drifting wash and the
+ * three readings on a rotation instead of invented customer quotes — this is
+ * a private tracker, so the honest social proof is the product's own output.
+ * The task half is the adapted `auth-tilt-spotlight` card: paper, a rotating
+ * conic frame, a spotlight on the pointer and a 3° tilt.
+ *
+ * The two halves are siblings rather than nested cards, so neither surface
+ * needs a shadow and the split reads as one composition in every palette.
+ * Below `md` the brand half folds away — the eyebrow rides above the card
+ * instead — so the form leads and the task is never behind a scroll. The
+ * footer stays at the bottom of the viewport with `mt-auto`.
+ *
+ * The slide art is server-rendered here and handed to the client panel, so
+ * the plates keep their server-only fixture and plan reads.
  */
 
 export type AuthShellTask = "sign-in" | "sign-up" | "forgot";
 
-const PLATE_ART: Record<AuthShellTask, React.ReactNode> = {
-  "sign-in": <SignInPlateArt />,
-  "sign-up": <SignUpPlateArt />,
-  forgot: <ForgotPlateArt />,
+const LEDGER: BrandSlide = { label: "The mock ledger", art: <SignInPlateArt /> };
+const PLAN: BrandSlide = { label: "The 50-day plan", art: <SignUpPlateArt /> };
+const RECOVERY: BrandSlide = {
+  label: "Recovery, without the loss",
+  art: <ForgotPlateArt />,
 };
 
-const PLATE_LABEL: Record<AuthShellTask, string> = {
+const EYEBROW: Record<AuthShellTask, string> = {
   "sign-in": "SSC Insight · Mock tracker",
   "sign-up": "SSC Insight · The 50-day plan",
   forgot: "SSC Insight · Account recovery",
+};
+
+/** The task's own reading leads; the other two are what else the product reads. */
+const SLIDES: Record<AuthShellTask, BrandSlide[]> = {
+  "sign-in": [LEDGER, PLAN, RECOVERY],
+  "sign-up": [PLAN, LEDGER, RECOVERY],
+  forgot: [RECOVERY, LEDGER, PLAN],
 };
 
 export function AuthShell({
@@ -42,7 +58,7 @@ export function AuthShell({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Header — wordmark left, theme right, on the canvas above the card. */}
+      {/* Header — wordmark left, theme right, on the canvas above the stage. */}
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
         <Link
           href="/"
@@ -58,36 +74,28 @@ export function AuthShell({
         id="main-content"
         className="flex flex-1 items-center justify-center px-4 pb-10 sm:px-8"
       >
-        <div className="w-full max-w-md md:max-w-4xl">
-          {/* The auth card: grid of form | plate, rounded, ruled by the inset
-              hairline, unshadowed — the token card recipe. */}
-          <div className="grid overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[inset_0_0_0_1px_var(--border)] md:grid-cols-2">
-            {/* The task */}
-            <div className="flex flex-col px-6 py-8 sm:px-10 sm:py-10 md:justify-center">
-              {children}
-            </div>
+        <div className="w-full max-w-md md:max-w-5xl xl:max-w-6xl">
+          {/* Phones: the eyebrow is all the brand half needs. */}
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+            {EYEBROW[task]}
+          </p>
 
-            {/* The plate — hidden on phones, tone-inverted on primary. */}
-            <div
-              aria-hidden="true"
-              className="relative hidden items-center overflow-hidden border-l border-border bg-primary px-10 py-12 text-primary-foreground md:flex xl:px-12"
-            >
-              <div
-                aria-hidden="true"
-                className="absolute -right-24 -top-24 size-72 rounded-full bg-primary-foreground/10 opacity-80 blur-2xl"
-              />
-              <div className="relative flex w-full flex-col gap-10">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">
-                  {PLATE_LABEL[task]}
-                </p>
-                {PLATE_ART[task]}
-              </div>
-            </div>
+          <div className="grid items-stretch gap-4 md:grid-cols-[1.04fr_1fr] lg:gap-5">
+            <BrandPanel
+              eyebrow={EYEBROW[task]}
+              slides={SLIDES[task]}
+              className="hidden md:flex md:min-h-[34rem] lg:min-h-[38rem]"
+            />
+
+            {/* The task. The card is the tilt surface; the forms own the steps. */}
+            <AuthCard className="md:min-h-[34rem] lg:min-h-[38rem]">
+              {children}
+            </AuthCard>
           </div>
         </div>
       </main>
 
-      {/* The block's under-card line — honest, no fake legal copy. */}
+      {/* The block's under-stage line — honest, no fake legal copy. */}
       <footer className="mt-auto px-4 pb-6 sm:px-8">
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
           One account, one workspace. Export everything, anytime.
