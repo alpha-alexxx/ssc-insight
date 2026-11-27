@@ -153,11 +153,6 @@ const FOOTER_ITEMS: SidebarItem[] = [
   { id: "trash", label: "Trash", icon: Trash2, href: VIEW_HREF.trash },
 ];
 
-/** Platform check for the search hint — display only; the palette accepts both shortcuts. */
-const IS_APPLE_PLATFORM =
-  typeof navigator !== "undefined" &&
-  /Mac|iP(hone|ad|od)/.test(navigator.userAgent);
-
 /**
  * Hairline's own label formula, reproduced on purpose: `--p` runs 1 → 0 as the
  * panel folds, so the brand text fades with the edge instead of disappearing
@@ -208,7 +203,6 @@ export interface WorkspaceSidebarProps {
   defaultCollapsed: boolean;
   /** The cookie's open width, as read on the server. */
   defaultWidth: number;
-  onOpenSearch: () => void;
   /** The page column: header + breadcrumb + `<main>`. */
   children: React.ReactNode;
 }
@@ -220,7 +214,6 @@ export function WorkspaceSidebar({
   userImage,
   defaultCollapsed,
   defaultWidth,
-  onOpenSearch,
   children,
 }: WorkspaceSidebarProps): React.JSX.Element {
   const router = useRouter();
@@ -362,8 +355,6 @@ export function WorkspaceSidebar({
           avatar: userImage || undefined,
         }}
         userMenu={userMenu}
-        onSearch={onOpenSearch}
-        searchShortcut={IS_APPLE_PLATFORM ? "⌘K" : "Ctrl K"}
         brand={<SidebarBrand />}
         linkAs={Link}
         label="Workspace"

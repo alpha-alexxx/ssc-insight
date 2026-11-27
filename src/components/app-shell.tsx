@@ -76,7 +76,6 @@ export function AppFrame({
         userImage={userImage}
         defaultCollapsed={defaultSidebarCollapsed}
         defaultWidth={defaultSidebarWidth}
-        onOpenSearch={onOpenSearch}
       >
         <AppHeader onOpenSearch={onOpenSearch} searchSlot={searchSlot} />
         {/* Where-you-are strip: under the app bar so the header row stays clean

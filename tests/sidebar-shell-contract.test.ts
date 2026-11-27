@@ -61,6 +61,7 @@ test("the workspace sidebar is composed from the vendored Hairline Sidebar", () 
   assert.doesNotMatch(workspace, /WorkspaceSidebarBody|function NavItem\(/, "no parallel nav");
   assert.doesNotMatch(workspace, /from "@\/components\/sheet"/, "no phone Sheet");
   assert.doesNotMatch(workspace, /<Tooltip\b/, "the rail peek replaced tooltips");
+  assert.doesNotMatch(workspace, /\bonSearch=/, "search is the header's job, not a sidebar row");
   assert.doesNotMatch(workspace, /<LiquidNav\b/, "the drop is wired inside the Sidebar");
 });
 
@@ -135,13 +136,15 @@ test("the panel is viewport-fixed because the workspace scrolls the window", () 
   assert.doesNotMatch(sidebar, /@container relative flex w-full/, "no @container root");
 });
 
-test("the phone sidebar is a flush fixed drawer, not a floating card", () => {
+test("the phone sidebar is a fixed drawer with one rounded open edge", () => {
   assert.match(
     sidebar,
-    /"fixed inset-y-0 left-0 z-40 h-dvh border-r border-sidebar-border will-change-transform"/,
-    "the drawer covers the viewport and draws one hairline",
+    /"fixed inset-y-0 left-0 z-40 h-dvh rounded-r-xl border-r border-sidebar-border will-change-transform"/,
+    "the drawer covers the viewport, draws one hairline, and rounds only its open edge",
   );
-  assert.doesNotMatch(sidebar, /rounded-r-\[20px\]/, "no rounded floating drawer");
+  // A little softening on the open edge, not a floating card: no big radius, no halo.
+  assert.doesNotMatch(sidebar, /rounded-r-\[20px\]/, "no oversized drawer radius");
+  assert.doesNotMatch(sidebar, /rounded-r-\[1[6-9]px\]/, "the drawer radius stays small");
   assert.match(sidebar, /"fixed inset-0 z-30 bg-\[color-mix/, "the scrim is fixed");
   assert.match(
     sidebar,

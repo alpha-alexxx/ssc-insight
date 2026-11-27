@@ -910,9 +910,11 @@ export function Sidebar({
           data-collapsed={rail ? "" : undefined}
           inert={drawer && !drawerOpen}
           className={`flex shrink-0 flex-col bg-[var(--ui-sb-bg)] text-foreground ${
-            // Flush on phones, like the Sheet it replaces: square, one hairline, no shadow,
-            // and fixed so it covers the viewport wherever the page is scrolled to.
-            drawer ? "fixed inset-y-0 left-0 z-40 h-dvh border-r border-sidebar-border will-change-transform" : "sticky top-0 z-[2] h-dvh border-r border-border"
+            // On phones it is a drawer fixed to the viewport's left edge, so it covers
+            // the page wherever it is scrolled to; only its open (right) edge is rounded.
+            drawer
+              ? "fixed inset-y-0 left-0 z-40 h-dvh rounded-r-xl border-r border-sidebar-border will-change-transform"
+              : "sticky top-0 z-[2] h-dvh border-r border-border"
           } ${measured ? "" : "invisible"}`}
           // `invisible`, not `hidden`: the panel still reserves its width for the one
           // frame before the ResizeObserver decides panel vs drawer, so nothing jumps.
