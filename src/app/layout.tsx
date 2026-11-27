@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "@fontsource-variable/dm-sans/index.css";
 import "@fontsource-variable/source-serif-4/index.css";
 import "./globals.css";
@@ -34,7 +35,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         {/* Blocking inline script: resolves palette before first paint. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_PREFS_SCRIPT }} />
+        <Script id="ssc-theme-prefs" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_PREFS_SCRIPT }} />
         <ThemeProvider
           attribute="class"
           storageKey="ssc.theme"
