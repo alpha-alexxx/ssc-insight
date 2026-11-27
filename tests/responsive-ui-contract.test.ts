@@ -130,6 +130,39 @@ test("landing mobile menu trigger composes the shared ghost icon Button", () => 
   assert.doesNotMatch(trigger, /<button\b/);
 });
 
+/**
+ * The phone bar is logo · theme · hamburger. Packing Log in / Sign up beside
+ * the trigger pushed it past the viewport (21px clipped at 360px, 61px at
+ * 320px, i.e. unreachable), so below `sm` the auth pair moves into the drawer
+ * with the section links. The trigger itself must keep `md:hidden` so phones
+ * never lose their only route to the sections.
+ */
+test("landing phone bar keeps the hamburger reachable and puts auth in the drawer", () => {
+  // The bar's auth wrapper is hidden below `sm` and returns as a flex row.
+  const wrapper = mastheadSource.match(
+    /<div className="hidden items-center gap-3 sm:flex">([\s\S]*?)<\/div>/,
+  );
+  assert.ok(wrapper, "the bar's auth pair must sit in a `hidden … sm:flex` wrapper");
+  assert.match(wrapper[1], /href="\/sign-in"/);
+  assert.match(wrapper[1], /href="\/sign-up"/);
+
+  // The theme toggle and the trigger column never shrink, so nothing can push
+  // the hamburger out of the viewport.
+  assert.match(mastheadSource, /flex shrink-0 items-center/);
+  assert.match(mastheadSource, /className="shrink-0"/);
+
+  // The drawer carries both auth destinations and the disabled fallback.
+  assert.match(mastheadSource, /className=\{cn\(LINK_BUTTON\.primary, "w-full justify-center"\)\}/);
+  assert.match(mastheadSource, /className=\{cn\(LINK_BUTTON\.ghost, "w-full justify-center"\)\}/);
+  assert.match(mastheadSource, /href="\/sign-up"[\s\S]{0,200}Start For Free/);
+  assert.match(mastheadSource, /href="\/sign-in"[\s\S]{0,220}I already have an account/);
+  assert.match(mastheadSource, /variant="outline" className="w-full justify-center" disabled/);
+
+  // Section links still close the sheet, and the section list is still shared.
+  assert.match(mastheadSource, /onClick=\{close\}/);
+  assert.match(mastheadSource, /\[\.\.\.NAV, \{ href: "#faq", label: "Questions" \}\]/);
+});
+
 test("auth CTAs inherit Button height while preserving width, states, and labels", () => {
   for (const [name, component, expectedButtons] of [
     ["sign in", signInSource, 5],

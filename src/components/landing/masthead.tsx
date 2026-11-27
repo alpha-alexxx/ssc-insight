@@ -106,27 +106,32 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <ThemeToggle
             value={resolvedTheme === "dark" ? "dark" : "light"}
             onValueChange={(next) => setTheme(next)}
             className="shrink-0"
           />
-          {authAvailable ? (
-            <>
-              {/* The nav pair: ghost for the known, filled for the new. */}
-              <Link href="/sign-in" aria-label="Log in" className={LINK_BUTTON.smGhost}>
-                Log in
-              </Link>
-              <Link href="/sign-up" aria-label="Sign up" className={LINK_BUTTON.smPrimary}>
-                Sign up
-              </Link>
-            </>
-          ) : (
-            <Button variant="outline" size="sm" disabled>
-              Sign-in unavailable
-            </Button>
-          )}
+          {/* Below `sm` the auth pair lives in the drawer instead, so the phone
+              bar is logo · theme · hamburger and the trigger can never be
+              pushed off the viewport the way it was at 360px and 320px. */}
+          <div className="hidden items-center gap-3 sm:flex">
+            {authAvailable ? (
+              <>
+                {/* The nav pair: ghost for the known, filled for the new. */}
+                <Link href="/sign-in" aria-label="Log in" className={LINK_BUTTON.smGhost}>
+                  Log in
+                </Link>
+                <Link href="/sign-up" aria-label="Sign up" className={LINK_BUTTON.smPrimary}>
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" disabled>
+                Sign-in unavailable
+              </Button>
+            )}
+          </div>
           <Sheet
             side="right"
             width={380}
@@ -140,26 +145,56 @@ export function Masthead({ authAvailable }: { authAvailable: boolean }) {
             trigger={MOBILE_NAV_TRIGGER}
           >
             {({ close }) => (
-              <nav aria-label="Landing sections">
-                <ul className="flex flex-col">
-                  {[...NAV, { href: "#faq", label: "Questions" }].map((item) => (
-                    <li key={item.href} className="border-b border-border">
-                      <a
-                        href={item.href}
-                        onClick={close}
-                        className="block py-3.5 font-serif text-lg tracking-[-0.02em] text-foreground"
-                      >
-                        {item.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+              <div>
+                <nav aria-label="Landing sections">
+                  <ul className="flex flex-col">
+                    {[...NAV, { href: "#faq", label: "Questions" }].map((item) => (
+                      <li key={item.href} className="border-b border-border">
+                        <a
+                          href={item.href}
+                          onClick={close}
+                          className="block py-3.5 font-serif text-lg tracking-[-0.02em] text-foreground"
+                        >
+                          {item.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
 
                 <p className="mt-8 pt-6 text-xs leading-relaxed text-muted-foreground">
                   A private tracker for SSC CGL Tier 2. One account, one
                   workspace, and a JSON export whenever you want out.
                 </p>
-              </nav>
+
+                {/* The auth pair for phones, where the bar hides it. Same
+                    vocabulary and targets as the hero, so the two surfaces
+                    never disagree about what signing up is called. */}
+                <div className="mt-6 flex flex-col gap-2.5">
+                  {authAvailable ? (
+                    <>
+                      <Link
+                        href="/sign-up"
+                        onClick={close}
+                        className={cn(LINK_BUTTON.primary, "w-full justify-center")}
+                      >
+                        Start For Free
+                      </Link>
+                      <Link
+                        href="/sign-in"
+                        onClick={close}
+                        className={cn(LINK_BUTTON.ghost, "w-full justify-center")}
+                      >
+                        I already have an account
+                      </Link>
+                    </>
+                  ) : (
+                    <Button variant="outline" className="w-full justify-center" disabled>
+                      Sign-in unavailable
+                    </Button>
+                  )}
+                </div>
+              </div>
             )}
           </Sheet>
         </div>
