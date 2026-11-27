@@ -35,6 +35,7 @@ const shell = code(source("src/components/app-shell.tsx"));
 const chrome = code(source("src/components/workspace-chrome.tsx"));
 const layout = code(source("src/app/(workspace)/layout.tsx"));
 const modal = code(source("src/components/modal.ts"));
+const tabs = code(source("src/components/liquid-tabs.tsx"));
 const palette = code(source("src/components/command-palette.tsx"));
 const adapter = code(source("src/components/workspace-command-palette.tsx"));
 
@@ -52,16 +53,31 @@ test("the workspace sidebar is composed from the vendored Hairline Sidebar", () 
   );
   assert.match(workspace, /<Sidebar\b/, "it must render <Sidebar>");
   assert.match(workspace, /\bsections=\{sections\}/, "nav groups feed sections");
-  // Settings/Trash are not plain footer rows any more: they are one two-tab pill
-  // in the open panel and an icon pair in the rail, both from the same data.
+  // Settings/Trash are not plain footer rows any more: two pill buttons whose
+  // only active signal is the LiquidNav drop, in the panel and the rail alike.
   assert.match(
     workspace,
     /footerSlot=\{<FooterUtilities view=\{view\} \/>\}/,
     "the utility switch is the footer slot",
   );
-  assert.match(workspace, /import \{ LiquidTabs \} from "@\/components\/liquid-tabs"/, "the pill is the house LiquidTabs");
-  assert.match(workspace, /<LiquidTabs[\s\S]*?href,\n\s*label,/, "both tabs are links, so they work without JS");
-  assert.match(workspace, /value=\{current \?\? ""\}/, "no utility page means no pill, not a stuck one");
+  assert.match(
+    workspace,
+    /import \{ LiquidNav \} from "@\/components\/liquid-nav"/,
+    "the utilities borrow the nav's drop",
+  );
+  assert.match(
+    workspace,
+    /<LiquidNav\s+active=\{current\}/,
+    "the drop follows the utility page and nothing else",
+  );
+  assert.doesNotMatch(
+    workspace,
+    /liquid-tabs|<LiquidTabs/,
+    "LiquidTabs has no no-selection state, so it cannot own this control",
+  );
+  assert.doesNotMatch(workspace, /onClickCapture=/, "the rows are plain links, no router bridge");
+  assert.match(workspace, /data-liquid-nav=\{id\}/, "both rows are measurable by the drop");
+  assert.match(workspace, /rounded-full/, "the rows are pills");
   assert.doesNotMatch(workspace, /footer=\{FOOTER_ITEMS\}/, "the old footer-row list is gone");
   assert.match(workspace, /\bvalue=\{view\}/, "the current route is the selection");
   assert.match(workspace, /\blinkAs=\{Link\}/, "rows are Next.js links");
@@ -120,12 +136,25 @@ test("the drop is decoration: hidden from AT and never in front of the rows", ()
     /<LiquidNav active=\{shownActive\} className="px-0"/,
     "the section list has a drop",
   );
-  assert.match(workspace, /<LiquidNav active=\{current\}/, "the rail's utility pair has its own drop");
+  assert.match(workspace, /<LiquidNav\s+active=\{current\}/, "the utility pills have their own drop");
   assert.match(
     workspace,
     /data-liquid-nav=\{id\}/,
     "each rail utility row is measurable by the drop",
   );
+});
+
+test("a selection that matches no tab clears the tabs drop instead of lingering", () => {
+  // The footer used to leave a lit Settings highlight on /dashboard: `aim()` bailed
+  // out when the value had no mark and the last painted path stayed put.
+  assert.doesNotMatch(
+    tabs,
+    /if \(!s \|\| !mark\) return;/,
+    "a missing mark must clear, not return",
+  );
+  assert.match(tabs, /if \(!mark\) \{/, "the no-selection branch exists");
+  assert.match(tabs, /pathRef\.current\?\.setAttribute\("d", ""\)/, "it clears the path");
+  assert.match(tabs, /if \(instant \|\| m\.cleared\)/, "coming back places, it does not glide");
 });
 
 test("the drop is placed, not slid, whenever it could be lying", () => {

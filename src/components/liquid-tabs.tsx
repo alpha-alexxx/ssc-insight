@@ -186,6 +186,8 @@ export function LiquidTabs({
     heading: 1,
     target: 0,
     flowing: false,
+    // True while nothing is selected: the next choice must place, not glide.
+    cleared: false,
     frontFrom: 0,
     tailFrom: 0,
     tailTo: 0,
@@ -261,11 +263,25 @@ export function LiquidTabs({
     (next: string | undefined, instant: boolean) => {
       const s = springs.current;
       const mark = next ? marks.current.get(next) : undefined;
-      if (!s || !mark) return;
+      if (!s) return;
+      if (!mark) {
+        // Nothing selected (a caller whose value is not one of the tabs). Returning
+        // here used to leave the last highlight lit; clear it and stop dead instead.
+        motion.current.flowing = false;
+        motion.current.cleared = true;
+        s.left.stop();
+        s.right.stop();
+        s.rest.stop();
+        pathRef.current?.setAttribute("d", "");
+        sheenRef.current?.setAttribute("d", "");
+        return;
+      }
       const m = motion.current;
       const end = mark.x + mark.w;
-      if (instant) {
+      // Coming back from "nothing selected": there is no shape to glide from.
+      if (instant || m.cleared) {
         m.flowing = false;
+        m.cleared = false;
         s.left.jump(mark.x);
         s.right.jump(end);
         s.rest.jump(mark.w);

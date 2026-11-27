@@ -24,7 +24,6 @@ import type { MenuEntry } from "@/components/dropdown-menu";
 import { useExamScope } from "@/components/exam-context";
 import { PlainIcon } from "@/components/icon";
 import { LiquidNav } from "@/components/liquid-nav";
-import { LiquidTabs } from "@/components/liquid-tabs";
 import {
   Sidebar,
   useSidebar,
@@ -198,71 +197,59 @@ function SidebarBrand() {
 }
 
 /**
- * Settings and Trash, in two shapes: the open panel shows them as one two-tab
- * pill (the house `LiquidTabs` slide carries the selection between them), and
- * the 60px rail keeps the familiar icon pair with the `LiquidNav` drop, since
- * two labels cannot share a rail row.
+ * Settings and Trash: two pill buttons whose only active signal is the house
+ * `LiquidNav` drop — the same indicator the nav rows use.
  *
- * The pill's tabs are real links with `aria-current`, so they work without JS and
- * survive middle-click; a plain left click is handed to the router instead so the
- * workspace is not reloaded from scratch.
+ * Not `LiquidTabs`: it has no "nothing selected" state. Its `aim()` returns
+ * early when the value matches no tab, so the drop kept whatever it painted
+ * last and stayed lit on Settings after you navigated away. `LiquidNav` hides
+ * the path when the active id has no mark, which is exactly the behaviour the
+ * footer needs.
+ *
+ * The rows are plain links, so `aria-current` is the real state, middle-click
+ * and no-JS still work, and navigation stays client-side.
  */
 function FooterUtilities({ view }: { view: AppView }) {
-  const router = useRouter();
   const { collapsed, drawer } = useSidebar();
   const rail = collapsed && !drawer;
+  // Undefined off `/settings` and `/trash`; LiquidNav then paints no drop at all.
   const current = UTILITIES.find((u) => u.id === view)?.id;
 
-  if (rail) {
-    return (
-      <LiquidNav active={current} className="px-2 pb-1.5">
-        <div className="flex flex-col items-center gap-1.5">
-          {UTILITIES.map(({ id, label, href, icon: Icon }) => (
-            <Link
-              key={id}
-              href={href}
-              data-liquid-nav={id}
-              aria-current={current === id ? "page" : undefined}
-              aria-label={label}
-              className={`relative grid size-9 place-items-center rounded-[10px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                current === id
-                  ? "font-semibold text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="size-4" strokeWidth={1.75} aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
-      </LiquidNav>
-    );
-  }
-
   return (
-    <div
-      className="px-2 pb-2"
-      onClickCapture={(event) => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        const tab = (event.target as HTMLElement).closest<HTMLElement>("[data-liquid-tab]");
-        const utility = UTILITIES.find((u) => u.id === tab?.dataset.liquidTab);
-        if (!utility) return;
-        event.preventDefault();
-        router.push(utility.href);
-      }}
+    <LiquidNav
+      active={current}
+      className={rail ? "px-2 pb-1.5" : "px-2 pb-2"}
+      contentClassName={rail ? "flex flex-col items-center gap-1.5" : "grid grid-cols-2 gap-1.5"}
     >
-      <LiquidTabs
-        tabs={UTILITIES.map(({ id, label, href, icon: Icon }) => ({
-          value: id,
-          href,
-          label,
-          icon: <Icon aria-hidden="true" />,
-        }))}
-        value={current ?? ""}
-        label="Settings and Trash"
-        size="sm"
-        block
-      />
-    </div>
+      {UTILITIES.map(({ id, label, href, icon: Icon }) => {
+        const active = current === id;
+        return (
+          <Link
+            key={id}
+            href={href}
+            data-liquid-nav={id}
+            aria-current={active ? "page" : undefined}
+            aria-label={rail ? label : undefined}
+            className={
+              rail
+                ? `relative z-[1] grid size-9 place-items-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                    active
+                      ? "font-semibold text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  }`
+                : `relative z-[1] flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[12.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                    active
+                      ? "font-semibold text-primary-foreground"
+                      : "font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  }`
+            }
+          >
+            <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            {!rail && <span className="truncate">{label}</span>}
+          </Link>
+        );
+      })}
+    </LiquidNav>
   );
 }
 
