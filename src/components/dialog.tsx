@@ -31,6 +31,8 @@ export interface DialogProps {
   /** A button that opens it. */
   trigger?: React.ReactElement<React.HTMLAttributes<HTMLElement>>;
   title: React.ReactNode;
+  /** Show the accessible title in the dialog chrome instead of sr-only. */
+  showTitle?: boolean;
   description?: React.ReactNode;
   /** The body, or a function that gets `close`. */
   children?:
@@ -59,6 +61,7 @@ export function Dialog({
   onOpenChange,
   trigger,
   title,
+  showTitle = false,
   description,
   children,
   footer,
@@ -127,7 +130,7 @@ export function Dialog({
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <h2
                     id={titleId}
-                    className="text-[16px] font-semibold tracking-[-0.01em] text-foreground sr-only"
+                    className={`text-foreground ${showTitle ? "font-serif text-[22px] font-medium leading-tight tracking-[-0.01em]" : "sr-only"}`}
                   >
                     {title}
                   </h2>
@@ -144,7 +147,7 @@ export function Dialog({
                   type="button"
                   aria-label="Close"
                   onClick={close}
-                  className={`-mr-2 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
+                  className={`-mr-2 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:size-11 ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}
                 >
                   <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
                     <path

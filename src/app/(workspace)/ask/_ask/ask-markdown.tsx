@@ -14,42 +14,36 @@ import { cn } from "@/lib/utils";
  * Raw HTML stays escaped — react-markdown never enables it here — so a model
  * cannot inject markup into the page.
  *
- * Type is ChatGPT-like: bold sans display headings on a compact, airy body,
- * scaled fluidly with clamp() so phones get the small end and wide screens
- * the large end. Rhythm is roomy between sections — headings carry clear top
- * margins (`first:mt-0` keeps the first block flush after the identity line) —
- * while block-to-block spacing comes from StreamingText's flex gap, so no
- * element here declares an outer bottom margin.
- *
- * The elements are direct children of `StreamingText`'s column (it is a flex
- * column with a 12px gap), which is why none of them carry outer margins.
+ * Type is a readable sans body with compact headings. StreamingText owns the
+ * only block rhythm (its compact 10px gap), so no heading adds a second margin.
+ * Lists reclaim width on phones; tables own their accessible horizontal scroll.
  */
 
 const SAFE_HREF = /^(https?:\/\/|mailto:|\/|#)/i;
 
 const components: Components = {
   h1: ({ children }) => (
-    <h3 className="mt-6 font-sans text-[clamp(1.15rem,1rem+0.9vw,1.35rem)] font-bold leading-[1.3] tracking-[-0.02em] text-foreground first:mt-0">
+    <h3 className="text-balance font-sans text-[clamp(1.15rem,1rem+0.9vw,1.35rem)] font-bold leading-[1.3] tracking-[-0.02em] text-foreground">
       {children}
     </h3>
   ),
   h2: ({ children }) => (
-    <h3 className="mt-5 font-sans text-[clamp(1.05rem,1rem+0.6vw,1.2rem)] font-bold leading-[1.35] tracking-[-0.015em] text-foreground first:mt-0">
+    <h3 className="text-balance font-sans text-[clamp(1.05rem,1rem+0.6vw,1.2rem)] font-bold leading-[1.35] tracking-[-0.015em] text-foreground">
       {children}
     </h3>
   ),
   h3: ({ children }) => (
-    <h4 className="mt-4 font-sans text-[15.5px] font-semibold leading-snug text-foreground first:mt-0 sm:text-[16px]">
+    <h4 className="text-balance font-sans text-[15.5px] font-semibold leading-snug text-foreground sm:text-[16px]">
       {children}
     </h4>
   ),
   h4: ({ children }) => (
-    <h5 className="mt-3.5 font-sans text-[14px] font-semibold leading-snug text-foreground first:mt-0">
+    <h5 className="text-balance font-sans text-[14px] font-semibold leading-snug text-foreground">
       {children}
     </h5>
   ),
   p: ({ children }) => (
-    <p className="text-[13.5px] leading-[1.65] text-pretty sm:text-[14px]">
+    <p className="text-[15px] leading-[1.6] text-pretty break-words sm:text-[14px] sm:leading-[1.65]">
       {children}
     </p>
   ),
@@ -58,17 +52,17 @@ const components: Components = {
   ),
   em: ({ children }) => <em className="italic">{children}</em>,
   ul: ({ children }) => (
-    <ul className="list-disc space-y-1 pl-5 text-foreground marker:text-muted-foreground/60">
+    <ul className="list-disc space-y-1.5 pl-4 text-foreground marker:text-muted-foreground/60 sm:pl-5">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-1 pl-5 text-foreground marker:font-medium marker:text-muted-foreground">
+    <ol className="list-decimal space-y-1.5 pl-4 text-foreground marker:font-medium marker:text-muted-foreground sm:pl-5">
       {children}
     </ol>
   ),
   li: ({ children }) => (
-    <li className="pl-1 text-[13.5px] leading-[1.65] text-pretty sm:text-[14px] [&>ol]:mt-1 [&>ul]:mt-1">
+    <li className="text-[15px] leading-[1.6] text-pretty break-words sm:text-[14px] sm:leading-[1.65] [&>ol]:mt-1.5 [&>ul]:mt-1.5">
       {children}
     </li>
   ),
@@ -85,7 +79,7 @@ const components: Components = {
       <a
         href={href}
         {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-        className="font-medium text-primary underline decoration-primary/30 underline-offset-[3px] transition-colors hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="break-all font-medium text-primary underline decoration-primary/30 underline-offset-[3px] transition-colors hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
       >
         {children}
       </a>
@@ -95,7 +89,12 @@ const components: Components = {
   /* Tables scroll sideways inside their own rounded frame instead of
      stretching the column on a phone. */
   table: ({ children }) => (
-    <div className="max-w-full overflow-x-auto rounded-xl shadow-[inset_0_0_0_1px_var(--border)] [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
+    <div
+      role="region"
+      aria-label="Scrollable comparison table"
+      tabIndex={0}
+      className="max-w-full overflow-x-auto rounded-xl shadow-[inset_0_0_0_1px_var(--border)] outline-none [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-ring/40"
+    >
       <table className="w-full min-w-max border-collapse text-[12.5px] tabular-nums">
         {children}
       </table>
@@ -104,6 +103,7 @@ const components: Components = {
   thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
   th: ({ children, style }) => (
     <th
+      scope="col"
       style={style}
       className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground"
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Checkbox } from "@/components/checkbox";
 import { Input } from "@/components/input";
@@ -45,6 +45,30 @@ type DraftResponse = {
   contextTruncated?: boolean;
 };
 
+type InitialSuggestion = {
+  title: string;
+  dueDate?: string;
+  priority?: "low" | "normal" | "high";
+  notes?: string;
+};
+
+function suggestionDraft(suggestion: InitialSuggestion): DraftResponse {
+  return {
+    needsDates: false,
+    operations: [
+      {
+        type: "create",
+        data: {
+          title: suggestion.title,
+          dueDate: suggestion.dueDate ?? "",
+          priority: suggestion.priority ?? "normal",
+          notes: suggestion.notes ?? "",
+        },
+      },
+    ],
+  };
+}
+
 export function TodoAiComposer({
   onChanged,
   compact = false,
@@ -53,6 +77,8 @@ export function TodoAiComposer({
   onAiConfigured,
   onTakeoverChange,
   onApplied,
+  initialSuggestion,
+  onDirtyChange,
 }: {
   onChanged?: () => void;
   compact?: boolean;
@@ -67,6 +93,10 @@ export function TodoAiComposer({
   onTakeoverChange?: (active: boolean) => void;
   /** Fires after Apply succeeds with the number of applied changes. */
   onApplied?: (count: number) => void;
+  /** A chat suggestion to seed into the normal editable review flow. */
+  initialSuggestion?: InitialSuggestion;
+  /** Reports whether the tool contains unapplied prompt or review work. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const slim = compact || variant === "page";
 
@@ -105,6 +135,8 @@ export function TodoAiComposer({
       variant={variant}
       onTakeoverChange={onTakeoverChange}
       onApplied={onApplied}
+      initialSuggestion={initialSuggestion}
+      onDirtyChange={onDirtyChange}
     />
   );
 }
@@ -115,23 +147,31 @@ function TodoAiComposerInner({
   variant = "compact",
   onTakeoverChange,
   onApplied,
+  initialSuggestion,
+  onDirtyChange,
 }: {
   onChanged?: () => void;
   compact?: boolean;
   variant?: "compact" | "page";
   onTakeoverChange?: (active: boolean) => void;
   onApplied?: (count: number) => void;
+  initialSuggestion?: InitialSuggestion;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const page = variant === "page";
   const slim = compact || page;
 
   const [open, setOpen] = useState(slim);
-  const [prompt, setPrompt] = useState("");
-  const [date, setDate] = useState("");
+  const [prompt, setPrompt] = useState(initialSuggestion?.title ?? "");
+  const [date, setDate] = useState(initialSuggestion?.dueDate ?? "");
   const [endDate, setEndDate] = useState("");
-  const [draft, setDraft] = useState<DraftResponse | null>(null);
-  const [reviewing, setReviewing] = useState(false);
-  const [selected, setSelected] = useState<number[]>([]);
+  const [draft, setDraft] = useState<DraftResponse | null>(() =>
+    initialSuggestion ? suggestionDraft(initialSuggestion) : null,
+  );
+  const [reviewing, setReviewing] = useState(Boolean(initialSuggestion));
+  const [selected, setSelected] = useState<number[]>(
+    initialSuggestion ? [0] : [],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -141,10 +181,27 @@ function TodoAiComposerInner({
 
   const showLedger = Boolean(reviewing && draft && !draft.needsDates);
   const takeover = page && showLedger;
+  const dirty = Boolean(prompt || date || endDate || draft);
 
   useLayoutEffect(() => {
     onTakeoverChange?.(takeover);
   }, [takeover, onTakeoverChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  function reset() {
+    setPrompt("");
+    setDate("");
+    setEndDate("");
+    setDraft(null);
+    setReviewing(false);
+    setSelected([]);
+    setExpanded({});
+    setError("");
+    setSuccess("");
+  }
 
   const reference = useTodoList<TaskListResponse>("limit=100&view=all");
   const invalidateTodos = useInvalidateTodos();
@@ -263,10 +320,7 @@ function TodoAiComposerInner({
       await invalidateTodos();
       onChanged?.();
       onApplied?.(selected.length);
-      setDraft(null);
-      setReviewing(false);
-      setSelected([]);
-      setExpanded({});
+      reset();
       setSuccess("Your selected changes were applied.");
     } catch (cause) {
       setError(
@@ -293,7 +347,7 @@ function TodoAiComposerInner({
     return (
       <section
         className={cn(
-          "flex min-h-0 flex-1 flex-col",
+          "flex flex-col",
           !slim &&
             "rounded-2xl bg-card p-4 shadow-[inset_0_0_0_1px_var(--border)]",
         )}
@@ -316,7 +370,7 @@ function TodoAiComposerInner({
         </div>
 
         {/* Ledger Rows */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
+        <div className="py-1">
           {draft.contextTruncated && (
             <p className="my-2 border-l-2 border-l-warning pl-2.5 text-[11px] leading-relaxed text-warning">
               Only part of your task history fitted in the AI context. Review
@@ -676,13 +730,7 @@ function TodoAiComposerInner({
               variant="outline"
               size="sm"
               disabled={busy}
-              onClick={() => {
-                setDraft(null);
-                setReviewing(false);
-                setSelected([]);
-                setExpanded({});
-                setError("");
-              }}
+              onClick={reset}
             >
               Discard
             </Button>

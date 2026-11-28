@@ -52,7 +52,7 @@ const STARTERS: {
 ];
 
 const SCOPE = [
-  { icon: "shield" as const, label: "Read-only access" },
+  { icon: "shield" as const, label: "Chat never writes" },
   { icon: "history" as const, label: "Latest 20 full mocks" },
   { icon: "file" as const, label: "Personal notes never sent" },
 ];

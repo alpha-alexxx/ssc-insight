@@ -18,6 +18,10 @@ import { test } from "node:test";
  *   5. The composer field was one dense row (~32px) and the send button 32px —
  *      under every touch minimum.
  *   6. The four-part disclaimer wrapped to two lines on phones.
+ *
+ * Rebuilt on the shared PageHeader: one compact line, both header actions a
+ * 44px phone target, the empty field at 44px (still 16px text), and a two-part
+ * disclaimer. These assertions pin the replacement, not the old numbers.
  */
 
 function source(path: string) {
@@ -98,32 +102,51 @@ test("the context ring opens a Popover on lg+ and a bottom Sheet below lg", () =
   );
 });
 
-test("the header's actions are two identical square icon buttons on phones", () => {
+test("the header's actions clear the touch minimum on phones", () => {
   assert.match(
     view,
     /aria-label="New chat"/,
     "the + button is a real icon button with its own label",
   );
-  const sizeNine = view.match(/className="size-9"/g) ?? [];
-  assert.ok(
-    sizeNine.length >= 2,
-    "both header actions are 36×36 — the + no longer renders as a wide sm pill",
-  );
-  // The dedicated icon button must be the phone rendering, gated md:hidden —
-  // the labelled sm pill is hidden below md, so phones never see a text-width
-  // "+" lozenge.
   assert.match(
     view,
-    /className="inline-flex md:hidden"[\s\S]{0,400}?aria-label="New chat"/,
-    "the + icon button owns the phone range outright",
+    /aria-label="Conversation history"/,
+    "history is the other header action",
+  );
+  // One shared PageHeader, and both icon actions are 44px on a phone and
+  // shrink from sm — never a wide text-width "+" lozenge. (The icon glyph has
+  // its own `size-*` class, so match the button's coarse-pointer rule.)
+  assert.match(
+    view,
+    /aria-label="New chat"[\s\S]{0,400}?\[@media\(pointer:coarse\)\]:size-11 sm:size-9/,
+    "the new-chat target is 44px on phones and 36px from sm",
+  );
+  assert.match(
+    view,
+    /aria-label="Conversation history"[\s\S]{0,400}?\[@media\(pointer:coarse\)\]:size-11 lg:hidden/,
+    "the history target is 44px on phones and lg-gated",
+  );
+  assert.ok(
+    !/className="inline-flex md:hidden"/.test(view),
+    "the old md-gated pill pair is gone",
+  );
+  assert.match(
+    view,
+    /<PageHeader[\s\S]{0,200}?density="compact"/,
+    "the header is the shared compact PageHeader",
   );
 });
 
 test("the composer field and send button clear the touch minimum on phones", () => {
   assert.match(
     composer,
-    /min-h-\[52px\][\s\S]{0,400}?sm:min-h-0/,
-    "the text field breathes on phones, desktop keeps its density",
+    /min-h-11[\s\S]{0,400}?sm:min-h-8/,
+    "the empty field clears 44px on phones, desktop keeps its density",
+  );
+  assert.match(
+    composer,
+    /text-\[16px\][\s\S]{0,400}?sm:text-\[14px\]/,
+    "the field stays 16px on phones so iOS never zooms on focus",
   );
   const send = composer.match(
     /type=\{action === "send" \? "submit" : "button"\}[\s\S]{0,600}?className=\{`([^`]*)`\}/,
@@ -133,19 +156,22 @@ test("the composer field and send button clear the touch minimum on phones", () 
   assert.match(send[1], /sm:size-8/, "desktop keeps the 32px send");
   assert.match(
     composer,
-    /min-h-11[\s\S]{0,80}?sm:min-h-0/,
+    /flex min-h-11 items-center[\s\S]{0,80}?sm:min-h-9/,
     "the action row is a 44px touch row on phones",
   );
 });
 
-test("the disclaimer is one line on phones and whole from sm up", () => {
+test("the disclaimer states the honest promise in two parts", () => {
+  assert.match(view, /AI can be wrong/, "the caveat is stated plainly");
   assert.match(
     view,
-    /className="hidden sm:inline">Latest 20 full mocks</,
-    "the middle facts fold away below sm",
+    /Changes need your approval/,
+    "writing stays behind confirmation",
   );
-  assert.match(view, /Read-only/, "the promise is still made");
-  assert.match(view, /Answers can be wrong/, "so is the caveat");
+  assert.ok(
+    !/Read-only/.test(view),
+    "the blanket read-only claim is gone: reviewed todos do write",
+  );
 });
 
 test("the page pins the keyboard behavior with interactiveWidget", () => {

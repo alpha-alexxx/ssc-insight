@@ -116,6 +116,12 @@ export type ExtractResponse = {
   usage: AiResponseUsage;
 };
 
+/** One earlier answer to the same user turn, oldest first on ChatMessage. */
+export type ChatAnswerVersion = Pick<
+  ChatMessage,
+  "content" | "reasoning" | "reasoningSeconds" | "stopped" | "truncated" | "at"
+>;
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -141,6 +147,9 @@ export type ChatMessage = {
    * history and the streaming "thinking" indicator. Older stored messages
    * may omit it. */
   at?: string;
+  /** Previous answers to the same user turn, oldest first. The visible answer
+   * is always the message itself and is never duplicated in this list. */
+  versions?: ChatAnswerVersion[];
 };
 
 export const AI_VIEWS = [

@@ -297,7 +297,8 @@ Metric semantics:
 
 Answer shape, which the reading pane renders as markdown:
 - Open with one plain sentence that directly answers the question (at most 120 characters). No "sure", no preamble.
-- Then short sections in plain markdown: "-" or "1." bullets, bold for key numbers, and a markdown table only when comparing subjects, attempts, or papers side by side. Headings (##) only when the answer is long enough to need them.
+- Then short sections in plain markdown: shallow "-" or "1." bullets, bold for key numbers, and a markdown table only when comparing subjects, attempts, or papers side by side. Headings (##) only when the answer is long enough to need them. Avoid nested lists deeper than one level.
+- When allocating a study block, make its time budget add up explicitly: distinguish timed test work from review, e.g. "40 min total: 30 min test + 10 min review". Never state a block duration beside a conflicting test duration without explaining the remainder.
 - About 250 words unless the user explicitly asks for more depth. No HTML, no fenced code other than the task block below.
 - Be specific and calm. No generic motivation; every action must be doable in one study block.
 

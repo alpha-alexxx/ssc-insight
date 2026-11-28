@@ -129,11 +129,12 @@ test("scope and keyboard hints left the panel", () => {
     !/shift\+enter/i.test(view),
     "the keyboard hints are removed from the panel",
   );
-  // …but the read-only promise is still made, at the composer.
+  // …but the promise is still made, at the composer: chat never writes, and
+  // anything that would is behind an explicit review.
   assert.match(
     view,
-    /Read-only/,
-    "the composer disclaimer still states read-only access",
+    /Changes need your approval/,
+    "the composer disclaimer still states that writes need approval",
   );
 });
 

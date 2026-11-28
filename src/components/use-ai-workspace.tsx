@@ -1,5 +1,12 @@
 "use client";
-import { chatBaseForSend } from "@/lib/ai/chat-history";
+import {
+  beginChatRequest,
+  chatBaseForSend,
+  invalidateChatRequest,
+  isCurrentChatRequest,
+  preserveAnswerVersion,
+  type ChatRequestIdentity,
+} from "@/lib/ai/chat-history";
 import {
   loadConversations,
   renameConversation,
@@ -23,6 +30,7 @@ import { toast } from "@/components/toast-stack";
 import type {
   AiScreenContext,
   AiStatus,
+  ChatAnswerVersion,
   ChatMessage,
   CoachMeta,
   CoachResponse,
@@ -189,6 +197,27 @@ function useAiWorkspaceState() {
   const [chatPhase, setChatPhase] = useState<ChatPhase | null>(null);
   const [chatError, setChatError] = useState("");
   const chatAbort = useRef<AbortController | null>(null);
+  const activeRequestRef = useRef<ChatRequestIdentity | null>(null);
+  const requestKindRef = useRef<"coach" | "chat" | null>(null);
+  const versionIndexesRef = useRef<Record<string, number>>({});
+  const [versionIndexes, setVersionIndexes] = useState<Record<string, number>>(
+    {},
+  );
+
+  const clearVersionIndexes = useCallback(() => {
+    versionIndexesRef.current = {};
+    setVersionIndexes({});
+  }, []);
+
+  const updateAssistant = useCallback((id: string, stopped = false) => {
+    const next = messagesRef.current.map((message) =>
+      message.id === id && message.role === "assistant"
+        ? { ...message, ...(stopped ? { stopped: true } : {}) }
+        : message,
+    );
+    messagesRef.current = next;
+    setChatMessages(next);
+  }, []);
 
   // Revalidates after quota-consuming actions (coach/chat completion) — the
   // quota ledger may have moved.
@@ -197,6 +226,9 @@ function useAiWorkspaceState() {
   }, [queryClient]);
   useEffect(
     () => () => {
+      activeRequestRef.current = invalidateChatRequest(
+        activeRequestRef.current,
+      );
       chatAbort.current?.abort();
     },
     [],
@@ -211,46 +243,85 @@ function useAiWorkspaceState() {
     [],
   );
 
-  /** Commit the current transcript into the conversation list and storage.
-   * Runs at turn boundaries only, so a streaming token never touches storage.
-   * An empty transcript removes the active conversation instead of storing
-   * an empty shell. */
+  /** Commit a request-scoped transcript. Completion for an obsolete request
+   * must not overwrite either the newly selected thread or another request's
+   * persisted conversation list. */
+  const persistSnapshot = useCallback(
+    (conversationId: string | null, messages: ChatMessage[]) => {
+      const { list, activeId } = upsertConversation(
+        conversationsRef.current,
+        conversationId,
+        messages,
+      );
+      conversationsRef.current = list;
+      setConversations(list);
+      if (activeIdRef.current === conversationId) {
+        activeIdRef.current = activeId;
+        setActiveConversationId(activeId);
+      }
+      saveConversations(list);
+    },
+    [],
+  );
+
   const persistTurn = useCallback(() => {
-    const { list, activeId } = upsertConversation(
-      conversationsRef.current,
-      activeIdRef.current,
-      messagesRef.current,
+    persistSnapshot(activeIdRef.current, messagesRef.current);
+  }, [persistSnapshot]);
+
+  /** Preserve a partial turn before navigation. Abort is deliberately second:
+   * its rejection must belong to the obsolete request, not the new thread. */
+  const abortForNavigation = useCallback(() => {
+    if (!activeRequestRef.current || !chatAbort.current) return;
+    const assistant = messagesRef.current.findLast(
+      (message) => message.role === "assistant",
     );
-    conversationsRef.current = list;
-    activeIdRef.current = activeId;
-    setConversations(list);
-    setActiveConversationId(activeId);
-    saveConversations(list);
-  }, []);
+    if (assistant) updateAssistant(assistant.id, true);
+    persistTurn();
+    activeRequestRef.current = invalidateChatRequest(
+      activeRequestRef.current,
+    );
+    chatAbort.current.abort();
+    chatAbort.current = null;
+    setChatStreaming(false);
+    setChatPhase(null);
+    setCoachBusy(false);
+  }, [persistTurn, updateAssistant]);
 
   const clearCoach = useCallback(() => {
     setCoachInsight(null);
     setCoachMeta(null);
   }, []);
 
-  /**
-   * One shared abort controller covers coach and chat: Stop, tab changes,
-   * closing the workspace, and unmount all cancel whichever request is active.
-   * `requestKind` records what produced the in-flight turn so Retry replays
-   * the correct endpoint.
-   */
-  const requestKindRef = useRef<"coach" | "chat" | null>(null);
+  /** The request kind survives completion: Retry remains valid after the
+   * transport controller has been cleared. */
+  const beginRequest = useCallback(
+    (kind: "coach" | "chat", abort: AbortController) => {
+      const identity = beginChatRequest(
+        activeRequestRef.current?.generation ?? 0,
+        activeIdRef.current,
+      );
+      activeRequestRef.current = identity;
+      chatAbort.current = abort;
+      requestKindRef.current = kind;
+      return identity;
+    },
+    [],
+  );
 
-  const generateCoach = useCallback(async () => {
+  const generateCoach = useCallback(async (replay = false) => {
     if (chatAbort.current) return; // a stream is already in flight
     setChatError("");
     setChatStreaming(true);
     const requestId = newId();
     const assistantId = newId();
+    const abort = new AbortController();
+    const identity = beginRequest("coach", abort);
+    const isCurrent = () =>
+      isCurrentChatRequest(activeRequestRef.current, identity);
     // The request lands in the visible transcript: the chat context the model
     // sees on follow-ups includes what the insight covered.
     applyMessages((current) => [
-      ...chatBaseForSend(current, false),
+      ...chatBaseForSend(current, replay),
       {
         id: requestId,
         role: "user",
@@ -266,15 +337,13 @@ function useAiWorkspaceState() {
     ]);
     setCoachBusy(true);
     setCoachError("");
-    const abort = new AbortController();
-    chatAbort.current = abort;
-    requestKindRef.current = "coach";
     try {
       const result = await api<CoachResponse>("/api/ai/coach", {
         method: "POST",
         body: "{}",
         signal: abort.signal,
       });
+      if (!isCurrent()) return;
       setCoachInsight(result.insight);
       setCoachMeta(result.meta);
       applyMessages((current) =>
@@ -288,6 +357,7 @@ function useAiWorkspaceState() {
         ),
       );
     } catch (e) {
+      if (!isCurrent()) return;
       const aborted = abort.signal.aborted;
       if (aborted) {
         // Same honesty as a stopped chat stream: mark the turn instead of
@@ -314,16 +384,15 @@ function useAiWorkspaceState() {
         );
       }
     } finally {
-      setChatStreaming(false);
-      setCoachBusy(false);
-      if (chatAbort.current === abort) {
-        chatAbort.current = null;
-        requestKindRef.current = null;
+      if (isCurrent()) {
+        setChatStreaming(false);
+        setCoachBusy(false);
+        if (chatAbort.current === abort) chatAbort.current = null;
+        persistTurn();
+        void refreshAiStatus();
       }
-      persistTurn();
-      void refreshAiStatus();
     }
-  }, [applyMessages, persistTurn, refreshAiStatus]);
+  }, [applyMessages, beginRequest, persistTurn, refreshAiStatus]);
 
   const openChat = useCallback(() => {
     setChatError("");
@@ -339,12 +408,13 @@ function useAiWorkspaceState() {
   }, []);
 
   const startFreshConversation = useCallback(() => {
-    chatAbort.current?.abort();
+    abortForNavigation();
     applyMessages(() => []);
     activeIdRef.current = null;
     setActiveConversationId(null);
+    clearVersionIndexes();
     setChatError("");
-  }, [applyMessages]);
+  }, [abortForNavigation, applyMessages, clearVersionIndexes]);
 
   /** Composer trash button: drop the current conversation from history and
    * open a clean one. */
@@ -371,22 +441,24 @@ function useAiWorkspaceState() {
   const selectConversation = useCallback(
     (id: string) => {
       if (id === activeIdRef.current) return;
-      chatAbort.current?.abort();
       const conversation = conversationsRef.current.find(
         (entry) => entry.id === id,
       );
       if (!conversation) return;
+      abortForNavigation();
+      requestKindRef.current = "chat";
       activeIdRef.current = id;
       setActiveConversationId(id);
       applyMessages(() => conversation.messages);
+      clearVersionIndexes();
       setChatError("");
     },
-    [applyMessages],
+    [abortForNavigation, applyMessages, clearVersionIndexes],
   );
 
   const removeConversation = useCallback(
     (id: string) => {
-      chatAbort.current?.abort();
+      if (activeIdRef.current === id) abortForNavigation();
       const next = conversationsRef.current.filter(
         (conversation) => conversation.id !== id,
       );
@@ -397,9 +469,10 @@ function useAiWorkspaceState() {
         activeIdRef.current = null;
         setActiveConversationId(null);
         applyMessages(() => []);
+        clearVersionIndexes();
       }
     },
-    [applyMessages],
+    [abortForNavigation, applyMessages, clearVersionIndexes],
   );
 
   const renameConversationById = useCallback((id: string, title: string) => {
@@ -409,14 +482,45 @@ function useAiWorkspaceState() {
     saveConversations(next);
   }, []);
 
+  const selectVersion = useCallback(
+    (messageId: string, index: number) => {
+      if (!Number.isInteger(index) || index < 0 || chatAbort.current) return;
+      const message = messagesRef.current.find(
+        (entry) => entry.id === messageId && entry.role === "assistant",
+      );
+      if (!message || index > (message.versions?.length ?? 0)) return;
+      const nextIndexes = { ...versionIndexesRef.current };
+      // The last pager position is the current answer, not a stored version.
+      if (index === (message.versions?.length ?? 0))
+        delete nextIndexes[messageId];
+      else nextIndexes[messageId] = index;
+      versionIndexesRef.current = nextIndexes;
+      setVersionIndexes(nextIndexes);
+    },
+    [],
+  );
+
+  const displayedMessages = chatMessages.map((message) => {
+    const index = versionIndexes[message.id];
+    if (index == null) return message;
+    const version: ChatAnswerVersion | undefined = message.versions?.[index];
+    return version ? { ...message, ...version } : message;
+  });
+
   const sendChat = useCallback(
     async (
       text: string,
       screen?: AiScreenContext | null,
       retry = false,
       images?: string[],
+      preserveVersions = false,
     ) => {
       if (chatAbort.current) return; // a stream is already in flight
+      const previousAssistantId = preserveVersions
+        ? messagesRef.current.findLast(
+            (message) => message.role === "assistant",
+          )?.id
+        : undefined;
       const base = chatBaseForSend(messagesRef.current, retry);
       const imageOnly = Boolean(!text.trim() && images?.length);
       const userMessage: ChatMessage = {
@@ -430,6 +534,15 @@ function useAiWorkspaceState() {
         ...(imageOnly ? { imageOnly: true } : {}),
       };
       const assistantId = newId();
+      const preservedVersions = preserveVersions
+        ? messagesRef.current.findLast(
+            (message) => message.role === "assistant",
+          )?.versions
+        : undefined;
+      const abort = new AbortController();
+      const identity = beginRequest("chat", abort);
+      const isCurrent = () =>
+        isCurrentChatRequest(activeRequestRef.current, identity);
       // The user's own setting caps the prompt window; the server still
       // enforces its hard maximum, so a stale value cannot overflow it.
       const turns = aiStatus?.credential?.historyTurns ?? 8;
@@ -437,14 +550,25 @@ function useAiWorkspaceState() {
       applyMessages(() => [
         ...base,
         userMessage,
-        { id: assistantId, role: "assistant", content: "", at: userMessage.at },
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          at: userMessage.at,
+          ...(preservedVersions?.length
+            ? { versions: preservedVersions }
+            : {}),
+        },
       ]);
       setChatStreaming(true);
       setChatPhase("connecting");
       setChatError("");
-      const abort = new AbortController();
-      chatAbort.current = abort;
-      requestKindRef.current = "chat";
+      if (previousAssistantId) {
+        const nextIndexes = { ...versionIndexesRef.current };
+        delete nextIndexes[previousAssistantId];
+        versionIndexesRef.current = nextIndexes;
+        setVersionIndexes(nextIndexes);
+      }
       try {
         const response = await fetch("/api/ai/chat", {
           method: "POST",
@@ -457,6 +581,10 @@ function useAiWorkspaceState() {
           }),
           signal: abort.signal,
         });
+        if (!isCurrent()) {
+          await response.body?.cancel().catch(() => undefined);
+          return;
+        }
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           if (response.status === 401)
@@ -476,7 +604,7 @@ function useAiWorkspaceState() {
         let reasoningStartedAt: number | null = null;
         const handle = (line: string) => {
           const event = parseChatEvent(line);
-          if (!event) return;
+          if (!event || !isCurrent()) return;
           if (event.type === "ping") {
             // Keepalive only: proof the connection is alive while the model
             // thinks. The phase moves forward, nothing is appended.
@@ -541,6 +669,10 @@ function useAiWorkspaceState() {
         };
         while (!finished) {
           const { done, value } = await reader.read();
+          if (!isCurrent()) {
+            await reader.cancel().catch(() => undefined);
+            return;
+          }
           if (done) break;
           for (const line of decoder.push(value)) {
             handle(line);
@@ -553,6 +685,7 @@ function useAiWorkspaceState() {
         }
         await reader.cancel().catch(() => undefined);
       } catch (e) {
+        if (!isCurrent()) return;
         if (abort.signal.aborted) {
           // A stop never disappears silently: whatever partial answer exists
           // stays, with an explicit stopped marker on the turn.
@@ -567,17 +700,16 @@ function useAiWorkspaceState() {
           );
         }
       } finally {
-        setChatStreaming(false);
-        setChatPhase(null);
-        if (chatAbort.current === abort) {
-          chatAbort.current = null;
-          requestKindRef.current = null;
+        if (isCurrent()) {
+          setChatStreaming(false);
+          setChatPhase(null);
+          if (chatAbort.current === abort) chatAbort.current = null;
+          persistTurn();
+          void refreshAiStatus();
         }
-        persistTurn();
-        void refreshAiStatus();
       }
     },
-    [aiStatus, applyMessages, persistTurn, refreshAiStatus],
+    [aiStatus, applyMessages, beginRequest, persistTurn, refreshAiStatus],
   );
 
   /** Edit a previously sent user message: everything after it is discarded
@@ -591,9 +723,10 @@ function useAiWorkspaceState() {
       );
       if (index < 0) return;
       applyMessages((current) => current.slice(0, index));
+      clearVersionIndexes();
       void sendChat(text, null, false);
     },
-    [applyMessages, sendChat],
+    [applyMessages, clearVersionIndexes, sendChat],
   );
 
   /** Retry replays the request kind that produced the last turn: a coach
@@ -601,7 +734,7 @@ function useAiWorkspaceState() {
   const retryLast = useCallback(() => {
     const kind = requestKindRef.current;
     if (kind === "coach") {
-      void generateCoach();
+      void generateCoach(true);
       return;
     }
     if (kind === "chat") {
@@ -612,25 +745,29 @@ function useAiWorkspaceState() {
     }
   }, [generateCoach, sendChat]);
 
-  /** Regenerate the last answer on demand (not only after an error): the
-   * latest exchange is dropped and replayed against its original endpoint. */
+  /** Regenerate the latest answer on demand. Its complete response is moved
+   * into versions before the same user turn is replayed; selecting an older
+   * version only changes the view, never duplicates that version on replay. */
   const regenerateLast = useCallback(() => {
     if (chatAbort.current) return;
     const kind = requestKindRef.current ?? "chat";
     if (kind === "coach") {
-      void generateCoach();
+      void generateCoach(true);
       return;
     }
-    const lastUser = messagesRef.current.findLast(
+    const userIndex = messagesRef.current.findLastIndex(
       (message) => message.role === "user",
     );
-    if (!lastUser) return;
-    const assistantIndex = messagesRef.current.findIndex(
-      (message) => message.id === lastUser.id,
+    if (userIndex < 0) return;
+    const lastUser = messagesRef.current[userIndex]!;
+    requestKindRef.current = "chat";
+    const targetIndex = messagesRef.current.findLastIndex(
+      (message) => message.role === "assistant",
     );
-    // Drop everything after the question, then replay it.
-    applyMessages((current) => current.slice(0, assistantIndex + 1));
-    void sendChat(lastUser.content, null, true);
+    if (targetIndex < userIndex) return;
+    const target = messagesRef.current[targetIndex]!;
+    applyMessages((current) => preserveAnswerVersion(current, target.id));
+    void sendChat(lastUser.content, null, true, lastUser.images, true);
   }, [applyMessages, generateCoach, sendChat]);
 
   const history: ChatHistoryApi = {
@@ -655,7 +792,9 @@ function useAiWorkspaceState() {
       open: openChat,
     },
     chat: {
-      messages: chatMessages,
+      messages: displayedMessages,
+      versionIndexes,
+      selectVersion,
       streaming: chatStreaming,
       phase: chatPhase,
       error: chatError,

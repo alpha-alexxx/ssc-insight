@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { History, Plus, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { History, Plus } from "lucide-react";
 import {
   PromptComposer,
   type ComposerStatus,
 } from "@/components/prompt-composer";
-import { ApprovalCard } from "@/components/approval-card";
 import { ThinkingIndicator } from "@/components/thinking-indicator";
 import { ChatScroll } from "@/components/chat-scroll";
 import { ChatNotice } from "@/components/chat-notice";
@@ -18,6 +19,8 @@ import {
   type PlanLimit,
 } from "@/components/usage-limits";
 import { Button } from "@/components/button";
+import { PageHeader } from "@/components/page-header";
+import { Tooltip } from "@/components/tooltip";
 import { Dialog } from "@/components/dialog";
 import { Icon } from "@/components/icon";
 import { PillSelect } from "@/components/pill-select";
@@ -27,11 +30,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAiWorkspace } from "@/components/use-ai-workspace";
 import { usePlanData } from "@/components/use-plan-data";
 import { TodoAiComposer } from "@/components/shared/tasks/ai-composer";
-import {
-  LogMockFlow,
-  type LogMockPayload,
-} from "@/components/shared/ai/log-mock-flow";
+import { LogMockFlow } from "@/components/shared/ai/log-mock-flow";
 import { useUiStore } from "@/stores/ui-store";
+import type { TaskSuggestion } from "@/lib/ai/task-suggestion";
 import { cn } from "@/lib/utils";
 import { NO_SCROLLBAR } from "@/lib/ui-scroll";
 import { istTodayIso } from "@/lib/plan/view-model";
@@ -90,13 +91,6 @@ const TRACKER_SNAPSHOT_TOKENS = 6_000;
 /** ~4 characters per token: an estimate, labelled as one in the panel. */
 const estimateTokens = (chars: number) => Math.ceil(chars / 4);
 
-/** Formats provider/model strings into a concise badge label. */
-function formatModelName(raw: string): string {
-  const cleaned = raw.trim();
-  const parts = cleaned.split("/");
-  return parts[parts.length - 1] || cleaned;
-}
-
 /** Online/offline, so a dropped connection says so instead of failing a send. */
 function useOnline() {
   return React.useSyncExternalStore(
@@ -118,25 +112,29 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   usePlanData();
   const online = useOnline();
 
+  const router = useRouter();
+  // History lives only in this device's storage, so the transcript and its
+  // title cannot exist in the server HTML. This flips true after hydration;
+  // until then the derived title, transcript and rail are not rendered.
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [mode, setMode] = React.useState<ComposerMode>("chat");
   const [historyOpen, setHistoryOpen] = React.useState(true);
   const [historySheet, setHistorySheet] = React.useState(false);
   const [contextOpen, setContextOpen] = React.useState(false);
   const [contextSheet, setContextSheet] = React.useState(false);
   const [toolSheet, setToolSheet] = React.useState<ComposerMode | null>(null);
-  const [pendingDraft, setPendingDraft] = React.useState<
-    | { kind: "todos"; count: number }
-    | { kind: "mock"; draft: LogMockPayload }
-    | null
-  >(null);
-  const [approvalStatus, setApprovalStatus] = React.useState<
-    "pending" | "approved" | "denied" | null
-  >(null);
-  const [notes, setNotes] = React.useState<
-    Array<{ id: number; text: string; at: string }>
-  >([]);
-
-  const noteId = React.useRef(0);
+  /** A chat task suggestion seeds the tool's normal editable review flow. */
+  const [toolSuggestion, setToolSuggestion] =
+    React.useState<TaskSuggestion | null>(null);
+  /** The tool reports unapplied prompt or review work; closing asks first. */
+  const [toolDirty, setToolDirty] = React.useState(false);
+  const [discardOpen, setDiscardOpen] = React.useState(false);
+  /** Todos apply for real, so the transcript gets a receipt, not an approval. */
+  const [todoReceipt, setTodoReceipt] = React.useState<number | null>(null);
 
   const screen = React.useMemo(
     () => ({ view: "ask" as const, date: istTodayIso() }),
@@ -151,8 +149,6 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
   const streaming = ai.chat.streaming;
   const usage = ai.aiStatus?.usage;
   const personalKey = ai.aiStatus?.source === "user";
-  const model =
-    ai.aiStatus?.credential?.model ?? ai.aiStatus?.model ?? undefined;
 
   // Show the ThinkingIndicator at the top only when a turn is starting and no
   // assistant text or reasoning has begun streaming into the thread yet.
@@ -244,31 +240,23 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
     [contextParts],
   );
 
-  const note = React.useCallback((text: string) => {
-    noteId.current += 1;
-    setNotes((rows) => [
-      ...rows,
-      {
-        id: noteId.current,
-        text,
-        at: new Date().toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
-      },
-    ]);
-  }, []);
-
   const chats = React.useMemo(
     () =>
       ai.chat.history.conversations.map((conversation) => ({
         id: conversation.id,
         title: conversation.title,
         updatedAt: new Date(conversation.updatedAt),
+        // Search matches the conversation body, not just its title.
+        messages: conversation.messages.map((message) => ({
+          content: message.content,
+        })),
       })),
     [ai.chat.history.conversations],
   );
+
+  const activeChatTitle = chats.find(
+    (chat) => chat.id === ai.chat.history.activeId,
+  )?.title;
 
   const send = React.useCallback(
     (text: string) => ai.chat.send(text, screen, false),
@@ -284,6 +272,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       <ChatHistory
         chats={chats}
         activeId={ai.chat.history.activeId ?? undefined}
+        searchable
         onSelect={(id) => {
           ai.chat.history.select(id);
           setHistorySheet(false);
@@ -353,6 +342,66 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
     </button>
   );
 
+  const openTool = (tool: ComposerMode) => {
+    if (tool === "chat") return;
+    setMode(tool);
+    setToolSuggestion(null);
+    setToolDirty(false);
+    setDiscardOpen(false);
+    setToolSheet(tool);
+  };
+
+  const closeTool = () => {
+    setToolSheet(null);
+    setMode("chat");
+    setToolSuggestion(null);
+    setToolDirty(false);
+    setDiscardOpen(false);
+  };
+
+  /** Closing a tool with unapplied work asks in place — never a second modal. */
+  const requestCloseTool = () => {
+    if (toolDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    closeTool();
+  };
+
+  /** A suggestion opens Todos already seeded, still editable, nothing written. */
+  const reviewTask = (suggestion: TaskSuggestion) => {
+    setMode("todos");
+    setToolSuggestion(suggestion);
+    setDiscardOpen(false);
+    setToolSheet("todos");
+  };
+
+  const discardFooter = discardOpen ? (
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-[12px] leading-snug text-muted-foreground">
+        Discard this unapplied draft?
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setDiscardOpen(false)}
+        >
+          Keep editing
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={closeTool}
+        >
+          Discard
+        </Button>
+      </div>
+    </div>
+  ) : undefined;
+
   const modeChips = (
     <div className="flex min-w-0 items-center gap-1.5">
       <div
@@ -366,10 +415,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             type="button"
             role="tab"
             aria-selected={mode === item.id}
-            onClick={() => {
-              setMode(item.id);
-              if (item.id !== "chat") setToolSheet(item.id);
-            }}
+            onClick={() => openTool(item.id)}
             className={cn(
               "cursor-pointer rounded-full px-2.5 py-1 text-[12.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40",
               mode === item.id
@@ -393,13 +439,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
             description: item.description,
           }))}
           value="chat"
-          onValueChange={(next) => {
-            if (next !== "chat") {
-              const tool = next as ComposerMode;
-              setMode(tool);
-              setToolSheet(tool);
-            }
-          }}
+          onValueChange={(next) => openTool(next as ComposerMode)}
           label="Assistant mode"
           placeholder="Chat"
           width={230}
@@ -421,26 +461,8 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       </Popover>
       {ringSheetTrigger}
 
-      {/* Active Model Badge Chip inside input toolbar */}
-      {model ? (
-        <span
-          title={`Active model: ${model}`}
-          className="hidden max-w-[10.5rem] shrink-0 items-center gap-1.5 truncate rounded-full bg-muted/70 px-2.5 py-0.5 text-[11.5px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] sm:inline-flex sm:max-w-[14rem]"
-        >
-          <Sparkles
-            className="size-3 shrink-0 text-primary/80"
-            aria-hidden="true"
-          />
-          <span className="truncate">{formatModelName(model)}</span>
-        </span>
-      ) : null}
     </div>
   );
-
-  const closeTool = () => {
-    setToolSheet(null);
-    setMode("chat");
-  };
 
   return (
     // Real chrome above the page: the sticky 3.5rem header plus the wrappers'
@@ -452,85 +474,56 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
     // conversation — scrolls under the keyboard on a phone.
     <div className="-mb-8 flex h-[calc(100dvh-5.5rem)] min-h-0 min-w-0 flex-col gap-2 overflow-hidden md:-mb-10 md:h-[calc(100dvh-6rem)]">
       {/* ── header ───────────────────────────────────────── */}
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/50 pb-2.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_22%,transparent)]"
-          >
-            <Sparkles className="size-[18px]" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="truncate font-serif text-[1.1875rem] font-medium leading-tight tracking-[-0.01em] text-foreground">
-              Ask AI
-            </h1>
-            <p className="mt-0.5 hidden truncate text-[12px] leading-none text-muted-foreground sm:block">
-              {firstName ? `${firstName}'s study coach` : "Your study coach"} ·
-              answers from your tracker
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        density="compact"
+        className="shrink-0 border-border/50 [&_h1]:truncate"
+        title={(mounted ? activeChatTitle?.trim() : "") || "Ask AI"}
+        description={
+          firstName ? `${firstName}'s study coach` : "Your study coach"
+        }
+        actions={
+          <>
+            <Tooltip content="Start a new conversation">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="New chat"
+                onClick={() => ai.chat.history.newChat()}
+                icon={<Plus className="size-4" />}
+                className="[@media(pointer:coarse)]:size-11 sm:size-9"
+              />
+            </Tooltip>
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className="inline-flex md:hidden">
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => ai.chat.history.newChat()}
-              title="Start a new conversation"
-              aria-label="New chat"
-              className="size-9"
-              icon={<Plus className="size-4" />}
-            />
-          </span>
-
-          <span className="hidden md:inline-flex">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => ai.chat.history.newChat()}
-              title="Start a new conversation"
-              icon={<Plus className="size-3.5" />}
-            >
-              <span className="hidden md:inline">New chat</span>
-              <span className="sr-only md:hidden">New chat</span>
-            </Button>
-          </span>
-
-          <span className="hidden lg:inline-flex">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
               aria-pressed={historyOpen}
               aria-expanded={historyOpen}
               onClick={() => setHistoryOpen((open) => !open)}
-              icon={<History className="size-3.5" />}
+              className="hidden cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 lg:inline-flex"
             >
+              <History className="size-3.5" aria-hidden="true" />
               {historyOpen ? "Hide history" : "Show history"}
-            </Button>
-          </span>
+            </button>
 
-          <span className="inline-flex lg:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Conversation history"
-              onClick={() => setHistorySheet(true)}
-              className="size-9"
-            >
-              <History className="size-4" />
-            </Button>
-          </span>
-        </div>
-      </header>
+            <Tooltip content="Conversation history">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Conversation history"
+                onClick={() => setHistorySheet(true)}
+                icon={<History className="size-4" />}
+                className="[@media(pointer:coarse)]:size-11 lg:hidden"
+              />
+            </Tooltip>
+          </>
+        }
+      />
 
       {/* ── assimilated workspace (no outer box border or card background) ── */}
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {historyOpen ? (
+        {mounted && historyOpen ? (
           <aside
             aria-label="Conversation history"
             className="hidden min-h-0 w-[16rem] shrink-0 flex-col overflow-hidden border-r border-border/50 pr-1 lg:flex"
@@ -569,7 +562,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
           ) : null}
 
           {/* ── the conversation stream ── */}
-          {messages.length === 0 ? (
+          {!mounted ? null : messages.length === 0 ? (
             <ScrollArea
               className={cn("min-h-0 min-w-0 flex-1", INVISIBLE_SCROLL)}
               viewportClassName="h-full w-full"
@@ -610,7 +603,6 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                       role: message.role,
                       content: message.content,
                       at: message.at,
-                      model: message.role === "assistant" ? model : undefined,
                       // Only pass reasoning props when non-empty so AskMessage
                       // never mounts an empty thinking collapse with stray whitespace.
                       reasoning: hasReasoning ? trimmedReasoning : undefined,
@@ -622,9 +614,11 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                           : undefined,
                       stopped: message.stopped,
                       truncated: message.truncated,
+                      versions: message.versions,
                     }}
                     ai={ai}
                     onRetry={() => ai.chat.retryLast()}
+                    onReviewTask={reviewTask}
                     screenContext={screen}
                     phase={
                       !isActiveTurn ||
@@ -637,80 +631,23 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                 );
               })}
 
-              {pendingDraft ? (
-                <div className="min-w-0">
-                  <ApprovalCard
-                    title={
-                      pendingDraft.kind === "todos"
-                        ? `Apply ${pendingDraft.count} todo ${
-                            pendingDraft.count === 1 ? "change" : "changes"
-                          }?`
-                        : "Continue to the mock form with this draft?"
-                    }
-                    description={
-                      pendingDraft.kind === "todos"
-                        ? "The coach drafted these changes from your planner. Nothing is written until you approve."
-                        : "The parsed scorecard goes to the Add Mock form, which stays the only place that saves."
-                    }
-                    details={
-                      pendingDraft.kind === "todos"
-                        ? [
-                            { label: "Scope", value: "Personal tasks" },
-                            {
-                              label: "Changes",
-                              value: String(pendingDraft.count),
-                            },
-                          ]
-                        : [
-                            { label: "Scope", value: "Mock attempt" },
-                            {
-                              label: "Next step",
-                              value: "Review and save in /add",
-                            },
-                          ]
-                    }
-                    status={approvalStatus ?? "pending"}
-                    onApprove={() => {
-                      if (pendingDraft.kind === "mock") {
-                        useUiStore
-                          .getState()
-                          .requestMockPrefill(pendingDraft.draft);
-                        note("Draft sent to the mock form");
-                      } else {
-                        note(`${pendingDraft.count} todo changes applied`);
-                      }
-                      setApprovalStatus("approved");
-                      setPendingDraft(null);
-                    }}
-                    onDeny={() => {
-                      setApprovalStatus("denied");
-                      setPendingDraft(null);
-                      note("Draft dismissed");
-                    }}
-                    approveLabel={
-                      pendingDraft.kind === "mock" ? "Open the form" : "Apply"
-                    }
-                    denyLabel="Dismiss"
-                  />
-                </div>
-              ) : null}
-
-              {notes.length > 0 ? (
+              {todoReceipt !== null ? (
                 <div
-                  className="flex flex-col items-center gap-1.5 py-1"
-                  aria-live="polite"
+                  role="status"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-success/[0.07] px-3.5 py-2.5 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--success)_25%,transparent)]"
                 >
-                  {notes.map((row) => (
-                    <p
-                      key={row.id}
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
-                    >
-                      <Icon name="check" size={11} tone="success" />
-                      {row.text}
-                      <span aria-hidden="true">·</span>
-                      <span className="tabular-nums">{row.at}</span>
-                    </p>
-                  ))}
+                  <span className="flex items-center gap-2 text-[12.5px] text-foreground">
+                    <Icon name="check" size={13} tone="success" />
+                    {todoReceipt === 1
+                      ? "1 todo added to My Tasks"
+                      : `${todoReceipt} todos added to My Tasks`}
+                  </span>
+                  <Link
+                    href="/my-tasks"
+                    className="cursor-pointer text-[12.5px] font-medium text-primary underline decoration-primary/30 underline-offset-[3px] hover:decoration-primary"
+                  >
+                    View My Tasks
+                  </Link>
                 </div>
               ) : null}
             </ChatScroll>
@@ -770,7 +707,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
                 status={status}
                 onSubmit={(text) => void send(text)}
                 onStop={ai.chat.stop}
-                placeholder="Ask about your mocks, targets, or plan…"
+                placeholder="Ask about your mocks…"
                 disabled={!enabled || limitHit}
                 disabledReason={
                   !enabled
@@ -786,20 +723,10 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
               <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Icon name="shield" size={11} tone="primary" />
-                  Read-only
+                  AI can be wrong
                 </span>
-                <span aria-hidden="true" className="sm:inline">
-                  ·
-                </span>
-                <span className="hidden sm:inline">Latest 20 full mocks</span>
-                <span aria-hidden="true" className="hidden sm:inline">
-                  ·
-                </span>
-                <span className="hidden sm:inline">Notes never sent</span>
-                <span aria-hidden="true" className="hidden sm:inline">
-                  ·
-                </span>
-                <span>Answers can be wrong</span>
+                <span aria-hidden="true">·</span>
+                <span>Changes need your approval</span>
               </p>
             </div>
           </div>
@@ -834,7 +761,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       <Dialog
         open={toolSheet === "todos"}
         onOpenChange={(open) => {
-          if (!open) closeTool();
+          if (!open) requestCloseTool();
         }}
         title="Plan todos with AI"
         size="lg"
@@ -843,15 +770,27 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
           "min-h-0 overflow-y-auto overscroll-contain px-4 py-2 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6",
           NO_SCROLLBAR,
         )}
+        footer={discardFooter}
       >
         <TodoAiComposer
+          key={toolSuggestion?.title ?? "todos"}
           variant="page"
           compact={false}
           configured={enabled}
+          initialSuggestion={
+            toolSuggestion
+              ? {
+                  title: toolSuggestion.title,
+                  dueDate: toolSuggestion.dueDate ?? undefined,
+                  priority: toolSuggestion.priority,
+                  notes: toolSuggestion.notes || undefined,
+                }
+              : undefined
+          }
           onAiConfigured={() => void ai.refreshAiStatus()}
+          onDirtyChange={setToolDirty}
           onApplied={(count) => {
-            setPendingDraft({ kind: "todos", count });
-            setApprovalStatus("pending");
+            setTodoReceipt(count);
             closeTool();
           }}
         />
@@ -860,7 +799,7 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
       <Dialog
         open={toolSheet === "mock"}
         onOpenChange={(open) => {
-          if (!open) closeTool();
+          if (!open) requestCloseTool();
         }}
         title="Log a mock with AI"
         size="lg"
@@ -869,16 +808,19 @@ export function AskViewHairline({ firstName }: { firstName?: string }) {
           "min-h-0 overflow-y-auto overscroll-contain px-4 py-2 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6",
           NO_SCROLLBAR,
         )}
+        footer={discardFooter}
       >
         <LogMockFlow
           variant="page"
           configured={enabled}
           visionEnabled={ai.aiStatus?.credential?.visionEnabled === true}
           onAiConfigured={() => void ai.refreshAiStatus()}
+          onDirtyChange={setToolDirty}
           onLogMock={(draft) => {
-            setPendingDraft({ kind: "mock", draft });
-            setApprovalStatus("pending");
+            // The reviewed draft goes to the one save path; no second approval.
+            useUiStore.getState().requestMockPrefill(draft);
             closeTool();
+            router.push("/add");
           }}
         />
       </Dialog>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AlertCircle, Copy, RotateCcw, ThumbsDown, ThumbsUp } from "lucide-react";
 import { NumberRoll } from "./number-roll";
+import { Tooltip } from "./tooltip";
 
 /* ─────────────────────────────────────────────────────────
  * STREAMING ANSWER: an AI answer as it arrives
@@ -67,6 +68,8 @@ export interface StreamingTextProps extends Omit<React.HTMLAttributes<HTMLDivEle
   onRetry?: () => void;
   /** Your own renderer (e.g. Markdown) instead of `content`. */
   children?: React.ReactNode;
+  /** Compact gives the reading column one 10px block rhythm. */
+  density?: "default" | "compact";
 }
 
 type Token = { kind: "word" | "space"; text: string } | { kind: "cite"; citation: AnswerCitation };
@@ -138,12 +141,12 @@ const Paragraph = React.memo(
   (a, b) => a.signature === b.signature && a.caret === b.caret
 );
 
-export function StreamingText({ content = [], status = "done", onRetry, children, className = "", ...props }: StreamingTextProps) {
+export function StreamingText({ content = [], status = "done", onRetry, children, density = "default", className = "", ...props }: StreamingTextProps) {
   const streaming = status === "streaming";
   const paragraphs = children === undefined ? toParagraphs(content) : [];
 
   return (
-    <div aria-busy={streaming} className={`flex flex-col gap-3 text-[13.5px] leading-relaxed text-foreground ${className}`} {...props}>
+    <div aria-busy={streaming} className={`flex flex-col ${density === "compact" ? "gap-2.5" : "gap-3"} text-[13.5px] leading-relaxed text-foreground ${className}`} {...props}>
       {children ??
         paragraphs.map((tokens, i) => (
           <Paragraph
@@ -199,7 +202,7 @@ function IconButton({ label, pressed, disabled, onClick, children }: { label: st
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
-      className={`cursor-pointer disabled:cursor-default relative flex size-7 items-center justify-center rounded-md transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 ${
+      className={`cursor-pointer disabled:cursor-default relative flex size-7 items-center justify-center rounded-md transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 [@media(pointer:coarse)]:size-11 ${
         pressed ? "bg-accent text-foreground" : "text-muted-foreground"
       } ${FOCUS}`}
     >
@@ -241,23 +244,23 @@ export function AnswerActions({
   ...props
 }: AnswerActionsProps) {
   const reduced = useReducedMotion();
-  const [copied, setCopied] = React.useState(false);
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
   const [ownFeedback, setOwnFeedback] = React.useState<AnswerFeedback>(defaultFeedback);
   const current = feedback !== undefined ? feedback : ownFeedback;
 
   React.useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
+    if (copyState === "idle") return;
+    const timer = window.setTimeout(() => setCopyState("idle"), 2000);
     return () => window.clearTimeout(timer);
-  }, [copied]);
+  }, [copyState]);
 
   const copy = async () => {
     if (!copyText) return;
     try {
       await navigator.clipboard.writeText(copyText);
-      setCopied(true);
+      setCopyState("copied");
     } catch {
-      // Clipboard can be blocked by the browser; nothing to undo.
+      setCopyState("failed");
     }
   };
 
@@ -291,30 +294,34 @@ export function AnswerActions({
     <div className={`flex items-center justify-between gap-4 ${className}`} {...props}>
       <div className="flex items-center gap-1">
         {copyText !== undefined && (
-          <IconButton label="Copy answer" disabled={disabled} onClick={copy}>
-            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center" style={swap(!copied, reduced)}>
-              <Copy className="size-3.5" />
-            </span>
-            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400" style={swap(copied, reduced)}>
-              <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
-                <path
-                  d="M3.5 8.5 6.5 11.5 12.5 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  pathLength={1}
-                  strokeDasharray={1}
-                  style={{ strokeDashoffset: copied ? 0 : 1, transition: copied && !reduced ? `stroke-dashoffset 380ms ${MORPH} 100ms` : "none" }}
-                />
-              </svg>
-            </span>
-          </IconButton>
+          <Tooltip content={copyState === "failed" ? "Copy failed — try again" : copyState === "copied" ? "Copied" : "Copy answer"}>
+            <IconButton label="Copy answer" disabled={disabled} onClick={copy}>
+              <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center" style={swap(copyState !== "copied", reduced)}>
+                <Copy className="size-3.5" />
+              </span>
+              <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400" style={swap(copyState === "copied", reduced)}>
+                <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
+                  <path
+                    d="M3.5 8.5 6.5 11.5 12.5 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    pathLength={1}
+                    strokeDasharray={1}
+                    style={{ strokeDashoffset: copyState === "copied" ? 0 : 1, transition: copyState === "copied" && !reduced ? `stroke-dashoffset 380ms ${MORPH} 100ms` : "none" }}
+                  />
+                </svg>
+              </span>
+            </IconButton>
+          </Tooltip>
         )}
         {onRegenerate && (
-          <IconButton label="Regenerate" disabled={disabled} onClick={onRegenerate}>
-            <RotateCcw className="size-3.5" />
-          </IconButton>
+          <Tooltip content="Regenerate answer">
+            <IconButton label="Regenerate" disabled={disabled} onClick={onRegenerate}>
+              <RotateCcw className="size-3.5" />
+            </IconButton>
+          </Tooltip>
         )}
         <IconButton label="Helpful" pressed={current === "up"} disabled={disabled} onClick={() => rate("up")}>
           <Thumb filled={current === "up"} reduced={reduced} />
@@ -325,8 +332,11 @@ export function AnswerActions({
       </div>
       {/* Outside the buttons, so their names stay their labels. */}
       <span role="status" className="sr-only">
-        {copied ? "Copied" : ""}
+        {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : ""}
       </span>
+      {copyState === "failed" ? (
+        <span role="status" className="text-[11.5px] text-destructive">Copy failed — try again</span>
+      ) : null}
 
       {stack &&
         (onSourcesClick ? (

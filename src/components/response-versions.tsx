@@ -32,7 +32,7 @@ type Leaving = { key: string; node: React.ReactNode; dir: number };
 
 const MORPH = "cubic-bezier(0.16,1,0.3,1)";
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
-const ICON = `cursor-pointer disabled:cursor-default relative flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-35 ${FOCUS}`;
+const ICON = `cursor-pointer disabled:cursor-default relative flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-35 [@media(pointer:coarse)]:size-11 ${FOCUS}`;
 
 const reducedQuery = "(prefers-reduced-motion: reduce)";
 const subscribeReduced = (onChange: () => void) => {

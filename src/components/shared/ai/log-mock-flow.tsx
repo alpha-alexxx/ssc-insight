@@ -218,7 +218,7 @@ function SubjectRoster({
       </div>
 
       {/* ── Subject Rows ── */}
-      <div className="min-h-0 flex-1 py-1">
+      <div className="py-1">
         <ul className="divide-y divide-border/60 border-b border-border/60">
           {draft.subjects.map((subject, index) => {
             const incomplete = isSubjectIncomplete(subject);
@@ -384,6 +384,7 @@ export function LogMockFlow({
   variant = "compact",
   onTakeoverChange,
   onHandoff,
+  onDirtyChange,
 }: {
   configured: boolean;
   visionEnabled: boolean;
@@ -395,6 +396,8 @@ export function LogMockFlow({
   onTakeoverChange?: (active: boolean) => void;
   /** Fires after a successful hand-off to the real form. */
   onHandoff?: () => void;
+  /** Reports pasted, attached, or reviewed work that has not been handed off. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { activeShape } = useExamScope();
   const shape = activeShape ?? {
@@ -425,10 +428,23 @@ export function LogMockFlow({
 
   const page = variant === "page";
   const takeover = page && reviewing !== false && draft != null;
+  const dirty = Boolean(paste || images.length || draft);
 
   useLayoutEffect(() => {
     onTakeoverChange?.(takeover);
   }, [takeover, onTakeoverChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  function reset() {
+    setPaste("");
+    setImages([]);
+    setDraft(null);
+    setReviewing(false);
+    setError("");
+  }
 
   // Verify AI availability on mount
   useEffect(() => {
@@ -485,7 +501,7 @@ export function LogMockFlow({
         date: "",
       });
       onHandoff?.();
-      setPaste("");
+      reset();
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Could not read this report.",
@@ -499,12 +515,7 @@ export function LogMockFlow({
       const reviewed = extractionToAttempt(shape, draft, "");
       onLogMock(reviewed);
       onHandoff?.();
-      if (page) {
-        setPaste("");
-        setImages([]);
-        setDraft(null);
-        setReviewing(false);
-      }
+      reset();
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -537,18 +548,14 @@ export function LogMockFlow({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1">
+        <div>
           <ExtractionReview
             draft={draft}
             shape={shape}
             onChange={setDraft}
             onUse={useReviewed}
             onBack={() => setReviewing("roster")}
-            onDiscard={() => {
-              setDraft(null);
-              setReviewing(false);
-              setError("");
-            }}
+            onDiscard={reset}
           />
         </div>
       </div>

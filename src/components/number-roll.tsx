@@ -133,7 +133,10 @@ const Digit = React.memo(function Digit({ digit, trend, duration, reduced, rollI
   };
 
   return (
-    <span className="relative inline-block [clip-path:inset(0)]">
+    // overflow-hidden, not just clip-path: a clipped absolute strip still
+    // contributes to an ancestor scroller's scrollHeight, which left phantom
+    // blank space below short answers.
+    <span className="relative inline-block overflow-hidden [clip-path:inset(0)]">
       <span className="invisible">{digit}</span>
       <span
         ref={stripRef}

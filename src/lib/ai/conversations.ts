@@ -1,4 +1,5 @@
-import type { ChatMessage } from "./client-types";
+import type { ChatAnswerVersion, ChatMessage } from "./client-types";
+import { MAX_CHAT_ANSWER_VERSIONS } from "./chat-history";
 
 /**
  * Client-side conversation history for the AI coach.
@@ -36,6 +37,25 @@ function isRole(value: unknown): value is ChatMessage["role"] {
   return value === "user" || value === "assistant";
 }
 
+function parseAnswerVersion(value: unknown): ChatAnswerVersion | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.content !== "string") return null;
+  return {
+    content: record.content,
+    ...(typeof record.reasoning === "string" && record.reasoning
+      ? { reasoning: record.reasoning }
+      : {}),
+    ...(typeof record.reasoningSeconds === "number" &&
+    record.reasoningSeconds > 0
+      ? { reasoningSeconds: record.reasoningSeconds }
+      : {}),
+    ...(record.stopped === true ? { stopped: true } : {}),
+    ...(record.truncated === true ? { truncated: true } : {}),
+    ...(typeof record.at === "string" && record.at ? { at: record.at } : {}),
+  };
+}
+
 function parseMessage(value: unknown): ChatMessage | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
@@ -46,7 +66,17 @@ function parseMessage(value: unknown): ChatMessage | null {
     content: record.content,
   };
   if (record.truncated === true) message.truncated = true;
+  if (record.stopped === true) message.stopped = true;
   if (typeof record.at === "string" && record.at) message.at = record.at;
+  if (Array.isArray(record.versions)) {
+    const versions = record.versions
+      .map(parseAnswerVersion)
+      .filter((version): version is ChatAnswerVersion => version !== null)
+      .slice(-MAX_CHAT_ANSWER_VERSIONS);
+    // Deliberately parse only the answer fields: nested versions, ids and
+    // roles from corrupt or future data are never recursively retained.
+    if (versions.length) message.versions = versions;
+  }
   // Hidden reasoning and its measured duration survive persistence; older
   // rows without them stay valid.
   if (typeof record.reasoning === "string" && record.reasoning)

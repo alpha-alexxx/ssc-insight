@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight, Copy, Pencil } from "lucide-react";
 import { NumberRoll } from "./number-roll";
+import { Tooltip } from "./tooltip";
 
 /* ─────────────────────────────────────────────────────────
  * EDIT AND RESEND: change a sent message in place
@@ -37,7 +38,7 @@ export interface MessageEditProps extends Omit<React.HTMLAttributes<HTMLDivEleme
 const EASE = "cubic-bezier(0.23,1,0.32,1)";
 const MORPH = "cubic-bezier(0.16,1,0.3,1)";
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
-const ICON = `cursor-pointer disabled:cursor-default flex size-7 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.94] disabled:pointer-events-none disabled:opacity-35 [&_svg]:size-3.5 ${FOCUS}`;
+const ICON = `cursor-pointer disabled:cursor-default flex size-7 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.94] disabled:pointer-events-none disabled:opacity-35 [&_svg]:size-3.5 [@media(pointer:coarse)]:size-11 ${FOCUS}`;
 
 type Outgoing = { key: string; content: React.ReactNode; dir: number; width: number };
 
@@ -123,7 +124,7 @@ export function MessageEdit({
   const reduced = useReducedMotion();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(text);
-  const [copied, setCopied] = React.useState(false);
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
   const surfaceRef = React.useRef<HTMLDivElement>(null);
   const fieldRef = React.useRef<HTMLTextAreaElement>(null);
   const editRef = React.useRef<HTMLButtonElement>(null);
@@ -228,17 +229,17 @@ export function MessageEdit({
   });
 
   React.useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
+    if (copyState === "idle") return;
+    const timer = window.setTimeout(() => setCopyState("idle"), 2000);
     return () => window.clearTimeout(timer);
-  }, [copied]);
+  }, [copyState]);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
+      setCopyState("copied");
     } catch {
-      // Clipboard blocked; nothing to show.
+      setCopyState("failed");
     }
   };
 
@@ -361,25 +362,31 @@ export function MessageEdit({
             </span>
           </span>
         )}
-        <button type="button" aria-label="Copy message" onClick={copy} className={ICON}>
-          <CopyGlyph copied={copied} reduced={reduced} />
-        </button>
-        <button
-          ref={editRef}
-          type="button"
-          aria-label="Edit message"
-          title={disabled ? disabledReason : undefined}
-          aria-disabled={disabled || undefined}
-          onClick={start}
-          className={`${ICON} aria-disabled:cursor-not-allowed aria-disabled:opacity-35 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted-foreground`}
-        >
-          <Pencil />
-        </button>
+        <Tooltip content={copyState === "failed" ? "Copy failed — try again" : copyState === "copied" ? "Copied" : "Copy message"}>
+          <button type="button" aria-label="Copy message" onClick={copy} className={ICON}>
+            <CopyGlyph copied={copyState === "copied"} reduced={reduced} />
+          </button>
+        </Tooltip>
+        <Tooltip content={disabled ? disabledReason : "Edit and resend"}>
+          <button
+            ref={editRef}
+            type="button"
+            aria-label="Edit message"
+            aria-disabled={disabled || undefined}
+            onClick={start}
+            className={`${ICON} aria-disabled:cursor-not-allowed aria-disabled:opacity-35 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted-foreground`}
+          >
+            <Pencil />
+          </button>
+        </Tooltip>
       </div>
       {/* Outside the buttons, so their names stay their labels. */}
       <span role="status" className="sr-only">
-        {copied ? "Copied" : ""}
+        {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : ""}
       </span>
+      {copyState === "failed" ? (
+        <span role="status" className="mt-1 text-[11.5px] text-destructive">Copy failed — try again</span>
+      ) : null}
     </div>
   );
 }

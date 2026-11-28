@@ -30,6 +30,16 @@ export interface ChatSummary {
   pinned?: boolean;
   /** True while the title is being generated. */
   generating?: boolean;
+  /** Message text supplied by the parent for body search; never persisted here. */
+  messages?: Array<{ content: string }>;
+}
+
+/** Match the conversation-search policy without coupling this view to storage. */
+export function chatMatchesQuery(chat: ChatSummary, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  if ((chat.title ?? "").toLowerCase().includes(needle)) return true;
+  return chat.messages?.some((message) => message.content.toLowerCase().includes(needle)) ?? false;
 }
 
 export interface ChatHistoryProps extends Omit<React.HTMLAttributes<HTMLElement>, "onSelect"> {
@@ -446,7 +456,7 @@ export function ChatHistory({
   };
 
   const q = query.trim().toLowerCase();
-  const visible = chats.filter((c) => !q || (c.title ?? "").toLowerCase().includes(q));
+  const visible = chats.filter((chat) => chatMatchesQuery(chat, query));
   const groups = new Map<string, ChatSummary[]>();
   for (const chat of [...visible].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt))) {
     const name = chat.pinned ? "Pinned" : bucket(new Date(chat.updatedAt), today);
